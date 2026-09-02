@@ -1,0 +1,1364 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141f52">
+<title>Live-Übersetzung</title>
+
+<!--
+  ============================================================
+  Devarenu · Live-Übersetzung · Zuhörer-Oberfläche
+  ============================================================
+
+  Eine Datei. Kein Build, kein CDN, keine Internetverbindung.
+  Läuft im lokalen Gemeinde-WLAN, sobald sie ein Webserver ausliefert.
+
+  DREI STECKPLÄTZE fürs Backend, alle unten im Skript markiert
+  mit  ▼ STECKPLATZ 1/2/3 . Sonst ist nichts anzufassen.
+
+    1  Verbindung   ·  WebSocket statt Demo-Feed
+    2  Ton          ·  Audio-Häppchen abspielen
+    3  Sprachwechsel·  laufende Verbindung umstellen
+
+  Alles andere (Abschnittsbildung, Nachlesen, Wake Lock,
+  Media Session, Stummschalter-Probe, RTL, Beschriftungen)
+  ist fertig und backend-unabhängig.
+-->
+
+<style>
+/* ============================================================
+   Farben aus der Gemeindeaufnahme-Urkunde
+   ============================================================ */
+:root{
+  --tinte:        #141f52;   /* Marineblau, Schrift und Flächen */
+  --tinte-hell:   #34406f;
+  --violett:      #3b1e73;   /* linkes Ende des Bandes */
+  --indigo:       #1c3a8f;
+  --cyan:         #1fa5d8;   /* rechtes Ende, einziger Signalton */
+  --papier:       #f3f4f6;
+  --papier-tief:  #e7e9ee;
+  --blatt:        #ffffff;
+  --linie:        #d9dce4;
+  --leise:        #6b7385;
+
+  --rand: clamp(1rem, 4vw, 2.25rem);
+
+  /* Georgia trägt Latein und Kyrillisch, ist auf Windows, macOS,
+     iOS und den meisten Android-Geräten vorhanden. Bewusst keine
+     Webfonts: die Oberfläche muss ohne Internet laden. */
+  --display: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --lauf: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --schild: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--papier);
+  color:var(--tinte);
+  font-family:var(--lauf);
+  font-size:17px;
+  line-height:1.6;
+  -webkit-text-size-adjust:100%;
+  overscroll-behavior-y:none;
+}
+
+/* Persisch und Russisch brauchen eigene Fallbacks, sonst rendert
+   Windows sie in einer Ersatzschrift. */
+[lang="fa"]{
+  font-family:"Segoe UI", "Noto Naskh Arabic", Tahoma, serif;
+  line-height:2.05;
+  font-size:1.07em;
+}
+[lang="ru"]{font-family:Georgia, "Segoe UI", serif}
+
+:focus-visible{outline:2px solid var(--cyan); outline-offset:3px; border-radius:2px}
+
+/* ============================================================
+   Das Bandwerk der Urkunde. Nur zwei Ecken, sonst wird es laut.
+   ============================================================ */
+.band{position:fixed; pointer-events:none; z-index:0}
+.band svg{display:block}
+.band-oben{top:0; left:0; width:min(62vw,340px)}
+.band-unten{bottom:0; right:0; width:min(52vw,280px); transform:rotate(180deg)}
+
+/* Facettierter Grauton des Urkundenpapiers, sehr zurückhaltend */
+.facetten{
+  position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+  background:
+    linear-gradient(118deg, transparent 42%, var(--papier-tief) 42.2%, transparent 58%),
+    linear-gradient(160deg, transparent 68%, var(--papier-tief) 68.2%, transparent 84%);
+}
+
+/* ============================================================
+   Bildschirme
+   ============================================================ */
+.schirm{
+  position:relative; z-index:1;
+  min-height:100dvh;
+  display:none;
+  flex-direction:column;
+}
+.schirm.an{display:flex}
+
+/* ---------- Bildschirm 1: Ankommen ---------- */
+#ankommen{
+  padding:calc(var(--rand) + env(safe-area-inset-top)) var(--rand)
+          calc(var(--rand) + env(safe-area-inset-bottom));
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+}
+.mitte{width:100%; max-width:34rem}
+
+.wappen{
+  width:92px; height:92px; margin:0 auto 1.3rem;
+  display:grid; place-items:center;
+}
+.wappen img{width:100%; height:100%; object-fit:contain}
+
+/* Kleines Zeichen in der Kopfleiste des Hörbildschirms */
+.kopf-marke{width:22px; height:22px; flex:none; object-fit:contain; opacity:.85}
+
+h1{
+  font-family:var(--display);
+  font-weight:400;
+  font-size:clamp(1.85rem, 7vw, 2.7rem);
+  letter-spacing:.055em;
+  margin:0 0 .15em;
+  line-height:1.14;
+}
+.untertitel{
+  font-size:.94rem; color:var(--leise);
+  margin:0 0 2.1rem; letter-spacing:.02em;
+}
+.untertitel span{white-space:nowrap}
+.untertitel span + span::before{content:" · "; opacity:.55}
+
+.regel{
+  border:0; height:1px; background:var(--linie);
+  max-width:12rem; margin:0 auto 2rem;
+}
+
+.frage{
+  font-family:var(--schild); font-size:.72rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--leise);
+  margin:0 0 .85rem;
+}
+
+.sprachen{
+  display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem;
+  margin:0 0 1.9rem;
+}
+.sprache{
+  font:inherit; font-size:1.12rem;
+  padding:.95rem .6rem;
+  background:var(--blatt);
+  border:1px solid var(--linie);
+  color:var(--tinte);
+  cursor:pointer;
+  text-align:center;
+  transition:border-color .18s, box-shadow .18s;
+}
+.sprache small{
+  display:block; margin-top:.15rem;
+  font-family:var(--schild); font-size:.68rem; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--leise);
+}
+.sprache[aria-pressed="true"]{
+  border-color:var(--tinte);
+  box-shadow:inset 0 0 0 1px var(--tinte);
+}
+.sprache[aria-pressed="true"] small{color:var(--tinte-hell)}
+
+.hinweis{
+  border-left:2px solid var(--cyan);
+  background:var(--blatt);
+  padding:.85rem 1rem;
+  text-align:start;
+  font-size:.9rem;
+  color:var(--tinte-hell);
+  margin:0 0 1.8rem;
+}
+.hinweis b{color:var(--tinte); font-weight:600}
+
+.knopf-gross{
+  display:block; width:100%;
+  font-family:var(--display); font-size:1.16rem; letter-spacing:.09em;
+  padding:1.05rem 1rem;
+  color:#fff; border:0; cursor:pointer;
+  background:linear-gradient(100deg, var(--violett), var(--indigo) 52%, var(--cyan));
+}
+.knopf-gross:disabled{opacity:.45; cursor:default}
+.fussnote{
+  font-family:var(--schild); font-size:.75rem; color:var(--leise);
+  margin:.9rem 0 0;
+}
+
+/* ---------- Bildschirm 2: Zuhören ---------- */
+#zuhoeren{padding:0}
+
+.kopfleiste{
+  position:sticky; top:0; z-index:3;
+  background:rgba(243,244,246,.94);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--linie);
+  padding:calc(.7rem + env(safe-area-inset-top)) var(--rand) .7rem;
+  display:flex; align-items:center; gap:.75rem;
+}
+.kopf-titel{
+  font-family:var(--display); font-size:1rem; letter-spacing:.07em;
+  margin:0; flex:1; min-width:0;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.puls{
+  width:7px; height:7px; border-radius:50%;
+  background:var(--cyan); flex:none;
+}
+.puls.still{background:var(--linie)}
+@media (prefers-reduced-motion:no-preference){
+  .puls:not(.still){animation:atmen 2.6s ease-in-out infinite}
+}
+@keyframes atmen{0%,100%{opacity:1}50%{opacity:.25}}
+
+.zustand{
+  font-family:var(--schild); font-size:.72rem; letter-spacing:.06em;
+  color:var(--leise); white-space:nowrap;
+}
+
+/* Der Abschnittsstrom. Kein Wortticker: es erscheint erst,
+   was als Abschnitt abgeschlossen ist. */
+.strom{
+  flex:1;
+  padding:1.6rem var(--rand) 2rem;
+  max-width:40rem; width:100%; margin:0 auto;
+}
+.abschnitt{
+  background:var(--blatt);
+  border:1px solid var(--linie);
+  border-inline-start:2px solid var(--linie);
+  padding:1rem 1.15rem;
+  margin:0 0 .85rem;
+}
+.abschnitt.jetzt{border-inline-start-color:var(--cyan)}
+.abschnitt .zeit{
+  display:block;
+  font-family:var(--schild); font-size:.68rem; letter-spacing:.1em;
+  color:var(--leise); margin-bottom:.4rem;
+}
+.abschnitt p{margin:0}
+@media (prefers-reduced-motion:no-preference){
+  .abschnitt{animation:auftauchen .34s ease-out}
+}
+@keyframes auftauchen{from{opacity:0; transform:translateY(6px)}}
+
+.leerlauf{
+  text-align:center; color:var(--leise);
+  padding:3.5rem 1rem; font-size:.95rem;
+}
+
+/* Pille, wenn jemand hochgescrollt hat und nachliest */
+.nachschub{
+  position:fixed; z-index:4;
+  left:50%; transform:translateX(-50%);
+  bottom:calc(5.4rem + env(safe-area-inset-bottom));
+  font-family:var(--schild); font-size:.78rem;
+  background:var(--tinte); color:#fff;
+  border:0; border-radius:999px;
+  padding:.5rem 1.05rem; cursor:pointer;
+  display:none;
+}
+.nachschub.an{display:block}
+
+/* Beide Reihen kleben gemeinsam am unteren Rand. Zwei einzeln klebende
+   Leisten wuerden sich ueberlagern. */
+.fussblock{
+  position:sticky; bottom:0; z-index:3;
+  background:rgba(243,244,246,.94);
+  backdrop-filter:blur(8px);
+  border-top:1px solid var(--linie);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.fussleiste{
+  padding:.55rem var(--rand);
+  display:grid; grid-template-columns:repeat(3,1fr); gap:.4rem;
+}
+.werkzeug{
+  font-family:var(--schild); font-size:.76rem; letter-spacing:.03em;
+  background:none; border:0; color:var(--tinte-hell);
+  padding:.6rem .3rem; cursor:pointer; text-align:center;
+  border-radius:3px;
+}
+.werkzeug[aria-pressed="false"]{color:var(--leise)}
+.werkzeug .zeichen{display:block; font-size:1.15rem; line-height:1.25; margin-bottom:.05rem}
+
+.fahne{
+  background:var(--tinte); color:#fff;
+  font-family:var(--schild); font-size:.74rem;
+  text-align:center; padding:.5rem var(--rand);
+}
+.fahne.weg{display:none}
+
+dialog{
+  border:0; padding:0; max-width:min(92vw,26rem);
+  background:var(--blatt); color:var(--tinte);
+  box-shadow:0 14px 50px rgba(20,31,82,.24);
+}
+dialog::backdrop{background:rgba(20,31,82,.42)}
+.blatt-innen{padding:1.5rem}
+.blatt-innen h2{font-family:var(--display); font-weight:400; font-size:1.25rem; margin:0 0 .6rem}
+.blatt-innen p{font-size:.92rem; margin:0 0 1.1rem}
+.blatt-innen .sprachen{margin-bottom:1rem}
+#post-text{width:100%;font:inherit;font-size:.95rem;padding:.6rem;
+  border:1px solid var(--linie,#d9dce4);border-radius:2px;resize:vertical;
+  margin-bottom:.7rem;background:#fff;color:inherit}
+.blatt-hin{font-size:.85rem;opacity:.75;margin:0 0 .7rem}
+/* Zurueck zur Sprachauswahl. Ohne diesen Weg bleibt nur das Neuladen der
+   Seite, und darauf kommt im Gottesdienst niemand. */
+.zurueck{background:none;border:0;font:1.4rem/1 inherit;color:inherit;
+  opacity:.55;cursor:pointer;padding:0 .5rem 0 0;margin:0}
+.zurueck:hover,.zurueck:focus-visible{opacity:1}
+.becher{width:76px;height:64px;display:block;margin:0 auto .6rem;
+  color:var(--tinte,#141f52);opacity:.85}
+.dank-mail{margin:.2rem 0 1.1rem;font-size:1rem}
+.dank-mail a{color:var(--akzent,#1c3a8f);word-break:break-all}
+.spende-qr{display:block;width:150px;height:auto;margin:.5rem auto .4rem}
+/* Die Bankverbindung ist hier die Hauptsache, nicht eine Fussnote:
+   wer bis hierher liest, will sie abtippen oder scannen koennen. */
+.bankkasten{border:1px solid var(--linie,#d9dce4);padding:.8rem .9rem;
+  margin:0 0 1rem;text-align:center;background:rgba(255,255,255,.5)}
+.bank-name{font-weight:600;margin:0 0 .15rem;font-size:.95rem}
+.bank-haus{margin:0 0 .5rem;font-size:.85rem;opacity:.7}
+.bank-iban{font:600 1rem/1.4 ui-monospace,monospace;margin:0;
+  letter-spacing:.02em;user-select:all;-webkit-user-select:all;cursor:text}
+.bank-bic{font:.85rem/1.4 ui-monospace,monospace;margin:.15rem 0 0;
+  opacity:.7}
+/* Wer die Seite auf dem Handy liest, kann den QR-Code auf demselben Handy
+   nicht scannen. Ein Schema wie mailto: gibt es fuer Ueberweisungen nicht,
+   also bleibt der kurze Weg: kopieren, in die Banking-App wechseln,
+   einfuegen. */
+.kopierknopf{margin:.7rem 0 0;padding:.5rem 1rem;font:.85rem system-ui,sans-serif;
+  border:1px solid var(--linie,#d9dce4);background:transparent;
+  color:inherit;cursor:pointer}
+.kopierknopf:hover{border-color:currentColor}
+.kopierknopf.fertig{border-color:#1fa5d8;color:#1c3a8f}
+#dank-spende{border-top:1px solid var(--linie,#d9dce4);margin-top:.4rem;
+  padding-top:.9rem}
+
+/* Zweite Reihe: Wege aus der Seite heraus, nicht Wiedergabe. Kleiner und
+   blasser, damit sie die Bedienung nicht verdraengen. */
+.fussleiste.neben{border-top:1px solid var(--linie);
+  padding-top:.2rem;padding-bottom:.35rem}
+.werkzeug.klein{opacity:.6;font-size:.82rem;padding:.45rem .3rem;
+  text-decoration:none}
+.werkzeug.klein .zeichen{font-size:1rem}
+.werkzeug.klein:hover,.werkzeug.klein:focus-visible{opacity:1}
+/* Gestrichelte Kontur für ungeprüfte Sprachen: fällt auf, ohne zu warnen.
+   Sie funktionieren, nur hat ihre Terminologie noch niemand gegengelesen. */
+.sprachen button.ungeprueft{border-style:dashed}
+.sprachen button.ungeprueft::after{content:"•";position:absolute;top:.35rem;
+  right:.45rem;font-size:.7rem;opacity:.5;line-height:1}
+.sprachen button{position:relative}
+.neuband{margin:.9rem 0 0;padding:.6rem .8rem;font-size:.85rem;line-height:1.45;
+  border-left:3px solid var(--akzent,#1fa5d8);background:rgba(31,165,216,.08)}
+.knopf-klein{
+  font-family:var(--schild); font-size:.85rem;
+  padding:.6rem 1.1rem; cursor:pointer;
+  background:var(--tinte); color:#fff; border:0; width:100%;
+}
+.knopf-still{background:none; color:var(--leise); margin-top:.5rem}
+
+@media (min-width:34rem){
+  .sprachen{grid-template-columns:repeat(4,1fr)}
+}
+</style>
+</head>
+
+<body>
+
+<div class="facetten"></div>
+<div class="band band-oben" aria-hidden="true">
+  <svg viewBox="0 0 340 240">
+    <polygon points="0,0 340,0 0,240" fill="#f3f4f6"/>
+    <polygon points="0,0 232,0 0,168" fill="#1c3a8f"/>
+    <polygon points="0,0 178,0 0,128" fill="#3b1e73"/>
+    <polygon points="150,0 232,0 0,168 0,120" fill="#1fa5d8" opacity=".85"/>
+    <polygon points="196,0 260,0 0,192 0,166" fill="#141f52"/>
+  </svg>
+</div>
+<div class="band band-unten" aria-hidden="true">
+  <svg viewBox="0 0 280 200">
+    <polygon points="0,0 190,0 0,138" fill="#1c3a8f"/>
+    <polygon points="0,0 132,0 0,96" fill="#1fa5d8"/>
+    <polygon points="150,0 208,0 0,152 0,128" fill="#141f52"/>
+  </svg>
+</div>
+
+
+<!-- ==========================================================
+     Bildschirm 1
+     ========================================================== -->
+<section class="schirm an" id="ankommen">
+  <div class="mitte">
+
+    <div class="wappen">
+      <img src="logo.png" alt="Siebenten-Tags-Adventisten">
+    </div>
+
+    <h1>Live-Übersetzung</h1>
+    <p class="untertitel">
+      <span>Gottesdienst</span><span lang="en">Service</span><span lang="ru">Богослужение</span><span lang="fa">مراسم عبادت</span>
+    </p>
+
+    <hr class="regel">
+
+    <p class="frage" id="frage-sprache">Sprache wählen</p>
+    <div class="sprachen" id="sprachwahl" role="group" aria-labelledby="frage-sprache"></div>
+
+    <p class="neuband" id="neuband" hidden></p>
+
+    <p class="hinweis" id="ki-hinweis">
+      <b>Diese Übersetzung erstellt ein Computer.</b>
+      Sie wird während der Predigt automatisch erzeugt und kann Fehler
+      enthalten. Maßgeblich bleibt das gesprochene Wort.
+    </p>
+
+    <button class="knopf-gross" id="starten" disabled>Zuhören</button>
+    <p class="fussnote" id="start-fussnote">Zuerst eine Sprache wählen.</p>
+  </div>
+</section>
+
+
+<!-- ==========================================================
+     Bildschirm 2
+     ========================================================== -->
+<section class="schirm" id="zuhoeren">
+
+  <header class="kopfleiste">
+    <img class="kopf-marke" src="logo.png" alt="" aria-hidden="true">
+    <span class="puls still" id="puls" aria-hidden="true"></span>
+    <h2 class="kopf-titel" id="kopf-titel">Live-Übersetzung</h2>
+    <span class="zustand" id="zustand"></span>
+  </header>
+
+  <p class="fahne" id="fahne" role="status"></p>
+
+  <div class="strom" id="strom">
+    <p class="leerlauf" id="leerlauf">Sobald gesprochen wird, erscheint hier der erste Abschnitt.</p>
+  </div>
+
+  <button class="nachschub" id="nachschub"></button>
+
+  <div class="fussblock">
+  <nav class="fussleiste">
+    <button class="werkzeug" id="w-ton" aria-pressed="true">
+      <span class="zeichen" aria-hidden="true">◍</span><span class="beschriftung"></span>
+    </button>
+    <button class="werkzeug" id="w-text" aria-pressed="true">
+      <span class="zeichen" aria-hidden="true">≡</span><span class="beschriftung"></span>
+    </button>
+    <button class="werkzeug" id="w-sprache" aria-pressed="true">
+      <span class="zeichen" aria-hidden="true">◇</span><span class="beschriftung"></span>
+    </button>
+  </nav>
+
+  <!-- Zweite Reihe: was nicht die Wiedergabe betrifft. Bewusst kleiner,
+       damit die Bedienung darueber die Hauptsache bleibt. -->
+  <nav class="fussleiste neben">
+    <button class="werkzeug klein" id="zurueck">
+      <span class="zeichen" aria-hidden="true">←</span><span class="beschriftung"></span>
+    </button>
+    <button class="werkzeug klein" id="w-post">
+      <span class="zeichen" aria-hidden="true">✉</span><span class="beschriftung"></span>
+    </button>
+    <button class="werkzeug klein" id="rueckmeldung" hidden>
+      <span class="zeichen" aria-hidden="true">☺</span><span class="beschriftung"></span>
+    </button>
+  </nav>
+  </div>
+</section>
+
+
+<!-- Rückmeldung zum Programm. Anders als die Meldung ans Pult geht sie
+     nicht an die Technik vor Ort. -->
+<dialog id="dankblatt">
+  <div class="blatt-innen">
+    <!-- Der übliche Kaffeebecher, nur stimmt das Getränk nicht. -->
+    <svg class="becher" viewBox="0 0 120 100" aria-hidden="true">
+      <path d="M18 34h64v34a20 20 0 0 1-20 20H38a20 20 0 0 1-20-20z"
+            fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M82 44h10a12 12 0 0 1 0 24h-10" fill="none"
+            stroke="currentColor" stroke-width="3"/>
+      <path d="M36 24c0-6 6-6 6-12M52 24c0-6 6-6 6-12M68 24c0-6 6-6 6-12"
+            fill="none" stroke="currentColor" stroke-width="2.5"
+            opacity=".55" stroke-linecap="round"/>
+      <text id="becher-kaffee" x="50" y="58" text-anchor="middle"
+            font-size="13" fill="currentColor" opacity=".8">Coffee</text>
+      <line x1="26" y1="54" x2="74" y2="54" stroke="currentColor"
+            stroke-width="2.5"/>
+      <text id="becher-tee" x="50" y="76" text-anchor="middle" font-size="16"
+            font-family="'Comic Sans MS','Comic Sans',cursive"
+            fill="currentColor">Tea</text>
+    </svg>
+
+    <h2 id="dank-titel">Rückmeldung</h2>
+    <p class="blatt-hin" id="dank-text"></p>
+    <p class="dank-mail"><a id="dank-mail" href="#"></a></p>
+
+    <div id="dank-spende" hidden>
+      <p class="blatt-hin" id="dank-spende-text"></p>
+      <img class="spende-qr" id="spende-qr" src="/spende.svg" alt=""
+           onerror="this.remove()">
+      <div class="bankkasten">
+        <p class="bank-name" id="dank-name"></p>
+        <p class="bank-haus" id="dank-bank"></p>
+        <p class="bank-iban" id="dank-iban"></p>
+        <p class="bank-bic" id="dank-bic"></p>
+        <button class="kopierknopf" id="iban-kopieren"></button>
+      </div>
+    </div>
+
+    <button class="knopf-klein knopf-still" id="dank-zu">Schließen</button>
+  </div>
+</dialog>
+
+<!-- Meldung an die Technik. Bewusst nur in diese Richtung und ohne
+     Antwort: wer im Gottesdienst sitzt, soll etwas loswerden koennen,
+     ohne aufzustehen, aber kein Gespraech beginnen. -->
+<dialog id="postblatt">
+  <div class="blatt-innen">
+    <h2 id="post-titel">Nachricht an die Technik</h2>
+    <p class="blatt-hin" id="post-hin"></p>
+    <textarea id="post-text" rows="3" maxlength="200"></textarea>
+    <button class="knopf-klein" id="post-senden">Senden</button>
+    <button class="knopf-klein knopf-still" id="post-zu">Abbrechen</button>
+  </div>
+</dialog>
+
+<!-- Sprachwechsel im laufenden Betrieb -->
+<dialog id="wechsel">
+  <div class="blatt-innen">
+    <h2 id="wechsel-titel">Sprache wechseln</h2>
+    <div class="sprachen" id="wechsel-wahl"></div>
+    <button class="knopf-klein knopf-still" id="wechsel-zu">Abbrechen</button>
+  </div>
+</dialog>
+
+
+<script>
+"use strict";
+
+/* ============================================================
+   Sprachen und Beschriftungen
+   Die Oberfläche spricht die gewählte Sprache. Wer Farsi hört,
+   liest kein deutsches "Ton aus".
+   ============================================================ */
+/* Eigenbezeichnungen. Wer Ukrainisch sucht, sucht "Українська", nicht
+   "Ukrainisch": auf der Auswahlseite steht noch keine Sprache fest, also
+   muss jeder seinen eigenen Namen lesen können. */
+const EIGENNAME = {
+  de:{name:"Deutsch",     kuerzel:"DE", rtl:false},
+  en:{name:"English",     kuerzel:"EN", rtl:false},
+  ru:{name:"Русский",     kuerzel:"RU", rtl:false},
+  fa:{name:"فارسی",       kuerzel:"FA", rtl:true },
+  uk:{name:"Українська",  kuerzel:"UK", rtl:false},
+  pl:{name:"Polski",      kuerzel:"PL", rtl:false},
+  ro:{name:"Română",      kuerzel:"RO", rtl:false},
+  es:{name:"Español",     kuerzel:"ES", rtl:false},
+  fr:{name:"Français",    kuerzel:"FR", rtl:false},
+  pt:{name:"Português",   kuerzel:"PT", rtl:false},
+  it:{name:"Italiano",    kuerzel:"IT", rtl:false},
+  tr:{name:"Türkçe",      kuerzel:"TR", rtl:false},
+  ar:{name:"العربية",     kuerzel:"AR", rtl:true },
+  sw:{name:"Kiswahili",   kuerzel:"SW", rtl:false},
+  nl:{name:"Nederlands",  kuerzel:"NL", rtl:false},
+  vi:{name:"Tiếng Việt",  kuerzel:"VI", rtl:false},
+  hu:{name:"Magyar",      kuerzel:"HU", rtl:false},
+  cs:{name:"Čeština",     kuerzel:"CS", rtl:false},
+  sr:{name:"Српски",      kuerzel:"SR", rtl:false},
+  el:{name:"Ελληνικά",    kuerzel:"EL", rtl:false},
+  ka:{name:"ქართული",     kuerzel:"KA", rtl:false},
+};
+
+/* Welche Sprachen tatsächlich angeboten werden, sagt der Server. Am Pult
+   wird ausgewählt, was mitläuft; diese Seite richtet sich danach, statt
+   eine feste Liste zu führen. Bis die Antwort da ist, steht ein Vorrat
+   bereit, damit die Seite auch ohne Verbindung etwas anzeigt. */
+let SPRACHEN = {de:EIGENNAME.de, en:EIGENNAME.en,
+                ru:EIGENNAME.ru, fa:EIGENNAME.fa};
+
+async function sprachenHolen(){
+  try{
+    const antwort = await fetch("/api/sprachen");
+    const daten = await antwort.json();
+    const neu = {};
+    for(const eintrag of daten.liste){
+      const e = EIGENNAME[eintrag.code] || {
+        name: eintrag.name, kuerzel: eintrag.code.toUpperCase(), rtl:false};
+      neu[eintrag.code] = Object.assign({}, e, {
+        original: eintrag.original, ton: eintrag.ton,
+        geprueft: eintrag.geprueft});
+    }
+    if(Object.keys(neu).length) SPRACHEN = neu;
+    rueckmeldungSetzen(daten.rueckmeldung || "", daten.spende || null);
+  }catch(e){ /* Vorrat behalten */ }
+}
+
+const TEXTE = {
+  de:{titel:"Live-Übersetzung", waehlen:"Sprache wählen", zuhoeren:"Zuhören",
+      erst:"Zuerst eine Sprache wählen.",
+      ton:"Ton", tonAus:"Ton aus", text:"Text", textAus:"Text aus", sprache:"Sprache",
+      warten:"Sobald gesprochen wird, erscheint hier der erste Abschnitt.",
+      neu:"Neue Abschnitte", verbinde:"verbindet", live:"live", pause:"Pause",
+      getrennt:"getrennt", wechseln:"Sprache wechseln", abbrechen:"Abbrechen",
+      stumm:"Kein Ton? Am iPhone den seitlichen Schalter umlegen, sonst bleibt es still.",
+      bildschirm:"Bildschirm anlassen, sonst stoppt die Wiedergabe.",
+      kiKurz:"Automatische Übersetzung, Fehler möglich.",
+      post:"Melden", postTitel:"Nachricht an die Technik",
+      postHin:"Fehlt eine Sprache? Ist der Ton zu leise? Kurz schreiben, die Technik sieht es sofort. Eine Antwort kommt nicht, dafür ist während des Gottesdienstes keine Zeit.",
+      postSenden:"Senden", postDank:"Angekommen. Danke!",
+      zurueck:"Zurück", rueckmeldung:"Rückmeldung", schliessen:"Schließen",
+      dankText:"Du möchtest mir Rückmeldung geben? Ich arbeite ständig an besseren Fassungen. Schreib mir gern:",
+      dankSpende:"Du möchtest das Projekt unterstützen? Nicht nötig, als Pastor werde ich schon durch deinen Zehnten getragen. Wenn du trotzdem etwas geben möchtest, spende gern an die Freikirche. Der Betrag im Code ist nur ein Vorschlag und in der Banking-App änderbar:",
+      becherKaffee:"Kaffee", becherTee:"Tee",
+      ibanKopieren:"IBAN kopieren", ibanKopiert:"Kopiert",
+      ibanVonHand:"Bitte von Hand kopieren",
+      neuHinweis:"Diese Sprache ist neu und ihre Fachbegriffe hat noch niemand gegengelesen, der sie spricht. Sie funktioniert, kann aber mehr Fehler enthalten. Rückmeldungen sind sehr willkommen."},
+  en:{titel:"Live translation", waehlen:"Choose a language", zuhoeren:"Listen",
+      erst:"Choose a language first.",
+      ton:"Sound", tonAus:"Sound off", text:"Text", textAus:"Text off", sprache:"Language",
+      warten:"The first section appears once the speaker begins.",
+      neu:"New sections", verbinde:"connecting", live:"live", pause:"paused",
+      getrennt:"disconnected", wechseln:"Change language", abbrechen:"Cancel",
+      stumm:"No sound? Flip the side switch on your iPhone.",
+      bildschirm:"Keep the screen on, otherwise playback stops.",
+      kiKurz:"Automatic translation, errors possible.",
+      post:"Message", postTitel:"Message to the sound desk",
+      postHin:"Missing a language? Sound too quiet? Write a line, the technician sees it right away. There will be no reply, there is no time for that during the service.",
+      postSenden:"Send", postDank:"Received. Thank you!",
+      zurueck:"Back", rueckmeldung:"Feedback", schliessen:"Close",
+      dankText:"Want to give feedback? I keep working on better versions. Write to me:",
+      dankSpende:"Want to support the project? No need, as a pastor I am already carried by your tithe. But if you would still like to give something, please donate to the church. The amount in the code is only a suggestion and can be changed in your banking app:",
+      becherKaffee:"Coffee", becherTee:"Tea",
+      ibanKopieren:"Copy IBAN", ibanKopiert:"Copied",
+      ibanVonHand:"Please copy manually",
+      neuHinweis:"This language is new and its technical terms have not yet been reviewed by a native speaker. It works, but may contain more errors. Feedback is very welcome."},
+  ru:{titel:"Синхронный перевод", waehlen:"Выберите язык", zuhoeren:"Слушать",
+      erst:"Сначала выберите язык.",
+      ton:"Звук", tonAus:"Звук выкл.", text:"Текст", textAus:"Текст выкл.", sprache:"Язык",
+      warten:"Первый отрывок появится, как только начнётся проповедь.",
+      neu:"Новые отрывки", verbinde:"соединение", live:"эфир", pause:"пауза",
+      getrennt:"нет связи", wechseln:"Сменить язык", abbrechen:"Отмена",
+      stumm:"Нет звука? Переключите боковой переключатель на iPhone.",
+      bildschirm:"Не гасите экран, иначе воспроизведение остановится.",
+      kiKurz:"Автоматический перевод, возможны ошибки.",
+      post:"Сообщить", postTitel:"Сообщение технику",
+      postHin:"Не хватает языка? Слишком тихо? Напишите коротко, техник сразу увидит. Ответа не будет, во время богослужения на это нет времени.",
+      postSenden:"Отправить", postDank:"Получено. Спасибо!",
+      zurueck:"Назад", rueckmeldung:"Отзыв", schliessen:"Закрыть",
+      dankText:"Хотите оставить отзыв? Я постоянно работаю над улучшениями. Напишите мне:",
+      dankSpende:"Хотите поддержать проект? Не нужно: как пастор я уже получаю поддержку через вашу десятину. Если вы всё же хотите что-то дать, пожертвуйте церкви. Сумма в коде — только предложение, её можно изменить в банковском приложении:",
+      becherKaffee:"Кофе", becherTee:"Чай",
+      ibanKopieren:"Скопировать IBAN", ibanKopiert:"Скопировано",
+      ibanVonHand:"Скопируйте вручную",
+      neuHinweis:"Этот язык новый, его терминологию ещё не проверял носитель языка. Перевод работает, но ошибок может быть больше. Отзывы очень приветствуются."},
+  fa:{titel:"ترجمهٔ همزمان", waehlen:"زبان را انتخاب کنید", zuhoeren:"شنیدن",
+      erst:"ابتدا یک زبان انتخاب کنید.",
+      ton:"صدا", tonAus:"صدا خاموش", text:"متن", textAus:"متن خاموش", sprache:"زبان",
+      warten:"به‌محض آغاز سخنرانی، نخستین بخش اینجا نمایان می‌شود.",
+      neu:"بخش‌های تازه", verbinde:"در حال اتصال", live:"زنده", pause:"مکث",
+      getrennt:"قطع شد", wechseln:"تغییر زبان", abbrechen:"انصراف",
+      stumm:"صدا ندارید؟ کلید کنار آیفون را جابه‌جا کنید.",
+      bildschirm:"صفحه را روشن نگه دارید، وگرنه پخش متوقف می‌شود.",
+      kiKurz:"ترجمهٔ خودکار، احتمال خطا وجود دارد.",
+      post:"پیام", postTitel:"پیام به مسئول فنی",
+      postHin:"زبانی کم است؟ صدا کم است؟ کوتاه بنویسید، مسئول فنی فوراً می‌بیند. پاسخی داده نمی‌شود؛ در حین مراسم فرصت آن نیست.",
+      postSenden:"ارسال", postDank:"دریافت شد. سپاسگزاریم!",
+      zurueck:"بازگشت", rueckmeldung:"بازخورد", schliessen:"بستن",
+      dankText:"می‌خواهید بازخورد بدهید؟ من پیوسته روی نسخه‌های بهتر کار می‌کنم. برایم بنویسید:",
+      dankSpende:"می‌خواهید از پروژه حمایت کنید؟ لازم نیست؛ به عنوان شبان از طریق ده‌یک شما پشتیبانی می‌شوم. اگر باز هم مایل به کمک هستید، لطفاً به کلیسا کمک کنید. مبلغ در کد فقط پیشنهاد است و در برنامهٔ بانکی قابل تغییر است:",
+      becherKaffee:"قهوه", becherTee:"چای",
+      ibanKopieren:"کپی IBAN", ibanKopiert:"کپی شد",
+      ibanVonHand:"لطفاً دستی کپی کنید",
+      neuHinweis:"این زبان تازه است و اصطلاحات تخصصی آن را هنوز کسی که به این زبان سخن می‌گوید بازبینی نکرده است. کار می‌کند، اما ممکن است خطای بیشتری داشته باشد. بازخورد شما بسیار ارزشمند است."},
+};
+
+
+/* ============================================================
+   Zustand
+   ============================================================ */
+const zustand = {
+  sprache: null,
+  laeuft: false,
+  tonAn: true,
+  textAn: true,
+  abschnitte: 0,
+  amEnde: true,      // liest der Nutzer gerade unten mit?
+  ungelesen: 0,
+};
+
+const $ = (id) => document.getElementById(id);
+/* Oberflächentexte gibt es nur für einige Sprachen. Für alle anderen ist
+   Englisch der bessere Rückfall als Deutsch: wer Ukrainisch wählt, kommt
+   mit englischen Schaltflächen eher zurecht als mit deutschen. */
+const t = () => TEXTE[zustand.sprache] || TEXTE.en || TEXTE.de;
+
+
+/* ============================================================
+   Abschnittsbildung
+   ------------------------------------------------------------
+   Das Backend liefert kleine Häppchen von im Schnitt sieben
+   Wörtern. Einzeln angezeigt wäre das ein Flackern, das vom
+   Zuhören abhält. Deshalb sammelt der Client, bis ein Abschnitt
+   rund ist, und schiebt ihn dann als Ganzes nach. Wer abgelenkt
+   war, findet einen lesbaren Absatz vor, keine Wortkette.
+   ============================================================ */
+const ABSCHNITT = {
+  woerterMin: 28,     // darunter wird nicht abgeschlossen
+  woerterMax: 65,     // darüber wird beim nächsten Satzende geschnitten
+  stilleMs: 3500,     // so lange Pause schließt einen Abschnitt ebenfalls
+};
+
+const puffer = {teile:[], woerter:0, seit:0, uhr:null};
+
+function haeppchenAufnehmen(h){
+  // h = {text, ende_sekunde, absatz_ende}
+  if(!h || !h.text) return;
+  if(puffer.teile.length === 0) puffer.seit = Date.now();
+  puffer.teile.push(h.text.trim());
+  puffer.woerter += h.text.trim().split(/\s+/).length;
+
+  const satzende = /[.!?…؟]["»”']?$/.test(h.text.trim());
+  const reif = puffer.woerter >= ABSCHNITT.woerterMin && satzende;
+  const voll = puffer.woerter >= ABSCHNITT.woerterMax;
+
+  if(h.absatz_ende || reif || voll){
+    abschnittSchliessen();
+  }else{
+    clearTimeout(puffer.uhr);
+    puffer.uhr = setTimeout(abschnittSchliessen, ABSCHNITT.stilleMs);
+  }
+}
+
+function abschnittSchliessen(){
+  clearTimeout(puffer.uhr);
+  if(!puffer.teile.length) return;
+  const text = puffer.teile.join(" ").replace(/\s+/g," ").trim();
+  const seit = puffer.seit;
+  puffer.teile = []; puffer.woerter = 0;
+  abschnittZeigen(text, seit);
+}
+
+function abschnittZeigen(text, zeitpunkt){
+  const strom = $("strom");
+  $("leerlauf")?.remove();
+
+  document.querySelectorAll(".abschnitt.jetzt").forEach(e => e.classList.remove("jetzt"));
+
+  const el = document.createElement("article");
+  el.className = "abschnitt jetzt";
+  el.lang = zustand.sprache;
+  el.dir = (SPRACHEN[zustand.sprache] || {}).rtl ? "rtl" : "ltr";
+
+  const uhr = document.createElement("span");
+  uhr.className = "zeit";
+  uhr.textContent = new Date(zeitpunkt).toLocaleTimeString(zustand.sprache, {hour:"2-digit", minute:"2-digit"});
+
+  const p = document.createElement("p");
+  p.textContent = text;
+
+  el.append(uhr, p);
+  strom.append(el);
+  zustand.abschnitte++;
+
+  if(zustand.amEnde){
+    el.scrollIntoView({block:"end", behavior:"smooth"});
+  }else{
+    zustand.ungelesen++;
+    nachschubZeigen();
+  }
+}
+
+function nachschubZeigen(){
+  const k = $("nachschub");
+  k.textContent = `${t().neu} (${zustand.ungelesen}) ↓`;
+  k.classList.add("an");
+}
+
+
+/* ============================================================
+   Nachlesen ohne Wegspringen
+   Wer hochscrollt, wird nicht vom Autoscroll gestört.
+   ============================================================ */
+let scrollUhr = null;
+window.addEventListener("scroll", () => {
+  clearTimeout(scrollUhr);
+  scrollUhr = setTimeout(() => {
+    const rest = document.body.scrollHeight - (window.scrollY + window.innerHeight);
+    zustand.amEnde = rest < 120;
+    if(zustand.amEnde){
+      zustand.ungelesen = 0;
+      $("nachschub").classList.remove("an");
+    }
+  }, 90);
+}, {passive:true});
+
+$("nachschub").addEventListener("click", () => {
+  window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
+  zustand.amEnde = true; zustand.ungelesen = 0;
+  $("nachschub").classList.remove("an");
+});
+
+
+/* ============================================================
+   Bildschirm anlassen + Sperrbildschirm
+   Android beendet Audio beim Sperren schneller als iOS. Wake Lock
+   hält den Bildschirm wach, Media Session hält die Wiedergabe in
+   der Systemleiste sichtbar und damit am Leben.
+   ============================================================ */
+let wachschloss = null;
+
+async function bildschirmWachhalten(){
+  try{
+    if("wakeLock" in navigator){
+      wachschloss = await navigator.wakeLock.request("screen");
+      wachschloss.addEventListener("release", () => { wachschloss = null; });
+      return true;
+    }
+  }catch(e){ /* Akkusparmodus verweigert das, kein Fehlerfall */ }
+  return false;
+}
+
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible" && zustand.laeuft && !wachschloss){
+    bildschirmWachhalten();
+  }
+});
+
+function systemleisteSetzen(){
+  if(!("mediaSession" in navigator)) return;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: t().titel,
+    artist: (SPRACHEN[zustand.sprache] || {}).name || zustand.sprache,
+    album: "Gottesdienst",
+  });
+  navigator.mediaSession.setActionHandler("pause", () => tonSchalten(false));
+  navigator.mediaSession.setActionHandler("play",  () => tonSchalten(true));
+}
+
+
+/* ============================================================
+   Tonfreigabe und Stummschalter-Probe
+   ------------------------------------------------------------
+   iOS und Android spielen ohne vorherige Nutzergeste gar nichts.
+   Der Zuhören-Knopf ist diese Geste. Den seitlichen Stummschalter
+   des iPhones kann keine Schnittstelle abfragen, deshalb ein
+   kurzer, fast unhörbarer Prüfton statt einer Abfrage: bleibt der
+   Kontext danach blockiert, erscheint der Hinweis.
+   ============================================================ */
+let tonkontext = null;
+
+async function tonFreischalten(){
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return false;
+    tonkontext = tonkontext || new AC();
+    if(tonkontext.state === "suspended") await tonkontext.resume();
+
+    const o = tonkontext.createOscillator();
+    const g = tonkontext.createGain();
+    g.gain.value = 0.0001;                 // hörbar für das System, nicht für Menschen
+    o.connect(g).connect(tonkontext.destination);
+    o.start(); o.stop(tonkontext.currentTime + 0.05);
+
+    return tonkontext.state === "running";
+  }catch(e){ return false; }
+}
+
+
+/* ============================================================
+   Verbindung zum Server
+   ------------------------------------------------------------
+   Ein WebSocket je Zuhörer. Nachrichtenformat:
+
+     {typ:"segment", id:17, text:"...", absatz_ende:false,
+      dauer:2.4, audio:"/ton/ru/17"}
+     {typ:"zustand", live:true}
+
+   Fällt die Verbindung, wird mit wachsendem Abstand neu versucht.
+   Im Gottesdienst reicht ein kurzer Funkaussetzer, damit das
+   Handy einmal abfliegt, und niemand tippt dann auf "neu laden".
+   ============================================================ */
+const Verbindung = {
+  draht: null,
+  gewollt: false,
+  versuche: 0,
+  _uhr: null,
+
+  verbinden(sprache){
+    this.gewollt = true;
+    clearTimeout(this._uhr);
+    zustandZeigen("verbinde");
+
+    const schema = location.protocol === "https:" ? "wss" : "ws";
+    const ziel = `${schema}://${location.host}/strom?sprache=${sprache}`;
+
+    try{ this.draht = new WebSocket(ziel); }
+    catch(e){ this._spaeter(sprache); return; }
+
+    this.draht.onopen = () => {
+      this.versuche = 0;
+      zustandZeigen("live");
+    };
+
+    this.draht.onmessage = (n) => {
+      let d;
+      try{ d = JSON.parse(n.data); }catch(e){ return; }
+
+      if(d.typ === "segment"){
+        haeppchenAufnehmen(d);
+        if(d.audio) Ton.einreihen(d.audio);
+      }else if(d.typ === "zustand"){
+        zustandZeigen(d.live ? "live" : "pause");
+      }
+    };
+
+    this.draht.onclose = () => {
+      if(!this.gewollt) return;
+      zustandZeigen("getrennt");
+      this._spaeter(sprache);
+    };
+
+    this.draht.onerror = () => { try{ this.draht.close(); }catch(e){} };
+  },
+
+  trennen(){
+    this.gewollt = false;
+    clearTimeout(this._uhr);
+    try{ this.draht && this.draht.close(); }catch(e){}
+    this.draht = null;
+    abschnittSchliessen();
+    zustandZeigen("getrennt");
+  },
+
+  // 1s, 2s, 4s ... höchstens 15s. Nicht im Sekundentakt hämmern,
+  // sonst hängen bei einem Serverneustart 40 Handys gleichzeitig dran.
+  _spaeter(sprache){
+    this.versuche++;
+    const wartezeit = Math.min(15000, 1000 * Math.pow(2, this.versuche - 1));
+    this._uhr = setTimeout(() => {
+      if(this.gewollt) this.verbinden(sprache);
+    }, wartezeit);
+  },
+};
+
+
+/* ============================================================
+   Ton
+   ------------------------------------------------------------
+   Eine Warteschlange auf EINEM einzigen Audio-Element. Das ist der
+   Kern: iOS erlaubt Wiedergabe nur auf einem Element, das einmal
+   innerhalb einer echten Nutzergeste angespielt wurde. Für jedes
+   Häppchen ein neues `new Audio()` zu bauen funktioniert am
+   Schreibtisch und schweigt auf dem iPhone.
+
+   Läuft die Wiedergabe der Sprache hinterher, wächst die Schlange.
+   Ab einer Grenze werden die ältesten Häppchen verworfen: lieber
+   eine Lücke als eine Übersetzung, die eine Minute nachhinkt.
+   ============================================================ */
+const Ton = {
+  spieler: null,
+  schlange: [],
+  spielt: false,
+  hoechstens: 6,
+  verworfen: 0,
+
+  // Muss aus einem Klick heraus aufgerufen werden.
+  freischalten(){
+    if(this.spieler) return;
+    const a = document.createElement("audio");
+    a.setAttribute("playsinline", "");
+    a.preload = "auto";
+    // 0,05 s Stille als data-URI. Das Anspielen entsperrt das Element.
+    a.src = "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQ4AAAAAAAAAAAAAAAAAAAAAAA==";
+    a.play().catch(() => {});
+    a.addEventListener("ended", () => this._fertig());
+    a.addEventListener("error", () => this._fertig());
+    this.spieler = a;
+  },
+
+  einreihen(url){
+    if(!url || !zustand.tonAn || !this.spieler) return;
+    this.schlange.push(url);
+    while(this.schlange.length > this.hoechstens){
+      this.schlange.shift();
+      this.verworfen++;
+    }
+    this._weiter();
+  },
+
+  leeren(){
+    this.schlange = [];
+    if(this.spieler){ try{ this.spieler.pause(); }catch(e){} }
+    this.spielt = false;
+  },
+
+  _weiter(){
+    if(this.spielt || !this.schlange.length || !zustand.tonAn) return;
+    const url = this.schlange.shift();
+    this.spielt = true;
+    this.spieler.src = url;
+    this.spieler.play().catch(() => this._fertig());
+  },
+
+  _fertig(){
+    this.spielt = false;
+    this._weiter();
+  },
+};
+
+
+/* ============================================================
+   Sprachwechsel im laufenden Betrieb
+   ------------------------------------------------------------
+   Beim Wechsel wird der bisherige Strom stehen gelassen und ein
+   Trenner gesetzt. Sobald das Backend steht, hier zusätzlich die
+   alte Verbindung schließen und mit der neuen Sprache öffnen.
+   ============================================================ */
+function spracheWechseln(neu){
+  if(neu === zustand.sprache) return;
+  Verbindung.trennen();
+  Ton.leeren();
+  zustand.sprache = neu;
+  const strich = document.createElement("hr");
+  strich.style.cssText = "border:0;border-top:1px solid var(--linie);margin:1.4rem 0";
+  $("strom").append(strich);
+  beschriftungenSetzen();
+  Verbindung.verbinden(neu);
+  systemleisteSetzen();
+}
+
+
+/* ============================================================
+   Oberfläche
+   ============================================================ */
+function sprachkachelnBauen(behaelter, aufKlick){
+  behaelter.innerHTML = "";
+  for(const [код, s] of Object.entries(SPRACHEN)){
+    const b = document.createElement("button");
+    b.className = "sprache";
+    b.type = "button";
+    b.dataset.code = код;
+    b.setAttribute("aria-pressed", String(zustand.sprache === код));
+    b.lang = код;
+    b.dir = s.rtl ? "rtl" : "ltr";
+    // Die Ausgangssprache ist etwas anderes als eine Uebersetzung: dort
+    // kommt der Prediger selbst, nicht eine nachgebildete Stimme. Das
+    // gehoert auf die Kachel, ein Punkt sagt es niemandem.
+    b.innerHTML = `${s.name}<small>${s.original ? "ORIGINAL" : s.kuerzel}</small>`;
+    if(s.original) b.title = "Originalton, keine Übersetzung";
+    // Ungeprüft heißt: die Fachbegriffe stammen aus der Maschine und hat
+    // noch niemand durchgesehen, der die Sprache spricht. Das ist ein
+    // sichtbarer Unterschied, kein Nebendetail.
+    if(!s.original && s.geprueft === false){
+      b.classList.add("ungeprueft");
+      b.title = t().neuHinweis;
+    }
+    b.addEventListener("click", () => aufKlick(код));
+    behaelter.append(b);
+  }
+}
+
+function kachelnMarkieren(behaelter){
+  behaelter.querySelectorAll(".sprache").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.code === zustand.sprache)));
+}
+
+function beschriftungenSetzen(){
+  const s = zustand.sprache, x = t();
+  document.documentElement.lang = s;
+  document.documentElement.dir = (SPRACHEN[s] || {}).rtl ? "rtl" : "ltr";
+
+  $("kopf-titel").textContent = x.titel;
+  $("kopf-titel").lang = s;
+  $("nachschub").textContent = `${x.neu} ↓`;
+
+  $("w-ton").querySelector(".beschriftung").textContent   = zustand.tonAn ? x.ton : x.tonAus;
+  $("w-text").querySelector(".beschriftung").textContent  = zustand.textAn ? x.text : x.textAus;
+  $("w-sprache").querySelector(".beschriftung").textContent = x.sprache;
+
+  $("wechsel-titel").textContent = x.wechseln;
+  $("wechsel-zu").textContent = x.abbrechen;
+
+  $("w-post").querySelector(".beschriftung").textContent = x.post;
+  $("zurueck").querySelector(".beschriftung").textContent = x.zurueck;
+  $("rueckmeldung").querySelector(".beschriftung").textContent = x.rueckmeldung;
+  $("post-titel").textContent  = x.postTitel;
+  $("post-hin").textContent    = x.postHin;
+  $("post-senden").textContent = x.postSenden;
+  $("post-zu").textContent     = x.abbrechen;
+
+  const leer = $("leerlauf");
+  if(leer){ leer.textContent = x.warten; leer.lang = s; }
+}
+
+function zustandZeigen(art){
+  const x = t();
+  $("zustand").textContent = x[art] ?? "";
+  $("puls").classList.toggle("still", art !== "live");
+}
+
+function fahneZeigen(text){
+  const f = $("fahne");
+  f.textContent = text;
+  f.classList.remove("weg");
+  setTimeout(() => f.classList.add("weg"), 9000);
+}
+
+function tonSchalten(an){
+  zustand.tonAn = an;
+  $("w-ton").setAttribute("aria-pressed", String(an));
+  if(!an) Ton.leeren();
+  beschriftungenSetzen();
+}
+
+
+/* ---------- Bildschirm 1 ---------- */
+function startauswahlBauen(){
+  sprachkachelnBauen($("sprachwahl"), (code) => {
+    zustand.sprache = code;
+    kachelnMarkieren($("sprachwahl"));
+    // Für Sprachen ohne eigene Oberflächentexte auf Englisch zurückfallen,
+    // damit die Schaltflächen trotzdem lesbar bleiben.
+    const x = TEXTE[code] || TEXTE.en || TEXTE.de;
+    $("starten").textContent = x.zuhoeren;
+    $("starten").disabled = false;
+    $("start-fussnote").textContent = x.kiKurz;
+    $("frage-sprache").textContent = x.waehlen;
+    const band = $("neuband");
+    const gewaehlt = SPRACHEN[code] || {};
+    if(band){
+      band.hidden = gewaehlt.original || gewaehlt.geprueft !== false;
+      band.textContent = x.neuHinweis;
+    }
+  });
+}
+startauswahlBauen();
+
+// Die tatsächlich angebotenen Sprachen kommen vom Server. Bis die Antwort
+// da ist, steht der Vorrat; danach wird die Auswahl neu aufgebaut.
+sprachenHolen().then(() => {
+  if(!zustand.sprache) startauswahlBauen();
+});
+
+$("starten").addEventListener("click", async () => {
+  if(!zustand.sprache) return;
+
+  Ton.freischalten();                             // muss in der Klickgeste passieren
+  const tonBereit = await tonFreischalten();
+  const wach = await bildschirmWachhalten();
+
+  zustand.laeuft = true;
+  $("ankommen").classList.remove("an");
+  $("zuhoeren").classList.add("an");
+
+  beschriftungenSetzen();
+  systemleisteSetzen();
+  zustandZeigen("verbinde");
+  Verbindung.verbinden(zustand.sprache);
+
+  if(!tonBereit)   fahneZeigen(t().stumm);
+  else if(!wach)   fahneZeigen(t().bildschirm);
+});
+
+
+/* ---------- Fußleiste ---------- */
+$("w-ton").addEventListener("click", () => tonSchalten(!zustand.tonAn));
+
+$("w-text").addEventListener("click", () => {
+  zustand.textAn = !zustand.textAn;
+  $("w-text").setAttribute("aria-pressed", String(zustand.textAn));
+  $("strom").style.visibility = zustand.textAn ? "" : "hidden";
+  beschriftungenSetzen();
+});
+
+$("w-sprache").addEventListener("click", () => {
+  sprachkachelnBauen($("wechsel-wahl"), (code) => {
+    $("wechsel").close();
+    spracheWechseln(code);
+  });
+  $("wechsel").showModal();
+});
+
+$("wechsel-zu").addEventListener("click", () => $("wechsel").close());
+
+/* Zurueck zur Sprachauswahl: Verbindung sauber trennen, Ton leeren und
+   den bisherigen Verlauf wegraeumen. Wer neu waehlt, faengt neu an. */
+/* Rueckmeldung zum Programm selbst. Anders als die Meldung ans Pult geht
+   sie nicht an die Technik vor Ort, sondern an den, der das Programm
+   betreut. Ohne hinterlegte Adresse erscheint der Knopf gar nicht. */
+let rueckAdresse = "", spendeDaten = null;
+
+function rueckmeldungSetzen(adresse, spende){
+  rueckAdresse = adresse || "";
+  spendeDaten = spende || null;
+  // Ohne Adresse und ohne Bankverbindung gaebe es nichts zu zeigen.
+  $("rueckmeldung").hidden = !(rueckAdresse || spendeDaten);
+}
+
+function dankZeigen(){
+  const x = t();
+  $("dank-titel").textContent = x.rueckmeldung;
+  // Der Witz mit dem Becher lebt davon, dass man das durchgestrichene
+  // Wort lesen kann.
+  $("becher-kaffee").textContent = x.becherKaffee;
+  $("becher-tee").textContent    = x.becherTee;
+  $("dank-text").textContent  = x.dankText;
+  $("dank-zu").textContent    = x.schliessen;
+
+  const a = $("dank-mail");
+  if(rueckAdresse){
+    const betreff = encodeURIComponent("Live-Übersetzung: Rückmeldung");
+    const leib = encodeURIComponent(
+      "Sprache: " + (zustand.sprache || "?") + "\n\n");
+    a.href = "mailto:" + rueckAdresse + "?subject=" + betreff + "&body=" + leib;
+    a.textContent = rueckAdresse;
+    a.parentElement.hidden = false;
+  }else{
+    a.parentElement.hidden = true;
+  }
+
+  const s = $("dank-spende");
+  if(spendeDaten){
+    $("dank-spende-text").textContent = x.dankSpende;
+    $("dank-name").textContent = spendeDaten.name || "";
+    $("dank-bank").textContent = spendeDaten.bank || "";
+    $("dank-iban").textContent = spendeDaten.iban || "";
+    $("dank-bic").textContent  = spendeDaten.bic ? "BIC " + spendeDaten.bic : "";
+    $("iban-kopieren").textContent = x.ibanKopieren;
+    $("iban-kopieren").classList.remove("fertig");
+    s.hidden = false;
+  }else{
+    s.hidden = true;
+  }
+  $("dankblatt").showModal();
+}
+
+$("rueckmeldung").addEventListener("click", dankZeigen);
+/* Kopieren ist mühsamer als es aussieht. Zwei Fallen stecken darin:
+   die moderne Zwischenablage gibt der Browser nur über HTTPS frei, und
+   die Seite läuft im Gemeindenetz über einfaches HTTP. Und der ältere Weg
+   über execCommand verlangt eine echte Nutzergeste, die nach dem ersten
+   await verloren ist. Deshalb zuerst synchron der alte Weg, danach erst
+   die neue Schnittstelle. */
+function kopierenSynchron(text, elternteil){
+  const feld = document.createElement("textarea");
+  feld.value = text;
+  feld.setAttribute("readonly", "");        // verhindert die Bildschirmtastatur
+  // Außerhalb des Sichtfelds statt unsichtbar: bei opacity 0 verweigern
+  // manche Browser die Auswahl.
+  feld.style.cssText = "position:fixed;left:-9999px;top:0;width:2em;height:2em;"
+                     + "padding:0;border:0;outline:0;box-shadow:none;"
+                     + "background:transparent";
+  // In den Dialog haengen, nicht in den body: waehrend ein Dialog modal
+  // offen ist, gilt alles ausserhalb als unerreichbar. Ein Feld im body
+  // laesst sich dann nicht fokussieren, und ohne Fokus keine Auswahl.
+  (elternteil || document.body).append(feld);
+  feld.focus();
+  feld.select();
+  try{ feld.setSelectionRange(0, text.length); }catch(e){}   // nötig auf iOS
+  let gelungen = false;
+  try{ gelungen = document.execCommand("copy"); }catch(e){}
+  feld.remove();
+  return gelungen;
+}
+
+$("dank-iban").addEventListener("click", ibanMarkieren);
+
+function ibanMarkieren(){
+  const feld = $("dank-iban");
+  const bereich = document.createRange();
+  bereich.selectNodeContents(feld);
+  const auswahl = window.getSelection();
+  auswahl.removeAllRanges();
+  auswahl.addRange(bereich);
+}
+
+$("iban-kopieren").addEventListener("click", () => {
+  const knopf = $("iban-kopieren");
+  const text = (spendeDaten && spendeDaten.iban || "").replace(/\s+/g, "");
+  if(!text) return;
+  const x = t();
+
+  const melden = (gelungen) => {
+    knopf.textContent = gelungen ? x.ibanKopiert : x.ibanVonHand;
+    knopf.classList.toggle("fertig", gelungen);
+    if(!gelungen) ibanMarkieren();
+  };
+
+  // Erst synchron, solange der Klick noch als Nutzergeste zählt.
+  if(kopierenSynchron(text, $("dankblatt"))){ melden(true); return; }
+
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text)
+      .then(() => melden(true))
+      .catch(() => melden(false));
+  }else{
+    melden(false);
+  }
+});
+
+$("dank-zu").addEventListener("click", () => $("dankblatt").close());
+
+/* Ein Klick neben das Blatt schliesst es. Das Ereignis trifft bei einem
+   dialog-Element den Rahmen selbst, sobald daneben geklickt wird; innen
+   trifft es das Blatt. Also nur schliessen, wenn das Ziel der Dialog ist. */
+for(const kennung of ["dankblatt", "postblatt", "wechsel"]){
+  const blatt = $(kennung);
+  if(!blatt) continue;
+  blatt.addEventListener("click", (e) => {
+    if(e.target === blatt) blatt.close();
+  });
+}
+
+$("zurueck").addEventListener("click", () => {
+  Verbindung.trennen();
+  Ton.leeren();
+  zustand.laeuft = false;
+  $("strom").innerHTML =
+    '<p class="leerlauf" id="leerlauf"></p>';
+  $("zuhoeren").classList.remove("an");
+  $("ankommen").classList.add("an");
+  // Nach dem Leeren steht der Hinweistext nicht mehr drin; ihn setzt
+  // beschriftungenSetzen wieder ein.
+  beschriftungenSetzen();
+  zustandZeigen("");
+});
+
+/* Meldung an die Technik. Nur in diese Richtung: wer im Gottesdienst
+   sitzt, soll etwas loswerden koennen, ohne aufzustehen, aber es soll
+   kein Gespraech werden. */
+$("w-post").addEventListener("click", () => {
+  $("post-text").value = "";
+  $("postblatt").showModal();
+  $("post-text").focus();
+});
+$("post-zu").addEventListener("click", () => $("postblatt").close());
+$("post-senden").addEventListener("click", async () => {
+  const text = $("post-text").value.trim();
+  if(!text) return;
+  try{
+    await fetch("/api/nachricht", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({text: text, sprache: zustand.sprache || ""}),
+    });
+    fahneZeigen(t().postDank);
+  }catch(e){ /* still: eine misslungene Meldung darf nichts kaputtmachen */ }
+  $("postblatt").close();
+});
+</script>
+</body>
+</html>

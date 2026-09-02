@@ -1,0 +1,2238 @@
+﻿de;haeufigkeit;streuung;verdacht;prompt_rang;kapitel_anzahl;kapitel
+David;1678;0.07;;3;117;1. Mose 38|1. Mose 48|1. Samuel 12|1. Samuel 14|1. Samuel 15|1. Samuel 16|1. Samuel 17|1. Samuel 18|1. Samuel 2|1. Samuel 20|1. Samuel 21|1. Samuel 23|1. Samuel 25|1. Samuel 26|1. Samuel 28|1. Samuel 29|1. Samuel 31|1. Samuel 4|1. Samuel 7|1. Samuel 9|2. Mose 17|2. Mose 24|2. Samuel 1|2. Samuel 10|2. Samuel 11|2. Samuel 12|2. Samuel 13|2. Samuel 14|2. Samuel 15|2. Samuel 16|2. Samuel 18|2. Samuel 19|2. Samuel 2|2. Samuel 20|2. Samuel 21|2. Samuel 22|2. Samuel 24|2. Samuel 3|2. Samuel 4|2. Samuel 5
+Ägypten;885;0.2;;3;177;1. Mose 1|1. Mose 10|1. Mose 12|1. Mose 14|1. Mose 15|1. Mose 20|1. Mose 21|1. Mose 24|1. Mose 25|1. Mose 37|1. Mose 38|1. Mose 40|1. Mose 41|1. Mose 42|1. Mose 43|1. Mose 44|1. Mose 45|1. Mose 47|1. Mose 50|1. Mose 8|1. Samuel 10|1. Samuel 12|1. Samuel 14|1. Samuel 2|1. Samuel 28|1. Samuel 31|1. Samuel 6|1. Samuel 7|1. Samuel 9|2. Mose 1|2. Mose 10|2. Mose 12|2. Mose 13|2. Mose 16|2. Mose 17|2. Mose 19|2. Mose 23|2. Mose 24|2. Mose 29|2. Mose 3
+Jerusalem;869;0.23;;3;198;1. Mose 12|1. Mose 14|1. Mose 21|1. Mose 28|1. Mose 34|1. Mose 8|1. Mose 9|1. Samuel 1|1. Samuel 10|1. Samuel 12|1. Samuel 15|1. Samuel 17|1. Samuel 2|1. Samuel 21|1. Samuel 23|1. Samuel 25|1. Samuel 29|1. Samuel 31|1. Samuel 4|1. Samuel 6|1. Samuel 7|2. Samuel 10|2. Samuel 11|2. Samuel 12|2. Samuel 13|2. Samuel 14|2. Samuel 15|2. Samuel 16|2. Samuel 18|2. Samuel 19|2. Samuel 20|2. Samuel 21|2. Samuel 24|2. Samuel 3|2. Samuel 4|2. Samuel 5|2. Samuel 8|3. Mose 16|3. Mose 22|3. Mose 9
+Saul;777;0.06;;3;43;1. Mose 37|1. Mose 45|1. Mose 8|1. Samuel 10|1. Samuel 12|1. Samuel 14|1. Samuel 15|1. Samuel 16|1. Samuel 17|1. Samuel 18|1. Samuel 2|1. Samuel 20|1. Samuel 21|1. Samuel 23|1. Samuel 25|1. Samuel 26|1. Samuel 28|1. Samuel 29|1. Samuel 31|1. Samuel 7|1. Samuel 9|2. Mose 17|2. Mose 6|2. Samuel 1|2. Samuel 12|2. Samuel 14|2. Samuel 16|2. Samuel 2|2. Samuel 21|2. Samuel 3|2. Samuel 4|2. Samuel 7|2. Samuel 8|4. Mose 26|Jeremia 17|Jeremia 24|Jesaja 8|Psalmen 110|Psalmen 40|Psalmen 51
+Aaron;445;0.16;;3;69;1. Samuel 12|1. Samuel 2|2. Mose 10|2. Mose 12|2. Mose 13|2. Mose 15|2. Mose 16|2. Mose 17|2. Mose 19|2. Mose 24|2. Mose 27|2. Mose 28|2. Mose 29|2. Mose 31|2. Mose 32|2. Mose 34|2. Mose 38|2. Mose 39|2. Mose 4|2. Mose 40|2. Mose 6|2. Mose 7|2. Mose 8|2. Mose 9|2. Samuel 8|3. Mose 1|3. Mose 11|3. Mose 13|3. Mose 15|3. Mose 16|3. Mose 17|3. Mose 20|3. Mose 23|3. Mose 3|3. Mose 6|3. Mose 7|3. Mose 8|3. Mose 9|4. Mose 1|4. Mose 13
+Abraham;368;0.21;;3;77;1. Mose 1|1. Mose 10|1. Mose 11|1. Mose 12|1. Mose 17|1. Mose 18|1. Mose 19|1. Mose 20|1. Mose 21|1. Mose 23|1. Mose 24|1. Mose 25|1. Mose 27|1. Mose 28|1. Mose 29|1. Mose 31|1. Mose 34|1. Mose 35|1. Mose 45|1. Mose 47|1. Mose 49|1. Mose 50|1. Mose 8|1. Mose 9|1. Samuel 31|2. Mose 12|2. Mose 15|2. Mose 3|2. Mose 31|2. Mose 32|2. Mose 33|2. Mose 4|2. Mose 6|3. Mose 26|3. Mose 27|4. Mose 1|4. Mose 13|4. Mose 32|5. Mose 1|5. Mose 12
+Joseph;356;0.12;;3;43;1. Mose 12|1. Mose 30|1. Mose 34|1. Mose 37|1. Mose 38|1. Mose 40|1. Mose 41|1. Mose 42|1. Mose 43|1. Mose 44|1. Mose 45|1. Mose 47|1. Mose 48|1. Mose 49|1. Mose 50|1. Samuel 16|1. Samuel 31|2. Mose 1|2. Mose 12|2. Samuel 19|3. Mose 1|3. Mose 13|3. Mose 26|4. Mose 13|5. Mose 26|5. Mose 33|Haggai 1|Haggai 2|Hesekiel 37|Hesekiel 47|Jeremia 23|Jesaja 54|Josua 1|Josua 16|Josua 17|Josua 19|Josua 24|Nehemia 11|Psalmen 79|Psalmen 82
+Babel;266;0.18;;3;47;1. Mose 10|1. Mose 11|1. Mose 9|Hesekiel 12|Hesekiel 16|Hesekiel 18|Hesekiel 20|Hesekiel 21|Hesekiel 23|Hesekiel 26|Hesekiel 29|Hesekiel 30|Hesekiel 32|Jeremia 19|Jeremia 21|Jeremia 23|Jeremia 24|Jeremia 26|Jeremia 28|Jeremia 30|Jeremia 31|Jeremia 32|Jeremia 34|Jeremia 36|Jeremia 37|Jeremia 39|Jeremia 41|Jeremia 44|Jeremia 46|Jeremia 49|Jeremia 50|Jeremia 51|Jeremia 52|Jesaja 11|Jesaja 13|Jesaja 14|Jesaja 16|Jesaja 21|Jesaja 23|Jesaja 40
+Babylon;254;0.3;;3;76;1. Mose 1|1. Mose 11|1. Mose 14|1. Mose 2|1. Mose 40|1. Mose 9|5. Mose 28|5. Mose 4|Habakuk 2|Haggai 1|Hesekiel 1|Hesekiel 10|Hesekiel 12|Hesekiel 14|Hesekiel 16|Hesekiel 20|Hesekiel 21|Hesekiel 22|Hesekiel 24|Hesekiel 26|Hesekiel 27|Hesekiel 29|Hesekiel 36|Hesekiel 37|Hesekiel 8|Hiob 38|Jeremia 1|Jeremia 12|Jeremia 13|Jeremia 15|Jeremia 17|Jeremia 19|Jeremia 23|Jeremia 28|Jeremia 3|Jeremia 30|Jeremia 31|Jeremia 32|Jeremia 34|Jeremia 36
+Kanaan;230;0.35;;3;81;1. Mose 10|1. Mose 12|1. Mose 14|1. Mose 15|1. Mose 17|1. Mose 20|1. Mose 23|1. Mose 24|1. Mose 25|1. Mose 28|1. Mose 30|1. Mose 31|1. Mose 32|1. Mose 34|1. Mose 35|1. Mose 37|1. Mose 40|1. Mose 41|1. Mose 42|1. Mose 44|1. Mose 45|1. Mose 47|1. Mose 48|1. Mose 49|1. Mose 50|1. Mose 8|1. Mose 9|2. Mose 12|2. Mose 13|2. Mose 15|2. Mose 17|2. Mose 23|2. Mose 24|2. Mose 31|2. Mose 4|2. Mose 6|3. Mose 15|3. Mose 17|3. Mose 25|3. Mose 26
+Zion;202;0.37;;3;74;1. Mose 8|2. Samuel 4|5. Mose 4|Hesekiel 35|Hesekiel 40|Jeremia 1|Jeremia 13|Jeremia 26|Jeremia 3|Jeremia 30|Jeremia 31|Jeremia 39|Jeremia 5|Jeremia 50|Jeremia 51|Jeremia 6|Jeremia 8|Jesaja 1|Jesaja 10|Jesaja 11|Jesaja 19|Jesaja 2|Jesaja 23|Jesaja 24|Jesaja 27|Jesaja 28|Jesaja 3|Jesaja 30|Jesaja 31|Jesaja 33|Jesaja 35|Jesaja 37|Jesaja 38|Jesaja 40|Jesaja 42|Jesaja 46|Jesaja 49|Jesaja 51|Jesaja 52|Jesaja 60
+Absalom;202;0.07;;3;15;1. Samuel 15|1. Samuel 2|2. Samuel 11|2. Samuel 12|2. Samuel 13|2. Samuel 14|2. Samuel 15|2. Samuel 16|2. Samuel 18|2. Samuel 19|2. Samuel 2|2. Samuel 3|Psalmen 1|Psalmen 61|Psalmen 62
+Isaak;196;0.19;;2;37;1. Mose 12|1. Mose 17|1. Mose 20|1. Mose 21|1. Mose 23|1. Mose 24|1. Mose 25|1. Mose 27|1. Mose 28|1. Mose 31|1. Mose 32|1. Mose 35|1. Mose 37|1. Mose 45|1. Mose 47|1. Mose 49|1. Mose 50|1. Mose 8|2. Mose 12|2. Mose 19|2. Mose 3|2. Mose 32|2. Mose 33|2. Mose 6|3. Mose 27|4. Mose 13|4. Mose 32|5. Mose 1|5. Mose 29|5. Mose 30|5. Mose 33|5. Mose 6|5. Mose 9|Hesekiel 37|Josua 1|Josua 24|Psalmen 133
+Ephraim;187;0.26;;2;49;1. Mose 41|1. Mose 47|1. Mose 49|1. Samuel 1|1. Samuel 14|1. Samuel 9|2. Samuel 13|2. Samuel 15|2. Samuel 18|2. Samuel 19|2. Samuel 2|2. Samuel 20|4. Mose 1|4. Mose 13|4. Mose 25|4. Mose 26|5. Mose 26|5. Mose 33|Hesekiel 48|Hosea 10|Hosea 13|Hosea 4|Hosea 7|Jeremia 3|Jeremia 31|Jeremia 50|Jeremia 6|Jesaja 10|Jesaja 11|Jesaja 16|Jesaja 24|Jesaja 27|Jesaja 28|Jesaja 7|Josua 1|Josua 14|Josua 16|Josua 17|Josua 19|Josua 20
+Esau;181;0.09;;2;17;1. Mose 25|1. Mose 27|1. Mose 28|1. Mose 32|1. Mose 34|1. Mose 35|1. Mose 37|1. Mose 49|1. Mose 8|1. Samuel 14|4. Mose 20|5. Mose 1|5. Mose 26|Jeremia 49|Josua 24|Maleachi 1|Psalmen 82
+Jakobs;174;0.37;;2;64;1. Mose 23|1. Mose 27|1. Mose 28|1. Mose 29|1. Mose 30|1. Mose 31|1. Mose 32|1. Mose 34|1. Mose 35|1. Mose 37|1. Mose 42|1. Mose 43|1. Mose 45|1. Mose 47|1. Mose 48|1. Mose 49|1. Mose 50|2. Mose 1|2. Mose 19|2. Mose 3|2. Mose 4|2. Samuel 22|2. Samuel 7|4. Mose 1|4. Mose 20|4. Mose 23|5. Mose 1|5. Mose 33|Hesekiel 21|Hesekiel 40|Hesekiel 47|Hosea 13|Jeremia 10|Jeremia 30|Jeremia 34|Jeremia 36|Jeremia 51|Jesaja 1|Jesaja 10|Jesaja 14
+Joab;170;0.1;;2;17;1. Samuel 31|2. Samuel 10|2. Samuel 11|2. Samuel 12|2. Samuel 13|2. Samuel 14|2. Samuel 15|2. Samuel 18|2. Samuel 19|2. Samuel 2|2. Samuel 20|2. Samuel 24|2. Samuel 3|2. Samuel 4|2. Samuel 8|Josua 16|Psalmen 61
+Jonathan;166;0.12;;2;20;1. Samuel 12|1. Samuel 14|1. Samuel 17|1. Samuel 18|1. Samuel 20|1. Samuel 21|1. Samuel 23|1. Samuel 25|1. Samuel 31|2. Samuel 1|2. Samuel 15|2. Samuel 16|2. Samuel 18|2. Samuel 21|2. Samuel 24|2. Samuel 4|2. Samuel 8|Jeremia 37|Jeremia 39|Nehemia 11
+Assyrien;165;0.24;;2;40;3. Mose 19|5. Mose 28|5. Mose 4|Hesekiel 16|Hesekiel 23|Hesekiel 27|Hesekiel 29|Hesekiel 30|Hesekiel 32|Hesekiel 37|Hosea 10|Hosea 13|Hosea 7|Jeremia 2|Jeremia 50|Jeremia 6|Jesaja 10|Jesaja 11|Jesaja 13|Jesaja 14|Jesaja 16|Jesaja 19|Jesaja 21|Jesaja 23|Jesaja 27|Jesaja 31|Jesaja 33|Jesaja 35|Jesaja 37|Jesaja 38|Jesaja 5|Jesaja 56|Jesaja 7|Jesaja 8|Nahum 1|Nahum 2|Nehemia 9|Sacharja 1|Sacharja 11|Sacharja 6
+Gold;160;0.48;;2;77;1. Mose 14|1. Mose 2|1. Mose 24|1. Mose 44|2. Mose 20|2. Mose 24|2. Mose 25|2. Mose 26|2. Mose 27|2. Mose 28|2. Mose 29|2. Mose 3|2. Mose 31|2. Mose 32|2. Mose 34|2. Mose 36|2. Mose 38|2. Mose 39|2. Samuel 13|2. Samuel 21|2. Samuel 24|2. Samuel 8|3. Mose 7|4. Mose 22|4. Mose 31|4. Mose 32|4. Mose 7|5. Mose 18|5. Mose 29|5. Mose 7|5. Mose 9|Habakuk 2|Haggai 1|Hesekiel 16|Hesekiel 27|Hesekiel 38|Hesekiel 6|Hiob 23|Hiob 27|Hiob 29
+Salomo;157;0.3;;2;47;1. Mose 48|1. Samuel 2|1. Samuel 23|2. Samuel 13|2. Samuel 21|2. Samuel 3|2. Samuel 5|2. Samuel 7|3. Mose 26|5. Mose 18|Haggai 1|Haggai 2|Hesekiel 16|Hesekiel 21|Hesekiel 26|Hesekiel 27|Hesekiel 40|Hiob 1|Hiob 6|Hohelied 1|Hohelied 2|Hohelied 4|Hohelied 6|Hohelied 8|Jeremia 23|Jeremia 52|Jesaja 21|Maleachi 3|Nehemia 12|Nehemia 13|Psalmen 116|Psalmen 119|Psalmen 128|Psalmen 133|Psalmen 45|Psalmen 51|Psalmen 72|Sacharja 5|Sprüche 10|Sprüche 16
+Moab;149;0.27;;2;40;1. Mose 14|1. Mose 20|1. Mose 37|1. Mose 49|1. Samuel 12|1. Samuel 14|1. Samuel 21|2. Mose 15|2. Samuel 24|2. Samuel 8|4. Mose 20|4. Mose 22|4. Mose 25|4. Mose 31|4. Mose 33|5. Mose 1|5. Mose 29|5. Mose 32|5. Mose 33|Hesekiel 24|Hesekiel 26|Hesekiel 6|Jeremia 26|Jeremia 41|Jeremia 48|Jeremia 49|Jesaja 11|Jesaja 14|Jesaja 16|Jesaja 2|Jesaja 25|Maleachi 1|Nehemia 13|Nehemia 2|Nehemia 9|Psalmen 106|Psalmen 107|Psalmen 61|Psalmen 82|Sacharja 3
+Christus;143;0.6;;2;86;1. Mose 12|1. Mose 14|1. Mose 15|1. Mose 3|1. Mose 32|1. Mose 4|1. Samuel 2|2. Mose 12|2. Mose 21|2. Mose 23|2. Samuel 7|3. Mose 13|3. Mose 16|3. Mose 20|3. Mose 23|3. Mose 3|3. Mose 9|4. Mose 31|5. Mose 22|5. Mose 28|5. Mose 29|5. Mose 32|5. Mose 34|Hesekiel 36|Hesekiel 37|Hesekiel 38|Hesekiel 40|Hesekiel 44|Hesekiel 8|Hiob 18|Hiob 20|Hiob 42|Hosea 10|Hosea 4|Jeremia 31|Jeremia 5|Jesaja 11|Jesaja 13|Jesaja 2|Jesaja 23
+Abram;141;0.06;;2;9;1. Mose 11|1. Mose 12|1. Mose 14|1. Mose 15|1. Mose 17|1. Samuel 26|1. Samuel 4|4. Mose 13|Nehemia 9
+Edom;134;0.25;;2;33;1. Mose 14|1. Mose 25|1. Mose 32|1. Mose 35|1. Mose 37|1. Samuel 14|2. Mose 15|2. Samuel 8|4. Mose 20|4. Mose 33|4. Mose 34|Hesekiel 26|Hesekiel 32|Hesekiel 35|Hesekiel 36|Hiob 2|Jeremia 26|Jeremia 41|Jeremia 49|Jesaja 11|Jesaja 21|Jesaja 25|Jesaja 33|Jesaja 35|Jesaja 62|Joel 4|Josua 14|Maleachi 1|Psalmen 107|Psalmen 58|Psalmen 61|Psalmen 82|Sacharja 3
+Benjamin;125;0.37;;2;46;1. Mose 35|1. Mose 42|1. Mose 43|1. Mose 44|1. Mose 45|1. Mose 47|1. Mose 49|1. Samuel 10|1. Samuel 31|1. Samuel 7|1. Samuel 9|2. Mose 1|2. Samuel 16|2. Samuel 19|2. Samuel 2|2. Samuel 21|2. Samuel 24|2. Samuel 3|2. Samuel 4|2. Samuel 5|2. Samuel 8|4. Mose 1|4. Mose 13|4. Mose 2|4. Mose 25|4. Mose 34|5. Mose 26|5. Mose 33|Hesekiel 45|Hesekiel 48|Hosea 4|Jeremia 17|Jeremia 19|Jeremia 32|Jeremia 34|Jeremia 37|Josua 19|Josua 21|Nehemia 11|Nehemia 12
+Abner;125;0.07;;2;9;1. Samuel 14|1. Samuel 17|1. Samuel 20|1. Samuel 26|1. Samuel 31|2. Samuel 16|2. Samuel 2|2. Samuel 3|2. Samuel 4
+Tyrus;124;0.2;;2;25;1. Mose 31|1. Samuel 17|2. Samuel 11|2. Samuel 24|2. Samuel 4|2. Samuel 7|Hesekiel 1|Hesekiel 21|Hesekiel 24|Hesekiel 26|Hesekiel 27|Hesekiel 29|Jeremia 26|Jeremia 46|Jesaja 14|Jesaja 23|Joel 2|Josua 12|Josua 19|Maleachi 3|Nehemia 3|Psalmen 45|Psalmen 82|Sacharja 8|Sacharja 9
+Laban;115;0.12;;2;14;1. Mose 24|1. Mose 25|1. Mose 27|1. Mose 28|1. Mose 29|1. Mose 30|1. Mose 31|1. Mose 32|1. Mose 45|1. Mose 47|1. Samuel 20|5. Mose 1|5. Mose 26|Psalmen 61
+Christi;113;0.58;;2;66;1. Mose 2|1. Mose 21|1. Mose 3|2. Samuel 7|3. Mose 13|3. Mose 17|3. Mose 23|3. Mose 3|4. Mose 19|5. Mose 16|5. Mose 32|Haggai 1|Haggai 2|Hesekiel 1|Hesekiel 20|Hesekiel 39|Hesekiel 40|Hesekiel 44|Hesekiel 45|Hesekiel 47|Hiob 27|Hosea 7|Jeremia 30|Jeremia 31|Jesaja 10|Jesaja 11|Jesaja 13|Jesaja 14|Jesaja 19|Jesaja 2|Jesaja 24|Jesaja 3|Jesaja 31|Jesaja 33|Jesaja 40|Jesaja 42|Jesaja 44|Jesaja 46|Jesaja 48|Jesaja 51
+Manasse;113;0.28;;2;32;1. Mose 41|1. Mose 47|1. Mose 49|2. Samuel 15|4. Mose 1|4. Mose 13|4. Mose 2|4. Mose 25|4. Mose 26|4. Mose 32|4. Mose 34|5. Mose 2|5. Mose 26|5. Mose 29|5. Mose 33|Hesekiel 48|Jeremia 15|Jeremia 48|Jesaja 10|Jesaja 40|Josua 1|Josua 12|Josua 14|Josua 16|Josua 17|Josua 19|Josua 20|Josua 21|Josua 22|Psalmen 107|Psalmen 61|Psalmen 79
+Noah;106;0.11;;2;12;1. Mose 10|1. Mose 4|1. Mose 49|1. Mose 6|1. Mose 7|1. Mose 8|1. Mose 9|4. Mose 26|4. Mose 35|Hesekiel 14|Hiob 1|Joel 2
+Hiskia;106;0.13;;2;14;2. Mose 17|Jeremia 21|Jeremia 26|Jesaja 14|Jesaja 21|Jesaja 23|Jesaja 31|Jesaja 33|Jesaja 35|Jesaja 37|Jesaja 38|Jesaja 40|Maleachi 3|Nehemia 9
+Bileam;106;0.09;;2;10;4. Mose 22|4. Mose 23|4. Mose 31|5. Mose 23|Hiob 42|Jesaja 2|Josua 14|Josua 24|Nehemia 12|Psalmen 106
+Nebukadnezar;95;0.38;;2;36;Habakuk 2|Haggai 2|Hesekiel 16|Hesekiel 21|Hesekiel 22|Hesekiel 26|Hesekiel 27|Hesekiel 29|Hesekiel 30|Hesekiel 32|Hesekiel 35|Hesekiel 6|Jeremia 21|Jeremia 24|Jeremia 28|Jeremia 34|Jeremia 36|Jeremia 37|Jeremia 39|Jeremia 44|Jeremia 46|Jeremia 48|Jeremia 49|Jeremia 51|Jeremia 52|Jesaja 21|Jesaja 42|Jesaja 46|Jona 1|Maleachi 1|Nahum 2|Nehemia 2|Psalmen 74|Psalmen 79|Sacharja 7|Sacharja 9
+Zedekia;94;0.2;;2;19;Hesekiel 12|Hesekiel 16|Hesekiel 20|Hesekiel 22|Hesekiel 33|Jeremia 1|Jeremia 21|Jeremia 24|Jeremia 26|Jeremia 28|Jeremia 30|Jeremia 31|Jeremia 32|Jeremia 34|Jeremia 36|Jeremia 37|Jeremia 39|Jeremia 46|Jeremia 52
+Paulus;91;0.78;ja;2;71;1. Mose 12|1. Mose 15|1. Mose 3|1. Mose 49|1. Samuel 14|2. Mose 16|2. Mose 20|2. Mose 23|2. Mose 32|2. Mose 34|2. Mose 4|2. Mose 7|2. Samuel 22|3. Mose 17|3. Mose 20|5. Mose 13|5. Mose 22|5. Mose 29|5. Mose 30|5. Mose 32|5. Mose 6|Habakuk 1|Habakuk 2|Hesekiel 21|Hesekiel 3|Hesekiel 36|Hesekiel 37|Hiob 1|Hiob 40|Hiob 6|Hosea 13|Hosea 4|Jeremia 1|Jeremia 10|Jeremia 26|Jeremia 46|Jeremia 5|Jesaja 1|Jesaja 10|Jesaja 11
+Gilead;90;0.37;;2;33;1. Mose 31|1. Mose 37|1. Samuel 10|1. Samuel 14|1. Samuel 31|2. Samuel 18|2. Samuel 2|2. Samuel 21|2. Samuel 24|2. Samuel 8|4. Mose 26|4. Mose 32|5. Mose 2|5. Mose 33|Hesekiel 47|Hohelied 4|Hohelied 6|Hosea 10|Hosea 13|Hosea 4|Hosea 7|Jeremia 21|Jeremia 46|Jeremia 50|Jeremia 8|Josua 12|Josua 14|Josua 17|Josua 20|Josua 22|Psalmen 107|Psalmen 61|Sacharja 11
+Levi;88;0.33;;2;29;1. Mose 29|1. Mose 34|1. Mose 35|1. Mose 48|1. Samuel 1|2. Mose 1|2. Mose 27|2. Mose 32|2. Mose 6|2. Samuel 24|4. Mose 1|4. Mose 15|4. Mose 17|4. Mose 2|4. Mose 26|4. Mose 3|4. Mose 34|5. Mose 10|5. Mose 18|5. Mose 26|5. Mose 33|Hesekiel 40|Josua 14|Josua 2|Maleachi 2|Nehemia 11|Psalmen 106|Sacharja 13|Sacharja 6
+Ruben;87;0.29;;2;25;1. Mose 29|1. Mose 35|1. Mose 37|1. Mose 42|1. Mose 44|1. Mose 45|1. Mose 47|1. Mose 48|2. Mose 1|2. Mose 6|4. Mose 1|4. Mose 13|4. Mose 15|4. Mose 25|4. Mose 32|4. Mose 9|5. Mose 10|5. Mose 2|5. Mose 33|Hesekiel 48|Jeremia 48|Josua 19|Josua 20|Josua 21|Josua 22
+Wörtl;84;0.85;ja;2;71;1. Mose 19|1. Mose 27|1. Mose 30|1. Mose 31|1. Mose 41|1. Mose 48|1. Mose 6|1. Samuel 1|1. Samuel 10|1. Samuel 14|1. Samuel 15|1. Samuel 16|1. Samuel 17|1. Samuel 18|1. Samuel 2|1. Samuel 23|1. Samuel 9|2. Mose 1|2. Mose 12|2. Mose 3|2. Mose 9|2. Samuel 1|2. Samuel 13|2. Samuel 21|2. Samuel 22|2. Samuel 3|2. Samuel 4|2. Samuel 5|2. Samuel 7|2. Samuel 8|3. Mose 25|4. Mose 1|4. Mose 15|4. Mose 20|4. Mose 5|5. Mose 32|5. Mose 9|Habakuk 1|Hesekiel 16|Hiob 2
+Eleasar;81;0.36;;2;29;1. Samuel 7|2. Mose 27|2. Mose 6|2. Samuel 24|2. Samuel 8|3. Mose 11|3. Mose 9|4. Mose 17|4. Mose 19|4. Mose 2|4. Mose 20|4. Mose 25|4. Mose 26|4. Mose 28|4. Mose 3|4. Mose 31|4. Mose 32|4. Mose 34|4. Mose 4|5. Mose 10|Haggai 1|Hesekiel 40|Josua 17|Josua 19|Josua 20|Josua 21|Josua 24|Nehemia 12|Psalmen 106
+Bethel;78;0.38;;2;30;1. Mose 12|1. Mose 14|1. Mose 28|1. Mose 30|1. Mose 31|1. Mose 32|1. Mose 34|1. Mose 35|1. Samuel 10|1. Samuel 12|1. Samuel 2|1. Samuel 31|1. Samuel 4|1. Samuel 6|1. Samuel 7|2. Samuel 11|Hosea 10|Hosea 13|Hosea 4|Josua 12|Josua 16|Josua 17|Josua 19|Josua 6|Josua 8|Josua 9|Nehemia 11|Sacharja 6|Sacharja 7|Sacharja 8
+Sodom;76;0.25;;2;19;1. Mose 10|1. Mose 14|1. Mose 15|1. Mose 18|1. Mose 19|1. Mose 20|5. Mose 29|5. Mose 32|Hesekiel 16|Hosea 10|Hosea 7|Jeremia 21|Jeremia 23|Jeremia 49|Jeremia 50|Jesaja 1|Jesaja 13|Jesaja 35|Jona 3
+Rahel;75;0.2;;2;15;1. Mose 23|1. Mose 29|1. Mose 30|1. Mose 31|1. Mose 32|1. Mose 34|1. Mose 35|1. Mose 47|1. Mose 49|1. Samuel 1|1. Samuel 10|1. Samuel 18|1. Samuel 20|Jeremia 31|Psalmen 112
+Ninive;74;0.12;;2;9;1. Mose 9|Hesekiel 24|Jesaja 38|Jona 1|Jona 3|Maleachi 3|Nahum 1|Nahum 2|Sacharja 3
+Kommen;73;0.53;;2;39;1. Mose 40|1. Samuel 15|1. Samuel 2|2. Samuel 22|2. Samuel 7|5. Mose 4|Haggai 1|Hesekiel 42|Hosea 13|Hosea 4|Jeremia 30|Jeremia 34|Jeremia 51|Jesaja 2|Jesaja 35|Jesaja 40|Jesaja 41|Jesaja 42|Jesaja 48|Jesaja 49|Jesaja 52|Jesaja 54|Jesaja 6|Jesaja 60|Jesaja 61|Jesaja 65|Jesaja 7|Jesaja 8|Maleachi 2|Maleachi 3|Psalmen 118|Psalmen 98|Sacharja 11|Sacharja 13|Sacharja 14|Sacharja 5|Sacharja 6|Sacharja 8|Sacharja 9
+Ismael;72;0.14;;2;10;1. Mose 15|1. Mose 17|1. Mose 21|1. Mose 25|1. Mose 27|1. Mose 28|1. Mose 35|1. Mose 49|Jeremia 39|Jeremia 41
+Güte;70;0.63;;2;44;1. Mose 3|1. Mose 30|1. Samuel 20|1. Samuel 21|1. Samuel 31|2. Mose 31|2. Mose 33|2. Samuel 10|2. Samuel 13|2. Samuel 20|2. Samuel 3|2. Samuel 8|4. Mose 6|5. Mose 26|5. Mose 28|5. Mose 33|Hiob 15|Hiob 23|Hiob 4|Hosea 4|Jeremia 15|Jeremia 31|Jeremia 37|Jeremia 44|Jesaja 44|Jesaja 52|Jesaja 54|Jesaja 64|Josua 2|Maleachi 3|Nehemia 9|Psalmen 144|Psalmen 22|Psalmen 31|Psalmen 50|Psalmen 65|Psalmen 78|Psalmen 88|Psalmen 91|Sacharja 9
+Sichem;70;0.31;;2;22;1. Mose 12|1. Mose 30|1. Mose 32|1. Mose 34|1. Mose 35|1. Mose 37|1. Mose 48|1. Mose 50|2. Mose 13|2. Samuel 11|4. Mose 26|5. Mose 12|5. Mose 26|Hosea 7|Jeremia 41|Josua 17|Josua 20|Josua 21|Josua 24|Josua 9|Psalmen 107|Psalmen 61
+Jericho;67;0.46;;2;31;1. Samuel 10|2. Samuel 10|2. Samuel 11|4. Mose 25|4. Mose 26|4. Mose 31|4. Mose 33|4. Mose 34|4. Mose 35|5. Mose 32|5. Mose 33|5. Mose 4|Hosea 2|Hosea 4|Jeremia 39|Jeremia 52|Jesaja 2|Jesaja 65|Josua 10|Josua 12|Josua 14|Josua 16|Josua 19|Josua 2|Josua 20|Josua 24|Josua 4|Josua 6|Josua 8|Josua 9|Nehemia 3
+Gilgal;67;0.33;;2;22;1. Samuel 10|1. Samuel 12|1. Samuel 14|1. Samuel 15|1. Samuel 18|1. Samuel 2|1. Samuel 20|1. Samuel 28|1. Samuel 7|2. Samuel 19|5. Mose 12|Hosea 10|Hosea 13|Hosea 4|Jesaja 2|Josua 10|Josua 12|Josua 14|Josua 17|Josua 4|Josua 6|Josua 9
+Urija;64;0.2;;2;13;1. Samuel 18|2. Samuel 11|2. Samuel 12|2. Samuel 14|2. Samuel 16|2. Samuel 24|Jeremia 26|Jeremia 36|Jesaja 8|Nehemia 7|Psalmen 50|Sprüche 18|Sprüche 3
+Lügen;60;0.62;;2;37;1. Mose 3|1. Mose 4|1. Samuel 21|5. Mose 18|Hesekiel 14|Hesekiel 22|Hiob 26|Hiob 31|Hiob 36|Hosea 13|Hosea 4|Hosea 7|Jeremia 10|Jeremia 13|Jeremia 23|Jeremia 24|Jeremia 28|Jeremia 30|Jeremia 39|Jeremia 41|Jeremia 6|Jeremia 8|Jesaja 10|Jesaja 2|Jesaja 58|Josua 2|Psalmen 119|Psalmen 144|Psalmen 38|Psalmen 40|Sacharja 13|Sacharja 9|Sprüche 10|Sprüche 14|Sprüche 18|Sprüche 20|Sprüche 6
+Jahwe;60;0.38;;2;23;1. Mose 14|1. Mose 15|1. Mose 17|1. Samuel 7|2. Mose 12|2. Mose 13|2. Mose 17|2. Mose 24|2. Mose 3|2. Mose 6|2. Mose 7|4. Mose 22|5. Mose 28|Hiob 38|Jesaja 38|Joel 2|Maleachi 1|Nehemia 1|Psalmen 50|Psalmen 58|Psalmen 65|Psalmen 75|Sacharja 5
+Sarah;60;0.15;;2;9;1. Mose 17|1. Mose 18|1. Mose 20|1. Mose 21|1. Mose 23|1. Mose 24|1. Mose 25|1. Mose 49|Jesaja 51
+Rebekka;59;0.19;;2;11;1. Mose 23|1. Mose 24|1. Mose 25|1. Mose 27|1. Mose 28|1. Mose 29|1. Mose 35|1. Mose 37|1. Mose 49|Hohelied 8|Psalmen 112
+Honig;59;0.51;;2;30;1. Mose 42|1. Mose 43|1. Samuel 14|2. Mose 13|2. Mose 3|2. Mose 33|2. Samuel 18|3. Mose 20|3. Mose 3|4. Mose 13|4. Mose 14|4. Mose 15|5. Mose 10|5. Mose 26|5. Mose 32|5. Mose 6|5. Mose 9|Hesekiel 16|Hesekiel 20|Hesekiel 27|Hesekiel 3|Hiob 20|Hohelied 4|Jeremia 32|Jeremia 41|Psalmen 119|Psalmen 82|Sprüche 24|Sprüche 4|Sprüche 6
+Rama;57;0.28;;2;16;1. Samuel 1|1. Samuel 15|1. Samuel 16|1. Samuel 2|1. Samuel 20|1. Samuel 25|1. Samuel 28|1. Samuel 7|1. Samuel 9|Hesekiel 27|Hosea 4|Jeremia 31|Jeremia 39|Jesaja 11|Josua 19|Nehemia 11
+Baschan;56;0.41;;2;23;1. Samuel 17|4. Mose 32|5. Mose 1|5. Mose 2|5. Mose 29|5. Mose 33|5. Mose 4|Hesekiel 27|Hesekiel 39|Jeremia 23|Jeremia 50|Jesaja 33|Josua 12|Josua 14|Josua 17|Josua 20|Josua 21|Josua 22|Josua 9|Nahum 1|Nehemia 9|Psalmen 68|Sacharja 11
+Geruch;54;0.39;;2;21;1. Mose 27|1. Mose 9|2. Mose 29|3. Mose 1|3. Mose 23|3. Mose 26|3. Mose 3|3. Mose 4|3. Mose 6|3. Mose 8|3. Mose 9|4. Mose 14|4. Mose 15|4. Mose 19|4. Mose 28|4. Mose 31|Hesekiel 16|Hesekiel 21|Hesekiel 6|Hiob 42|Hosea 13
+Amnon;54;0.07;;2;4;2. Samuel 12|2. Samuel 13|2. Samuel 14|2. Samuel 3
+Jugend;53;0.6;;2;32;1. Mose 47|1. Mose 9|1. Samuel 12|2. Samuel 19|2. Samuel 4|4. Mose 11|Hesekiel 16|Hesekiel 23|Hesekiel 4|Hiob 13|Hiob 31|Hiob 33|Hiob 36|Hosea 2|Jeremia 15|Jeremia 23|Jeremia 3|Jeremia 31|Jeremia 32|Jesaja 48|Jesaja 54|Joel 1|Josua 1|Maleachi 2|Psalmen 110|Psalmen 128|Psalmen 144|Psalmen 69|Psalmen 88|Psalmen 89|Sacharja 13|Sprüche 4
+Dass;53;0.85;ja;2;45;1. Mose 15|1. Mose 27|1. Mose 31|1. Mose 42|1. Samuel 18|1. Samuel 2|1. Samuel 25|1. Samuel 4|2. Mose 10|2. Mose 12|2. Mose 16|2. Mose 23|2. Mose 24|2. Mose 29|2. Mose 4|2. Mose 6|2. Mose 7|2. Samuel 13|2. Samuel 19|2. Samuel 4|2. Samuel 5|2. Samuel 7|4. Mose 17|4. Mose 20|5. Mose 1|5. Mose 32|Hesekiel 29|Hiob 20|Hiob 29|Hosea 13|Jeremia 19|Jeremia 3|Jesaja 35|Jesaja 38|Jesaja 40|Jesaja 46|Jesaja 48|Jesaja 49|Jesaja 66|Maleachi 1
+Kaleb;52;0.25;;2;13;1. Samuel 29|1. Samuel 31|4. Mose 13|4. Mose 14|4. Mose 26|4. Mose 32|4. Mose 34|5. Mose 1|Jesaja 21|Josua 1|Josua 12|Josua 14|Josua 21
+Jojakim;52;0.15;;2;8;Haggai 2|Jeremia 23|Jeremia 24|Jeremia 26|Jeremia 36|Jeremia 37|Jeremia 52|Nehemia 11
+Adam;51;0.24;;2;12;1. Mose 2|1. Mose 3|1. Mose 4|1. Mose 49|1. Samuel 26|Hesekiel 27|Hiob 1|Hiob 31|Hosea 7|Maleachi 2|Psalmen 116|Psalmen 7
+Purpur;51;0.33;;2;17;2. Mose 24|2. Mose 25|2. Mose 26|2. Mose 27|2. Mose 28|2. Mose 34|2. Mose 36|2. Mose 38|2. Mose 39|4. Mose 15|4. Mose 4|Hesekiel 23|Hesekiel 27|Hohelied 4|Hohelied 8|Jeremia 10|Sprüche 31
+Aufgrund;50;0.88;ja;2;44;1. Mose 15|1. Mose 17|1. Mose 19|1. Mose 20|1. Mose 23|1. Mose 40|1. Mose 41|1. Mose 43|1. Samuel 12|1. Samuel 14|1. Samuel 2|1. Samuel 31|1. Samuel 9|2. Mose 19|2. Samuel 18|2. Samuel 24|3. Mose 3|5. Mose 1|5. Mose 7|Hesekiel 12|Hesekiel 33|Hesekiel 38|Hesekiel 4|Hesekiel 45|Hiob 40|Hiob 6|Hiob 8|Hosea 10|Jeremia 3|Jeremia 34|Jesaja 13|Jesaja 16|Jesaja 43|Jesaja 46|Josua 14|Nahum 1|Nehemia 9|Psalmen 118|Psalmen 13|Psalmen 18
+Naphtali;50;0.36;;2;18;1. Mose 29|1. Mose 35|1. Mose 49|2. Mose 1|4. Mose 1|4. Mose 13|4. Mose 2|4. Mose 25|4. Mose 26|5. Mose 28|5. Mose 33|Hesekiel 48|Hosea 10|Jesaja 8|Josua 19|Josua 20|Josua 21|Psalmen 68
+Silo;49;0.35;;2;17;1. Samuel 1|1. Samuel 14|1. Samuel 2|1. Samuel 4|5. Mose 12|Jeremia 1|Jeremia 26|Jeremia 41|Jeremia 6|Josua 17|Josua 19|Josua 20|Josua 21|Josua 22|Josua 24|Josua 9|Psalmen 79
+Jeschua;48;0.15;;2;7;Haggai 1|Nehemia 11|Nehemia 3|Nehemia 9|Sacharja 3|Sacharja 5|Sacharja 6
+Serubbabel;47;0.23;;2;11;Haggai 1|Haggai 2|Jeremia 23|Jeremia 30|Jesaja 21|Nehemia 11|Nehemia 3|Psalmen 128|Sacharja 3|Sacharja 5|Sacharja 6
+Fürsorge;46;0.83;ja;2;38;1. Mose 30|1. Mose 8|1. Samuel 1|1. Samuel 2|1. Samuel 23|2. Mose 16|2. Mose 17|2. Mose 19|2. Samuel 21|3. Mose 23|4. Mose 31|5. Mose 32|Habakuk 1|Haggai 1|Hesekiel 12|Hesekiel 46|Hiob 29|Hosea 10|Jeremia 1|Jeremia 2|Jesaja 1|Jesaja 11|Jesaja 25|Jesaja 43|Psalmen 104|Psalmen 122|Psalmen 128|Psalmen 36|Psalmen 40|Psalmen 65|Psalmen 69|Psalmen 82|Psalmen 85|Psalmen 91|Psalmen 95|Sacharja 11|Sacharja 5|Sprüche 11
+Sebulon;46;0.35;;2;16;1. Mose 30|1. Mose 35|1. Mose 48|1. Mose 8|2. Mose 1|4. Mose 1|4. Mose 13|4. Mose 25|5. Mose 28|5. Mose 33|Hesekiel 48|Jesaja 8|Josua 19|Josua 21|Josua 22|Psalmen 68
+Beerscheba;45;0.49;;2;22;1. Mose 12|1. Mose 21|1. Mose 23|1. Mose 27|1. Mose 28|1. Mose 32|1. Mose 45|1. Samuel 14|1. Samuel 28|1. Samuel 4|1. Samuel 7|2. Mose 1|2. Samuel 11|2. Samuel 16|2. Samuel 24|2. Samuel 3|5. Mose 1|5. Mose 26|Josua 19|Nehemia 11|Psalmen 128|Sacharja 7
+Gemeint;45;0.89;ja;2;40;1. Samuel 1|1. Samuel 10|1. Samuel 14|1. Samuel 18|1. Samuel 21|1. Samuel 26|1. Samuel 31|1. Samuel 6|1. Samuel 9|2. Samuel 10|2. Samuel 19|2. Samuel 20|2. Samuel 5|2. Samuel 8|5. Mose 10|5. Mose 13|5. Mose 26|5. Mose 28|5. Mose 29|Habakuk 1|Hiob 18|Hiob 2|Hiob 4|Hohelied 1|Jeremia 13|Jeremia 19|Jeremia 2|Jeremia 30|Jeremia 5|Joel 4|Nahum 2|Sacharja 5|Sacharja 6|Sprüche 1|Sprüche 11|Sprüche 16|Sprüche 18|Sprüche 21|Sprüche 23|Sprüche 7
+Kyrus;45;0.36;;2;16;Habakuk 2|Haggai 1|Hesekiel 29|Jeremia 49|Jeremia 50|Jeremia 51|Jesaja 41|Jesaja 42|Jesaja 43|Jesaja 44|Jesaja 45|Jesaja 46|Jesaja 48|Jesaja 52|Sacharja 6|Sacharja 8
+Linie;44;0.75;;2;33;1. Mose 28|1. Mose 35|1. Mose 48|1. Samuel 2|1. Samuel 4|2. Mose 20|2. Samuel 22|2. Samuel 8|3. Mose 14|3. Mose 9|4. Mose 34|4. Mose 5|5. Mose 1|Haggai 1|Haggai 2|Hesekiel 18|Hesekiel 20|Hesekiel 27|Hesekiel 4|Hohelied 6|Jeremia 21|Jeremia 23|Jeremia 30|Jeremia 52|Jesaja 11|Maleachi 2|Maleachi 3|Psalmen 106|Psalmen 72|Psalmen 79|Sacharja 13|Sacharja 14|Sacharja 9
+Souveränität;44;0.82;ja;2;36;1. Mose 31|1. Mose 45|1. Mose 49|1. Mose 50|1. Samuel 16|1. Samuel 23|1. Samuel 4|2. Mose 19|2. Samuel 22|2. Samuel 24|5. Mose 10|5. Mose 13|5. Mose 32|Haggai 1|Hiob 13|Hiob 23|Hiob 42|Jeremia 10|Jesaja 30|Jesaja 42|Jona 1|Jona 3|Josua 8|Nehemia 2|Psalmen 1|Psalmen 105|Psalmen 112|Psalmen 128|Psalmen 133|Psalmen 147|Psalmen 28|Psalmen 58|Psalmen 62|Psalmen 91|Sacharja 13|Sprüche 16
+Mizpa;44;0.2;;2;9;1. Mose 31|1. Samuel 10|1. Samuel 2|1. Samuel 7|Hosea 4|Jeremia 39|Jeremia 41|Josua 10|Nehemia 3
+Leinen;44;0.36;;2;16;2. Mose 24|2. Mose 25|2. Mose 26|2. Mose 27|2. Mose 28|2. Mose 34|2. Mose 36|2. Mose 38|2. Mose 39|3. Mose 14|5. Mose 22|Hesekiel 16|Hesekiel 27|Hesekiel 40|Hesekiel 8|Sprüche 31
+Obgleich;44;0.93;ja;2;41;1. Samuel 2|1. Samuel 23|2. Samuel 19|2. Samuel 2|2. Samuel 21|2. Samuel 24|4. Mose 20|5. Mose 31|5. Mose 4|Habakuk 1|Haggai 1|Hesekiel 10|Hesekiel 14|Hesekiel 29|Hesekiel 30|Hesekiel 47|Hiob 23|Hosea 10|Hosea 7|Jeremia 17|Jeremia 52|Jesaja 2|Jesaja 51|Jesaja 6|Jesaja 65|Joel 2|Maleachi 2|Nahum 2|Nehemia 12|Nehemia 4|Nehemia 6|Psalmen 1|Psalmen 106|Psalmen 16|Psalmen 58|Psalmen 68|Psalmen 85|Psalmen 91|Sacharja 1|Sacharja 6
+Zadok;44;0.23;;2;10;1. Samuel 2|2. Samuel 15|2. Samuel 16|2. Samuel 19|2. Samuel 20|2. Samuel 8|Hesekiel 44|Nehemia 12|Nehemia 3|Nehemia 9
+Getreide;43;0.7;;2;30;1. Mose 12|1. Mose 41|1. Mose 42|1. Mose 43|1. Mose 47|2. Mose 21|2. Mose 23|2. Mose 9|2. Samuel 18|2. Samuel 5|3. Mose 25|3. Mose 7|5. Mose 22|5. Mose 24|Haggai 1|Hesekiel 29|Hesekiel 4|Hosea 13|Jesaja 19|Jesaja 21|Jesaja 23|Jesaja 28|Jesaja 5|Josua 6|Nehemia 4|Nehemia 9|Psalmen 104|Psalmen 65|Psalmen 72|Sprüche 16
+Damaskus;43;0.4;;2;17;1. Mose 14|1. Mose 15|2. Samuel 11|2. Samuel 8|4. Mose 20|Hesekiel 24|Hesekiel 27|Hesekiel 47|Hohelied 4|Hohelied 6|Hohelied 8|Jeremia 49|Jesaja 10|Jesaja 16|Jesaja 7|Maleachi 3|Sacharja 8
+Asser;43;0.33;;2;14;1. Mose 29|1. Mose 35|1. Mose 49|2. Mose 1|4. Mose 1|4. Mose 13|4. Mose 2|4. Mose 25|5. Mose 28|5. Mose 33|Hesekiel 48|Josua 17|Josua 19|Josua 21
+Tamar;43;0.23;;2;10;1. Mose 38|2. Samuel 12|2. Samuel 13|2. Samuel 14|2. Samuel 3|5. Mose 24|Hesekiel 47|Hesekiel 48|Hohelied 1|Hohelied 8
+Ehebruch;43;0.53;;2;23;1. Mose 40|2. Mose 20|2. Samuel 11|2. Samuel 12|3. Mose 17|3. Mose 20|4. Mose 5|5. Mose 13|5. Mose 24|Hesekiel 23|Hiob 23|Hosea 10|Hosea 4|Jeremia 23|Jeremia 3|Jeremia 30|Jeremia 5|Jesaja 56|Maleachi 2|Maleachi 3|Sprüche 4|Sprüche 6|Sprüche 7
+Balak;43;0.12;;2;5;4. Mose 22|4. Mose 23|Jesaja 2|Josua 24|Psalmen 106
+Samaria;43;0.4;;2;17;Hesekiel 16|Hesekiel 23|Hesekiel 24|Hohelied 4|Hosea 10|Hosea 13|Hosea 7|Jeremia 23|Jeremia 41|Jesaja 10|Jesaja 37|Jesaja 42|Jesaja 7|Jona 1|Maleachi 3|Nehemia 2|Nehemia 4
+Simeon;42;0.38;;2;16;1. Mose 29|1. Mose 34|1. Mose 35|1. Mose 42|1. Mose 48|2. Mose 1|2. Mose 6|4. Mose 1|4. Mose 13|4. Mose 25|5. Mose 26|5. Mose 33|Hesekiel 48|Jesaja 42|Josua 19|Josua 21
+Elihu;42;0.12;;2;5;Hiob 31|Hiob 33|Hiob 36|Hiob 38|Hiob 4
+Kain;41;0.1;;2;4;1. Mose 4|1. Mose 49|3. Mose 1|Josua 16
+Hanna;41;0.12;;2;5;1. Samuel 1|1. Samuel 2|1. Samuel 7|1. Samuel 9|Sprüche 31
+Nabal;41;0.1;;2;4;1. Samuel 2|1. Samuel 25|1. Samuel 28|1. Samuel 31
+Räucherwerk;40;0.55;;2;22;1. Samuel 2|2. Mose 24|2. Mose 29|2. Mose 31|2. Mose 34|2. Mose 36|2. Mose 39|2. Mose 40|3. Mose 3|4. Mose 15|4. Mose 17|4. Mose 4|4. Mose 6|4. Mose 7|Habakuk 2|Hesekiel 16|Hesekiel 20|Hesekiel 23|Jesaja 1|Maleachi 1|Psalmen 140|Sprüche 26
+Isai;40;0.1;;2;4;1. Samuel 15|1. Samuel 16|1. Samuel 17|Jesaja 11
+Ischboseth;40;0.15;;2;6;1. Samuel 31|2. Samuel 1|2. Samuel 16|2. Samuel 2|2. Samuel 3|2. Samuel 4
+Lämmer;39;0.49;;2;19;1. Mose 21|1. Mose 30|2. Mose 12|2. Mose 29|3. Mose 23|3. Mose 4|4. Mose 28|4. Mose 31|4. Mose 6|4. Mose 7|5. Mose 32|Hesekiel 39|Hesekiel 46|Hiob 31|Jeremia 51|Jesaja 1|Jesaja 35|Jesaja 40|Jesaja 5
+Amalek;39;0.23;;2;9;1. Mose 35|1. Samuel 14|1. Samuel 15|1. Samuel 29|2. Mose 17|2. Samuel 8|5. Mose 24|Josua 8|Psalmen 82
+Gerichte;39;0.74;;2;29;1. Mose 43|1. Mose 44|2. Mose 6|2. Mose 7|5. Mose 33|Hesekiel 14|Hesekiel 16|Hesekiel 24|Hesekiel 26|Hesekiel 36|Hesekiel 37|Hesekiel 4|Hesekiel 40|Hesekiel 8|Hiob 6|Hosea 7|Jeremia 46|Jesaja 16|Jesaja 23|Jesaja 27|Jesaja 3|Nahum 1|Psalmen 119|Psalmen 36|Psalmen 48|Psalmen 65|Psalmen 73|Psalmen 9|Psalmen 98
+Gibeon;39;0.31;;2;12;2. Samuel 2|2. Samuel 24|2. Samuel 4|Jeremia 28|Jeremia 41|Jesaja 28|Josua 10|Josua 12|Josua 16|Josua 19|Josua 21|Josua 9
+Feinmehl;38;0.37;;2;14;1. Mose 17|2. Mose 28|2. Mose 29|3. Mose 1|3. Mose 14|3. Mose 23|3. Mose 3|3. Mose 4|3. Mose 6|4. Mose 14|4. Mose 15|4. Mose 28|4. Mose 6|4. Mose 7
+Abimelech;38;0.16;;2;6;1. Mose 20|1. Mose 21|1. Mose 25|1. Mose 27|1. Samuel 21|2. Samuel 12
+Sacktuch;38;0.47;;2;18;1. Mose 37|2. Samuel 21|2. Samuel 4|Hesekiel 27|Hesekiel 6|Jeremia 3|Jeremia 48|Jeremia 6|Jesaja 14|Jesaja 21|Jesaja 33|Jesaja 37|Jesaja 51|Jesaja 58|Joel 1|Jona 3|Nehemia 9|Psalmen 69
+Pinehas;38;0.34;;2;13;1. Samuel 1|1. Samuel 14|1. Samuel 2|1. Samuel 4|2. Mose 6|2. Samuel 8|4. Mose 25|4. Mose 31|Hesekiel 40|Josua 22|Josua 24|Maleachi 2|Psalmen 106
+Elis;38;0.24;;2;9;1. Samuel 1|1. Samuel 14|1. Samuel 2|1. Samuel 21|1. Samuel 23|1. Samuel 31|1. Samuel 4|1. Samuel 7|Hesekiel 40
+Achis;38;0.08;;2;3;1. Samuel 21|1. Samuel 28|1. Samuel 29
+Eden;37;0.32;;2;12;1. Mose 14|1. Mose 2|1. Mose 3|1. Mose 4|Hesekiel 27|Hesekiel 29|Hesekiel 36|Hesekiel 47|Jesaja 51|Joel 2|Psalmen 116|Psalmen 45
+Kadesch;37;0.43;;2;16;1. Mose 14|1. Mose 17|1. Mose 20|2. Mose 17|4. Mose 13|4. Mose 19|4. Mose 20|4. Mose 26|4. Mose 32|4. Mose 33|4. Mose 9|5. Mose 1|5. Mose 2|Hesekiel 47|Josua 14|Psalmen 28
+Palästina;37;0.51;;2;19;1. Mose 14|1. Mose 15|1. Mose 24|2. Mose 15|5. Mose 2|Hesekiel 21|Hesekiel 29|Hesekiel 37|Hesekiel 45|Hesekiel 47|Jeremia 23|Jeremia 31|Joel 2|Josua 10|Josua 12|Maleachi 3|Sacharja 11|Sacharja 8|Sacharja 9
+Midian;37;0.43;;2;16;1. Mose 24|1. Mose 37|1. Mose 49|2. Mose 1|2. Mose 17|2. Mose 19|2. Mose 3|2. Mose 4|3. Mose 9|4. Mose 22|4. Mose 31|5. Mose 31|Hiob 1|Jesaja 11|Jesaja 60|Psalmen 82
+Gaben;37;0.62;;2;23;2. Mose 20|2. Mose 24|2. Mose 28|2. Mose 34|2. Mose 36|3. Mose 23|4. Mose 1|4. Mose 15|4. Mose 17|4. Mose 19|4. Mose 5|4. Mose 6|5. Mose 12|5. Mose 32|Hesekiel 20|Hesekiel 21|Maleachi 1|Nehemia 12|Psalmen 40|Psalmen 68|Psalmen 72|Psalmen 98|Sacharja 6
+Sihon;37;0.27;;2;10;5. Mose 1|5. Mose 2|5. Mose 29|5. Mose 31|5. Mose 4|Jeremia 48|Josua 12|Josua 14|Josua 2|Josua 9
+Mephiboset;37;0.19;;2;7;2. Samuel 10|2. Samuel 16|2. Samuel 19|2. Samuel 20|2. Samuel 21|2. Samuel 4|2. Samuel 8
+Galiläa;36;0.75;;2;27;1. Mose 31|1. Samuel 10|1. Samuel 28|1. Samuel 31|2. Samuel 10|2. Samuel 14|2. Samuel 20|2. Samuel 24|2. Samuel 8|5. Mose 1|5. Mose 2|5. Mose 33|5. Mose 9|Hohelied 4|Hosea 10|Hosea 4|Jeremia 23|Jeremia 49|Jeremia 8|Jesaja 8|Jona 3|Josua 10|Josua 17|Josua 19|Josua 20|Josua 21|Sacharja 11
+Hesbon;36;0.42;;2;15;2. Mose 1|4. Mose 32|5. Mose 1|5. Mose 2|5. Mose 29|5. Mose 4|Hohelied 4|Hohelied 6|Hohelied 8|Jeremia 48|Jesaja 14|Josua 12|Josua 14|Josua 22|Nehemia 9
+Nathan;36;0.33;;2;12;1. Samuel 28|2. Samuel 12|2. Samuel 13|2. Samuel 14|2. Samuel 16|2. Samuel 5|2. Samuel 7|Haggai 1|Jesaja 38|Psalmen 50|Psalmen 89|Sacharja 13
+Angesichts;35;0.89;ja;2;31;1. Mose 3|2. Mose 13|2. Mose 34|2. Mose 4|3. Mose 9|Hiob 13|Hiob 29|Hohelied 4|Jeremia 15|Jesaja 23|Jesaja 28|Jesaja 3|Jesaja 31|Jesaja 41|Jesaja 64|Jona 3|Psalmen 105|Psalmen 13|Psalmen 18|Psalmen 31|Psalmen 4|Psalmen 42|Psalmen 58|Psalmen 79|Psalmen 89|Psalmen 9|Psalmen 91|Sacharja 1|Sacharja 7|Sacharja 8|Sacharja 9
+Baruch;35;0.23;;2;8;Jeremia 32|Jeremia 36|Jeremia 37|Jeremia 44|Jeremia 46|Jeremia 52|Nehemia 3|Nehemia 9
+Kusch;34;0.47;;2;16;1. Mose 2|1. Mose 9|2. Samuel 16|2. Samuel 18|Hesekiel 29|Hesekiel 30|Hesekiel 37|Hiob 29|Jeremia 46|Jesaja 11|Jesaja 16|Jesaja 19|Jesaja 21|Jesaja 37|Jesaja 43|Psalmen 68
+Gewalttat;34;0.56;;2;19;1. Mose 6|2. Samuel 21|2. Samuel 22|5. Mose 20|Habakuk 1|Habakuk 2|Hesekiel 12|Hiob 18|Jeremia 19|Jeremia 6|Jesaja 1|Jesaja 58|Jesaja 60|Nahum 2|Psalmen 18|Psalmen 7|Psalmen 73|Sprüche 10|Sprüche 13
+Karmesin;34;0.41;;2;14;2. Mose 24|2. Mose 25|2. Mose 26|2. Mose 27|2. Mose 28|2. Mose 34|2. Mose 36|2. Mose 38|2. Mose 39|3. Mose 14|3. Mose 15|4. Mose 19|4. Mose 4|Jesaja 2
+Hingabe;34;0.76;ja;2;26;2. Samuel 15|2. Samuel 21|3. Mose 3|5. Mose 13|5. Mose 26|5. Mose 29|5. Mose 6|Habakuk 3|Hesekiel 44|Hiob 1|Hohelied 4|Hosea 7|Jeremia 3|Jesaja 2|Jesaja 24|Jesaja 58|Josua 24|Maleachi 1|Nehemia 9|Psalmen 119|Psalmen 25|Psalmen 40|Psalmen 62|Psalmen 69|Sacharja 6|Sacharja 9
+Obschon;34;0.97;ja;2;33;1. Samuel 1|1. Samuel 12|1. Samuel 16|1. Samuel 21|1. Samuel 31|1. Samuel 4|2. Samuel 11|2. Samuel 14|2. Samuel 3|2. Samuel 7|2. Samuel 8|5. Mose 13|5. Mose 22|5. Mose 28|5. Mose 31|5. Mose 4|5. Mose 6|Apostelgeschichte 9|Habakuk 2|Habakuk 3|Haggai 1|Hiob 15|Hiob 27|Hosea 10|Hosea 13|Jeremia 46|Jeremia 51|Jeremia 8|Joel 1|Maleachi 2|Sacharja 11|Sacharja 14|Sprüche 21
+Goliath;34;0.24;;2;8;1. Samuel 12|1. Samuel 17|1. Samuel 2|1. Samuel 21|1. Samuel 28|2. Samuel 21|Josua 12|Sacharja 9
+Abisai;34;0.32;;2;11;1. Samuel 26|2. Samuel 10|2. Samuel 11|2. Samuel 16|2. Samuel 18|2. Samuel 19|2. Samuel 2|2. Samuel 20|2. Samuel 21|2. Samuel 24|2. Samuel 4
+Sarai;33;0.09;;2;3;1. Mose 12|1. Mose 15|1. Mose 17
+Gads;33;0.3;;2;10;1. Mose 47|2. Samuel 2|2. Samuel 24|4. Mose 1|4. Mose 26|4. Mose 32|4. Mose 34|Hesekiel 48|Josua 14|Josua 22
+Sanherib;33;0.21;;2;7;Jeremia 21|Jesaja 33|Jesaja 35|Jesaja 37|Jesaja 38|Nahum 1|Psalmen 75
+Gedalja;33;0.12;;2;4;Jeremia 37|Jeremia 39|Jeremia 41|Jeremia 44
+Haran;32;0.34;;2;11;1. Mose 11|1. Mose 12|1. Mose 14|1. Mose 17|1. Mose 25|1. Mose 28|1. Mose 29|1. Mose 37|1. Mose 49|Hesekiel 27|Jesaja 37
+Bezug;32;0.97;ja;2;31;1. Mose 12|1. Mose 28|1. Samuel 14|1. Samuel 18|2. Mose 17|2. Samuel 22|2. Samuel 3|2. Samuel 5|2. Samuel 7|3. Mose 17|5. Mose 10|5. Mose 12|5. Mose 22|5. Mose 23|5. Mose 4|Hesekiel 26|Hesekiel 4|Hiob 31|Hiob 36|Hosea 10|Jeremia 31|Jeremia 44|Jeremia 46|Jesaja 2|Maleachi 2|Nahum 1|Nahum 2|Psalmen 1|Psalmen 16|Sacharja 3|Sprüche 4
+Gosen;32;0.25;;2;8;1. Mose 45|1. Mose 47|1. Mose 50|2. Mose 7|2. Mose 8|2. Mose 9|Josua 10|Josua 16
+Zorns;32;0.78;ja;2;25;2. Mose 15|2. Mose 31|5. Mose 32|Habakuk 2|Habakuk 3|Hesekiel 22|Hesekiel 6|Hiob 20|Hosea 10|Jeremia 1|Jeremia 19|Jeremia 5|Jesaja 10|Jesaja 13|Jesaja 42|Jesaja 51|Joel 2|Joel 4|Nahum 1|Psalmen 1|Psalmen 102|Psalmen 69|Psalmen 91|Sacharja 7|Sprüche 1
+Tobija;32;0.16;;2;5;Nehemia 12|Nehemia 2|Nehemia 3|Nehemia 4|Nehemia 6
+Dadurch;31;0.97;ja;2;30;1. Mose 1|1. Mose 12|1. Mose 17|1. Mose 20|1. Mose 31|1. Mose 38|1. Mose 44|1. Mose 7|1. Samuel 25|1. Samuel 7|2. Mose 16|2. Mose 23|2. Mose 4|2. Mose 40|2. Samuel 11|3. Mose 17|5. Mose 20|5. Mose 22|5. Mose 28|5. Mose 31|Hesekiel 12|Hesekiel 21|Hiob 13|Hiob 23|Jeremia 44|Jesaja 1|Josua 14|Josua 8|Psalmen 128|Sacharja 13
+Rabba;31;0.42;;2;13;2. Samuel 10|2. Samuel 11|2. Samuel 12|2. Samuel 13|2. Samuel 18|2. Samuel 24|5. Mose 2|Hesekiel 21|Hesekiel 22|Hesekiel 24|Jeremia 48|Josua 14|Josua 16
+Asdod;31;0.45;;2;14;1. Samuel 2|1. Samuel 4|1. Samuel 6|1. Samuel 7|2. Samuel 11|2. Samuel 21|Jeremia 26|Jesaja 19|Jesaja 21|Josua 12|Josua 16|Nehemia 13|Nehemia 4|Sacharja 9
+Zidon;30;0.37;;2;11;1. Mose 10|1. Mose 48|2. Samuel 24|Hesekiel 27|Hesekiel 29|Jeremia 26|Jeremia 46|Jesaja 23|Josua 10|Josua 19|Sacharja 8
+Kedar;30;0.27;;2;8;1. Mose 25|Hesekiel 27|Jeremia 2|Jeremia 49|Jesaja 21|Jesaja 42|Jesaja 60|Psalmen 119
+Majestät;30;0.8;ja;2;24;1. Samuel 4|2. Mose 19|2. Mose 24|4. Mose 28|5. Mose 10|5. Mose 33|5. Mose 4|Hiob 13|Hiob 40|Hiob 42|Jeremia 13|Jesaja 11|Jesaja 2|Jesaja 24|Jesaja 27|Jesaja 3|Jesaja 33|Nahum 1|Psalmen 104|Psalmen 144|Psalmen 45|Psalmen 75|Psalmen 91|Psalmen 95
+Hamat;30;0.4;;2;12;2. Samuel 8|4. Mose 13|4. Mose 34|Hesekiel 47|Jeremia 39|Jeremia 49|Jeremia 52|Jesaja 10|Jesaja 11|Jesaja 37|Josua 12|Sacharja 8
+Ekron;30;0.37;;2;11;1. Samuel 17|1. Samuel 2|1. Samuel 4|1. Samuel 6|1. Samuel 7|Jeremia 26|Josua 12|Josua 14|Josua 16|Josua 19|Sacharja 9
+Ahitophel;30;0.13;;2;4;2. Samuel 11|2. Samuel 15|2. Samuel 16|2. Samuel 18
+Ahas;30;0.4;;2;12;Hesekiel 23|Hesekiel 26|Jesaja 1|Jesaja 10|Jesaja 14|Jesaja 2|Jesaja 35|Jesaja 37|Jesaja 38|Jesaja 56|Jesaja 7|Jesaja 8
+Gomorra;29;0.45;;2;13;1. Mose 10|1. Mose 14|1. Mose 18|1. Mose 20|5. Mose 29|5. Mose 32|Hosea 10|Jeremia 21|Jeremia 23|Jeremia 49|Jeremia 50|Jesaja 1|Jesaja 13
+Aram;29;0.45;;2;13;1. Mose 10|1. Mose 23|1. Mose 25|2. Samuel 15|2. Samuel 8|4. Mose 23|5. Mose 26|Hosea 13|Jesaja 14|Jesaja 16|Jesaja 37|Jesaja 60|Jesaja 7
+Fremdlinge;29;0.76;ja;2;22;1. Mose 35|1. Mose 37|2. Mose 23|2. Mose 6|2. Samuel 4|3. Mose 19|3. Mose 25|4. Mose 19|5. Mose 10|5. Mose 24|5. Mose 26|Hesekiel 44|Hesekiel 47|Jeremia 36|Jeremia 41|Jeremia 44|Jeremia 6|Jesaja 56|Jesaja 60|Jesaja 62|Josua 20|Josua 9
+Endes;29;0.93;ja;2;27;1. Samuel 15|1. Samuel 25|1. Samuel 28|1. Samuel 29|2. Mose 7|2. Samuel 10|5. Mose 12|5. Mose 28|5. Mose 7|Habakuk 2|Habakuk 3|Haggai 1|Hesekiel 22|Hesekiel 35|Hiob 26|Hosea 10|Hosea 13|Jeremia 15|Jeremia 30|Nahum 1|Nahum 2|Psalmen 51|Sacharja 11|Sacharja 6|Sprüche 13|Sprüche 24|Sprüche 28
+Zeugnisse;29;0.34;;2;10;2. Mose 34|5. Mose 6|Nehemia 9|Psalmen 118|Psalmen 119|Psalmen 20|Psalmen 25|Psalmen 28|Psalmen 79|Psalmen 98
+Hazor;29;0.28;;2;8;1. Samuel 12|2. Samuel 13|Jeremia 49|Josua 10|Josua 12|Josua 16|Josua 19|Nehemia 11
+Abjatar;28;0.29;;2;8;1. Samuel 23|1. Samuel 28|1. Samuel 29|2. Samuel 15|2. Samuel 16|2. Samuel 20|2. Samuel 8|Jeremia 1
+Bildad;28;0.21;;2;6;Hiob 18|Hiob 2|Hiob 26|Hiob 4|Hiob 42|Hiob 8
+Sulamit;28;0.18;;2;5;Hohelied 1|Hohelied 2|Hohelied 4|Hohelied 6|Hohelied 8
+Eingreifen;27;0.85;ja;2;23;1. Mose 23|1. Mose 28|1. Mose 31|2. Mose 15|2. Mose 17|2. Mose 3|2. Mose 4|2. Mose 6|4. Mose 17|Habakuk 3|Jeremia 21|Jesaja 19|Jesaja 42|Jesaja 60|Jesaja 64|Josua 9|Psalmen 102|Psalmen 119|Psalmen 140|Psalmen 34|Psalmen 36|Psalmen 4|Psalmen 79
+Kummer;27;0.78;ja;2;21;1. Mose 25|1. Mose 42|1. Mose 45|1. Mose 47|1. Samuel 2|2. Samuel 24|Hiob 18|Hiob 40|Jeremia 21|Jeremia 46|Jeremia 8|Jesaja 35|Jesaja 51|Jesaja 56|Psalmen 107|Psalmen 116|Psalmen 13|Psalmen 85|Sprüche 10|Sprüche 14|Sprüche 18
+Bethlehem;27;0.52;;2;14;1. Mose 35|1. Samuel 10|1. Samuel 15|1. Samuel 17|1. Samuel 2|1. Samuel 20|1. Samuel 21|2. Samuel 24|2. Samuel 3|2. Samuel 4|Jeremia 31|Jeremia 41|Jeremia 5|Josua 19
+Korahs;27;0.41;;2;11;2. Mose 6|4. Mose 15|4. Mose 17|4. Mose 20|4. Mose 25|4. Mose 26|Josua 8|Psalmen 42|Psalmen 45|Psalmen 48|Psalmen 85
+Asahel;27;0.15;;2;4;2. Samuel 2|2. Samuel 24|2. Samuel 3|2. Samuel 4
+Simei;26;0.31;;2;8;1. Samuel 2|1. Samuel 31|2. Mose 6|2. Samuel 16|2. Samuel 19|2. Samuel 20|4. Mose 2|Sacharja 13
+Anstatt;26;0.96;ja;2;25;1. Samuel 15|1. Samuel 4|2. Samuel 14|2. Samuel 2|2. Samuel 24|3. Mose 17|3. Mose 9|4. Mose 17|4. Mose 20|5. Mose 18|Hesekiel 4|Hiob 2|Hosea 7|Jesaja 1|Jesaja 19|Jesaja 21|Jesaja 3|Jesaja 41|Jesaja 56|Joel 1|Maleachi 1|Maleachi 2|Nehemia 6|Psalmen 78|Psalmen 82
+Achimelech;26;0.15;;2;4;1. Samuel 21|1. Samuel 23|1. Samuel 26|2. Samuel 8
+Hananja;26;0.23;;2;6;Jeremia 28|Jeremia 30|Nehemia 11|Nehemia 12|Nehemia 3|Nehemia 9
+Asaph;26;0.31;;2;8;Nehemia 2|Psalmen 50|Psalmen 73|Psalmen 74|Psalmen 75|Psalmen 78|Psalmen 79|Psalmen 82
+Persien;25;0.76;ja;2;19;1. Mose 12|1. Mose 2|1. Samuel 14|2. Mose 17|Haggai 1|Hesekiel 37|Jeremia 49|Jeremia 50|Jeremia 51|Jesaja 13|Jesaja 41|Jesaja 42|Jesaja 44|Maleachi 1|Nehemia 1|Nehemia 12|Nehemia 2|Nehemia 6|Sacharja 8
+Generationen;25;0.84;ja;2;21;1. Mose 32|1. Mose 4|1. Mose 50|2. Mose 10|2. Mose 13|2. Mose 16|2. Mose 9|2. Samuel 1|5. Mose 10|5. Mose 26|5. Mose 6|5. Mose 7|Hiob 8|Hosea 4|Jeremia 3|Jesaja 30|Joel 1|Nehemia 11|Psalmen 102|Psalmen 78|Psalmen 89
+Tarsis;25;0.4;;2;10;1. Mose 9|Hesekiel 27|Hesekiel 38|Jeremia 10|Jesaja 23|Jesaja 66|Jona 1|Jona 3|Psalmen 48|Psalmen 72
+Gaza;25;0.56;;2;14;1. Mose 10|1. Samuel 2|1. Samuel 4|1. Samuel 6|1. Samuel 7|2. Samuel 11|2. Samuel 21|5. Mose 2|Jeremia 26|Jeremia 46|Josua 10|Josua 12|Josua 16|Sacharja 9
+Versöhnungstag;25;0.48;;2;12;2. Mose 29|3. Mose 11|3. Mose 16|3. Mose 17|3. Mose 22|3. Mose 23|3. Mose 3|4. Mose 28|Hesekiel 40|Hesekiel 45|Psalmen 82|Sacharja 7
+Geba;25;0.48;;2;12;1. Samuel 10|1. Samuel 12|1. Samuel 14|1. Samuel 2|1. Samuel 6|2. Samuel 5|Jesaja 11|Josua 19|Josua 21|Nehemia 11|Nehemia 12|Sacharja 14
+Ziba;25;0.12;;2;3;2. Samuel 16|2. Samuel 19|2. Samuel 8
+Zophar;25;0.28;;2;7;Hiob 10|Hiob 13|Hiob 2|Hiob 20|Hiob 26|Hiob 4|Hiob 42
+Hintergrund;24;0.92;ja;2;22;1. Mose 9|1. Samuel 9|2. Mose 6|Hesekiel 21|Hesekiel 40|Hohelied 2|Hohelied 6|Hohelied 8|Hosea 4|Jeremia 31|Jesaja 30|Joel 1|Maleachi 1|Psalmen 107|Psalmen 122|Psalmen 147|Psalmen 58|Psalmen 62|Psalmen 65|Psalmen 91|Sacharja 14|Sacharja 5
+Lots;24;0.42;;2;10;1. Mose 14|1. Mose 18|1. Mose 19|1. Mose 20|1. Samuel 10|5. Mose 1|5. Mose 2|5. Mose 29|Nehemia 13|Psalmen 82
+Vergehen;24;0.67;;2;16;1. Mose 25|1. Mose 28|1. Mose 31|1. Samuel 2|2. Samuel 3|3. Mose 19|3. Mose 20|3. Mose 25|3. Mose 4|3. Mose 6|5. Mose 28|Hiob 13|Hiob 31|Hiob 33|Psalmen 31|Psalmen 50
+Dagon;24;0.17;;2;4;1. Mose 31|1. Samuel 4|1. Samuel 6|Jona 1
+Trauben;24;0.58;;2;14;1. Mose 40|3. Mose 25|4. Mose 13|4. Mose 6|5. Mose 23|5. Mose 32|Hesekiel 18|Hiob 15|Hohelied 8|Hosea 10|Jeremia 31|Jeremia 8|Jesaja 3|Nehemia 12
+Webopfer;24;0.42;;2;10;2. Mose 29|3. Mose 11|3. Mose 14|3. Mose 23|3. Mose 7|3. Mose 8|3. Mose 9|4. Mose 6|4. Mose 7|4. Mose 9
+Bathseba;24;0.33;;2;8;1. Samuel 16|2. Samuel 11|2. Samuel 12|2. Samuel 13|2. Samuel 7|Psalmen 31|Psalmen 50|Sprüche 3
+Abigail;24;0.25;;2;6;1. Samuel 25|1. Samuel 28|1. Samuel 29|2. Samuel 18|2. Samuel 3|Sprüche 18
+Satans;23;0.48;;2;11;1. Mose 3|1. Mose 6|1. Samuel 16|Hesekiel 27|Hesekiel 29|Hiob 1|Hiob 42|Jesaja 14|Jesaja 60|Psalmen 82|Sacharja 3
+Mord;23;0.83;ja;2;19;1. Mose 28|1. Mose 34|1. Mose 37|1. Mose 4|2. Mose 1|2. Mose 21|2. Samuel 11|2. Samuel 12|2. Samuel 3|2. Samuel 4|4. Mose 35|5. Mose 13|Hiob 23|Jeremia 12|Jeremia 41|Jeremia 5|Jeremia 50|Jesaja 2|Psalmen 50
+Elam;23;0.35;;2;8;1. Mose 10|1. Mose 14|Hesekiel 32|Jeremia 26|Jeremia 49|Jesaja 11|Nehemia 12|Nehemia 9
+Fürbitte;23;0.65;;2;15;1. Mose 18|1. Mose 20|1. Mose 50|2. Mose 17|2. Mose 31|4. Mose 14|5. Mose 10|5. Mose 18|5. Mose 9|Hesekiel 14|Jeremia 12|Jeremia 15|Jeremia 28|Jeremia 6|Jesaja 37
+Führungspersonen;23;0.91;ja;2;21;2. Mose 19|4. Mose 1|4. Mose 13|Hesekiel 10|Hesekiel 14|Hesekiel 33|Hesekiel 45|Hesekiel 8|Jesaja 3|Jesaja 31|Jesaja 37|Jesaja 41|Jesaja 49|Jesaja 52|Jesaja 56|Josua 24|Nehemia 4|Nehemia 9|Psalmen 69|Psalmen 75|Psalmen 82
+Lachis;23;0.35;;2;8;Jeremia 34|Jesaja 35|Jesaja 37|Josua 10|Josua 12|Josua 16|Josua 9|Nehemia 11
+Ziklag;23;0.35;;2;8;1. Samuel 28|1. Samuel 29|1. Samuel 31|2. Samuel 1|2. Samuel 4|Josua 16|Josua 19|Nehemia 11
+Kehila;23;0.13;;2;3;1. Samuel 23|Josua 16|Nehemia 3
+Nebo;22;0.41;;2;9;1. Mose 31|1. Mose 8|4. Mose 26|4. Mose 32|4. Mose 33|5. Mose 32|5. Mose 33|Jesaja 14|Jesaja 46
+Zoan;22;0.32;;2;7;1. Mose 12|1. Mose 47|4. Mose 13|Hesekiel 30|Jesaja 19|Jesaja 30|Psalmen 78
+Paran;22;0.45;;2;10;1. Mose 21|1. Samuel 25|2. Mose 1|2. Mose 12|4. Mose 13|4. Mose 19|4. Mose 33|4. Mose 9|5. Mose 1|5. Mose 33
+Beide;22;0.55;;2;12;1. Mose 30|1. Mose 40|1. Mose 49|1. Samuel 1|2. Samuel 24|2. Samuel 3|3. Mose 6|Hesekiel 37|Jesaja 2|Sprüche 10|Sprüche 20|Sprüche 31
+Brand;22;1.0;ja;2;22;1. Samuel 14|2. Mose 21|2. Samuel 15|3. Mose 1|3. Mose 23|3. Mose 6|3. Mose 9|4. Mose 14|4. Mose 17|5. Mose 28|Hesekiel 40|Hiob 1|Jeremia 51|Jesaja 10|Jesaja 42|Josua 8|Psalmen 102|Psalmen 38|Psalmen 7|Psalmen 74|Sprüche 16|Sprüche 6
+Weinberge;22;0.86;ja;2;19;1. Samuel 21|1. Samuel 23|1. Samuel 9|4. Mose 15|4. Mose 20|5. Mose 28|5. Mose 6|Hesekiel 29|Hohelied 1|Hohelied 2|Hosea 2|Jeremia 31|Jeremia 32|Jesaja 38|Jesaja 65|Nahum 2|Nehemia 4|Nehemia 6|Psalmen 107
+Husai;22;0.14;;2;3;2. Samuel 15|2. Samuel 16|2. Samuel 18
+Sanballat;22;0.18;;2;4;Nehemia 13|Nehemia 2|Nehemia 4|Nehemia 6
+Mesopotamien;21;0.76;ja;2;16;1. Mose 1|1. Mose 12|1. Mose 14|1. Mose 2|1. Mose 23|1. Mose 25|1. Mose 30|1. Mose 31|2. Mose 24|5. Mose 26|Hesekiel 27|Jesaja 16|Jesaja 37|Jesaja 60|Nehemia 2|Psalmen 58
+Ammon;21;0.67;;2;14;1. Mose 20|1. Mose 49|1. Samuel 14|2. Samuel 11|Hesekiel 21|Hesekiel 22|Hesekiel 24|Hesekiel 26|Jeremia 48|Jeremia 49|Maleachi 1|Nehemia 13|Psalmen 82|Sacharja 3
+Kahat;21;0.24;;2;5;1. Mose 45|2. Mose 6|4. Mose 2|4. Mose 26|4. Mose 3
+Nadab;21;0.43;;2;9;2. Mose 24|2. Mose 27|2. Mose 31|2. Mose 6|3. Mose 23|3. Mose 9|4. Mose 2|4. Mose 26|Haggai 2
+Erbteils;21;0.62;;2;13;2. Mose 15|4. Mose 35|5. Mose 18|5. Mose 32|Jeremia 10|Jeremia 51|Jesaja 64|Joel 2|Josua 16|Josua 19|Josua 22|Josua 24|Psalmen 74
+Kleidern;21;0.67;;2;14;1. Samuel 20|2. Mose 29|2. Mose 40|2. Samuel 1|2. Samuel 14|2. Samuel 15|3. Mose 14|4. Mose 15|Hesekiel 16|Hesekiel 45|Jesaja 37|Jesaja 64|Josua 22|Psalmen 45
+Wolle;21;0.57;;2;12;3. Mose 14|5. Mose 22|Hesekiel 27|Hesekiel 33|Hesekiel 44|Hesekiel 45|Hiob 31|Hosea 2|Jesaja 2|Jesaja 51|Psalmen 147|Sprüche 31
+Anatot;21;0.38;;2;8;Jeremia 1|Jeremia 12|Jeremia 30|Jeremia 32|Jesaja 11|Josua 21|Nehemia 11|Nehemia 9
+Mundes;21;0.71;;2;15;Hiob 15|Hiob 23|Hiob 8|Hohelied 1|Hosea 7|Jeremia 10|Jesaja 11|Psalmen 119|Psalmen 137|Psalmen 36|Psalmen 58|Psalmen 78|Sprüche 18|Sprüche 4|Sprüche 7
+Jojachin;21;0.48;;2;10;Haggai 1|Haggai 2|Hesekiel 1|Hesekiel 12|Hesekiel 16|Hesekiel 20|Jeremia 13|Jeremia 23|Jeremia 37|Jeremia 52
+Eljaschib;21;0.19;;2;4;Nehemia 11|Nehemia 12|Nehemia 3|Nehemia 6
+Bedingungen;20;0.9;ja;1;18;1. Mose 12|1. Mose 30|1. Mose 6|1. Mose 9|1. Samuel 15|1. Samuel 17|2. Mose 19|2. Mose 32|3. Mose 26|5. Mose 26|5. Mose 29|Jona 3|Josua 2|Maleachi 1|Nehemia 4|Psalmen 38|Psalmen 89|Sprüche 4
+Gefangene;20;0.85;ja;1;17;1. Mose 14|1. Mose 40|2. Mose 1|4. Mose 20|Habakuk 1|Hesekiel 16|Jeremia 24|Jeremia 28|Jeremia 49|Jesaja 14|Jesaja 24|Jesaja 44|Jesaja 49|Jesaja 52|Nahum 2|Psalmen 68|Sacharja 9
+Sorgen;20;0.8;ja;1;16;1. Mose 34|1. Mose 35|1. Mose 45|1. Mose 47|1. Samuel 10|1. Samuel 9|2. Samuel 13|Hesekiel 12|Hesekiel 4|Hiob 13|Jeremia 15|Jesaja 52|Jesaja 65|Psalmen 13|Psalmen 69|Psalmen 89
+Jethro;20;0.15;;1;3;2. Mose 17|2. Mose 19|2. Mose 4
+Agag;20;0.3;;1;6;1. Samuel 10|1. Samuel 14|1. Samuel 15|2. Mose 17|4. Mose 23|Hesekiel 37
+Aroer;20;0.4;;1;8;1. Samuel 31|2. Samuel 24|4. Mose 32|5. Mose 2|5. Mose 4|Jesaja 16|Josua 12|Josua 14
+Rahab;20;0.35;;1;7;Hesekiel 29|Hiob 26|Jesaja 30|Jesaja 51|Josua 2|Josua 6|Psalmen 89
+Jabes;20;0.1;;1;2;1. Samuel 10|1. Samuel 31
+Josias;20;0.55;;1;11;Hesekiel 16|Jeremia 1|Jeremia 21|Jeremia 23|Jeremia 24|Jeremia 26|Jeremia 34|Jeremia 36|Jeremia 37|Jeremia 46|Sacharja 6
+Schemaja;20;0.35;;1;7;Jeremia 30|Nehemia 11|Nehemia 12|Nehemia 3|Nehemia 4|Nehemia 6|Nehemia 9
+Abel;19;0.21;;1;4;1. Mose 4|1. Mose 49|1. Samuel 7|2. Samuel 20
+Geduld;19;0.74;;1;14;1. Mose 23|1. Mose 6|1. Samuel 16|2. Samuel 16|Hesekiel 1|Hesekiel 38|Hesekiel 6|Jesaja 58|Maleachi 2|Maleachi 3|Nehemia 9|Psalmen 128|Sacharja 11|Sprüche 24
+Zoar;19;0.32;;1;6;1. Mose 14|1. Mose 20|2. Samuel 11|4. Mose 33|5. Mose 33|Jeremia 48
+Genezareth;19;0.53;;1;10;1. Mose 32|1. Mose 48|4. Mose 34|Hesekiel 27|Hesekiel 47|Josua 10|Josua 12|Josua 14|Josua 17|Josua 19
+Befehle;19;0.26;;1;5;1. Mose 49|Hesekiel 1|Jeremia 36|Jesaja 62|Psalmen 119
+Ysop;19;0.26;;1;5;2. Mose 12|3. Mose 14|3. Mose 15|4. Mose 19|Psalmen 51
+Sept;19;0.58;;1;11;1. Samuel 1|3. Mose 22|3. Mose 23|Haggai 1|Hesekiel 1|Hesekiel 46|Nehemia 1|Nehemia 6|Nehemia 7|Nehemia 9|Psalmen 82
+Siege;19;0.84;ja;1;16;1. Samuel 29|1. Samuel 31|1. Samuel 9|2. Samuel 22|5. Mose 32|Jesaja 30|Jesaja 54|Josua 10|Josua 12|Nehemia 4|Psalmen 107|Psalmen 18|Psalmen 20|Psalmen 42|Psalmen 45|Psalmen 82
+Michmas;19;0.21;;1;4;1. Samuel 12|1. Samuel 14|Jesaja 11|Nehemia 11
+Zoba;19;0.26;;1;5;1. Samuel 14|2. Samuel 10|2. Samuel 24|2. Samuel 8|Psalmen 58
+Jonadab;19;0.16;;1;3;2. Samuel 13|2. Samuel 14|Jeremia 36
+Saba;19;0.42;;1;8;Hesekiel 27|Hesekiel 38|Hiob 2|Hiob 6|Jeremia 6|Jesaja 43|Jesaja 60|Psalmen 72
+Hams;18;0.33;;1;6;1. Mose 10|1. Mose 9|Nahum 2|Psalmen 105|Psalmen 106|Psalmen 79
+Scheba;18;0.5;;1;9;1. Mose 10|1. Mose 24|1. Mose 27|1. Mose 9|1. Samuel 2|1. Samuel 31|2. Samuel 20|2. Samuel 8|Josua 19
+Mamre;18;0.44;;1;8;1. Mose 14|1. Mose 15|1. Mose 17|1. Mose 23|1. Mose 25|1. Mose 35|1. Mose 49|1. Mose 50
+Sukkot;18;0.39;;1;7;1. Mose 32|1. Mose 34|2. Mose 12|2. Mose 13|2. Mose 16|4. Mose 32|Josua 14
+Ramses;18;0.28;;1;5;1. Mose 47|2. Mose 1|2. Mose 12|2. Mose 16|4. Mose 32
+Ketten;18;0.56;;1;10;2. Mose 28|2. Mose 38|2. Mose 39|2. Samuel 4|Hesekiel 8|Jeremia 2|Jeremia 39|Jeremia 52|Jesaja 51|Nahum 2
+Libna;18;0.44;;1;8;4. Mose 32|Jeremia 52|Jesaja 37|Josua 10|Josua 12|Josua 16|Josua 21|Josua 9
+Demut;18;0.89;ja;1;16;1. Samuel 10|1. Samuel 16|1. Samuel 9|2. Samuel 19|2. Samuel 7|5. Mose 18|5. Mose 7|Hiob 40|Hosea 4|Jesaja 33|Jesaja 58|Jesaja 7|Sprüche 16|Sprüche 18|Sprüche 21|Sprüche 7
+Abfall;18;0.72;;1;13;1. Samuel 7|5. Mose 13|5. Mose 28|5. Mose 31|5. Mose 32|Hesekiel 6|Hosea 10|Jeremia 19|Jeremia 2|Jeremia 31|Jesaja 1|Psalmen 78|Sacharja 11
+Belial;18;0.11;;1;2;2. Samuel 22|5. Mose 13
+Ebal;17;0.47;;1;8;1. Mose 12|1. Mose 34|1. Mose 35|1. Mose 8|5. Mose 12|5. Mose 26|Josua 8|Josua 9
+Tabor;17;0.41;;1;7;1. Mose 8|1. Samuel 10|1. Samuel 28|Hosea 4|Jeremia 46|Josua 19|Psalmen 89
+Merari;17;0.29;;1;5;2. Mose 6|4. Mose 2|4. Mose 26|4. Mose 3|4. Mose 4
+Abihu;17;0.53;;1;9;2. Mose 24|2. Mose 27|2. Mose 31|2. Mose 6|3. Mose 23|3. Mose 9|4. Mose 2|4. Mose 26|Haggai 2
+Elkana;17;0.18;;1;3;1. Samuel 1|1. Samuel 2|2. Mose 6
+Akazienholz;17;0.41;;1;7;2. Mose 24|2. Mose 26|2. Mose 27|2. Mose 29|2. Mose 34|2. Mose 36|5. Mose 10
+Ehrfurcht;17;0.76;ja;1;13;1. Samuel 12|2. Mose 28|2. Samuel 7|3. Mose 16|3. Mose 19|3. Mose 9|5. Mose 10|Hiob 40|Jona 3|Maleachi 1|Maleachi 2|Psalmen 119|Psalmen 4
+Mehl;17;0.59;;1;10;1. Samuel 2|1. Samuel 29|2. Samuel 18|3. Mose 1|3. Mose 13|3. Mose 23|3. Mose 3|3. Mose 4|Hosea 7|Jesaja 46
+Getränk;17;0.59;;1;10;3. Mose 11|3. Mose 9|4. Mose 28|4. Mose 6|5. Mose 15|5. Mose 29|Jesaja 5|Sprüche 20|Sprüche 23|Sprüche 31
+Feigen;17;0.35;;1;6;4. Mose 13|Jeremia 24|Jeremia 30|Jeremia 8|Jesaja 27|Nehemia 12
+Beth-Awen;17;0.35;;1;6;1. Samuel 12|1. Samuel 14|Hosea 10|Hosea 4|Josua 19|Josua 6
+Assur;16;0.5;;1;8;1. Mose 10|1. Mose 2|1. Mose 25|1. Mose 9|Jona 1|Nehemia 9|Psalmen 106|Psalmen 82
+Gilboa;16;0.56;;1;9;1. Mose 8|1. Samuel 12|1. Samuel 20|1. Samuel 28|1. Samuel 29|1. Samuel 31|1. Samuel 6|2. Samuel 1|2. Samuel 21
+Tubal;16;0.38;;1;6;1. Mose 9|Hesekiel 27|Hesekiel 32|Hesekiel 37|Hesekiel 39|Jesaja 66
+Gerar;16;0.31;;1;5;1. Mose 10|1. Mose 12|1. Mose 20|1. Mose 25|1. Mose 27
+Umständen;16;1.0;ja;1;16;1. Mose 12|1. Mose 40|1. Samuel 21|2. Mose 16|2. Mose 4|3. Mose 20|4. Mose 14|5. Mose 15|Hiob 2|Jesaja 2|Jesaja 27|Jesaja 46|Jesaja 52|Nehemia 4|Psalmen 140|Psalmen 55
+Ephron;16;0.31;;1;5;1. Mose 23|1. Mose 25|1. Mose 49|1. Mose 50|Josua 14
+Beziehungen;16;0.88;ja;1;14;1. Mose 34|2. Mose 17|2. Samuel 13|2. Samuel 7|2. Samuel 8|4. Mose 5|5. Mose 18|5. Mose 22|5. Mose 4|Hiob 31|Hosea 4|Jesaja 52|Psalmen 58|Sprüche 18
+Bösem;16;0.88;ja;1;14;1. Mose 44|1. Samuel 25|Hiob 33|Jeremia 19|Psalmen 34|Psalmen 36|Psalmen 38|Psalmen 51|Psalmen 7|Sprüche 11|Sprüche 13|Sprüche 14|Sprüche 18|Sprüche 6
+Gerson;16;0.38;;1;6;1. Mose 45|2. Mose 6|4. Mose 2|4. Mose 26|4. Mose 3|4. Mose 4
+Kämpfer;16;0.88;ja;1;14;1. Mose 49|2. Samuel 2|2. Samuel 24|2. Samuel 4|4. Mose 32|5. Mose 31|Hesekiel 23|Jesaja 1|Jesaja 10|Psalmen 34|Psalmen 38|Psalmen 45|Psalmen 7|Sacharja 13
+Itamar;16;0.44;;1;7;2. Mose 27|2. Mose 6|2. Samuel 8|3. Mose 11|3. Mose 9|4. Mose 2|4. Mose 26
+Abib;16;0.62;;1;10;2. Mose 12|2. Mose 13|2. Mose 23|2. Mose 34|5. Mose 15|5. Mose 16|5. Mose 18|Hesekiel 3|Hesekiel 45|Josua 4
+Zinsen;16;0.5;;1;8;2. Mose 23|3. Mose 25|5. Mose 23|5. Mose 24|Habakuk 2|Hesekiel 18|Nehemia 4|Nehemia 6
+Adullam;16;0.44;;1;7;1. Samuel 21|1. Samuel 23|2. Samuel 21|2. Samuel 24|Josua 12|Josua 16|Nehemia 11
+Barsillai;16;0.19;;1;3;2. Samuel 18|2. Samuel 19|2. Samuel 21
+Eljakim;16;0.31;;1;5;Jesaja 21|Jesaja 23|Jesaja 35|Jesaja 37|Nehemia 12
+Schebna;16;0.19;;1;3;Jesaja 23|Jesaja 35|Jesaja 37
+Alexander;16;0.25;;1;4;Hesekiel 29|Jesaja 23|Sacharja 8|Sacharja 9
+Darius;16;0.56;;1;9;Haggai 1|Haggai 2|Jeremia 49|Jesaja 48|Nehemia 12|Sacharja 1|Sacharja 3|Sacharja 6|Sacharja 7
+Meschullam;16;0.38;;1;6;Nehemia 11|Nehemia 12|Nehemia 3|Nehemia 6|Nehemia 7|Nehemia 9
+Äthiopien;15;0.73;;1;11;1. Mose 2|Hesekiel 29|Hesekiel 30|Hesekiel 37|Jesaja 16|Jesaja 21|Jesaja 37|Jesaja 43|Jesaja 54|Nahum 2|Psalmen 119
+Disteln;15;0.53;;1;8;1. Mose 3|Hesekiel 3|Hosea 10|Jesaja 10|Jesaja 27|Jesaja 33|Jesaja 35|Jesaja 8
+Mesech;15;0.4;;1;6;1. Mose 9|Hesekiel 27|Hesekiel 32|Hesekiel 37|Hesekiel 39|Psalmen 119
+Kadesch-Barnea;15;0.73;;1;11;1. Mose 12|1. Mose 24|2. Mose 1|2. Mose 12|2. Samuel 11|4. Mose 33|4. Mose 34|5. Mose 1|5. Mose 9|Josua 14|Psalmen 28
+Arabien;15;0.47;;1;7;1. Mose 21|2. Mose 24|Hesekiel 27|Hiob 2|Jesaja 21|Jesaja 60|Joel 4
+Ziegen;15;0.73;;1;11;1. Mose 27|1. Mose 30|1. Mose 31|1. Mose 32|1. Samuel 20|1. Samuel 25|2. Mose 25|3. Mose 1|3. Mose 3|3. Mose 4|3. Mose 7
+Respekt;15;0.93;ja;1;14;1. Mose 28|1. Mose 34|1. Mose 40|1. Mose 50|2. Mose 10|2. Mose 20|2. Samuel 19|5. Mose 12|Jeremia 13|Jesaja 52|Nehemia 2|Nehemia 7|Sprüche 16|Sprüche 30
+Mahanajim;15;0.47;;1;7;1. Mose 32|2. Samuel 18|2. Samuel 19|2. Samuel 2|2. Samuel 3|Josua 14|Josua 22
+Serach;15;0.33;;1;5;1. Mose 35|1. Mose 38|1. Mose 45|1. Mose 47|4. Mose 26
+Bozra;15;0.4;;1;6;1. Mose 37|2. Samuel 11|Jeremia 48|Jeremia 49|Jesaja 35|Jesaja 62
+Leibes;15;0.73;;1;11;1. Mose 37|5. Mose 28|5. Mose 30|5. Mose 7|Hiob 18|Hiob 4|Jesaja 2|Jesaja 48|Sprüche 14|Sprüche 26|Sprüche 31
+Praktiken;15;0.73;;1;11;2. Mose 7|3. Mose 19|5. Mose 13|5. Mose 18|5. Mose 7|Hesekiel 16|Hesekiel 8|Jesaja 1|Jesaja 48|Maleachi 3|Sacharja 13
+Meriba;15;0.67;;1;10;2. Mose 16|2. Mose 17|4. Mose 20|5. Mose 31|5. Mose 33|Psalmen 106|Psalmen 112|Psalmen 118|Psalmen 82|Psalmen 95
+Wucher;15;0.33;;1;5;2. Mose 23|3. Mose 25|Hesekiel 18|Hesekiel 22|Nehemia 4
+Oliven;15;0.67;;1;10;2. Mose 27|2. Mose 29|3. Mose 23|4. Mose 28|5. Mose 24|5. Mose 28|Jesaja 16|Jesaja 2|Jesaja 24|Josua 6
+Widdern;15;0.53;;1;8;1. Samuel 15|2. Mose 28|4. Mose 28|Hesekiel 27|Hesekiel 35|Jesaja 1|Jesaja 2|Psalmen 65
+Klauen;15;0.27;;1;4;3. Mose 11|5. Mose 13|Hesekiel 32|Sacharja 11
+Symbole;15;0.93;ja;1;14;3. Mose 16|5. Mose 33|Hesekiel 1|Hesekiel 35|Hesekiel 37|Hesekiel 38|Hesekiel 40|Jesaja 54|Psalmen 45|Psalmen 98|Sacharja 1|Sacharja 13|Sacharja 3|Sprüche 6
+Schwierigkeiten;15;0.93;ja;1;14;1. Samuel 6|2. Samuel 19|2. Samuel 8|3. Mose 25|5. Mose 32|Haggai 1|Hiob 36|Hiob 38|Hohelied 8|Jeremia 30|Sacharja 1|Sprüche 1|Sprüche 18|Sprüche 26
+Eliab;15;0.4;;1;6;1. Samuel 15|1. Samuel 17|4. Mose 1|4. Mose 25|4. Mose 6|4. Mose 9
+Jaeser;15;0.33;;1;5;2. Samuel 24|4. Mose 32|Jeremia 48|Josua 14|Josua 22
+Aphek;15;0.33;;1;5;1. Samuel 2|1. Samuel 29|1. Samuel 4|Josua 12|Josua 19
+Beth-Schemesch;15;0.4;;1;6;1. Samuel 6|1. Samuel 7|Jeremia 44|Josua 14|Josua 19|Josua 21
+Siph;15;0.2;;1;3;1. Samuel 23|1. Samuel 26|Josua 16
+Kebar;15;0.33;;1;5;Hesekiel 1|Hesekiel 10|Hesekiel 3|Hesekiel 4|Hesekiel 42
+Sinear;14;0.36;;1;5;1. Mose 11|1. Mose 14|1. Mose 9|Josua 8|Sacharja 5
+Chaldäa;14;0.57;;1;8;1. Mose 12|1. Mose 15|Hesekiel 12|Hesekiel 16|Hesekiel 23|Jeremia 50|Jeremia 51|Nehemia 9
+Händler;14;0.71;;1;10;1. Mose 12|1. Mose 23|1. Mose 37|3. Mose 26|Hiob 40|Hosea 13|Jesaja 23|Nehemia 3|Sacharja 14|Sprüche 31
+Teman;14;0.43;;1;6;1. Mose 35|1. Mose 37|Hesekiel 26|Hesekiel 35|Hiob 2|Jeremia 49
+Ähren;14;0.36;;1;5;1. Mose 41|2. Mose 9|3. Mose 3|5. Mose 23|Jesaja 16
+Kohlen;14;0.5;;1;7;3. Mose 16|Hesekiel 10|Hesekiel 24|Hiob 42|Sprüche 24|Sprüche 26|Sprüche 6
+Tischri;14;0.64;;1;9;3. Mose 16|3. Mose 22|5. Mose 18|Haggai 1|Hesekiel 46|Nehemia 1|Nehemia 7|Nehemia 9|Psalmen 82
+Verleumder;14;0.64;;1;9;3. Mose 19|Hesekiel 22|Jeremia 6|Jeremia 8|Psalmen 140|Sprüche 11|Sprüche 16|Sprüche 20|Sprüche 26
+Enak;14;0.14;;1;2;4. Mose 13|Josua 12
+Dathan;14;0.36;;1;5;4. Mose 15|4. Mose 17|4. Mose 25|5. Mose 10|Psalmen 106
+Neues;14;0.43;;1;6;1. Samuel 21|4. Mose 17|Jeremia 31|Jesaja 42|Jesaja 43|Jesaja 48
+Tausend;14;0.64;;1;9;1. Samuel 18|1. Samuel 21|1. Samuel 9|2. Samuel 18|4. Mose 31|4. Mose 32|5. Mose 32|Jesaja 30|Jesaja 61
+Beulen;14;0.21;;1;3;1. Samuel 6|1. Samuel 7|5. Mose 28
+Geschur;14;0.43;;1;6;1. Samuel 28|2. Samuel 13|2. Samuel 14|2. Samuel 15|2. Samuel 3|Josua 14
+Abinadab;14;0.29;;1;4;1. Samuel 15|1. Samuel 16|1. Samuel 17|1. Samuel 31
+Seraja;14;0.5;;1;7;2. Samuel 20|2. Samuel 8|Jeremia 36|Jeremia 41|Jeremia 52|Nehemia 11|Nehemia 9
+Achikams;14;0.29;;1;4;Jeremia 26|Jeremia 39|Jeremia 41|Jeremia 44
+Schaphans;14;0.5;;1;7;Hesekiel 8|Jeremia 26|Jeremia 28|Jeremia 36|Jeremia 39|Jeremia 41|Jeremia 44
+Maaseja;14;0.29;;1;4;Nehemia 11|Nehemia 12|Nehemia 7|Nehemia 9
+Weder;13;0.92;ja;1;12;1. Mose 38|1. Mose 4|1. Samuel 29|2. Mose 20|2. Mose 39|Habakuk 1|Hiob 1|Hiob 29|Jesaja 23|Psalmen 116|Sacharja 5|Sprüche 1
+Stabilität;13;0.62;;1;8;1. Mose 6|1. Samuel 2|2. Mose 20|2. Samuel 4|Psalmen 45|Psalmen 75|Psalmen 88|Psalmen 98
+Milka;13;0.46;;1;6;1. Mose 12|1. Mose 23|1. Mose 24|4. Mose 26|4. Mose 35|Josua 17
+Syrien;13;0.54;;1;7;1. Mose 12|5. Mose 2|5. Mose 26|Hohelied 4|Jesaja 14|Jesaja 16|Sacharja 8
+Zusammen;13;1.0;ja;1;13;1. Mose 14|2. Mose 39|2. Mose 8|2. Samuel 8|4. Mose 1|5. Mose 7|Hesekiel 36|Jesaja 65|Jesaja 66|Maleachi 1|Nahum 2|Sacharja 5|Sprüche 1
+Wiederum;13;0.92;ja;1;12;1. Mose 20|1. Mose 44|1. Mose 47|2. Mose 33|2. Mose 6|Hesekiel 12|Hiob 8|Jeremia 32|Jesaja 51|Jesaja 8|Josua 9|Psalmen 9
+Status;13;0.92;ja;1;12;1. Mose 24|1. Mose 37|1. Samuel 2|1. Samuel 4|1. Samuel 9|2. Mose 19|2. Mose 23|2. Mose 31|Jesaja 30|Jesaja 62|Psalmen 62|Psalmen 89
+Polygamie;13;0.62;;1;8;1. Mose 29|1. Samuel 1|2. Samuel 3|2. Samuel 5|3. Mose 17|Maleachi 2|Psalmen 45|Sprüche 4
+Leas;13;0.62;;1;8;1. Mose 29|1. Mose 30|1. Mose 31|1. Mose 34|1. Mose 35|1. Mose 48|4. Mose 1|5. Mose 33
+Falsche;13;0.77;ja;1;10;1. Mose 31|5. Mose 13|5. Mose 18|5. Mose 20|Hesekiel 12|Hesekiel 14|Jeremia 23|Jesaja 28|Jesaja 44|Sacharja 13
+Potiphar;13;0.23;;1;3;1. Mose 37|1. Mose 38|1. Mose 40
+Unmoral;13;1.0;ja;1;13;1. Mose 38|2. Mose 31|2. Mose 32|3. Mose 19|5. Mose 7|Hesekiel 16|Hohelied 8|Hosea 2|Hosea 4|Psalmen 106|Psalmen 82|Sacharja 13|Sprüche 31
+Religion;13;1.0;ja;1;13;1. Samuel 21|2. Mose 7|2. Mose 8|5. Mose 12|5. Mose 15|5. Mose 16|Hesekiel 26|Hosea 7|Jesaja 1|Jesaja 28|Jesaja 51|Sacharja 13|Sacharja 14
+Migdol;13;0.54;;1;7;2. Mose 12|2. Mose 13|4. Mose 32|Hesekiel 29|Hesekiel 30|Jeremia 44|Jeremia 46
+Blutvergießen;13;0.92;ja;1;12;2. Samuel 13|2. Samuel 20|3. Mose 17|5. Mose 20|Habakuk 2|Hesekiel 22|Hesekiel 29|Hesekiel 35|Hesekiel 6|Jesaja 33|Sacharja 1|Sacharja 9
+Zelophchad;13;0.15;;1;2;4. Mose 26|Josua 17
+Sonnenaufgang;13;0.69;;1;9;4. Mose 32|4. Mose 34|5. Mose 4|Hiob 38|Jesaja 42|Josua 19|Psalmen 118|Psalmen 128|Sprüche 31
+Sittim;13;0.31;;1;4;Jesaja 2|Joel 4|Josua 2|Josua 9
+Achor;13;0.31;;1;4;Hosea 2|Jesaja 65|Josua 14|Josua 8
+Hadad-Eser;13;0.15;;1;2;2. Samuel 10|2. Samuel 8
+Tekoa;13;0.23;;1;3;2. Samuel 14|Jeremia 5|Nehemia 3
+Noph;13;0.38;;1;5;Hesekiel 30|Jeremia 2|Jeremia 44|Jeremia 46|Jesaja 19
+Netanjas;13;0.15;;1;2;Jeremia 39|Jeremia 41
+Vielmehr;12;1.0;ja;1;12;1. Mose 1|1. Mose 23|2. Mose 6|2. Samuel 22|5. Mose 23|5. Mose 7|Hiob 6|Hohelied 1|Jesaja 42|Josua 2|Maleachi 1|Psalmen 51
+Schlangen;12;0.58;;1;7;1. Mose 3|2. Mose 7|3. Mose 19|4. Mose 20|5. Mose 9|Jeremia 1|Jeremia 8
+Manche;12;1.0;ja;1;12;1. Mose 4|2. Mose 9|3. Mose 19|Hesekiel 18|Hesekiel 37|Hiob 40|Jesaja 56|Psalmen 110|Psalmen 116|Psalmen 22|Psalmen 62|Psalmen 82
+Nahors;12;0.5;;1;6;1. Mose 12|1. Mose 23|1. Mose 24|1. Mose 29|1. Mose 32|Josua 24
+Schwefel;12;0.58;;1;7;1. Mose 20|5. Mose 29|Hesekiel 38|Hesekiel 39|Hiob 18|Jesaja 1|Jesaja 35
+Massa;12;0.67;;1;8;1. Mose 25|2. Mose 16|2. Mose 17|5. Mose 33|5. Mose 6|5. Mose 9|Psalmen 112|Psalmen 95
+Hemor;12;0.08;;1;1;1. Mose 34
+Machirs;12;0.58;;1;7;1. Mose 50|2. Samuel 8|4. Mose 26|4. Mose 32|4. Mose 35|Josua 14|Josua 17
+Zittern;12;0.83;ja;1;10;2. Mose 15|Hesekiel 12|Hesekiel 3|Hiob 20|Hiob 26|Hiob 4|Jeremia 49|Jesaja 33|Psalmen 1|Psalmen 48
+Fußes;12;0.58;;1;7;2. Mose 15|2. Mose 29|3. Mose 14|3. Mose 15|3. Mose 8|Josua 2|Psalmen 119
+Mirjam;12;0.42;;1;5;2. Mose 15|4. Mose 19|4. Mose 26|5. Mose 24|Jesaja 2
+Phase;12;0.83;ja;1;10;2. Mose 17|3. Mose 13|3. Mose 17|4. Mose 33|Hesekiel 1|Jesaja 60|Jesaja 65|Jesaja 66|Psalmen 40|Psalmen 48
+Akaba;12;0.67;;1;8;2. Mose 24|4. Mose 14|4. Mose 20|5. Mose 1|Hesekiel 26|Hesekiel 35|Josua 10|Sacharja 14
+Zedernholz;12;0.42;;1;5;2. Samuel 7|3. Mose 14|3. Mose 15|4. Mose 19|Haggai 1
+Medien;12;0.67;;1;8;3. Mose 19|5. Mose 18|Jeremia 26|Jeremia 50|Jeremia 51|Jesaja 42|Sacharja 3|Sacharja 8
+Ribla;12;0.42;;1;5;4. Mose 34|Hesekiel 10|Hesekiel 12|Jeremia 39|Jeremia 52
+Ehren;12;0.75;;1;9;5. Mose 6|Hiob 15|Jesaja 14|Jesaja 16|Jesaja 8|Psalmen 112|Psalmen 91|Sprüche 13|Sprüche 31
+Bündnisse;12;1.0;ja;1;12;5. Mose 18|Hesekiel 30|Hesekiel 37|Hosea 10|Hosea 13|Jeremia 5|Jesaja 28|Joel 2|Nehemia 6|Nehemia 9|Psalmen 147|Psalmen 61
+Entweder;12;0.92;ja;1;11;2. Samuel 13|2. Samuel 18|2. Samuel 24|5. Mose 28|Jesaja 2|Jesaja 43|Nehemia 6|Psalmen 116|Psalmen 147|Psalmen 73|Psalmen 82
+Kirjat-Jearim;12;0.75;;1;9;1. Samuel 14|1. Samuel 2|1. Samuel 4|1. Samuel 7|2. Samuel 5|Jeremia 26|Josua 14|Josua 19|Josua 9
+Aseka;12;0.33;;1;4;1. Samuel 17|Josua 16|Josua 9|Nehemia 11
+Debir;12;0.5;;1;6;Josua 10|Josua 12|Josua 14|Josua 16|Josua 21|Josua 9
+Rephaim;12;0.42;;1;5;2. Samuel 24|2. Samuel 5|Jesaja 16|Josua 14|Josua 19
+Bahn;12;0.58;;1;7;1. Samuel 2|Jesaja 41|Jesaja 58|Jesaja 62|Joel 2|Sprüche 24|Sprüche 4
+Josaphat;12;0.5;;1;6;2. Samuel 20|2. Samuel 8|Joel 2|Joel 4|Sacharja 14|Sacharja 5
+Heiliger;12;0.75;;1;9;2. Samuel 22|Habakuk 1|Habakuk 2|Jesaja 1|Jesaja 10|Jesaja 41|Jesaja 43|Psalmen 106|Psalmen 72
+Immanuel;12;0.25;;1;3;Jesaja 10|Jesaja 7|Jesaja 8
+Kareachs;12;0.17;;1;2;Jeremia 41|Jeremia 44
+Bestandteil;11;1.0;ja;1;11;1. Mose 2|2. Mose 17|2. Mose 20|2. Mose 6|4. Mose 28|Hesekiel 29|Hesekiel 38|Hesekiel 44|Jesaja 56|Jesaja 61|Psalmen 1
+Garizim;11;0.64;;1;7;1. Mose 12|1. Mose 34|1. Mose 8|5. Mose 12|5. Mose 26|5. Mose 28|Josua 9
+Jawan;11;0.27;;1;3;1. Mose 9|Hesekiel 27|Jesaja 66
+Vorbereitungen;11;0.82;ja;1;9;1. Mose 21|2. Mose 40|4. Mose 1|4. Mose 25|Hesekiel 40|Jesaja 23|Jesaja 28|Josua 1|Maleachi 2
+Paddan-Aram;11;0.45;;1;5;1. Mose 25|1. Mose 28|1. Mose 34|1. Mose 35|1. Mose 45
+Bilha;11;0.27;;1;3;1. Mose 29|1. Mose 35|1. Mose 47
+Totes;11;1.0;ja;1;11;1. Mose 32|1. Samuel 12|1. Samuel 2|1. Samuel 4|1. Samuel 6|2. Samuel 11|Hesekiel 47|Joel 2|Josua 12|Josua 20|Josua 9
+Stoppeln;11;0.73;;1;8;2. Mose 15|2. Mose 6|Jeremia 13|Jesaja 41|Jesaja 48|Jesaja 5|Maleachi 3|Psalmen 82
+Handlungen;11;1.0;ja;1;11;1. Samuel 16|2. Mose 6|2. Samuel 11|2. Samuel 24|2. Samuel 7|3. Mose 7|5. Mose 13|5. Mose 28|5. Mose 34|Hosea 10|Jeremia 15
+Maria;11;0.64;;1;7;2. Mose 12|3. Mose 1|3. Mose 13|Haggai 1|Haggai 2|Jeremia 23|Jeremia 44
+Blei;11;0.73;;1;8;2. Mose 15|4. Mose 31|Hesekiel 22|Hesekiel 27|Hiob 20|Jeremia 6|Jesaja 2|Sacharja 5
+Bezaleel;11;0.36;;1;4;2. Mose 17|2. Mose 31|2. Mose 36|2. Mose 38
+Ziegenhaar;11;0.73;;1;8;2. Mose 24|2. Mose 25|2. Mose 34|2. Mose 36|4. Mose 31|Hohelied 1|Joel 1|Sacharja 13
+Seekuhfellen;11;0.45;;1;5;2. Mose 25|2. Mose 36|2. Mose 39|4. Mose 4|Hesekiel 16
+Hauptes;11;0.91;ja;1;10;1. Samuel 28|4. Mose 6|5. Mose 13|Hesekiel 8|Hiob 18|Jesaja 23|Psalmen 107|Psalmen 36|Psalmen 40|Psalmen 61
+Abiram;11;0.36;;1;4;4. Mose 15|4. Mose 17|4. Mose 25|5. Mose 10
+Sicht;11;0.91;ja;1;10;1. Samuel 17|1. Samuel 18|1. Samuel 28|5. Mose 9|Jeremia 50|Jesaja 31|Psalmen 133|Psalmen 20|Psalmen 73|Sprüche 3
+Eglon;11;0.36;;1;4;Josua 10|Josua 12|Josua 16|Josua 9
+Hophni;11;0.27;;1;3;1. Samuel 1|1. Samuel 2|1. Samuel 4
+Gesichte;11;0.73;;1;8;1. Samuel 2|1. Samuel 28|Hesekiel 1|Hesekiel 12|Hesekiel 14|Hesekiel 40|Hiob 8|Joel 2
+Doeg;11;0.36;;1;4;1. Samuel 21|1. Samuel 23|Psalmen 110|Psalmen 51
+Hanun;11;0.18;;1;2;2. Samuel 10|Nehemia 3
+Zeitalter;11;0.91;ja;1;10;Hosea 4|Jeremia 48|Jesaja 31|Jesaja 35|Jesaja 43|Jesaja 52|Maleachi 1|Psalmen 85|Sacharja 14|Sacharja 9
+Paschhur;11;0.36;;1;4;Jeremia 19|Jeremia 21|Jeremia 37|Nehemia 9
+Nerijas;11;0.55;;1;6;Jeremia 32|Jeremia 36|Jeremia 37|Jeremia 44|Jeremia 46|Jeremia 52
+Manchmal;10;1.0;ja;1;10;1. Mose 1|5. Mose 18|Hiob 2|Jeremia 3|Jesaja 2|Jesaja 64|Josua 24|Psalmen 1|Psalmen 119|Psalmen 50
+Sarkasmus;10;0.9;ja;1;9;1. Mose 4|2. Mose 16|Habakuk 1|Habakuk 2|Hesekiel 27|Hiob 13|Hiob 15|Nahum 2|Sacharja 11
+Ararat;10;0.4;;1;4;1. Mose 7|1. Mose 8|Jeremia 51|Jesaja 38
+Magog;10;0.4;;1;4;1. Mose 9|Hesekiel 37|Hesekiel 39|Hesekiel 40
+Königreiches;10;0.7;;1;7;1. Mose 9|5. Mose 18|Haggai 1|Haggai 2|Sacharja 13|Sacharja 5|Sacharja 9
+Melchisedek;10;0.3;;1;3;1. Mose 14|1. Mose 15|Josua 16
+Angebot;10;0.8;ja;1;8;1. Mose 15|1. Mose 19|1. Mose 42|1. Samuel 18|2. Mose 31|2. Samuel 12|2. Samuel 8|Hiob 8
+Beschützer;10;0.9;ja;1;9;1. Mose 15|1. Samuel 31|2. Samuel 13|Hesekiel 16|Hosea 13|Hosea 4|Psalmen 128|Psalmen 22|Sacharja 5
+Dieselbe;10;0.9;ja;1;9;1. Mose 21|4. Mose 26|4. Mose 9|5. Mose 12|Jesaja 11|Jesaja 13|Jesaja 37|Jesaja 38|Sacharja 1
+Nachrichten;10;0.9;ja;1;9;1. Mose 23|1. Mose 45|2. Mose 17|2. Mose 33|2. Samuel 16|Hiob 2|Jeremia 32|Nahum 2|Psalmen 50
+Geste;10;1.0;ja;1;10;1. Mose 23|2. Samuel 1|3. Mose 16|3. Mose 9|Hesekiel 21|Hiob 27|Josua 10|Psalmen 62|Sacharja 11|Sprüche 31
+Höchstwahrscheinlich;10;0.9;ja;1;9;1. Mose 25|3. Mose 20|Hesekiel 27|Hiob 2|Jesaja 35|Jona 3|Maleachi 3|Psalmen 110|Psalmen 118
+Pniel;10;0.3;;1;3;1. Mose 32|2. Samuel 2|Nahum 2
+Stattdessen;10;1.0;ja;1;10;1. Mose 34|2. Samuel 20|2. Samuel 24|4. Mose 26|Hesekiel 12|Hesekiel 46|Jeremia 6|Jesaja 43|Psalmen 119|Sprüche 4
+Mischehen;10;0.6;;1;6;1. Mose 37|2. Mose 23|2. Mose 34|5. Mose 7|Maleachi 2|Nehemia 9
+Issaschars;10;0.6;;1;6;1. Mose 45|1. Samuel 29|4. Mose 1|4. Mose 26|4. Mose 9|Josua 19
+Sered;10;0.5;;1;5;1. Mose 45|4. Mose 20|4. Mose 26|5. Mose 2|Jesaja 14
+Lehm;10;0.7;;1;7;2. Mose 1|2. Mose 7|Hiob 13|Hiob 33|Jesaja 42|Nahum 2|Psalmen 82
+Pflichten;10;1.0;ja;1;10;1. Samuel 17|2. Mose 27|2. Mose 6|2. Samuel 4|3. Mose 9|4. Mose 15|4. Mose 2|5. Mose 18|Hesekiel 1|Jesaja 46
+Rephidim;10;0.5;;1;5;2. Mose 12|2. Mose 16|2. Mose 17|2. Mose 19|4. Mose 32
+Mara;10;0.4;;1;4;2. Mose 13|2. Mose 15|2. Mose 16|4. Mose 32
+Decken;10;0.7;;1;7;2. Mose 25|2. Mose 26|4. Mose 3|Haggai 1|Jesaja 28|Sprüche 31|Sprüche 7
+Hoherpriester;10;1.0;ja;1;10;2. Mose 28|3. Mose 20|3. Mose 6|3. Mose 8|4. Mose 17|4. Mose 19|Haggai 1|Psalmen 110|Psalmen 133|Sacharja 3
+Achan;10;0.7;;1;7;1. Samuel 14|3. Mose 27|3. Mose 3|Hosea 2|Josua 22|Josua 6|Josua 8
+Schuppen;10;0.3;;1;3;3. Mose 11|5. Mose 13|Hesekiel 29
+General;10;0.4;;1;4;3. Mose 13|Psalmen 20|Psalmen 42|Psalmen 45
+Abarim;10;0.5;;1;5;4. Mose 26|4. Mose 33|5. Mose 32|Hesekiel 39|Jeremia 23
+Wasserquellen;10;0.6;;1;6;4. Mose 32|Jesaja 35|Jesaja 41|Jesaja 49|Josua 16|Psalmen 107
+Fußsohle;10;0.6;;1;6;2. Samuel 14|5. Mose 12|5. Mose 28|Hesekiel 1|Hiob 2|Jesaja 1
+Kalk;10;0.3;;1;3;5. Mose 26|Hesekiel 14|Jesaja 33
+Wermut;10;0.4;;1;4;5. Mose 29|Jeremia 10|Jeremia 23|Sprüche 4
+Japho;10;0.5;;1;5;2. Samuel 11|Jona 1|Jona 3|Josua 19|Nehemia 6
+Merab;10;0.3;;1;3;1. Samuel 14|1. Samuel 18|2. Samuel 21
+Rizpa;10;0.2;;1;2;2. Samuel 21|2. Samuel 3
+Obed-Edom;10;0.1;;1;1;2. Samuel 5
+Tachpanches;10;0.4;;1;4;Hesekiel 30|Jeremia 2|Jeremia 44|Jeremia 46
+Trümmern;10;0.5;;1;5;Haggai 1|Hesekiel 35|Hiob 31|Nehemia 2|Psalmen 74
+Hallel;10;0.4;;1;4;Psalmen 112|Psalmen 119|Psalmen 133|Psalmen 144
+Japhet;9;0.56;;1;5;1. Mose 10|1. Mose 49|1. Mose 6|1. Mose 7|1. Mose 9
+Luft;9;0.78;ja;1;7;1. Mose 20|1. Mose 7|2. Mose 15|Hiob 33|Hiob 8|Jeremia 13|Jeremia 2
+Sems;9;0.44;;1;4;1. Mose 10|1. Mose 11|1. Mose 9|1. Samuel 4
+Abfassungszeit;9;1.0;ja;1;9;1. Mose 9|1. Samuel 10|1. Samuel 28|1. Samuel 6|2. Mose 13|2. Mose 8|Hohelied 1|Jesaja 1|Sprüche 24
+Integrität;9;1.0;ja;1;9;1. Mose 12|Hesekiel 46|Hiob 1|Hiob 10|Hiob 8|Jesaja 48|Psalmen 13|Psalmen 16|Psalmen 18
+Pheresiter;9;1.0;ja;1;9;1. Mose 14|2. Mose 3|2. Mose 33|2. Mose 34|Josua 12|Josua 17|Josua 2|Josua 9|Nehemia 9
+Kontakt;9;0.89;ja;1;8;1. Mose 21|1. Mose 31|1. Samuel 29|2. Mose 23|3. Mose 19|4. Mose 22|4. Mose 5|Nehemia 6
+Maacha;9;0.56;;1;5;1. Mose 23|2. Samuel 10|2. Samuel 13|2. Samuel 24|2. Samuel 3
+Kamelen;9;0.56;;1;5;1. Mose 23|1. Mose 24|Jesaja 21|Nehemia 7|Sacharja 14
+Informationen;9;1.0;ja;1;9;1. Mose 25|2. Mose 17|2. Mose 23|2. Mose 6|5. Mose 18|Josua 8|Nehemia 6|Psalmen 28|Sprüche 20
+Reue;9;0.89;ja;1;8;1. Mose 28|5. Mose 29|Hiob 42|Hiob 6|Jeremia 13|Jeremia 31|Jesaja 58|Nehemia 6
+Offensichtlich;9;1.0;ja;1;9;1. Mose 30|1. Mose 43|1. Samuel 4|2. Mose 15|2. Mose 27|2. Mose 8|5. Mose 23|Hiob 42|Jeremia 24
+Literatur;9;1.0;ja;1;9;1. Mose 31|1. Mose 38|1. Mose 48|1. Samuel 4|2. Mose 20|2. Mose 8|Habakuk 2|Psalmen 28|Psalmen 72
+Religionen;9;0.89;ja;1;8;1. Mose 40|2. Mose 40|5. Mose 13|5. Mose 32|Hiob 31|Psalmen 98|Sacharja 13|Sacharja 14
+Memphis;9;0.89;ja;1;8;1. Mose 41|Hesekiel 24|Hesekiel 30|Hosea 10|Jeremia 44|Jesaja 19|Jesaja 30|Maleachi 3
+Kindeskinder;9;0.89;ja;1;8;1. Mose 45|2. Mose 9|5. Mose 4|5. Mose 6|Hesekiel 37|Hiob 42|Sprüche 13|Sprüche 16
+Antworten;9;0.89;ja;1;8;2. Mose 3|Hiob 10|Hiob 20|Hiob 40|Hiob 42|Psalmen 13|Psalmen 40|Psalmen 45
+Zwecken;9;1.0;ja;1;9;2. Mose 8|2. Samuel 24|3. Mose 7|3. Mose 9|Hesekiel 47|Jesaja 44|Jesaja 66|Joel 2|Sacharja 9
+Elim;9;0.33;;1;3;2. Mose 15|2. Mose 16|4. Mose 32
+Darüber;9;0.89;ja;1;8;1. Samuel 14|1. Samuel 28|2. Mose 20|Hiob 13|Jeremia 31|Jona 1|Psalmen 40|Psalmen 61
+Zahn;9;0.44;;1;4;2. Mose 21|3. Mose 25|5. Mose 20|Sprüche 24
+Entscheidungen;9;0.89;ja;1;8;1. Samuel 18|2. Mose 21|2. Samuel 15|2. Samuel 3|Hiob 23|Hosea 4|Jesaja 64|Jesaja 7
+Angriffen;9;0.89;ja;1;8;2. Mose 23|2. Samuel 21|Hesekiel 26|Jesaja 25|Nehemia 1|Nehemia 2|Psalmen 91|Sacharja 11
+Panik;9;0.78;ja;1;7;1. Samuel 14|2. Mose 24|5. Mose 7|Hesekiel 38|Psalmen 55|Psalmen 9|Sacharja 14
+Wohnorten;9;0.78;ja;1;7;3. Mose 22|3. Mose 23|3. Mose 3|4. Mose 35|Hesekiel 37|Hesekiel 6|Jesaja 33
+Anschließend;9;1.0;ja;1;9;1. Samuel 2|3. Mose 19|5. Mose 1|5. Mose 26|Hiob 18|Hohelied 4|Josua 20|Psalmen 110|Sacharja 8
+Pfingsten;9;0.78;ja;1;7;3. Mose 22|3. Mose 23|5. Mose 16|Hesekiel 45|Jeremia 49|Psalmen 112|Psalmen 119
+Arad;9;0.33;;1;3;4. Mose 20|4. Mose 33|Josua 12
+Struktur;9;1.0;ja;1;9;5. Mose 28|5. Mose 31|Jesaja 19|Psalmen 116|Psalmen 119|Psalmen 144|Psalmen 25|Psalmen 28|Psalmen 40
+Jeschurun;9;0.33;;1;3;5. Mose 32|5. Mose 33|Jesaja 43
+Beth-Horon;9;0.56;;1;5;1. Samuel 14|Josua 16|Josua 19|Josua 21|Josua 9
+Makkeda;9;0.44;;1;4;Josua 10|Josua 12|Josua 16|Josua 9
+Megiddo;9;0.67;;1;6;1. Samuel 29|2. Samuel 11|Josua 12|Josua 17|Josua 19|Sacharja 13
+Bedeutet;9;0.56;;1;5;1. Samuel 1|1. Samuel 15|1. Samuel 6|1. Samuel 7|Jeremia 21
+Achija;9;0.33;;1;3;1. Samuel 14|1. Samuel 21|Nehemia 9
+Achinoam;9;0.78;ja;1;7;1. Samuel 14|1. Samuel 25|1. Samuel 28|1. Samuel 29|2. Samuel 12|2. Samuel 13|2. Samuel 3
+Ners;9;0.56;;1;5;1. Samuel 14|1. Samuel 26|2. Samuel 2|2. Samuel 3|2. Samuel 4
+Najot;9;0.11;;1;1;1. Samuel 20
+Teiches;9;0.56;;1;5;2. Samuel 2|Jesaja 21|Jesaja 23|Jesaja 35|Jesaja 7
+Mahanaim;9;0.67;;1;6;2. Samuel 18|2. Samuel 19|2. Samuel 2|2. Samuel 3|2. Samuel 4|Hohelied 6
+Bachurim;9;0.33;;1;3;2. Samuel 16|2. Samuel 19|2. Samuel 3
+Tröster;9;0.67;;1;6;2. Samuel 10|Hiob 15|Hiob 23|Hiob 27|Nahum 2|Psalmen 69
+Ussija;9;0.11;;1;1;Jesaja 6
+Unterdrücker;9;0.89;ja;1;8;Jesaja 14|Jesaja 27|Jesaja 30|Jesaja 31|Jesaja 40|Jesaja 49|Jesaja 60|Jesaja 8
+Feuerflammen;9;0.67;;1;6;Jesaja 28|Jesaja 31|Jesaja 66|Psalmen 104|Psalmen 105|Psalmen 28
+Oholiba;9;0.11;;1;1;Hesekiel 23
+Jedaja;9;0.33;;1;3;Nehemia 11|Nehemia 3|Sacharja 6
+Artaxerxes;9;0.44;;1;4;Nehemia 1|Nehemia 12|Nehemia 2|Nehemia 6
+Vorteile;8;1.0;ja;1;8;1. Mose 17|1. Mose 3|2. Mose 23|3. Mose 11|3. Mose 3|Nahum 2|Nehemia 12|Sprüche 7
+Gutem;8;0.88;ja;1;7;1. Mose 3|1. Samuel 25|2. Samuel 16|Psalmen 104|Sacharja 1|Sprüche 14|Sprüche 18
+Schlag;8;0.88;ja;1;7;1. Mose 3|1. Samuel 29|1. Samuel 7|Hesekiel 24|Jeremia 13|Jesaja 27|Jesaja 31
+Morija;8;0.62;;1;5;1. Mose 21|1. Mose 8|2. Samuel 24|2. Samuel 5|Hesekiel 42
+Winter;8;0.75;;1;6;1. Mose 9|Hesekiel 8|Hiob 38|Jeremia 8|Psalmen 74|Sacharja 14
+Alte;8;0.75;;1;6;1. Mose 45|1. Mose 9|2. Mose 16|Jeremia 6|Jesaja 65|Psalmen 147
+Zeboim;8;0.62;;1;5;1. Mose 10|1. Mose 14|5. Mose 29|Hosea 10|Nehemia 11
+Fürsprecher;8;1.0;ja;1;8;1. Mose 20|1. Samuel 2|2. Mose 28|2. Mose 33|Habakuk 1|Hesekiel 14|Jeremia 5|Jesaja 60
+Mutwillen;8;0.5;;1;4;1. Mose 21|1. Mose 40|4. Mose 23|Hesekiel 16
+Hets;8;0.25;;1;2;1. Mose 23|1. Mose 28
+Futter;8;0.75;;1;6;1. Mose 24|1. Mose 42|1. Mose 43|Hiob 23|Hiob 40|Hiob 6
+Ketura;8;0.62;;1;5;1. Mose 24|1. Mose 37|4. Mose 22|Hiob 2|Jesaja 60
+Drohungen;8;0.88;ja;1;7;1. Mose 24|2. Mose 10|5. Mose 29|Jeremia 37|Nehemia 13|Nehemia 4|Sprüche 13
+Duma;8;0.38;;1;3;1. Mose 25|Jesaja 21|Josua 16
+Diebstahl;8;0.88;ja;1;7;1. Mose 31|5. Mose 20|Hiob 23|Hosea 7|Jesaja 1|Sprüche 1|Sprüche 7
+Göttin;8;0.88;ja;1;7;1. Mose 31|2. Mose 8|5. Mose 16|Hesekiel 30|Jeremia 6|Jona 1|Nahum 2
+Beors;8;1.0;ja;1;8;1. Mose 37|4. Mose 22|4. Mose 23|4. Mose 31|5. Mose 23|Jesaja 2|Josua 14|Josua 24
+Garben;8;0.88;ja;1;7;1. Mose 37|Hiob 23|Hiob 6|Jeremia 10|Jeremia 50|Nehemia 12|Psalmen 128
+Prostitution;8;0.88;ja;1;7;1. Mose 38|1. Samuel 2|5. Mose 23|Hosea 10|Hosea 4|Hosea 7|Jeremia 6
+Rosch;8;0.5;;1;4;1. Mose 47|3. Mose 22|Hesekiel 37|Hesekiel 39
+Sonnenuntergang;8;0.75;;1;6;2. Mose 12|2. Mose 23|5. Mose 12|5. Mose 22|Psalmen 118|Sprüche 20
+Josephus;8;1.0;ja;1;8;1. Samuel 12|1. Samuel 2|1. Samuel 7|2. Mose 12|Hesekiel 48|Jesaja 44|Nahum 2|Sacharja 11
+Reitern;8;0.88;ja;1;7;1. Samuel 14|2. Mose 13|2. Mose 15|Hesekiel 26|Hesekiel 27|Hesekiel 39|Josua 24
+Ironie;8;0.88;ja;1;7;2. Mose 13|Maleachi 1|Nahum 2|Psalmen 1|Psalmen 40|Psalmen 50|Psalmen 7
+Fladen;8;0.88;ja;1;7;1. Samuel 29|2. Mose 28|2. Mose 29|3. Mose 1|3. Mose 7|3. Mose 8|4. Mose 6
+Oholiab;8;0.38;;1;3;2. Mose 31|2. Mose 36|2. Mose 38
+Anbetracht;8;1.0;ja;1;8;1. Samuel 28|1. Samuel 29|1. Samuel 31|2. Mose 40|Jona 3|Maleachi 3|Psalmen 106|Psalmen 28
+Anforderungen;8;0.88;ja;1;7;3. Mose 9|4. Mose 17|4. Mose 31|4. Mose 7|4. Mose 9|Hesekiel 33|Maleachi 1
+Fallen;8;0.88;ja;1;7;2. Samuel 21|3. Mose 14|Hiob 23|Jeremia 5|Jesaja 24|Psalmen 140|Psalmen 91
+Formen;8;0.88;ja;1;7;3. Mose 19|Haggai 1|Hesekiel 44|Jesaja 35|Joel 1|Psalmen 28|Sprüche 30
+Entsprechend;8;1.0;ja;1;8;1. Samuel 12|2. Samuel 18|2. Samuel 7|3. Mose 20|4. Mose 15|5. Mose 26|Hosea 13|Psalmen 118
+Essig;8;0.38;;1;3;4. Mose 6|Psalmen 69|Sprüche 24
+Rohr;8;0.62;;1;5;4. Mose 9|Hiob 40|Jesaja 19|Jesaja 35|Jesaja 42
+Juli;8;1.25;ja;1;10;4. Mose 13|5. Mose 18|Hesekiel 1|Hesekiel 33|Hesekiel 8|Jeremia 31|Jeremia 34|Nehemia 1|Nehemia 3|Nehemia 6
+Willens;8;1.0;ja;1;8;1. Samuel 14|1. Samuel 15|2. Samuel 3|4. Mose 28|Hiob 2|Maleachi 2|Nehemia 7|Sacharja 11
+Edrei;8;0.62;;1;5;5. Mose 1|5. Mose 2|Josua 12|Josua 14|Josua 19
+Priorität;8;0.88;ja;1;7;2. Samuel 8|5. Mose 12|Jesaja 49|Jesaja 6|Psalmen 133|Psalmen 31|Sprüche 31
+Vorgehensweise;8;1.0;ja;1;8;1. Samuel 10|1. Samuel 31|2. Samuel 21|2. Samuel 24|2. Samuel 8|5. Mose 26|5. Mose 29|Sprüche 31
+Berichte;8;1.0;ja;1;8;2. Samuel 1|2. Samuel 21|Jeremia 39|Jesaja 38|Jona 3|Josua 19|Josua 4|Nehemia 6
+Tappuach;8;0.38;;1;3;Josua 12|Josua 16|Josua 17
+Askalon;8;0.75;;1;6;1. Samuel 4|1. Samuel 7|2. Samuel 11|Jeremia 26|Josua 12|Sacharja 9
+Hinnom;8;0.62;;1;5;2. Samuel 5|Jesaja 31|Josua 14|Josua 19|Nehemia 11
+Peninna;8;0.25;;1;2;1. Samuel 1|1. Samuel 2
+Mächte;8;0.88;ja;1;7;1. Samuel 1|Jesaja 10|Jesaja 24|Jesaja 28|Jesaja 35|Jesaja 8|Psalmen 85
+Ausschau;8;0.88;ja;1;7;1. Samuel 14|1. Samuel 4|Habakuk 2|Hesekiel 32|Hiob 6|Jesaja 48|Psalmen 4
+Achitubs;8;0.62;;1;5;1. Samuel 14|1. Samuel 21|1. Samuel 23|2. Samuel 8|Nehemia 11
+Schlachtopfern;8;0.88;ja;1;7;1. Samuel 15|Hesekiel 39|Hosea 10|Jeremia 8|Jesaja 19|Jesaja 43|Psalmen 51
+Hiram;8;0.62;;1;5;1. Samuel 17|2. Samuel 24|2. Samuel 4|2. Samuel 7|Hesekiel 26
+Jojadas;8;0.88;ja;1;7;1. Samuel 29|2. Samuel 20|2. Samuel 24|2. Samuel 8|Jeremia 30|Nehemia 11|Nehemia 13
+Werkzeuge;8;1.0;ja;1;8;2. Samuel 13|Hesekiel 23|Hesekiel 37|Jesaja 28|Jesaja 8|Psalmen 104|Psalmen 137|Psalmen 22
+Bildern;8;0.88;ja;1;7;2. Samuel 21|Hesekiel 40|Hosea 13|Jesaja 28|Jesaja 42|Nahum 2|Psalmen 89
+Mächten;8;1.0;ja;1;8;Hesekiel 37|Jesaja 10|Jesaja 2|Jesaja 27|Jesaja 28|Jesaja 52|Jesaja 8|Psalmen 144
+Jahrwoche;8;0.75;;1;6;Hesekiel 38|Jesaja 2|Jesaja 27|Jesaja 3|Jesaja 33|Sacharja 11
+Waren;8;0.62;;1;5;Hesekiel 27|Jeremia 19|Jesaja 38|Nehemia 9|Sprüche 13
+Kehle;8;0.75;;1;6;Jeremia 12|Jeremia 2|Jeremia 3|Jesaja 58|Psalmen 116|Psalmen 68
+Bräutigam;8;0.62;;1;5;Jesaja 61|Jesaja 62|Joel 1|Joel 2|Psalmen 45
+Schallum;8;0.5;;1;4;Hesekiel 20|Jeremia 21|Jeremia 32|Nehemia 3
+Hananeel;8;0.5;;1;4;Jeremia 31|Nehemia 12|Nehemia 3|Sacharja 14
+Ebed-Melech;8;0.25;;1;2;Jeremia 37|Jeremia 39
+Asarja;8;0.5;;1;4;Jeremia 44|Nehemia 12|Nehemia 3|Nehemia 9
+Historische;8;1.0;ja;1;8;Hesekiel 38|Hesekiel 4|Hiob 1|Hiob 2|Maleachi 1|Nahum 2|Psalmen 51|Sacharja 13
+Ämter;8;0.5;;1;4;Hesekiel 22|Sacharja 11|Sacharja 5|Sacharja 6
+Regengüsse;8;0.62;;1;5;Hesekiel 35|Hiob 36|Hiob 38|Joel 2|Sacharja 9
+Schöpfungstag;7;0.43;;1;3;1. Mose 2|Jesaja 43|Psalmen 104
+Hawila;7;0.57;;1;4;1. Mose 10|1. Mose 2|1. Mose 25|1. Mose 9
+Inmitten;7;1.0;ja;1;7;1. Mose 3|Hiob 2|Jeremia 15|Jesaja 65|Joel 1|Maleachi 3|Sacharja 13
+Mitgefühl;7;1.0;ja;1;7;1. Mose 3|1. Mose 44|Hiob 6|Nahum 1|Psalmen 119|Psalmen 72|Sprüche 24
+Pech;7;0.43;;1;3;1. Mose 6|2. Mose 1|Jesaja 35
+Substanz;7;1.0;ja;1;7;1. Mose 20|1. Mose 30|1. Mose 6|2. Mose 23|2. Mose 7|2. Samuel 21|Hohelied 1
+Togarma;7;0.43;;1;3;1. Mose 9|Hesekiel 27|Hesekiel 37
+Bezeichnenderweise;7;1.0;ja;1;7;1. Mose 14|1. Mose 28|1. Mose 40|2. Mose 17|2. Samuel 12|4. Mose 32|5. Mose 28
+Adama;7;0.57;;1;4;1. Mose 14|5. Mose 29|Hosea 10|Josua 19
+Bela;7;0.86;ja;1;6;1. Mose 14|1. Mose 37|1. Mose 47|4. Mose 26|5. Mose 28|Jeremia 21
+Kirjataim;7;0.71;;1;5;1. Mose 14|4. Mose 32|Hesekiel 26|Jeremia 48|Josua 14
+Eschkol;7;0.57;;1;4;1. Mose 15|4. Mose 13|4. Mose 32|5. Mose 1
+Rate;7;0.57;;1;4;1. Mose 17|1. Mose 31|2. Samuel 16|Hiob 36
+Derselbe;7;1.0;ja;1;7;1. Mose 17|2. Mose 6|3. Mose 14|4. Mose 20|Jesaja 10|Jesaja 40|Jesaja 51
+Gerichten;7;1.0;ja;1;7;1. Mose 20|5. Mose 20|Hesekiel 32|Hiob 23|Hiob 29|Jesaja 51|Sacharja 6
+Bethuels;7;0.57;;1;4;1. Mose 23|1. Mose 24|1. Mose 25|1. Mose 28
+Letztendlich;7;0.86;ja;1;6;1. Mose 27|Jesaja 44|Jesaja 66|Jesaja 8|Psalmen 51|Psalmen 58
+Verruf;7;0.57;;1;4;1. Mose 38|4. Mose 13|4. Mose 14|Nehemia 4
+Onan;7;0.43;;1;3;1. Mose 45|1. Mose 47|4. Mose 26
+Gideon;7;0.57;;1;4;1. Mose 49|1. Samuel 10|1. Samuel 16|Psalmen 82
+Wundertaten;7;1.0;ja;1;7;2. Mose 4|5. Mose 26|Hiob 38|Psalmen 119|Psalmen 144|Psalmen 74|Psalmen 75
+Instrument;7;1.0;ja;1;7;2. Mose 4|2. Mose 7|2. Samuel 22|5. Mose 28|Jeremia 21|Josua 12|Psalmen 7
+Insekten;7;1.0;ja;1;7;2. Mose 23|2. Mose 24|2. Mose 8|3. Mose 11|Jesaja 41|Jesaja 8|Joel 2
+Keine;7;1.0;ja;1;7;2. Mose 12|3. Mose 17|Hesekiel 4|Hiob 4|Jesaja 65|Psalmen 20|Sprüche 18
+Ezjon-Geber;7;0.43;;1;3;2. Mose 12|4. Mose 33|5. Mose 1
+Fußvolk;7;0.86;ja;1;6;1. Samuel 14|1. Samuel 4|2. Mose 12|2. Samuel 10|2. Samuel 8|4. Mose 11
+Hundert;7;0.86;ja;1;6;1. Samuel 21|2. Mose 12|2. Samuel 18|4. Mose 31|4. Mose 32|Jesaja 40
+Ursprungs;7;1.0;ja;1;7;2. Mose 16|Habakuk 2|Hesekiel 22|Hesekiel 29|Jesaja 46|Psalmen 89|Sacharja 13
+Flammen;7;0.71;;1;5;2. Mose 20|5. Mose 32|Jesaja 48|Jesaja 64|Sprüche 28
+Rituale;7;1.0;ja;1;7;2. Mose 23|3. Mose 11|Jesaja 1|Jesaja 60|Psalmen 50|Psalmen 51|Sacharja 7
+Vorrecht;7;1.0;ja;1;7;2. Mose 24|5. Mose 32|Hesekiel 29|Hesekiel 36|Hesekiel 4|Jesaja 64|Maleachi 1
+Spezerei;7;0.71;;1;5;2. Mose 24|2. Mose 31|2. Mose 34|2. Mose 36|Hesekiel 27
+Stoff;7;0.71;;1;5;2. Mose 28|2. Mose 38|Hesekiel 27|Jesaja 35|Joel 1
+Zehe;7;0.57;;1;4;2. Mose 29|3. Mose 14|3. Mose 15|3. Mose 8
+Raubtiere;7;0.86;ja;1;6;3. Mose 26|Hesekiel 14|Hesekiel 33|Hesekiel 39|Jesaja 56|Psalmen 9
+Nachschon;7;0.43;;1;3;4. Mose 1|4. Mose 6|4. Mose 9
+Brandopfern;7;1.0;ja;1;7;1. Samuel 15|4. Mose 31|4. Mose 9|Hosea 7|Josua 22|Psalmen 51|Psalmen 65
+Jephunnes;7;0.71;;1;5;1. Samuel 31|4. Mose 14|4. Mose 26|5. Mose 1|Josua 14
+Weissagungen;7;1.0;ja;1;7;4. Mose 23|Hesekiel 12|Jeremia 46|Jesaja 1|Jesaja 11|Jesaja 21|Jesaja 27
+Zisternen;7;0.71;;1;5;1. Samuel 14|5. Mose 6|Jeremia 13|Jeremia 19|Jeremia 2
+April;7;1.71;ja;1;12;2. Mose 12|2. Samuel 21|3. Mose 22|3. Mose 23|5. Mose 10|5. Mose 15|5. Mose 18|Hesekiel 1|Hesekiel 45|Nehemia 1|Nehemia 2|Sacharja 9
+Sidon;7;1.0;ja;1;7;2. Samuel 24|2. Samuel 4|Hesekiel 24|Jesaja 35|Josua 12|Maleachi 3|Nehemia 13
+Ramot;7;0.43;;1;3;1. Samuel 31|Josua 20|Josua 22
+Schlingen;7;0.86;ja;1;6;Jesaja 30|Josua 24|Psalmen 140|Psalmen 38|Psalmen 65|Sprüche 21
+Ironischerweise;7;1.0;ja;1;7;1. Samuel 15|1. Samuel 17|1. Samuel 18|1. Samuel 6|2. Samuel 3|Jeremia 44|Jesaja 2
+Söldner;7;0.86;ja;1;6;1. Samuel 14|2. Samuel 10|2. Samuel 15|Hesekiel 30|Jeremia 46|Nahum 2
+Baana;7;0.29;;1;2;2. Samuel 4|Nehemia 9
+Schlägen;7;0.71;;1;5;2. Samuel 7|Hesekiel 21|Jesaja 14|Jesaja 60|Psalmen 89
+Triumph;7;0.86;ja;1;6;2. Samuel 22|Hesekiel 20|Hesekiel 40|Jesaja 8|Psalmen 51|Sacharja 9
+Bani;7;0.29;;1;2;2. Samuel 24|Nehemia 9
+Arawna;7;0.14;;1;1;2. Samuel 24
+Siloah;7;0.57;;1;4;Jesaja 21|Jesaja 8|Nehemia 2|Nehemia 3
+Karkemisch;7;0.71;;1;5;Hesekiel 24|Hesekiel 30|Jeremia 46|Jesaja 10|Maleachi 3
+Pflügt;7;0.43;;1;3;Hosea 10|Jeremia 3|Jesaja 28
+Ariel;7;0.29;;1;2;Jesaja 28|Sacharja 8
+Ahab;7;0.43;;1;3;Hosea 2|Jeremia 30|Jesaja 37
+Dünger;7;0.71;;1;5;Jeremia 10|Jeremia 15|Jeremia 26|Jeremia 8|Psalmen 82
+Rechab;7;0.14;;1;1;Jeremia 36
+Fußstapfen;7;0.71;;1;5;Hesekiel 16|Psalmen 16|Psalmen 65|Psalmen 78|Psalmen 89
+Ohola;7;0.14;;1;1;Hesekiel 23
+Jozadaks;7;0.43;;1;3;Haggai 1|Nehemia 12|Sacharja 6
+Haha;7;0.43;;1;3;Psalmen 36|Psalmen 40|Psalmen 69
+Mauerabschnitt;7;0.14;;1;1;Nehemia 3
+Malchija;7;0.43;;1;3;Nehemia 12|Nehemia 3|Nehemia 9
+Elohim;6;0.67;;1;4;1. Mose 1|2. Mose 17|Maleachi 1|Psalmen 51
+Zwillinge;6;0.83;ja;1;5;1. Mose 25|1. Mose 38|1. Mose 4|Hohelied 4|Hohelied 6
+Mahalaleel;6;0.17;;1;1;1. Mose 4
+Veränderungen;6;0.83;ja;1;5;1. Mose 9|5. Mose 4|Hesekiel 47|Jesaja 56|Sacharja 14
+Seba;6;0.33;;1;2;1. Mose 9|Psalmen 72
+Umfeld;6;1.0;ja;1;6;1. Mose 9|2. Mose 23|Hohelied 2|Hohelied 6|Hohelied 8|Maleachi 1
+More;6;0.33;;1;2;1. Mose 12|1. Samuel 28
+Perversion;6;0.67;;1;4;1. Mose 14|1. Mose 19|2. Mose 23|3. Mose 19
+Salem;6;0.67;;1;4;1. Mose 14|Josua 16|Psalmen 75|Sacharja 8
+Zweifellos;6;1.0;ja;1;6;1. Mose 15|1. Mose 38|2. Mose 1|2. Mose 33|Hesekiel 4|Jesaja 40
+Inzest;6;0.83;ja;1;5;1. Mose 20|1. Mose 38|3. Mose 17|5. Mose 28|Hesekiel 24
+Machpelah;6;0.67;;1;4;1. Mose 23|1. Mose 25|1. Mose 49|1. Mose 50
+Rang;6;1.0;ja;1;6;1. Mose 23|1. Mose 41|1. Mose 43|2. Mose 4|Hesekiel 8|Jesaja 23
+Tema;6;0.67;;1;4;1. Mose 25|Hiob 6|Jeremia 26|Jesaja 21
+Erstgeborener;6;0.67;;1;4;1. Mose 27|2. Mose 12|Jeremia 31|Psalmen 89
+Gewänder;6;0.83;ja;1;5;1. Mose 27|2. Samuel 10|Hesekiel 26|Jesaja 11|Sprüche 31
+Nebajoths;6;0.5;;1;3;1. Mose 28|1. Mose 35|Jesaja 60
+Kultur;6;1.0;ja;1;6;1. Mose 29|1. Mose 38|1. Samuel 31|2. Mose 23|2. Mose 4|3. Mose 17
+Wachturm;6;0.67;;1;4;1. Mose 31|1. Mose 35|Jesaja 33|Nehemia 3
+Astarot;6;0.83;ja;1;5;1. Mose 31|5. Mose 1|Josua 12|Josua 14|Josua 9
+Ischtar;6;1.0;ja;1;6;1. Mose 31|Hesekiel 8|Jeremia 6|Jona 1|Nahum 2|Nehemia 1
+Ärger;6;1.0;ja;1;6;1. Mose 34|1. Samuel 31|Jeremia 52|Josua 8|Sprüche 24|Sprüche 26
+Oholibama;6;0.33;;1;2;1. Mose 35|1. Mose 37
+Träumer;6;0.5;;1;3;1. Mose 37|5. Mose 13|Jeremia 28
+Derartige;6;0.33;;1;2;1. Mose 37|Jeremia 12
+Hezron;6;0.83;ja;1;5;1. Mose 45|2. Mose 6|4. Mose 25|4. Mose 26|Josua 14
+Ertrages;6;1.0;ja;1;6;1. Mose 41|1. Mose 47|5. Mose 15|5. Mose 26|Jeremia 2|Jesaja 5
+Leckerbissen;6;0.67;;1;4;1. Mose 49|Psalmen 140|Sprüche 18|Sprüche 26
+Säuglinge;6;1.0;ja;1;6;1. Samuel 14|2. Mose 1|2. Samuel 13|Jeremia 31|Jeremia 44|Jeremia 8
+Darin;6;1.0;ja;1;6;2. Mose 19|2. Mose 3|3. Mose 11|Habakuk 2|Hesekiel 36|Hiob 27
+Situationen;6;1.0;ja;1;6;2. Mose 4|2. Samuel 11|Psalmen 137|Psalmen 40|Psalmen 65|Sprüche 31
+Hinterlist;6;1.0;ja;1;6;1. Samuel 18|2. Mose 6|5. Mose 24|Hosea 7|Jeremia 8|Jesaja 52
+Wärme;6;0.83;ja;1;5;2. Mose 10|5. Mose 15|Jesaja 19|Jesaja 44|Maleachi 3
+Etam;6;0.5;;1;3;2. Mose 12|2. Mose 13|4. Mose 32
+Elat;6;0.83;ja;1;5;2. Mose 12|2. Samuel 11|4. Mose 20|4. Mose 33|5. Mose 1
+Erklärungen;6;0.83;ja;1;5;2. Mose 12|2. Mose 15|2. Mose 19|2. Mose 32|Hiob 8
+Arzt;6;0.5;;1;3;2. Mose 16|Jeremia 8|Psalmen 40
+Außer;6;1.0;ja;1;6;2. Mose 17|Hesekiel 44|Hesekiel 45|Jesaja 45|Jesaja 56|Nehemia 3
+Ussa;6;0.33;;1;2;2. Samuel 5|3. Mose 9
+Ähnliche;6;0.67;;1;4;3. Mose 13|4. Mose 7|Hosea 7|Jesaja 30
+Behaftete;6;0.17;;1;1;3. Mose 15
+Verschiedene;6;1.0;ja;1;6;3. Mose 17|5. Mose 12|5. Mose 23|Hohelied 4|Jesaja 35|Psalmen 98
+Verhaltens;6;1.0;ja;1;6;1. Samuel 25|2. Samuel 13|3. Mose 19|Psalmen 106|Sacharja 13|Sprüche 30
+Kahath;6;0.67;;1;4;4. Mose 15|4. Mose 3|4. Mose 4|Psalmen 85
+Schale;6;0.5;;1;3;4. Mose 6|4. Mose 7|Hohelied 8
+Talmai;6;0.5;;1;3;2. Samuel 3|4. Mose 13|Josua 14
+Sibma;6;0.5;;1;3;4. Mose 32|Jeremia 48|Josua 14
+Jahaz;6;0.5;;1;3;5. Mose 2|Jeremia 48|Jesaja 14
+Senir;6;0.33;;1;2;5. Mose 2|Hesekiel 27
+Anbetungsort;6;1.0;ja;1;6;5. Mose 12|5. Mose 15|5. Mose 16|Jeremia 1|Psalmen 42|Psalmen 79
+Barmherz;6;1.0;ja;1;6;5. Mose 13|Jesaja 48|Jesaja 64|Nehemia 2|Psalmen 50|Psalmen 78
+Zeichendeuter;6;0.5;;1;3;1. Samuel 28|5. Mose 18|Jesaja 2
+Ausdrücken;6;1.0;ja;1;6;5. Mose 32|Hohelied 2|Jesaja 11|Jesaja 35|Jesaja 54|Jesaja 66
+Beerot;6;0.5;;1;3;2. Samuel 4|Josua 19|Josua 9
+Eroberungszug;6;0.5;;1;3;Josua 10|Josua 12|Josua 9
+Jabin;6;0.33;;1;2;Josua 10|Psalmen 82
+Gesandte;6;0.83;ja;1;5;Jesaja 30|Jesaja 37|Jesaja 40|Josua 22|Nehemia 2
+Unruhe;6;1.0;ja;1;6;Hiob 13|Hiob 31|Jeremia 50|Jesaja 14|Josua 22|Psalmen 38
+Eben-Eser;6;0.5;;1;3;1. Samuel 4|1. Samuel 6|1. Samuel 7
+Sprachrohr;6;1.0;ja;1;6;1. Samuel 4|Jeremia 1|Jeremia 15|Jeremia 2|Jeremia 37|Jeremia 6
+Astarten;6;0.5;;1;3;1. Samuel 12|1. Samuel 7|Jeremia 17
+Erwartungen;6;1.0;ja;1;6;1. Samuel 10|Hesekiel 10|Hohelied 2|Jeremia 46|Jesaja 25|Psalmen 22
+Gibea-Benjamin;6;0.33;;1;2;1. Samuel 12|1. Samuel 14
+Helm;6;0.67;;1;4;1. Samuel 17|Hesekiel 37|Jesaja 60|Psalmen 140
+Oberster;6;0.5;;1;3;1. Samuel 21|2. Samuel 24|Hesekiel 37
+Gallim;6;0.33;;1;2;1. Samuel 25|Jesaja 11
+Anders;6;1.0;ja;1;6;1. Samuel 25|Jesaja 35|Jesaja 8|Sacharja 9|Sprüche 24|Sprüche 6
+Beweise;6;1.0;ja;1;6;1. Samuel 26|Hiob 23|Jesaja 52|Psalmen 36|Sprüche 30|Sprüche 31
+Pleter;6;0.67;;1;4;1. Samuel 31|2. Samuel 15|2. Samuel 20|2. Samuel 8
+Bichris;6;0.33;;1;2;1. Samuel 31|2. Samuel 20
+Schephatja;6;0.17;;1;1;2. Samuel 3
+Gittaim;6;0.33;;1;2;2. Samuel 4|Nehemia 11
+Gewandes;6;0.83;ja;1;5;2. Samuel 7|Haggai 2|Hesekiel 4|Jesaja 40|Nehemia 6
+Dickmilch;6;0.5;;1;3;2. Samuel 18|Jesaja 7|Jesaja 8
+Säume;6;0.5;;1;3;Jeremia 13|Jesaja 6|Nahum 2
+Jünger;6;0.83;ja;1;5;Jesaja 21|Jesaja 51|Jesaja 8|Psalmen 36|Psalmen 4
+Huren;6;0.83;ja;1;5;Hesekiel 16|Hosea 4|Jesaja 23|Sprüche 28|Sprüche 7
+Erdreich;6;0.83;ja;1;5;Hesekiel 26|Hesekiel 35|Jesaja 41|Jesaja 52|Joel 1
+Erstaunen;6;0.83;ja;1;5;Habakuk 1|Jesaja 52|Psalmen 116|Psalmen 73|Psalmen 79
+Wiederkehr;6;1.0;ja;1;6;Hiob 18|Jeremia 21|Jeremia 8|Sacharja 13|Sacharja 9|Sprüche 1
+Verleumdungen;6;0.67;;1;4;Jeremia 21|Psalmen 36|Sprüche 10|Sprüche 13
+Schelemja;6;0.33;;1;2;Jeremia 36|Nehemia 12
+Hophra;6;0.67;;1;4;Hesekiel 16|Hesekiel 29|Hesekiel 30|Jeremia 46
+Susa;6;1.0;ja;1;6;Hesekiel 24|Jeremia 49|Maleachi 3|Nehemia 1|Nehemia 2|Nehemia 6
+Heidenvölk;6;1.0;ja;1;6;Hesekiel 10|Hesekiel 35|Hesekiel 4|Psalmen 72|Psalmen 9|Sacharja 3
+Gebal;6;0.33;;1;2;Hesekiel 27|Psalmen 82
+Örter;6;0.5;;1;3;Hesekiel 30|Hesekiel 32|Psalmen 65
+Zellen;6;0.17;;1;1;Hesekiel 40
+Küche;6;0.17;;1;1;Hesekiel 40
+Jareb;6;0.33;;1;2;Hosea 10|Hosea 7
+No-Amon;6;0.17;;1;1;Nahum 2
+Himmelfahrt;6;0.67;;1;4;Psalmen 110|Psalmen 118|Psalmen 68|Sacharja 14
+Harre;6;0.33;;1;2;Psalmen 42|Sprüche 20
+Sukkoth;6;0.33;;1;2;Psalmen 107|Psalmen 61
+Perlen;6;0.83;ja;1;5;Hiob 29|Sprüche 20|Sprüche 3|Sprüche 31|Sprüche 7
+Liebkosungen;6;0.5;;1;3;Hohelied 1|Hohelied 4|Sprüche 7
+Geschem;6;0.5;;1;3;Nehemia 2|Nehemia 4|Nehemia 6
+Hilkija;6;0.33;;1;2;Nehemia 11|Nehemia 7
+Sebanja;6;0.33;;1;2;Nehemia 11|Nehemia 9
+Wasservorkommen;5;1.0;ja;1;5;1. Mose 1|1. Mose 2|1. Mose 21|1. Mose 7|2. Mose 16
+Jared;5;0.2;;1;1;1. Mose 4
+Räume;5;0.8;ja;1;4;1. Mose 6|Hesekiel 40|Hesekiel 42|Psalmen 74
+Lebensjahr;5;1.0;ja;1;5;1. Mose 21|1. Mose 7|3. Mose 27|Josua 12|Maleachi 2
+Kriegern;5;1.0;ja;1;5;1. Mose 9|1. Samuel 10|1. Samuel 14|2. Samuel 20|Josua 6
+Konflikten;5;0.8;ja;1;4;1. Mose 14|1. Mose 27|1. Mose 49|Sprüche 31
+Daraufhin;5;1.0;ja;1;5;1. Mose 15|1. Mose 23|1. Mose 35|3. Mose 25|Jesaja 54
+Treibe;5;0.6;;1;3;1. Mose 21|2. Samuel 13|Jeremia 15
+Tamariske;5;0.6;;1;3;1. Mose 21|1. Samuel 21|1. Samuel 31
+Verbindungen;5;1.0;ja;1;5;1. Mose 23|2. Mose 32|2. Samuel 21|Hesekiel 23|Psalmen 40
+Sich;5;1.0;ja;1;5;1. Mose 28|1. Mose 42|2. Samuel 10|2. Samuel 3|5. Mose 28
+Silpa;5;0.4;;1;2;1. Mose 29|1. Mose 47
+Aktivität;5;1.0;ja;1;5;1. Mose 30|3. Mose 19|5. Mose 31|Jesaja 46|Psalmen 110
+Kriegsgefangene;5;0.8;ja;1;4;1. Mose 31|2. Samuel 10|Jeremia 21|Jesaja 38
+Gesang;5;0.8;ja;1;4;1. Mose 31|1. Samuel 18|Nehemia 11|Psalmen 147
+Schlimmes;5;1.0;ja;1;5;1. Mose 31|1. Mose 32|1. Mose 37|5. Mose 16|Josua 24
+Anspielungen;5;1.0;ja;1;5;1. Mose 32|5. Mose 4|Hiob 33|Psalmen 20|Psalmen 45
+Pheresitern;5;0.8;ja;1;4;1. Mose 34|2. Mose 23|5. Mose 20|Josua 10
+Debora;5;0.6;;1;3;1. Mose 35|2. Mose 15|Psalmen 82
+Basmath;5;0.2;;1;1;1. Mose 35
+Zibeon;5;0.4;;1;2;1. Mose 35|1. Mose 37
+Achbors;5;0.6;;1;3;1. Mose 37|Jeremia 26|Jeremia 36
+Dotan;5;0.2;;1;1;1. Mose 37
+Schela;5;0.6;;1;3;1. Mose 38|1. Mose 45|4. Mose 26
+Haft;5;0.8;ja;1;4;1. Mose 40|1. Mose 41|1. Mose 42|Hesekiel 20
+Wahrsagern;5;0.8;ja;1;4;1. Mose 41|3. Mose 20|Jeremia 28|Jesaja 43
+Tretet;5;1.0;ja;1;5;1. Mose 45|1. Samuel 23|3. Mose 9|Jeremia 46|Jeremia 6
+Weideland;5;1.0;ja;1;5;1. Mose 45|4. Mose 34|Hesekiel 35|Josua 21|Sacharja 11
+Karmi;5;0.6;;1;3;1. Mose 45|2. Mose 6|4. Mose 25
+Jischwi;5;0.8;ja;1;4;1. Mose 47|1. Samuel 14|1. Samuel 31|4. Mose 26
+Leids;5;1.0;ja;1;5;1. Mose 49|Hiob 13|Hiob 23|Hiob 29|Psalmen 38
+Glied;5;0.8;ja;1;4;1. Mose 50|2. Mose 34|3. Mose 20|5. Mose 4
+Pitom;5;0.4;;1;2;2. Mose 1|2. Mose 12
+Maßnahmen;5;0.8;ja;1;4;2. Mose 1|2. Samuel 5|Jeremia 28|Sprüche 13
+Territoriums;5;1.0;ja;1;5;1. Samuel 14|1. Samuel 28|2. Mose 20|2. Mose 3|5. Mose 2
+Kritik;5;0.8;ja;1;4;2. Mose 4|2. Samuel 11|Hiob 29|Nehemia 6
+Zippora;5;0.4;;1;2;2. Mose 17|2. Mose 4
+Reaktionen;5;0.8;ja;1;4;2. Mose 32|2. Mose 9|2. Samuel 13|Psalmen 31
+Überreste;5;1.0;ja;1;5;2. Mose 13|2. Samuel 21|3. Mose 9|4. Mose 22|Josua 24
+Spiel;5;0.8;ja;1;4;1. Samuel 18|1. Samuel 29|2. Mose 13|Jesaja 38
+Schriften;5;1.0;ja;1;5;2. Mose 17|Hesekiel 30|Jona 3|Josua 1|Psalmen 50
+Totschlag;5;0.6;;1;3;2. Mose 21|4. Mose 35|5. Mose 20
+Verletzungen;5;1.0;ja;1;5;2. Mose 21|5. Mose 22|Hesekiel 21|Jesaja 1|Psalmen 36
+Buntwirkerarbeit;5;1.0;ja;1;5;2. Mose 26|2. Mose 27|2. Mose 28|2. Mose 36|2. Mose 39
+Hofes;5;1.0;ja;1;5;2. Mose 26|2. Mose 27|2. Samuel 8|Hesekiel 40|Sprüche 7
+Chrysolith;5;1.0;ja;1;5;2. Mose 28|2. Mose 38|Hesekiel 1|Hesekiel 10|Hesekiel 27
+Siegelgravur;5;0.6;;1;3;2. Mose 28|2. Mose 38|2. Mose 39
+Edelsteine;5;0.8;ja;1;4;2. Mose 28|2. Mose 31|Hesekiel 27|Sacharja 9
+Kunstwerke;5;0.4;;1;2;2. Mose 31|2. Mose 36
+Olivenöl;5;1.0;ja;1;5;1. Samuel 2|2. Mose 31|5. Mose 7|Hiob 29|Sacharja 5
+Kalbs;5;0.8;ja;1;4;2. Mose 31|4. Mose 25|5. Mose 4|5. Mose 9
+Feuerstelle;5;0.6;;1;3;3. Mose 6|Jesaja 28|Jesaja 31
+Speisopfern;5;1.0;ja;1;5;3. Mose 7|4. Mose 28|4. Mose 31|Jesaja 19|Jesaja 43
+Hautkrankheiten;5;0.8;ja;1;4;3. Mose 13|4. Mose 19|5. Mose 24|5. Mose 28
+Scharlach;5;1.0;ja;1;5;3. Mose 14|Jeremia 5|Jesaja 2|Nahum 2|Sprüche 31
+Kislew;5;0.4;;1;2;3. Mose 22|Nehemia 1
+Sonnensäulen;5;0.8;ja;1;4;3. Mose 26|Hesekiel 6|Jesaja 16|Jesaja 27
+Nethaneel;5;0.8;ja;1;4;4. Mose 6|4. Mose 9|Nehemia 11|Nehemia 12
+Ammiel;5;0.4;;1;2;2. Samuel 8|4. Mose 13
+Grüne;5;0.4;;1;2;4. Mose 22|Hesekiel 21
+Zippors;5;0.6;;1;3;4. Mose 22|4. Mose 23|Josua 24
+Tirza;5;0.8;ja;1;4;4. Mose 26|Hohelied 4|Josua 12|Josua 17
+Festzeiten;5;0.6;;1;3;4. Mose 28|Hesekiel 45|Jesaja 1
+Spangen;5;0.8;ja;1;4;2. Samuel 1|4. Mose 32|Hesekiel 16|Hesekiel 23
+Zedad;5;0.4;;1;2;4. Mose 34|Hesekiel 47
+Gaditern;5;0.8;ja;1;4;5. Mose 2|5. Mose 29|Josua 1|Josua 12
+Beth-Peor;5;0.6;;1;3;5. Mose 33|5. Mose 4|Josua 14
+Autonomie;5;1.0;ja;1;5;5. Mose 4|Nehemia 2|Psalmen 61|Psalmen 65|Psalmen 85
+Libanons;5;0.8;ja;1;4;5. Mose 9|Hesekiel 30|Jeremia 23|Jesaja 2
+Zeremonien;5;0.8;ja;1;4;5. Mose 12|5. Mose 26|Hosea 4|Jesaja 28
+Elul;5;0.8;ja;1;4;5. Mose 18|Haggai 1|Nehemia 1|Nehemia 6
+Juni;5;1.0;ja;1;5;1. Samuel 12|1. Samuel 6|3. Mose 23|5. Mose 18|Hesekiel 1
+Verteidigungsanlagen;5;1.0;ja;1;5;Hesekiel 12|Hosea 7|Jesaja 23|Josua 2|Nahum 2
+Merom;5;0.6;;1;3;Josua 10|Josua 12|Josua 19
+Taanach;5;0.6;;1;3;Josua 12|Josua 17|Josua 21
+Medeba;5;0.6;;1;3;Jesaja 14|Josua 12|Josua 14
+Baala;5;0.4;;1;2;Josua 14|Josua 16
+Sanoach;5;0.6;;1;3;Josua 16|Nehemia 11|Nehemia 3
+Schunem;5;0.6;;1;3;1. Samuel 28|Hohelied 6|Josua 19
+Golan;5;0.4;;1;2;Josua 20|Josua 21
+Kurz;5;1.2;ja;1;6;1. Samuel 2|Jeremia 28|Jeremia 49|Jesaja 7|Nehemia 9|Psalmen 50
+Ikabod;5;0.4;;1;2;1. Samuel 4|Hesekiel 10
+Philister-Städte;5;1.0;ja;1;5;1. Samuel 17|1. Samuel 4|1. Samuel 6|1. Samuel 7|Sacharja 9
+Mäuse;5;0.6;;1;3;1. Samuel 6|1. Samuel 7|Jesaja 66
+Kleinodien;5;1.0;ja;1;5;1. Samuel 6|Hesekiel 23|Hosea 10|Jesaja 2|Joel 2
+Brennholz;5;0.8;ja;1;4;1. Samuel 6|2. Samuel 24|Jesaja 40|Jesaja 44
+Thronfolger;5;0.6;;1;3;1. Samuel 12|1. Samuel 18|2. Samuel 13
+Errungenschaften;5;1.0;ja;1;5;1. Samuel 14|Hesekiel 27|Jesaja 10|Jesaja 42|Jesaja 44
+Depression;5;1.0;ja;1;5;1. Samuel 16|Jeremia 21|Jesaja 19|Psalmen 75|Psalmen 78
+Wurfspieß;5;1.0;ja;1;5;1. Samuel 17|Hiob 33|Hiob 40|Hiob 42|Jeremia 6
+Hachila;5;0.4;;1;2;1. Samuel 23|1. Samuel 26
+Beth-Schan;5;0.4;;1;2;1. Samuel 31|2. Samuel 11
+Verräter;5;1.0;ja;1;5;2. Samuel 3|Jeremia 37|Psalmen 51|Psalmen 55|Psalmen 58
+Lodebar;5;0.4;;1;2;2. Samuel 18|2. Samuel 8
+Harmonie;5;1.0;ja;1;5;2. Samuel 14|Hesekiel 1|Hiob 1|Psalmen 72|Psalmen 85
+Kidron;5;0.6;;1;3;2. Samuel 15|Jeremia 31|Nehemia 2
+Schrecknisse;5;1.0;ja;1;5;Hiob 18|Jesaja 2|Psalmen 45|Psalmen 88|Psalmen 91
+Remaljas;5;0.4;;1;2;Jesaja 7|Jesaja 8
+Kriegsgerät;5;1.0;ja;1;5;Hesekiel 1|Hosea 2|Jeremia 51|Jesaja 10|Psalmen 75
+Feuersglut;5;0.6;;1;3;Jesaja 10|Psalmen 140|Sprüche 24
+Grimms;5;0.8;ja;1;4;Jesaja 10|Jesaja 52|Jesaja 65|Psalmen 102
+Arpad;5;0.6;;1;3;Jeremia 49|Jesaja 10|Jesaja 37
+Prahlerei;5;0.6;;1;3;Jeremia 24|Jesaja 10|Jesaja 13
+Schößling;5;1.0;ja;1;5;Hesekiel 18|Hiob 18|Jesaja 11|Jesaja 14|Jesaja 52
+Gazellen;5;0.8;ja;1;4;Hohelied 2|Hohelied 4|Hohelied 8|Jesaja 13
+Sargon;5;0.6;;1;3;Jesaja 16|Jesaja 19|Jesaja 21
+Frohlocken;5;1.0;ja;1;5;Hiob 20|Jeremia 48|Jesaja 35|Joel 1|Psalmen 45
+Monarch;5;0.8;ja;1;4;Jesaja 38|Jesaja 44|Psalmen 110|Sprüche 31
+Sabäer;5;0.6;;1;3;Hiob 2|Jesaja 43|Jesaja 45
+Reichtümer;5;0.8;ja;1;4;Hesekiel 27|Jesaja 44|Psalmen 119|Psalmen 128
+Regierungsjahr;5;1.0;ja;1;5;Jeremia 1|Jeremia 24|Jeremia 31|Jeremia 46|Nehemia 12
+Ben-Hinnom;5;0.4;;1;2;Jeremia 19|Jeremia 8
+Hindin;5;0.6;;1;3;Jeremia 13|Psalmen 20|Sprüche 4
+Kriegslärm;5;0.8;ja;1;4;Hosea 10|Jeremia 21|Jeremia 48|Jeremia 50
+Necho;5;0.6;;1;3;Hesekiel 20|Hesekiel 30|Jeremia 46
+Gesichten;5;0.6;;1;3;Hesekiel 40|Hesekiel 8|Hosea 10
+Pelatja;5;0.4;;1;2;Hesekiel 10|Nehemia 9
+Ratschläge;5;0.8;ja;1;4;Hesekiel 10|Hiob 13|Hiob 6|Hosea 10
+Begriffen;5;1.0;ja;1;5;Hesekiel 12|Hesekiel 21|Hiob 13|Psalmen 31|Psalmen 48
+Wölfe;5;0.4;;1;2;Habakuk 1|Hesekiel 22
+Elfenbein;5;0.6;;1;3;Hesekiel 27|Hohelied 8|Psalmen 45
+Syene;5;0.4;;1;2;Hesekiel 29|Hesekiel 30
+Golgatha;5;1.0;ja;1;5;Hesekiel 40|Maleachi 3|Sacharja 13|Sacharja 14|Sacharja 3
+Schealtiels;5;0.4;;1;2;Haggai 1|Nehemia 11
+Scheu;5;0.6;;1;3;Hiob 10|Psalmen 65|Sacharja 13
+Persönliche;5;0.6;;1;3;Psalmen 107|Psalmen 137|Psalmen 25
+Flehens;5;1.0;ja;1;5;Psalmen 128|Psalmen 140|Psalmen 31|Psalmen 65|Psalmen 85
+Würzwein;5;0.6;;1;3;Hohelied 8|Psalmen 75|Sprüche 23
+Gesprächszyklus;5;0.8;ja;1;4;Hiob 13|Hiob 15|Hiob 2|Hiob 20
+Serebja;5;0.4;;1;2;Nehemia 12|Nehemia 9
+Kadmiel;5;0.4;;1;2;Nehemia 11|Nehemia 9
+Secharja;5;0.4;;1;2;Nehemia 11|Nehemia 12
+Seen;4;1.0;ja;1;4;1. Mose 1|1. Mose 7|5. Mose 7|Jesaja 42
+Kreaturen;4;1.0;ja;1;4;1. Mose 1|Hiob 40|Jesaja 2|Psalmen 40
+Dunst;4;0.75;;1;3;1. Mose 2|Jesaja 30|Psalmen 147
+Dreck;4;1.0;ja;1;4;1. Mose 2|Habakuk 1|Hiob 6|Jesaja 27
+Babylonien;4;0.75;;1;3;1. Mose 2|Hesekiel 21|Sacharja 1
+Südosten;4;0.75;;1;3;1. Mose 2|5. Mose 2|Jeremia 23
+Eingriff;4;0.75;;1;3;1. Mose 2|1. Mose 34|Jeremia 3
+Betracht;4;1.0;ja;1;4;1. Mose 2|Hiob 2|Jesaja 64|Psalmen 48
+Evas;4;0.5;;1;2;1. Mose 3|3. Mose 13
+Beine;4;0.75;;1;3;1. Mose 3|Hesekiel 1|Hesekiel 16
+Rollen;4;0.75;;1;3;1. Mose 3|Jesaja 66|Psalmen 107
+Kenan;4;0.25;;1;1;1. Mose 4
+Paare;4;0.75;;1;3;1. Mose 6|2. Mose 27|Psalmen 7
+Türkei;4;1.0;ja;1;4;1. Mose 23|1. Mose 8|Hesekiel 27|Hesekiel 37
+Sisera;4;0.75;;1;3;1. Mose 8|Josua 19|Psalmen 82
+Jobab;4;0.75;;1;3;1. Mose 10|1. Mose 37|Josua 10
+Terachs;4;0.75;;1;3;1. Mose 11|1. Mose 12|1. Mose 32
+Juwelen;4;1.0;ja;1;4;1. Mose 14|1. Mose 41|2. Mose 10|Josua 8
+Stadtstaaten;4;1.0;ja;1;4;1. Mose 14|1. Mose 35|1. Samuel 7|Josua 10
+Siddim;4;0.25;;1;1;1. Mose 14
+Halbinsel;4;1.0;ja;1;4;1. Mose 14|1. Mose 21|1. Samuel 25|2. Mose 10
+Kämpfern;4;1.0;ja;1;4;1. Mose 14|2. Samuel 21|2. Samuel 22|2. Samuel 24
+Angaben;4;1.0;ja;1;4;1. Mose 14|1. Mose 15|2. Mose 39|2. Samuel 12
+Südlich;4;1.0;ja;1;4;1. Mose 15|5. Mose 1|Josua 10|Nehemia 6
+Hagars;4;0.75;;1;3;1. Mose 15|1. Mose 21|Psalmen 82
+Bekräftigungen;4;0.75;;1;3;1. Mose 17|Psalmen 4|Psalmen 50
+Verkehr;4;0.75;;1;3;1. Mose 19|2. Mose 23|Jesaja 33
+Kindeskindern;4;1.0;ja;1;4;1. Mose 21|2. Mose 34|5. Mose 4|Jeremia 2
+Kirjat-Arba;4;1.0;ja;1;4;1. Mose 23|1. Mose 35|Josua 16|Josua 20
+Geschenken;4;0.75;;1;3;1. Mose 24|Jesaja 2|Psalmen 45
+Neid;4;1.0;ja;1;4;1. Mose 27|1. Mose 30|1. Mose 44|Hiob 4
+Genau;4;1.0;ja;1;4;1. Mose 27|2. Mose 4|4. Mose 19|Maleachi 3
+Vorstellungen;4;1.0;ja;1;4;1. Mose 28|Hesekiel 22|Hiob 27|Maleachi 2
+Schaddai;4;0.75;;1;3;1. Mose 28|Hiob 38|Maleachi 1
+Elementen;4;1.0;ja;1;4;1. Mose 28|Jeremia 49|Psalmen 22|Psalmen 4
+Abstand;4;1.25;ja;1;5;1. Mose 30|1. Samuel 6|Hesekiel 40|Josua 2|Sprüche 21
+Streifen;4;0.75;;1;3;1. Mose 30|2. Mose 38|Josua 19
+Trinkwasser;4;1.0;ja;1;4;1. Mose 30|2. Mose 15|2. Mose 7|Josua 2
+Hausrat;4;0.75;;1;3;1. Mose 31|1. Mose 45|2. Mose 21
+Baals;4;1.0;ja;1;4;1. Mose 31|1. Samuel 4|4. Mose 23|Jeremia 6
+Jerobeam;4;1.0;ja;1;4;1. Mose 31|Hesekiel 23|Hosea 4|Jesaja 11
+Heiligtümern;4;1.0;ja;1;4;1. Mose 31|2. Mose 23|2. Mose 24|Hesekiel 44
+Heimkehr;4;0.75;;1;3;1. Mose 32|1. Mose 35|Psalmen 128
+Bescheid;4;1.0;ja;1;4;1. Mose 37|3. Mose 25|Hiob 38|Jeremia 39
+Freveltat;4;1.0;ja;1;4;1. Mose 38|4. Mose 5|Hesekiel 4|Jesaja 2
+Mahlzeiten;4;1.0;ja;1;4;1. Mose 40|Hesekiel 22|Hesekiel 4|Nehemia 2
+Vorschlag;4;1.0;ja;1;4;1. Mose 42|1. Samuel 31|1. Samuel 9|2. Mose 19
+Erneut;4;1.0;ja;1;4;1. Mose 43|Haggai 2|Hiob 26|Sacharja 5
+Amtes;4;1.0;ja;1;4;1. Mose 44|2. Mose 27|3. Mose 20|Maleachi 2
+Ernten;4;0.75;;1;3;1. Mose 45|2. Mose 24|3. Mose 25
+Pallu;4;0.75;;1;3;1. Mose 45|2. Mose 6|4. Mose 25
+Mägden;4;1.0;ja;1;4;1. Mose 45|2. Samuel 7|Jeremia 34|Nehemia 4
+Ziegeln;4;0.5;;1;2;2. Mose 1|2. Mose 6
+Reife;4;1.0;ja;1;4;1. Samuel 2|2. Mose 1|Psalmen 79|Sprüche 16
+Schreiben;4;1.0;ja;1;4;2. Mose 1|2. Mose 17|Jeremia 30|Psalmen 107
+Nachfrage;4;0.75;;1;3;2. Mose 3|2. Mose 4|4. Mose 9
+Adonai;4;0.75;;1;3;2. Mose 3|Jesaja 3|Maleachi 1
+Dokument;4;1.0;ja;1;4;2. Mose 4|5. Mose 28|Jesaja 30|Nehemia 2
+Unwillen;4;0.75;;1;3;2. Mose 4|5. Mose 29|5. Mose 32
+Zuvor;4;1.0;ja;1;4;2. Mose 4|4. Mose 35|Jeremia 3|Josua 8
+Dokumente;4;1.0;ja;1;4;2. Mose 17|2. Mose 6|2. Mose 7|Hiob 38
+Jizhar;4;0.5;;1;2;2. Mose 6|4. Mose 2
+Misael;4;0.75;;1;3;2. Mose 6|3. Mose 9|Nehemia 7
+Amminadabs;4;0.75;;1;3;2. Mose 6|4. Mose 1|4. Mose 6
+Mitternacht;4;1.0;ja;1;4;2. Mose 10|2. Mose 12|2. Mose 8|Psalmen 118
+Ungewöhnliches;4;1.0;ja;1;4;2. Mose 10|2. Mose 19|4. Mose 6|Jesaja 28
+Sonnenschein;4;0.75;;1;3;2. Mose 10|Hiob 8|Jesaja 19
+Kräutern;4;1.0;ja;1;4;2. Mose 12|4. Mose 9|Hiob 40|Hohelied 1
+Lass;4;1.0;ja;1;4;2. Mose 12|Hohelied 1|Hohelied 2|Psalmen 119
+Gibt;4;1.0;ja;1;4;1. Samuel 21|2. Mose 13|Jesaja 21|Jesaja 44
+Dophka;4;0.5;;1;2;2. Mose 16|4. Mose 32
+Dieselben;4;1.0;ja;1;4;2. Mose 19|4. Mose 1|Jesaja 33|Jesaja 44
+Nächster;4;0.75;;1;3;2. Mose 20|5. Mose 6|Sprüche 24
+Töten;4;0.5;;1;2;2. Mose 20|Habakuk 2
+Lebensstil;4;1.0;ja;1;4;2. Mose 23|Hesekiel 23|Jesaja 27|Psalmen 13
+Lebensbereich;4;0.75;;1;3;2. Mose 23|3. Mose 11|5. Mose 12
+Widderfelle;4;0.75;;1;3;2. Mose 24|2. Mose 34|2. Mose 36
+Beiträge;4;0.75;;1;3;2. Mose 24|Nehemia 7|Psalmen 137
+Einblick;4;1.0;ja;1;4;1. Samuel 25|2. Mose 27|Hiob 26|Sprüche 31
+Einfassungen;4;0.75;;1;3;2. Mose 28|2. Mose 38|2. Mose 39
+Gürtels;4;1.0;ja;1;4;2. Mose 28|2. Mose 39|Jeremia 12|Jesaja 3
+Schelle;4;0.5;;1;2;2. Mose 28|2. Mose 39
+Befragungen;4;1.0;ja;1;4;1. Samuel 23|2. Mose 28|Jeremia 37|Jesaja 8
+Hurs;4;1.0;ja;1;4;2. Mose 31|2. Mose 36|2. Mose 38|Nehemia 3
+Zimt;4;0.75;;1;3;2. Mose 31|Hohelied 4|Sprüche 7
+Ohrringe;4;0.75;;1;3;2. Mose 31|2. Mose 34|4. Mose 32
+Geflügel;4;0.75;;1;3;3. Mose 1|Nehemia 6|Psalmen 78
+Aberglauben;4;1.0;ja;1;4;3. Mose 17|3. Mose 19|3. Mose 7|Jesaja 2
+Kleingetier;4;0.5;;1;2;3. Mose 11|5. Mose 15
+Symptome;4;1.0;ja;1;4;3. Mose 13|Hiob 31|Psalmen 102|Psalmen 9
+Infektion;4;0.5;;1;2;3. Mose 13|3. Mose 14
+Fellen;4;0.5;;1;2;3. Mose 14|4. Mose 31
+Fellwerk;4;0.25;;1;1;3. Mose 14
+Ausflusses;4;0.5;;1;2;3. Mose 15|3. Mose 16
+Oktober;4;0.75;;1;3;3. Mose 16|3. Mose 17|5. Mose 18
+Bereiche;4;1.0;ja;1;4;3. Mose 17|Jesaja 58|Joel 1|Psalmen 28
+Verhör;4;0.75;;1;3;3. Mose 20|Hiob 38|Hiob 40
+Wochenfest;4;0.75;;1;3;3. Mose 22|4. Mose 28|Psalmen 119
+Adar;4;0.75;;1;3;3. Mose 22|5. Mose 18|Josua 14
+März-April;4;0.5;;1;2;3. Mose 22|Josua 4
+Ungesäuerte;4;0.75;;1;3;3. Mose 22|3. Mose 23|Hesekiel 45
+Härte;4;0.5;;1;2;3. Mose 26|Hesekiel 3
+Familienangehörige;4;1.0;ja;1;4;3. Mose 26|4. Mose 6|Jeremia 19|Josua 8
+Schwindsucht;4;0.75;;1;3;3. Mose 26|5. Mose 28|Jesaja 10
+Wahre;4;1.0;ja;1;4;3. Mose 27|Sprüche 10|Sprüche 13|Sprüche 31
+Gamliel;4;0.5;;1;2;4. Mose 1|4. Mose 2
+Zuars;4;0.75;;1;3;4. Mose 1|4. Mose 6|4. Mose 9
+Tätigkeiten;4;1.0;ja;1;4;4. Mose 2|4. Mose 6|Nehemia 12|Psalmen 22
+Quasten;4;0.5;;1;2;4. Mose 15|5. Mose 22
+Versagens;4;1.0;ja;1;4;4. Mose 15|Jesaja 43|Jesaja 54|Nehemia 12
+Feigenbäume;4;1.0;ja;1;4;4. Mose 20|5. Mose 7|Nahum 2|Psalmen 105
+Obot;4;0.5;;1;2;4. Mose 20|4. Mose 33
+Kleines;4;1.0;ja;1;4;1. Samuel 20|1. Samuel 23|1. Samuel 25|4. Mose 22
+Stecken;4;0.75;;1;3;4. Mose 23|Jesaja 10|Psalmen 22
+Machla;4;0.75;;1;3;4. Mose 26|4. Mose 35|Josua 17
+Hogla;4;0.75;;1;3;4. Mose 26|4. Mose 35|Josua 17
+Elale;4;0.25;;1;1;4. Mose 32
+Jairs;4;0.75;;1;3;4. Mose 32|5. Mose 2|Josua 14
+Leider;4;1.0;ja;1;4;1. Samuel 15|4. Mose 34|5. Mose 30|Hesekiel 35
+Auseinandersetzungen;4;1.0;ja;1;4;1. Samuel 31|5. Mose 1|Sacharja 8|Sprüche 24
+Ansprache;4;0.75;;1;3;2. Samuel 22|5. Mose 4|Hiob 10
+Zitate;4;1.0;ja;1;4;5. Mose 6|Hiob 42|Psalmen 118|Psalmen 20
+Merkmal;4;1.0;ja;1;4;1. Samuel 25|5. Mose 30|5. Mose 6|Nahum 1
+Charakters;4;1.0;ja;1;4;2. Samuel 7|5. Mose 7|Habakuk 2|Josua 24
+Hornissen;4;0.5;;1;2;5. Mose 7|Josua 24
+Tabeera;4;0.25;;1;1;5. Mose 9
+Mosts;4;1.0;ja;1;4;5. Mose 12|5. Mose 15|5. Mose 18|Joel 1
+Erzeugnisse;4;1.0;ja;1;4;2. Samuel 4|5. Mose 15|5. Mose 23|Hesekiel 27
+März;4;2.5;ja;1;10;2. Mose 12|3. Mose 22|3. Mose 23|5. Mose 10|5. Mose 15|5. Mose 18|Hesekiel 1|Hesekiel 45|Nehemia 1|Nehemia 2
+Kislev;4;0.75;;1;3;5. Mose 18|Haggai 2|Sacharja 7
+August;4;0.75;;1;3;5. Mose 18|Haggai 1|Jeremia 34
+Parallelen;4;1.0;ja;1;4;5. Mose 18|5. Mose 28|Hiob 15|Psalmen 16
+Wurde;4;1.0;ja;1;4;1. Samuel 2|5. Mose 20|Jeremia 48|Jesaja 66
+Genüge;4;1.0;ja;1;4;5. Mose 20|Jesaja 52|Jesaja 54|Sprüche 30
+Aspekte;4;1.0;ja;1;4;2. Samuel 7|5. Mose 26|Jeremia 31|Sprüche 1
+Holzhauer;4;0.75;;1;3;5. Mose 29|Jeremia 46|Josua 9
+Gleichzeitig;4;1.0;ja;1;4;5. Mose 31|5. Mose 32|Jesaja 2|Jesaja 56
+Grün;4;1.0;ja;1;4;2. Samuel 22|5. Mose 32|Hiob 38|Psalmen 105
+Olivenbäume;4;0.5;;1;2;5. Mose 32|Sacharja 5
+Erst;4;1.5;ja;1;6;2. Samuel 11|4. Mose 19|5. Mose 34|Hesekiel 48|Jesaja 23|Maleachi 3
+Weiche;4;0.75;;1;3;Hiob 20|Hiob 23|Josua 1
+Gaditer;4;1.0;ja;1;4;2. Samuel 24|Josua 12|Josua 22|Josua 4
+Sabdi;4;0.25;;1;1;Josua 8
+Genaue;4;1.0;ja;1;4;1. Samuel 2|1. Samuel 6|Hesekiel 44|Josua 9
+Achschaph;4;0.75;;1;3;Josua 10|Josua 12|Josua 19
+Baal-Gad;4;0.5;;1;2;Josua 10|Josua 12
+Losentscheid;4;1.0;ja;1;4;1. Samuel 14|1. Samuel 28|Josua 12|Josua 19
+Bohans;4;0.5;;1;2;Josua 14|Josua 19
+Holon;4;0.5;;1;2;Josua 16|Josua 21
+Gilo;4;0.5;;1;2;2. Samuel 15|Josua 16
+Gat-Rimmon;4;0.75;;1;3;2. Samuel 5|Josua 19|Josua 21
+Timnat-Serach;4;0.5;;1;2;Josua 20|Josua 24
+Viehbestand;4;1.0;ja;1;4;Hiob 1|Hiob 2|Hiob 42|Josua 21
+Ähnlichkeiten;4;1.0;ja;1;4;1. Samuel 1|1. Samuel 18|1. Samuel 2|Sprüche 10
+Sara;4;1.0;ja;1;4;1. Samuel 1|1. Samuel 31|Jesaja 54|Psalmen 112
+Ursprünglich;4;1.0;ja;1;4;1. Samuel 28|1. Samuel 6|Jesaja 51|Nehemia 11
+Haupteslänge;4;0.75;;1;3;1. Samuel 10|1. Samuel 31|1. Samuel 9
+Flöten;4;0.75;;1;3;1. Samuel 10|Hesekiel 27|Jeremia 48
+Harfen;4;1.25;ja;1;5;1. Mose 4|1. Samuel 10|2. Samuel 5|Jesaja 14|Nehemia 12
+Gibea-Saul;4;0.75;;1;3;1. Samuel 10|1. Samuel 12|1. Samuel 15
+Pflugscharen;4;0.75;;1;3;1. Samuel 14|Jesaja 2|Joel 4
+Handelns;4;1.0;ja;1;4;1. Samuel 15|1. Samuel 28|Hiob 42|Jesaja 31
+Ephes-Dammin;4;0.25;;1;1;1. Samuel 17
+Adriel;4;0.5;;1;2;1. Samuel 18|2. Samuel 21
+Zutritt;4;1.0;ja;1;4;1. Samuel 23|Jesaja 23|Sacharja 3|Sprüche 18
+Tagesanbruch;4;1.0;ja;1;4;1. Samuel 25|2. Samuel 22|Hiob 23|Nehemia 7
+Sunem;4;0.5;;1;2;1. Samuel 28|1. Samuel 29
+Bemühen;4;1.0;ja;1;4;1. Samuel 29|Habakuk 2|Hiob 15|Sprüche 24
+Besor;4;0.5;;1;2;1. Samuel 29|1. Samuel 31
+Zerujas;4;0.75;;1;3;2. Samuel 18|2. Samuel 2|2. Samuel 4
+Zitadelle;4;0.75;;1;3;2. Samuel 21|2. Samuel 24|2. Samuel 4
+Allianzen;4;1.0;ja;1;4;2. Samuel 5|Jesaja 27|Jesaja 30|Nehemia 4
+Staatsschreiber;4;0.5;;1;2;2. Samuel 20|2. Samuel 8
+Simeas;4;0.75;;1;3;2. Samuel 13|2. Samuel 14|2. Samuel 21
+Wehklagen;4;1.0;ja;1;4;2. Samuel 14|Psalmen 137|Psalmen 36|Psalmen 58
+Desweiteren;4;1.0;ja;1;4;2. Samuel 22|Hiob 8|Jeremia 28|Maleachi 2
+Ergebnisse;4;0.75;;1;3;Jesaja 2|Psalmen 31|Sprüche 11
+Ländereien;4;1.0;ja;1;4;Hesekiel 6|Hiob 1|Jesaja 5|Psalmen 50
+Bald;4;0.5;;1;2;Jesaja 5|Jesaja 8
+Untergangs;4;0.75;;1;3;Hesekiel 26|Jesaja 7|Sacharja 8
+Überrests;4;1.0;ja;1;4;Jesaja 51|Jesaja 60|Jesaja 65|Jesaja 8
+Oreb;4;0.5;;1;2;Jesaja 11|Psalmen 82
+Loblieder;4;1.0;ja;1;4;Hiob 36|Jeremia 30|Jesaja 11|Jesaja 25
+Strauße;4;1.0;ja;1;4;Hiob 31|Jeremia 50|Jesaja 13|Jesaja 43
+Anstelle;4;1.0;ja;1;4;Jesaja 14|Jesaja 61|Psalmen 69|Psalmen 79
+Wiederholungen;4;1.0;ja;1;4;Hiob 31|Jesaja 14|Jesaja 38|Psalmen 48
+Nöte;4;1.0;ja;1;4;Jesaja 21|Jesaja 65|Psalmen 91|Sprüche 28
+Spanien;4;1.0;ja;1;4;Jesaja 23|Jesaja 66|Psalmen 48|Psalmen 72
+Betrunkener;4;0.5;;1;2;Jeremia 23|Jesaja 24
+Weingärtner;4;1.0;ja;1;4;Jeremia 49|Jeremia 52|Jesaja 27|Jesaja 61
+Perazim;4;0.25;;1;1;Jesaja 28
+Theophanie;4;1.0;ja;1;4;Jesaja 28|Psalmen 110|Psalmen 28|Psalmen 50
+Töpfergeschirr;4;0.75;;1;3;Jeremia 19|Jesaja 30|Psalmen 1
+Wasserbäche;4;0.75;;1;3;Jesaja 31|Joel 1|Sprüche 4
+Raubtier;4;0.5;;1;2;Jesaja 35|Psalmen 74
+Joach;4;0.5;;1;2;Jesaja 35|Jesaja 37
+Bürge;4;0.75;;1;3;Hiob 18|Jesaja 38|Psalmen 119
+Wohlgefall;4;1.0;ja;1;4;Hosea 7|Jeremia 10|Jesaja 42|Maleachi 3
+Menschliche;4;0.75;;1;3;Jesaja 44|Psalmen 1|Sprüche 16
+Züchtigungen;4;0.75;;1;3;Hesekiel 26|Hiob 18|Jesaja 48
+Nichtiges;4;0.5;;1;2;Jesaja 58|Psalmen 1
+Fackel;4;0.5;;1;2;Jesaja 62|Sacharja 13
+Griechenland;4;1.0;ja;1;4;Haggai 1|Hesekiel 27|Jesaja 66|Sacharja 1
+Eheherr;4;0.5;;1;2;Jeremia 3|Jeremia 31
+Beth-Kerem;4;0.5;;1;2;Jeremia 5|Nehemia 3
+Giftwasser;4;0.75;;1;3;Jeremia 10|Jeremia 23|Jeremia 8
+Selbstmitleid;4;0.75;;1;3;Jeremia 15|Psalmen 73|Sacharja 7
+Gelächter;4;1.0;ja;1;4;Habakuk 1|Jeremia 19|Jeremia 48|Sprüche 28
+Bewohnerin;4;0.75;;1;3;Jeremia 21|Jeremia 46|Jeremia 51
+Joahas;4;0.5;;1;2;Hesekiel 20|Jeremia 21
+Freudengeschrei;4;1.0;ja;1;4;Habakuk 3|Hiob 8|Jeremia 24|Jeremia 34
+Scheschak;4;0.5;;1;2;Jeremia 26|Jeremia 51
+Hanamel;4;0.25;;1;1;Jeremia 32
+Jaasanja;4;0.75;;1;3;Hesekiel 10|Hesekiel 8|Jeremia 36
+Delaja;4;0.25;;1;1;Jeremia 36
+Gemarja;4;0.25;;1;1;Jeremia 36
+Malkija;4;0.5;;1;2;Jeremia 37|Nehemia 7
+Anstand;4;0.75;;1;3;Hesekiel 45|Jeremia 37|Sprüche 11
+Zeugnissen;4;0.75;;1;3;Jeremia 44|Psalmen 119|Psalmen 28
+Belsazar;4;0.5;;1;2;Jeremia 51|Jeremia 52
+Fackeln;4;0.75;;1;3;Hesekiel 1|Hiob 42|Nahum 2
+Kriegswagen;4;0.5;;1;2;Hesekiel 1|Joel 2
+Sturmböcke;4;0.75;;1;3;Hesekiel 22|Hesekiel 26|Hesekiel 4
+Wohlleben;4;1.0;ja;1;4;Hesekiel 10|Hiob 20|Sprüche 18|Sprüche 24
+Schößlinge;4;1.0;ja;1;4;Hesekiel 18|Hiob 15|Hohelied 4|Hosea 13
+Kleinasien;4;0.5;;1;2;Hesekiel 27|Hesekiel 37
+Lästerungen;4;0.5;;1;2;Hesekiel 35|Nehemia 9
+Höchster;4;0.5;;1;2;Hesekiel 37|Psalmen 91
+Katastrophen;4;1.0;ja;1;4;Hiob 2|Joel 2|Psalmen 65|Psalmen 91
+Harmageddon;4;1.0;ja;1;4;Joel 2|Sacharja 11|Sacharja 13|Sacharja 9
+Kräfte;4;0.75;;1;3;Hiob 38|Hiob 8|Sacharja 5
+Feingold;4;0.75;;1;3;Hiob 29|Hiob 31|Psalmen 20
+Reflektionen;4;0.5;;1;2;Psalmen 28|Psalmen 38
+Aloe;4;0.75;;1;3;Hohelied 4|Psalmen 45|Sprüche 7
+Herrensöhne;4;0.5;;1;2;Psalmen 48|Psalmen 62
+Befehlen;4;0.25;;1;1;Psalmen 119
+Tugend;4;1.0;ja;1;4;Hiob 27|Hiob 29|Sprüche 31|Sprüche 7
+Honigseim;4;1.0;ja;1;4;Hohelied 4|Sprüche 16|Sprüche 24|Sprüche 26
+Lemuel;4;0.25;;1;1;Sprüche 31
+Gewaltige;4;0.25;;1;1;Hiob 33
+Lokalkolorit;4;1.0;ja;1;4;Hohelied 1|Hohelied 2|Hohelied 4|Hohelied 6
+Berechjas;4;0.5;;1;2;Nehemia 3|Nehemia 6
+Haschub;4;0.5;;1;2;Nehemia 3|Nehemia 9
+Pedaja;4;0.75;;1;3;Nehemia 12|Nehemia 3|Nehemia 7
+Gihon;3;0.67;;1;2;1. Mose 2|2. Samuel 5
+Gegenstück;3;1.0;ja;1;3;1. Mose 2|Jesaja 11|Psalmen 7
+Widerstreben;3;0.67;;1;2;1. Mose 3|2. Mose 4
+Wörter;3;1.0;ja;1;3;1. Mose 3|2. Mose 7|Jesaja 41
+Erträge;3;1.0;ja;1;3;1. Mose 4|4. Mose 15|Jesaja 5
+Klima;3;0.67;;1;2;1. Mose 4|Psalmen 147
+Gesichtspunkten;3;1.0;ja;1;3;1. Mose 14|1. Mose 6|Jeremia 46
+Mengen;3;1.0;ja;1;3;1. Mose 7|2. Mose 24|Hesekiel 36
+Mittels;3;1.0;ja;1;3;1. Mose 8|2. Mose 7|Jeremia 10
+Barak;3;0.67;;1;2;1. Mose 8|Psalmen 82
+Aschkenas;3;0.67;;1;2;1. Mose 9|Jeremia 51
+Joktan;3;0.33;;1;1;1. Mose 10
+Ortsnamen;3;1.0;ja;1;3;1. Mose 10|1. Mose 27|1. Mose 28
+Rotes;3;1.0;ja;1;3;1. Mose 10|1. Mose 12|4. Mose 33
+Asphalt;3;0.67;;1;2;1. Mose 11|2. Mose 1
+Regionen;3;1.0;ja;1;3;1. Mose 11|5. Mose 2|Josua 9
+Interessen;3;1.0;ja;1;3;1. Mose 12|Sacharja 1|Sacharja 11
+Viehzüchter;3;0.67;;1;2;1. Mose 12|1. Mose 47
+Ägyptische;3;1.0;ja;1;3;1. Mose 12|2. Mose 7|2. Mose 8
+Halbmond;3;1.0;ja;1;3;1. Mose 14|1. Mose 23|2. Mose 17
+Kedor-Laomer;3;0.33;;1;1;1. Mose 14
+Elyon;3;0.67;;1;2;1. Mose 14|1. Mose 15
+Angehörige;3;0.67;;1;2;1. Mose 17|1. Mose 34
+Brotfladen;3;1.0;ja;1;3;1. Mose 17|1. Mose 19|2. Mose 12
+Ermahnungen;3;1.0;ja;1;3;1. Mose 19|5. Mose 26|Sprüche 23
+Pichol;3;0.67;;1;2;1. Mose 21|1. Mose 27
+Gesetzeskodex;3;0.67;;1;2;1. Mose 21|1. Mose 40
+Nieder;3;1.0;ja;1;3;1. Mose 23|2. Mose 17|Psalmen 25
+Ehepartner;3;1.0;ja;1;3;1. Mose 23|5. Mose 7|Psalmen 128
+Lasst;3;1.0;ja;1;3;1. Mose 24|Jeremia 12|Jesaja 23
+Rechobot;3;0.67;;1;2;1. Mose 27|1. Mose 37
+Tamburinen;3;1.0;ja;1;3;1. Mose 31|2. Mose 15|2. Samuel 5
+Gal-Ed;3;0.33;;1;1;1. Mose 31
+Eide;3;1.0;ja;1;3;1. Mose 31|Hesekiel 22|Hosea 10
+Naaman;3;1.0;ja;1;3;1. Mose 31|1. Mose 47|3. Mose 13
+Nisroch;3;0.67;;1;2;1. Mose 31|Jesaja 38
+Erinnerungen;3;1.0;ja;1;3;1. Mose 32|Hesekiel 44|Psalmen 48
+Reguels;3;0.67;;1;2;1. Mose 35|2. Mose 1
+Jehusch;3;0.33;;1;1;1. Mose 35
+Jaelam;3;0.33;;1;1;1. Mose 35
+Lotan;3;0.33;;1;1;1. Mose 35
+Schobal;3;0.67;;1;2;1. Mose 35|1. Mose 37
+Dischan;3;0.67;;1;2;1. Mose 35|1. Mose 37
+Hader;3;1.0;ja;1;3;1. Mose 37|4. Mose 20|Psalmen 82
+Alternative;3;0.67;;1;2;1. Mose 37|2. Mose 12
+Reisende;3;1.0;ja;1;3;1. Mose 37|3. Mose 26|Hiob 20
+Boas;3;1.0;ja;1;3;1. Mose 38|1. Samuel 9|5. Mose 24
+Jegliche;3;1.0;ja;1;3;1. Mose 38|2. Mose 12|Jesaja 2
+Sesostris;3;1.0;ja;1;3;1. Mose 40|1. Mose 45|1. Mose 47
+Positionen;3;1.0;ja;1;3;1. Mose 40|Hiob 29|Sacharja 5
+Urteile;3;1.0;ja;1;3;1. Mose 40|Jesaja 5|Jesaja 58
+Asnath;3;0.67;;1;2;1. Mose 41|1. Mose 47
+Heliopolis;3;1.0;ja;1;3;1. Mose 41|2. Mose 8|Jesaja 19
+Lebt;3;1.0;ja;1;3;1. Mose 42|1. Mose 43|1. Mose 45
+Tragt;3;1.0;ja;1;3;1. Mose 43|Josua 2|Josua 6
+Jamin;3;1.0;ja;1;3;1. Mose 45|4. Mose 26|Nehemia 9
+Jachin;3;1.0;ja;1;3;1. Mose 45|4. Mose 26|Nehemia 11
+Reformen;3;1.0;ja;1;3;1. Mose 47|Jesaja 35|Nehemia 13
+Prophetische;3;0.67;;1;2;1. Mose 48|Hosea 4
+Irgendwann;3;1.0;ja;1;3;1. Mose 48|1. Samuel 6|Jesaja 44
+Invasionen;3;1.0;ja;1;3;1. Mose 49|Jesaja 28|Jesaja 7
+Magie;3;1.0;ja;1;3;1. Mose 50|2. Mose 7|4. Mose 22
+Archäologen;3;0.67;;1;2;2. Mose 1|Nahum 2
+Mitteln;3;1.0;ja;1;3;2. Mose 4|Jesaja 11|Nehemia 4
+Ussiel;3;1.0;ja;1;3;2. Mose 6|4. Mose 2|Nehemia 3
+Sichri;3;0.67;;1;2;2. Mose 6|Nehemia 11
+Elzaphan;3;0.67;;1;2;2. Mose 6|3. Mose 9
+Frösche;3;0.67;;1;2;2. Mose 7|Psalmen 79
+Mücken;3;1.0;ja;1;3;2. Mose 7|Hesekiel 6|Psalmen 105
+Diesmal;3;0.67;;1;2;2. Mose 9|Jeremia 28
+Abrona;3;0.67;;1;2;2. Mose 12|4. Mose 33
+Gesäuertes;3;1.0;ja;1;3;2. Mose 12|2. Mose 13|5. Mose 16
+Pi-Hachirot;3;0.67;;1;2;2. Mose 13|4. Mose 32
+Sumpf;3;1.0;ja;1;3;2. Mose 13|Hiob 40|Hiob 8
+Mordechai;3;0.67;;1;2;2. Mose 17|Nehemia 1
+Gesetzeskodizes;3;0.67;;1;2;2. Mose 19|2. Mose 21
+Indiz;3;1.0;ja;1;3;2. Mose 21|4. Mose 20|Jesaja 2
+Weisungen;3;1.0;ja;1;3;2. Mose 24|4. Mose 33|Joel 1
+Ähnlich;3;1.0;ja;1;3;2. Mose 24|Psalmen 119|Sacharja 11
+Widderfellen;3;1.0;ja;1;3;2. Mose 25|2. Mose 36|2. Mose 39
+Heiliges;3;1.0;ja;1;3;2. Mose 26|3. Mose 13|Hesekiel 40
+Laien;3;1.0;ja;1;3;2. Mose 28|4. Mose 2|Maleachi 2
+Uris;3;1.0;ja;1;3;2. Mose 31|2. Mose 36|2. Mose 38
+Kalmus;3;0.67;;1;2;2. Mose 31|Hohelied 4
+Ahisamachs;3;1.0;ja;1;3;2. Mose 31|2. Mose 36|2. Mose 38
+Bronze;3;1.0;ja;1;3;2. Mose 31|5. Mose 28|Jeremia 6
+Haue;3;0.67;;1;2;2. Mose 34|5. Mose 10
+Granatäpfel;3;1.33;ja;1;4;2. Mose 39|5. Mose 7|Haggai 2|Jeremia 52
+Brocken;3;1.0;ja;1;3;3. Mose 3|3. Mose 6|Psalmen 147
+Unwohlseins;3;0.67;;1;2;3. Mose 13|3. Mose 20
+Befallenen;3;0.33;;1;1;3. Mose 13
+Verunreinigungen;3;1.0;ja;1;3;3. Mose 16|Hesekiel 22|Psalmen 51
+Feuerkohlen;3;0.67;;1;2;3. Mose 16|Hesekiel 1
+Blutsverwandten;3;1.0;ja;1;3;3. Mose 17|3. Mose 20|4. Mose 26
+Kinderopfer;3;1.0;ja;1;3;3. Mose 19|3. Mose 20|Hesekiel 22
+Homosexualität;3;1.0;ja;1;3;3. Mose 19|5. Mose 13|5. Mose 22
+Hohlmaß;3;0.67;;1;2;3. Mose 19|5. Mose 24
+Siwan;3;0.67;;1;2;3. Mose 22|5. Mose 18
+Pfingstfest;3;0.67;;1;2;3. Mose 23|5. Mose 16
+Gewahrsam;3;0.67;;1;2;3. Mose 25|4. Mose 15
+Beisasse;3;0.67;;1;2;3. Mose 25|3. Mose 26
+Achira;3;0.67;;1;2;4. Mose 1|4. Mose 2
+Enans;3;1.0;ja;1;3;4. Mose 1|4. Mose 2|4. Mose 7
+Helons;3;1.0;ja;1;3;4. Mose 1|4. Mose 6|4. Mose 9
+Ammihuds;3;1.0;ja;1;3;2. Samuel 14|4. Mose 1|4. Mose 34
+Nägeln;3;1.0;ja;1;3;4. Mose 3|Jeremia 10|Jesaja 41
+Neumonden;3;1.0;ja;1;3;4. Mose 9|Hesekiel 46|Nehemia 11
+Sammle;3;1.0;ja;1;3;4. Mose 11|Hesekiel 24|Psalmen 106
+Sakkurs;3;0.67;;1;2;4. Mose 13|Nehemia 12
+Einzelpersonen;3;1.0;ja;1;3;4. Mose 15|Jeremia 31|Josua 12
+Salzbund;3;0.33;;1;1;4. Mose 19
+Wassermangel;3;1.0;ja;1;3;4. Mose 19|Jesaja 51|Psalmen 95
+Petor;3;0.67;;1;2;4. Mose 22|5. Mose 23
+Hephers;3;0.67;;1;2;4. Mose 26|Josua 17
+Anhand;3;1.0;ja;1;3;4. Mose 26|Hesekiel 30|Sprüche 4
+Punon;3;0.33;;1;1;4. Mose 33
+Azmon;3;0.67;;1;2;4. Mose 34|Josua 14
+Hazar-Enan;3;0.67;;1;2;4. Mose 34|Hesekiel 47
+Epoche;3;1.0;ja;1;3;4. Mose 35|Hesekiel 37|Jesaja 2
+Kaphtor;3;0.33;;1;1;5. Mose 2
+Kedemoth;3;0.33;;1;1;5. Mose 2
+Argob;3;0.33;;1;1;5. Mose 2
+Riegeln;3;0.67;;1;2;1. Samuel 23|5. Mose 2
+Äußerlichkeiten;3;1.0;ja;1;3;5. Mose 7|Jesaja 3|Psalmen 50
+Texten;3;1.0;ja;1;3;5. Mose 7|Hiob 40|Psalmen 42
+Bestimmte;3;0.67;;1;2;5. Mose 12|Hesekiel 44
+Abtrünnige;3;1.0;ja;1;3;5. Mose 13|Hosea 10|Jeremia 3
+Spiritisten;3;1.0;ja;1;3;5. Mose 18|Jesaja 19|Jesaja 8
+Tatsächlich;3;1.0;ja;1;3;1. Samuel 31|5. Mose 18|Maleachi 2
+Hundegeld;3;0.33;;1;1;5. Mose 23
+Schändliches;3;0.67;;1;2;5. Mose 23|5. Mose 24
+Genauso;3;1.0;ja;1;3;5. Mose 28|Hosea 4|Sacharja 14
+Otterngift;3;0.67;;1;2;5. Mose 32|Psalmen 140
+Bereitet;3;0.67;;1;2;Jesaja 62|Josua 1
+Gebirgsausläufern;3;1.0;ja;1;3;1. Samuel 21|1. Samuel 23|Josua 2
+Niemals;3;1.0;ja;1;3;Hiob 42|Jeremia 8|Josua 2
+Misrephot-Majim;3;0.67;;1;2;Josua 10|Josua 12
+Jokneam;3;1.0;ja;1;3;Josua 12|Josua 19|Josua 22
+Bezieht;3;1.0;ja;1;3;Hosea 13|Jeremia 21|Josua 12
+Otniel;3;0.33;;1;1;Josua 14
+Jearim;3;1.33;ja;1;4;1. Samuel 7|Josua 14|Josua 16|Josua 19
+Jabneel;3;0.67;;1;2;Josua 14|Josua 19
+Achsa;3;0.33;;1;1;Josua 14
+Beth-Hogla;3;0.67;;1;2;Josua 14|Josua 19
+Eter;3;0.67;;1;2;Josua 16|Josua 19
+Asan;3;0.67;;1;2;Josua 16|Josua 19
+Gibbeton;3;0.67;;1;2;Josua 19|Josua 21
+Estemoa;3;0.67;;1;2;1. Samuel 31|Josua 21
+Zuphs;3;0.33;;1;1;1. Samuel 1
+Hauptabschnitt;3;1.0;ja;1;3;1. Samuel 1|Hohelied 2|Hohelied 4
+Öffentliche;3;1.0;ja;1;3;1. Samuel 1|2. Samuel 15|Nehemia 6
+Historiker;3;1.0;ja;1;3;1. Samuel 2|Jona 1|Nahum 2
+Fünfzig;3;1.0;ja;1;3;1. Samuel 9|2. Samuel 24|Jesaja 3
+Salisa;3;0.33;;1;1;1. Samuel 9
+Zelzach;3;0.67;;1;2;1. Samuel 10|2. Samuel 21
+Jephtah;3;0.67;;1;2;1. Samuel 10|1. Samuel 12
+Migron;3;0.67;;1;2;1. Samuel 14|Jesaja 11
+Bozez;3;0.33;;1;1;1. Samuel 14
+Habsucht;3;1.0;ja;1;3;1. Samuel 14|Hosea 13|Sprüche 28
+Abgötterei;3;0.33;;1;1;1. Samuel 15
+Abstieg;3;1.0;ja;1;3;1. Samuel 16|Psalmen 107|Sprüche 1
+Geburtsort;3;1.0;ja;1;3;1. Samuel 20|2. Samuel 15|2. Samuel 4
+Eventuell;3;1.0;ja;1;3;1. Samuel 20|1. Samuel 23|Jeremia 10
+Meinst;3;1.0;ja;1;3;1. Samuel 20|2. Samuel 10|Jeremia 13
+Asel;3;0.33;;1;1;1. Samuel 20
+Horescha;3;0.33;;1;1;1. Samuel 23
+Hunderten;3;1.0;ja;1;3;1. Samuel 29|2. Samuel 18|Jeremia 12
+Andererseits;3;1.0;ja;1;3;1. Samuel 29|Hesekiel 3|Jesaja 51
+Gleiches;3;1.0;ja;1;3;1. Samuel 31|Jesaja 10|Jesaja 24
+Egla;3;0.33;;1;1;2. Samuel 3
+Rimmons;3;0.33;;1;1;2. Samuel 4
+Rekab;3;0.33;;1;1;2. Samuel 4
+Mördern;3;1.0;ja;1;3;2. Samuel 4|Jeremia 5|Sprüche 1
+Monarchie;3;1.0;ja;1;3;2. Samuel 4|Psalmen 61|Psalmen 88
+Baal-Perazim;3;0.33;;1;1;2. Samuel 5
+Achio;3;0.33;;1;1;2. Samuel 5
+Bibelstellen;3;1.0;ja;1;3;2. Samuel 7|Haggai 2|Sprüche 6
+Eser;3;1.0;ja;1;3;2. Samuel 8|Nehemia 12|Nehemia 3
+Helam;3;0.33;;1;1;2. Samuel 10
+Edelsteinen;3;0.67;;1;2;2. Samuel 13|Hesekiel 27
+Aufruhr;3;0.67;;1;2;2. Samuel 15|Sprüche 28
+Geras;3;0.67;;1;2;2. Samuel 16|2. Samuel 19
+Linsen;3;1.0;ja;1;3;2. Samuel 18|2. Samuel 24|Hesekiel 4
+Amasas;3;0.33;;1;1;2. Samuel 20
+Straßenkot;3;0.67;;1;2;2. Samuel 22|Psalmen 18
+Gareb;3;0.67;;1;2;2. Samuel 24|Jeremia 31
+Motiven;3;0.67;;1;2;2. Samuel 24|Hiob 1
+Neumonde;3;0.67;;1;2;Hesekiel 45|Jesaja 1
+Unversehrtes;3;0.67;;1;2;Jesaja 1|Psalmen 38
+Bekehrten;3;0.67;;1;2;Jesaja 2|Jesaja 60
+Rebmessern;3;0.67;;1;2;Jesaja 19|Jesaja 2
+Jotam;3;0.33;;1;1;Jesaja 2
+Moder;3;1.0;ja;1;3;Hiob 13|Jesaja 3|Jesaja 5
+Feuerflam;3;1.0;ja;1;3;Jesaja 28|Jesaja 3|Psalmen 104
+Ungewitter;3;1.0;ja;1;3;Jesaja 3|Nahum 1|Psalmen 82
+Spross;3;1.0;ja;1;3;Jesaja 3|Psalmen 110|Sprüche 14
+Kohle;3;0.33;;1;1;Jesaja 6
+Rezin;3;0.67;;1;2;Jesaja 7|Jesaja 8
+Glaubt;3;0.33;;1;1;Jesaja 7
+Wildhonig;3;0.67;;1;2;Jesaja 7|Jesaja 8
+Rauchsäulen;3;1.0;ja;1;3;Hohelied 2|Jesaja 10|Joel 2
+Schössling;3;0.67;;1;2;Hesekiel 18|Jesaja 11
+Raubtieren;3;1.0;ja;1;3;Hesekiel 32|Hesekiel 39|Jesaja 11
+Maden;3;0.67;;1;2;Hiob 6|Jesaja 14
+Glanzstern;3;0.33;;1;1;Jesaja 14
+Glatzen;3;0.33;;1;1;Jesaja 14
+Eleale;3;0.67;;1;2;Jeremia 48|Jesaja 14
+Esarhaddon;3;0.67;;1;2;Jesaja 21|Jesaja 38
+Lies;3;0.67;;1;2;Jesaja 28|Jesaja 30
+Hanes;3;0.33;;1;1;Jesaja 30
+Ungetüm;3;0.33;;1;1;Jesaja 30
+Stockes;3;0.33;;1;1;Jesaja 31
+Gehenna;3;1.0;ja;1;3;Jeremia 19|Jesaja 31|Jesaja 66
+Taue;3;0.33;;1;1;Jesaja 33
+Notzeiten;3;1.0;ja;1;3;Jesaja 33|Psalmen 128|Psalmen 65
+Offiziere;3;0.67;;1;2;Jesaja 35|Nehemia 2
+Logik;3;1.0;ja;1;3;Hiob 4|Hiob 8|Jesaja 35
+Hilkias;3;1.0;ja;1;3;Jeremia 1|Jeremia 28|Jesaja 37
+Tirhaka;3;0.33;;1;1;Jesaja 37
+Argumente;3;1.0;ja;1;3;Jesaja 37|Jesaja 41|Psalmen 34
+Bestelle;3;0.33;;1;1;Jesaja 38
+Zweifaches;3;0.33;;1;1;Jesaja 40
+Wacholderbäume;3;0.67;;1;2;Jesaja 41|Jesaja 60
+Üppige;3;1.0;ja;1;3;Hesekiel 47|Jesaja 41|Jesaja 48
+Auserwählt;3;0.67;;1;2;Jesaja 42|Jesaja 65
+Manifestationen;3;1.0;ja;1;3;Jesaja 42|Jesaja 64|Psalmen 28
+Zuständen;3;1.0;ja;1;3;Hesekiel 22|Jesaja 42|Psalmen 88
+Schmäh;3;1.0;ja;1;3;Jesaja 43|Nehemia 4|Psalmen 69
+Geschichtsschreiber;3;0.67;;1;2;Hesekiel 48|Jesaja 44
+Herodot;3;1.0;ja;1;3;Hesekiel 27|Jesaja 44|Jona 1
+Zaubereien;3;0.33;;1;1;Jesaja 48
+Beschwörungen;3;0.33;;1;1;Jesaja 48
+Christ;3;1.0;ja;1;3;Hesekiel 44|Jesaja 49|Jesaja 60
+Pfeilen;3;0.67;;1;2;Jesaja 51|Psalmen 65
+Süßwasser;3;0.67;;1;2;Hesekiel 47|Jesaja 51
+Gerettete;3;0.67;;1;2;Jesaja 52|Jesaja 66
+Rubinen;3;0.67;;1;2;Hesekiel 27|Jesaja 54
+Verschnittene;3;0.33;;1;1;Jesaja 56
+Salben;3;1.0;ja;1;3;Hohelied 1|Hohelied 4|Jesaja 56
+Machwerke;3;1.0;ja;1;3;Hesekiel 6|Jesaja 56|Jesaja 58
+Räumt;3;0.67;;1;2;Jesaja 58|Jesaja 62
+Mitglieder;3;1.0;ja;1;3;Hiob 29|Jesaja 66|Sacharja 8
+Amons;3;1.0;ja;1;3;Jeremia 1|Jeremia 24|Nehemia 7
+Joche;3;1.0;ja;1;3;Jeremia 1|Jeremia 13|Jeremia 28
+Tachpanch;3;1.0;ja;1;3;Jeremia 2|Jeremia 44|Jeremia 46
+Südspanien;3;1.0;ja;1;3;Hesekiel 27|Jeremia 10|Jona 1
+Elnathan;3;0.67;;1;2;Jeremia 26|Jeremia 36
+Beamter;3;0.67;;1;2;Hiob 29|Jeremia 26
+Herodes;3;1.0;ja;1;3;Haggai 2|Jeremia 31|Nehemia 2
+Lumpen;3;0.67;;1;2;Jeremia 37|Sprüche 23
+Jesanja;3;0.67;;1;2;Jeremia 39|Jeremia 41
+Salmanassar;3;1.0;ja;1;3;Hosea 10|Jeremia 48|Sacharja 9
+Diebe;3;1.0;ja;1;3;Hiob 29|Jeremia 49|Joel 2
+Pekod;3;0.67;;1;2;Hesekiel 23|Jeremia 50
+Goldschimmer;3;0.67;;1;2;Hesekiel 1|Hesekiel 8
+Menschenhände;3;0.67;;1;2;Hesekiel 1|Hesekiel 10
+Skorpionen;3;0.33;;1;1;Hesekiel 3
+Seufzer;3;1.0;ja;1;3;Hesekiel 3|Hiob 23|Psalmen 91
+Diblat;3;0.33;;1;1;Hesekiel 6
+Kopfhüllen;3;0.33;;1;1;Hesekiel 14
+Platzregen;3;0.67;;1;2;Hesekiel 14|Hesekiel 38
+Pelusium;3;1.0;ja;1;3;Hesekiel 24|Hesekiel 30|Maleachi 3
+Minnit;3;0.33;;1;1;Hesekiel 27
+Ware;3;0.67;;1;2;Hesekiel 27|Nehemia 13
+Tauschhandel;3;0.33;;1;1;Hesekiel 27
+Kanne;3;0.33;;1;1;Hesekiel 27
+Tauschwaren;3;0.33;;1;1;Hesekiel 27
+Absatz;3;0.67;;1;2;Hesekiel 27|Hesekiel 44
+Phönizien;3;0.67;;1;2;Hesekiel 29|Jona 1
+Wassermassen;3;0.67;;1;2;Habakuk 3|Hesekiel 30
+Staates;3;0.67;;1;2;Hesekiel 36|Sacharja 11
+Libyen;3;0.67;;1;2;Hesekiel 37|Nahum 2
+Maßangaben;3;0.67;;1;2;Hesekiel 40|Hesekiel 45
+Äußeres;3;0.33;;1;1;Hesekiel 40
+Levitische;3;0.67;;1;2;Hesekiel 40|Hesekiel 45
+Gedächtnisopfer;3;0.67;;1;2;Hesekiel 40|Hesekiel 44
+Berota;3;0.33;;1;1;Hesekiel 47
+Alarm;3;0.67;;1;2;Hosea 4|Nehemia 4
+Bedeckt;3;0.33;;1;1;Hosea 10
+Schalman;3;0.33;;1;1;Hosea 10
+Beth-Arbel;3;0.33;;1;1;Hosea 10
+Zypresse;3;0.67;;1;2;Hosea 13|Sacharja 11
+Löwenzähne;3;0.33;;1;1;Joel 1
+Sabäern;3;0.67;;1;2;Joel 2|Joel 4
+Geistliche;3;1.0;ja;1;3;Jesaja 2|Sprüche 31|Sprüche 6
+Kupfer;3;0.67;;1;2;Hiob 27|Nahum 2
+Acht;3;1.0;ja;1;3;Habakuk 1|Hiob 8|Psalmen 110
+Achtet;3;0.33;;1;1;Haggai 1
+Helem;3;0.33;;1;1;Sacharja 6
+Läutern;3;0.67;;1;2;Maleachi 2|Sacharja 14
+Verkehrtes;3;1.0;ja;1;3;Hiob 27|Maleachi 2|Sprüche 7
+Einsichten;3;1.0;ja;1;3;Hiob 33|Psalmen 7|Sprüche 10
+Psalmbuch;3;1.0;ja;1;3;Psalmen 50|Psalmen 72|Psalmen 89
+Mark;3;0.67;;1;2;Hiob 20|Psalmen 62
+Donnerstimme;3;1.0;ja;1;3;Hiob 40|Psalmen 104|Psalmen 78
+Erbherr;3;0.33;;1;1;Psalmen 82
+Triumphe;3;0.33;;1;1;Psalmen 98
+Schöpfungstage;3;0.33;;1;1;Psalmen 104
+Herrsche;3;0.33;;1;1;Psalmen 110
+Alphabets;3;1.0;ja;1;3;Psalmen 118|Psalmen 144|Sprüche 31
+Träumende;3;0.33;;1;1;Psalmen 128
+Solch;3;1.0;ja;1;3;Hiob 38|Sprüche 3|Sprüche 31
+Metalle;3;1.0;ja;1;3;Sprüche 16|Sprüche 24|Sprüche 6
+Gewürzen;3;1.0;ja;1;3;Hohelied 4|Sprüche 23|Sprüche 7
+Vortreffliches;3;0.67;;1;2;Sprüche 21|Sprüche 7
+Handschlag;3;1.0;ja;1;3;Hiob 18|Sprüche 11|Sprüche 18
+Gemüse;3;0.33;;1;1;Sprüche 14
+Bestechungsgeschenke;3;0.67;;1;2;Sprüche 16|Sprüche 18
+Süße;3;0.33;;1;1;Sprüche 16
+Schmeicheleien;3;1.0;ja;1;3;Sprüche 21|Sprüche 26|Sprüche 28
+Echte;3;0.67;;1;2;Hiob 29|Sprüche 26
+Unrechtes;3;0.67;;1;2;Hiob 13|Hiob 33
+Kezia;3;0.33;;1;1;Hiob 42
+Schläfen;3;0.67;;1;2;Hohelied 4|Hohelied 6
+Hachaljas;3;0.67;;1;2;Nehemia 1|Nehemia 9
+Susan;3;0.33;;1;1;Nehemia 1
+Artasasta;3;0.67;;1;2;Nehemia 2|Nehemia 6
+Henadads;3;0.67;;1;2;Nehemia 3|Nehemia 9
+Noadja;3;0.67;;1;2;Nehemia 4|Nehemia 6
+Gerüchte;3;0.33;;1;1;Nehemia 6
+Akkub;3;1.0;ja;1;3;Nehemia 11|Nehemia 12|Nehemia 9
+Amok;3;0.33;;1;1;Nehemia 11
+Ussi;3;0.67;;1;2;Nehemia 11|Nehemia 12
+Jochanan;3;0.67;;1;2;Nehemia 11|Nehemia 12
+Minjamin;3;0.67;;1;2;Nehemia 11|Nehemia 12
+Dankchöre;3;0.33;;1;1;Nehemia 12
+Senken;2;1.0;ja;1;2;1. Mose 1|2. Mose 17
+Lichtquellen;2;1.0;ja;1;2;1. Mose 1|Jesaja 24
+Produkte;2;1.0;ja;1;2;1. Mose 1|5. Mose 32
+Vernunft;2;1.0;ja;1;2;1. Mose 1|Sprüche 13
+Emotionen;2;1.0;ja;1;2;1. Mose 1|1. Mose 32
+Wasserdampf;2;1.0;ja;1;2;1. Mose 2|1. Mose 4
+Bestandteilen;2;1.0;ja;1;2;1. Mose 2|2. Samuel 4
+Pison;2;0.5;;1;1;1. Mose 2
+Rippen;2;0.5;;1;1;1. Mose 2
+Geografie;2;1.0;ja;1;2;1. Mose 2|2. Mose 13
+Dauerhafte;2;0.5;;1;1;1. Mose 2
+Feigenblätter;2;0.5;;1;1;1. Mose 3
+Verführer;2;1.0;ja;1;2;1. Mose 3|Jesaja 10
+Berufe;2;1.0;ja;1;2;1. Mose 4|1. Mose 40
+Irad;2;0.5;;1;1;1. Mose 4
+Mehujael;2;0.5;;1;1;1. Mose 4
+Jabal;2;0.5;;1;1;1. Mose 4
+Jubal;2;0.5;;1;1;1. Mose 4
+Seths;2;1.0;ja;1;2;1. Mose 4|1. Mose 6
+Lamechs;2;0.5;;1;1;1. Mose 4
+Tubal-Kain;2;0.5;;1;1;1. Mose 4
+Maßstäben;2;1.0;ja;1;2;1. Mose 6|Josua 8
+Tannenholz;2;0.5;;1;1;1. Mose 6
+Bestehende;2;1.0;ja;1;2;1. Mose 6|1. Mose 7
+Landtieren;2;1.0;ja;1;2;1. Mose 6|3. Mose 11
+Landtiere;2;1.0;ja;1;2;1. Mose 6|Hiob 40
+Magma;2;1.0;ja;1;2;1. Mose 20|1. Mose 7
+Einhalt;2;1.0;ja;1;2;1. Mose 8|Jeremia 37
+Beleg;2;1.0;ja;1;2;1. Mose 9|Jesaja 54
+Bünden;2;0.5;;1;1;1. Mose 9
+Gomers;2;1.0;ja;1;2;1. Mose 9|Hosea 2
+Ragma;2;0.5;;1;1;1. Mose 9
+Kelach;2;0.5;;1;1;1. Mose 9
+Japheth;2;1.0;ja;1;2;1. Mose 9|Hesekiel 37
+Hebers;2;1.0;ja;1;2;1. Mose 10|1. Mose 11
+Skythen;2;1.0;ja;1;2;1. Mose 10|Hesekiel 37
+Lydien;2;0.5;;1;1;1. Mose 10
+Kaspisches;2;1.0;ja;1;2;1. Mose 10|1. Mose 12
+Eintreten;2;1.0;ja;1;2;1. Mose 12|3. Mose 16
+Stephanus;2;1.0;ja;1;2;1. Mose 12|Jesaja 66
+Popularität;2;1.0;ja;1;2;1. Mose 12|2. Samuel 14
+Staatsdiener;2;1.0;ja;1;2;1. Mose 12|Nehemia 1
+Ellasar;2;0.5;;1;1;1. Mose 14
+Aner;2;1.0;ja;1;2;1. Mose 14|1. Mose 15
+El-Paran;2;0.5;;1;1;1. Mose 14
+Laomer;2;0.5;;1;1;1. Mose 14
+Tideal;2;0.5;;1;1;1. Mose 14
+Amraphel;2;0.5;;1;1;1. Mose 14
+Arioch;2;0.5;;1;1;1. Mose 14
+Massada;2;1.0;ja;1;2;1. Mose 14|Hesekiel 47
+Ebers;2;1.0;ja;1;2;1. Mose 14|1. Samuel 4
+Schaweh;2;0.5;;1;1;1. Mose 14
+Jammern;2;0.5;;1;1;1. Mose 15
+Wandle;2;0.5;;1;1;1. Mose 17
+Unglauben;2;1.0;ja;1;2;1. Mose 17|Psalmen 78
+Möge;2;1.0;ja;1;2;1. Mose 18|Jeremia 34
+Versündigt;2;1.0;ja;1;2;1. Mose 19|1. Mose 42
+Normalerweise;2;1.0;ja;1;2;1. Mose 20|Hesekiel 46
+Bräuche;2;1.0;ja;1;2;1. Mose 20|3. Mose 17
+Bogenschuß;2;1.0;ja;1;2;1. Mose 21|Jesaja 21
+Hammurabi;2;1.0;ja;1;2;1. Mose 21|2. Mose 21
+Händlern;2;1.0;ja;1;2;1. Mose 21|1. Mose 37
+Anbetungsstätten;2;1.0;ja;1;2;1. Mose 21|5. Mose 12
+Bürgerrecht;2;1.0;ja;1;2;1. Mose 23|4. Mose 35
+Verantwortungen;2;1.0;ja;1;2;1. Mose 23|2. Mose 4
+Geschäften;2;1.0;ja;1;2;1. Mose 23|Hesekiel 10
+Aram-Naharajim;2;1.0;ja;1;2;1. Mose 23|5. Mose 23
+Cousine;2;1.0;ja;1;2;1. Mose 23|1. Mose 24
+Zeltlagern;2;0.5;;1;1;1. Mose 25
+Nordarabien;2;1.0;ja;1;2;1. Mose 25|Jesaja 21
+Diskussionen;2;1.0;ja;1;2;1. Mose 25|Hiob 29
+Elons;2;1.0;ja;1;2;1. Mose 27|1. Mose 35
+Herzenskummer;2;0.5;;1;1;1. Mose 27
+Phichol;2;0.5;;1;1;1. Mose 27
+Eheschließungen;2;1.0;ja;1;2;1. Mose 27|Nehemia 9
+Bestimme;2;0.5;;1;1;1. Mose 30
+Entlasse;2;0.5;;1;1;1. Mose 30
+Warten;2;1.0;ja;1;2;1. Mose 30|Jesaja 8
+Pappeln;2;1.0;ja;1;2;1. Mose 30|Hosea 4
+Gestreifte;2;0.5;;1;1;1. Mose 30
+Schwarzen;2;1.0;ja;1;2;1. Mose 30|Hesekiel 37
+Hausgötzen;2;0.5;;1;1;1. Mose 31
+Religiosität;2;1.0;ja;1;2;1. Mose 31|Jesaja 66
+Sammelt;2;1.0;ja;1;2;1. Mose 31|Hesekiel 39
+Marduk;2;1.0;ja;1;2;1. Mose 31|Nehemia 1
+Pantheon;2;1.0;ja;1;2;1. Mose 31|1. Samuel 7
+Bruderliebe;2;1.0;ja;1;2;1. Mose 34|1. Mose 50
+Eskorte;2;1.0;ja;1;2;1. Mose 34|1. Mose 50
+Männliche;2;1.0;ja;1;2;1. Mose 34|2. Mose 12
+Übertriebene;2;1.0;ja;1;2;1. Mose 34|Sprüche 26
+Symbolen;2;1.0;ja;1;2;1. Mose 35|Hesekiel 21
+Omar;2;0.5;;1;1;1. Mose 35
+Gaetam;2;0.5;;1;1;1. Mose 35
+Nachath;2;0.5;;1;1;1. Mose 35
+Ezer;2;1.0;ja;1;2;1. Mose 35|1. Mose 37
+Huscham;2;0.5;;1;1;1. Mose 37
+Baal-Hanan;2;0.5;;1;1;1. Mose 37
+Mehetabeel;2;0.5;;1;1;1. Mose 37
+Hasses;2;1.0;ja;1;2;1. Mose 37|Hesekiel 24
+Ladanum;2;1.0;ja;1;2;1. Mose 37|1. Mose 43
+Sklavenhandel;2;1.0;ja;1;2;1. Mose 37|Joel 2
+Enaim;2;0.5;;1;1;1. Mose 38
+Führt;2;1.0;ja;1;2;1. Mose 38|2. Mose 6
+Beschuldigungen;2;1.0;ja;1;2;1. Mose 40|Psalmen 7
+Hofbeamten;2;1.0;ja;1;2;1. Mose 40|1. Samuel 9
+Weißbrot;2;1.0;ja;1;2;1. Mose 40|Hesekiel 16
+Klasse;2;1.0;ja;1;2;1. Mose 40|Jesaja 19
+Traumdeuter;2;1.0;ja;1;2;1. Mose 40|1. Mose 41
+Häftling;2;0.5;;1;1;1. Mose 41
+Erstaunlicherweise;2;1.0;ja;1;2;1. Mose 41|Jeremia 30
+Potipheras;2;0.5;;1;1;1. Mose 41
+Kandidat;2;1.0;ja;1;2;1. Mose 41|Psalmen 110
+Erzeugnissen;2;1.0;ja;1;2;1. Mose 42|Josua 6
+Ausländern;2;1.0;ja;1;2;1. Mose 43|5. Mose 23
+Ranges;2;1.0;ja;1;2;1. Mose 43|Jesaja 46
+Riten;2;1.0;ja;1;2;1. Mose 44|Sacharja 13
+Streitet;2;0.5;;1;1;1. Mose 45
+Jemuel;2;1.0;ja;1;2;1. Mose 45|2. Mose 6
+Ohad;2;1.0;ja;1;2;1. Mose 45|2. Mose 6
+Hamul;2;1.0;ja;1;2;1. Mose 45|4. Mose 26
+Tola;2;1.0;ja;1;2;1. Mose 45|4. Mose 26
+Puwa;2;1.0;ja;1;2;1. Mose 45|4. Mose 26
+Schimron;2;1.0;ja;1;2;1. Mose 45|4. Mose 26
+Gher;2;1.0;ja;1;2;1. Mose 45|1. Mose 47
+Areli;2;1.0;ja;1;2;1. Mose 47|4. Mose 26
+Jimna;2;1.0;ja;1;2;1. Mose 47|4. Mose 26
+Beria;2;1.0;ja;1;2;1. Mose 47|4. Mose 26
+Aschbel;2;1.0;ja;1;2;1. Mose 47|4. Mose 26
+Guni;2;1.0;ja;1;2;1. Mose 47|4. Mose 26
+Landbesitzer;2;1.0;ja;1;2;1. Mose 47|Hiob 23
+Einkommensteuer;2;0.5;;1;1;1. Mose 47
+Traubenblut;2;1.0;ja;1;2;1. Mose 48|5. Mose 32
+Vavgl;2;1.0;ja;1;2;1. Mose 49|1. Samuel 2
+Atad;2;0.5;;1;1;1. Mose 50
+Sklaventreiber;2;0.5;;1;1;2. Mose 1
+Nordägypten;2;1.0;ja;1;2;2. Mose 1|Jesaja 19
+Lesem;2;1.0;ja;1;2;2. Mose 1|Josua 19
+Zeichnungen;2;1.0;ja;1;2;2. Mose 1|2. Mose 8
+Ressourcen;2;1.0;ja;1;2;2. Mose 3|Psalmen 40
+Befreier;2;1.0;ja;1;2;2. Mose 3|2. Mose 4
+Bedeutsamerweise;2;1.0;ja;1;2;2. Mose 3|2. Samuel 7
+Jehova;2;1.0;ja;1;2;2. Mose 3|Maleachi 1
+Zeichens;2;0.5;;1;1;2. Mose 4
+Nachbarin;2;1.0;ja;1;2;2. Mose 10|2. Mose 4
+Weiß;2;1.5;ja;1;3;2. Mose 4|2. Samuel 19|Hesekiel 16
+Dornbusch;2;1.0;ja;1;2;2. Mose 4|3. Mose 9
+Gersom;2;1.0;ja;1;2;2. Mose 17|2. Mose 4
+Hanoch;2;1.0;ja;1;2;2. Mose 6|4. Mose 25
+Zohar;2;0.5;;1;1;2. Mose 6
+Libni;2;1.0;ja;1;2;2. Mose 6|4. Mose 2
+Machli;2;1.0;ja;1;2;2. Mose 6|4. Mose 3
+Jochebed;2;1.0;ja;1;2;2. Mose 6|4. Mose 26
+Zauberkundigen;2;1.0;ja;1;2;2. Mose 7|Jesaja 3
+Kunststück;2;1.0;ja;1;2;1. Samuel 18|2. Mose 7
+Ritualen;2;1.0;ja;1;2;2. Mose 7|3. Mose 11
+Begegnungen;2;1.0;ja;1;2;2. Mose 7|5. Mose 1
+Hathor;2;1.0;ja;1;2;2. Mose 7|2. Mose 8
+Viehseuche;2;0.5;;1;1;2. Mose 8
+Heuschreckenplagen;2;0.5;;1;1;2. Mose 10
+Geiseln;2;1.0;ja;1;2;2. Mose 10|Nehemia 6
+Null;2;1.0;ja;1;2;2. Mose 10|2. Mose 40
+Gleich;2;1.0;ja;1;2;2. Mose 12|Hesekiel 22
+Nicht-Israeliten;2;1.0;ja;1;2;1. Samuel 31|2. Mose 12
+Fünfzehnter;2;0.5;;1;1;2. Mose 12
+Vierzehnter;2;0.5;;1;1;2. Mose 12
+Suez;2;0.5;;1;1;2. Mose 13
+Armes;2;1.0;ja;1;2;2. Mose 15|Jesaja 44
+Unglaublicherweise;2;1.0;ja;1;2;2. Mose 16|Jesaja 52
+Flechten;2;1.0;ja;1;2;2. Mose 16|3. Mose 20
+Erwähle;2;0.5;;1;1;2. Mose 17
+Haman;2;1.0;ja;1;2;1. Samuel 14|2. Mose 17
+Adlersflügeln;2;0.5;;1;1;2. Mose 19
+Qualitäten;2;1.0;ja;1;2;1. Samuel 25|2. Mose 19
+Musters;2;1.0;ja;1;2;2. Mose 19|2. Mose 36
+Begleiterscheinungen;2;1.0;ja;1;2;2. Mose 19|Habakuk 2
+Dekalog;2;1.0;ja;1;2;2. Mose 19|5. Mose 4
+Schlagen;2;1.0;ja;1;2;2. Mose 21|5. Mose 13
+Leihe;2;1.0;ja;1;2;2. Mose 23|4. Mose 23
+Anlässe;2;1.0;ja;1;2;2. Mose 23|Jesaja 1
+Wespe;2;1.0;ja;1;2;2. Mose 24|5. Mose 7
+Deren;2;1.0;ja;1;2;2. Mose 24|Psalmen 133
+Saphirplatten;2;0.5;;1;1;2. Mose 24
+Seekuhfelle;2;1.0;ja;1;2;2. Mose 24|2. Mose 34
+Mandelblüten;2;0.5;;1;1;2. Mose 25
+Flechtwerk;2;1.0;ja;1;2;2. Mose 28|2. Mose 38
+Schnüre;2;0.5;;1;1;2. Mose 28
+Beinkleider;2;1.0;ja;1;2;2. Mose 28|3. Mose 6
+Weberarbeit;2;1.0;ja;1;2;2. Mose 28|2. Mose 39
+Panzerhemds;2;0.5;;1;1;2. Mose 28
+Routine;2;1.0;ja;1;2;2. Mose 28|2. Samuel 4
+Unmittelbar;2;1.0;ja;1;2;2. Mose 29|2. Samuel 3
+Manneskraft;2;1.0;ja;1;2;2. Mose 31|Hosea 13
+Philisterstadt;2;1.0;ja;1;2;2. Mose 31|Nehemia 4
+Gesetzestafeln;2;1.0;ja;1;2;2. Mose 34|5. Mose 10
+Sinnes;2;1.0;ja;1;2;2. Mose 36|Jona 3
+Fäden;2;0.5;;1;1;2. Mose 38
+Ansonsten;2;1.0;ja;1;2;1. Samuel 1|2. Mose 40
+Levitikus;2;1.0;ja;1;2;2. Mose 40|5. Mose 1
+Kropf;2;0.5;;1;1;3. Mose 1
+Faktor;2;1.0;ja;1;2;3. Mose 1|Hesekiel 33
+Schlund;2;1.0;ja;1;2;3. Mose 1|Jesaja 5
+Tatsünden;2;0.5;;1;1;3. Mose 3
+Unterlassungssünden;2;1.0;ja;1;2;3. Mose 3|3. Mose 4
+Beweisen;2;1.0;ja;1;2;3. Mose 4|Hiob 23
+Berühren;2;1.0;ja;1;2;3. Mose 4|3. Mose 9
+Unreinem;2;1.0;ja;1;2;3. Mose 4|Hesekiel 45
+Geraubtes;2;1.0;ja;1;2;3. Mose 6|Maleachi 1
+Einweihungsopfer;2;0.5;;1;1;3. Mose 7
+Priesterdienstes;2;1.0;ja;1;2;3. Mose 9|4. Mose 17
+Ballen;2;1.0;ja;1;2;3. Mose 11|Hesekiel 4
+Gegenstandslektionen;2;1.0;ja;1;2;3. Mose 13|3. Mose 15
+Unrein;2;1.0;ja;1;2;3. Mose 14|Hesekiel 24
+Reinigenden;2;1.0;ja;1;2;3. Mose 14|3. Mose 15
+Weniger;2;1.0;ja;1;2;3. Mose 14|Hesekiel 27
+Aussatz-Pl;2;0.5;;1;1;3. Mose 15
+Mehltau;2;1.0;ja;1;2;3. Mose 15|Hesekiel 6
+Mehrere;2;1.0;ja;1;2;2. Samuel 2|3. Mose 15
+Ausscheidungen;2;0.5;;1;1;3. Mose 15
+Siebenmal;2;0.5;;1;1;3. Mose 16
+Richtlinien;2;1.0;ja;1;2;3. Mose 17|Jeremia 36
+Jägern;2;1.0;ja;1;2;2. Samuel 21|3. Mose 17
+Bartes;2;1.0;ja;1;2;3. Mose 19|3. Mose 20
+Wahrsagergeist;2;0.5;;1;1;3. Mose 20
+Ausnahmen;2;1.0;ja;1;2;3. Mose 20|Hesekiel 14
+Festversammlungen;2;0.5;;1;1;3. Mose 22
+Mai-Juni;2;0.5;;1;1;3. Mose 22
+Posaunenklang;2;0.5;;1;1;3. Mose 23
+Erntefest;2;1.0;ja;1;2;3. Mose 23|Psalmen 119
+Bildwerk;2;0.5;;1;1;3. Mose 26
+Fieberhitze;2;1.0;ja;1;2;3. Mose 26|5. Mose 28
+Gebannte;2;1.0;ja;1;2;3. Mose 27|4. Mose 19
+Abidan;2;1.0;ja;1;2;4. Mose 1|4. Mose 2
+Pagiel;2;1.0;ja;1;2;4. Mose 1|4. Mose 2
+Ochrans;2;1.0;ja;1;2;4. Mose 1|4. Mose 2
+Gesamt;2;1.0;ja;1;2;4. Mose 1|4. Mose 25
+Abstriche;2;0.5;;1;1;4. Mose 1
+Ithamar;2;1.0;ja;1;2;4. Mose 2|4. Mose 3
+Familienpriester;2;1.0;ja;1;2;4. Mose 2|4. Mose 7
+Systems;2;1.0;ja;1;2;4. Mose 2|Sacharja 5
+Körperlicher;2;1.0;ja;1;2;4. Mose 5|Hiob 6
+Blutsverwandter;2;0.5;;1;1;4. Mose 5
+Friedensopf;2;1.0;ja;1;2;4. Mose 6|Jeremia 34
+Eldad;2;0.5;;1;1;4. Mose 11
+Schammua;2;1.0;ja;1;2;2. Samuel 5|4. Mose 13
+Achiman;2;1.0;ja;1;2;4. Mose 13|Josua 14
+Buchstäblich;2;1.0;ja;1;2;4. Mose 14|Sprüche 16
+Zipfels;2;1.0;ja;1;2;4. Mose 15|Hesekiel 24
+Sündopfern;2;1.0;ja;1;2;4. Mose 17|Jesaja 35
+Seraph-Schlangen;2;0.5;;1;1;4. Mose 20
+Mari;2;0.5;;1;1;4. Mose 22
+Baue;2;0.5;;1;1;4. Mose 23
+Teiles;2;0.5;;1;1;4. Mose 23
+Herrschern;2;1.0;ja;1;2;4. Mose 23|Psalmen 1
+Simri;2;1.0;ja;1;2;4. Mose 25|Jeremia 26
+Kosbi;2;0.5;;1;1;4. Mose 25
+Nemuel;2;1.0;ja;1;2;4. Mose 25|4. Mose 26
+Schutelach;2;0.5;;1;1;4. Mose 26
+Naeman;2;0.5;;1;1;4. Mose 26
+Helek;2;0.5;;1;1;4. Mose 26
+Gerüstete;2;1.0;ja;1;2;4. Mose 31|Josua 4
+Womöglich;2;1.0;ja;1;2;2. Samuel 4|4. Mose 31
+Reba;2;1.0;ja;1;2;4. Mose 31|Josua 14
+Nimra;2;0.5;;1;1;4. Mose 32
+Beon;2;0.5;;1;1;4. Mose 32
+Folgendes;2;1.0;ja;1;2;4. Mose 32|Sprüche 31
+Alusch;2;0.5;;1;1;4. Mose 32
+Beth-Nimra;2;1.0;ja;1;2;4. Mose 32|Josua 14
+Hazeroth;2;1.0;ja;1;2;4. Mose 32|5. Mose 1
+Baal-Meon;2;1.0;ja;1;2;4. Mose 32|Hesekiel 26
+Rithma;2;0.5;;1;1;4. Mose 32
+Rissa;2;0.5;;1;1;4. Mose 32
+Kahelatha;2;0.5;;1;1;4. Mose 32
+Schapher;2;0.5;;1;1;4. Mose 32
+Harada;2;0.5;;1;1;4. Mose 32
+Nobach;2;0.5;;1;1;4. Mose 32
+Makheloth;2;0.5;;1;1;4. Mose 32
+Tachath;2;0.5;;1;1;4. Mose 32
+Tharach;2;0.5;;1;1;4. Mose 32
+Mithka;2;0.5;;1;1;4. Mose 32
+Moserot;2;0.5;;1;1;4. Mose 32
+Bne-Jaakan;2;0.5;;1;1;4. Mose 33
+Hor-Hagidgad;2;0.5;;1;1;4. Mose 33
+Abel-Sittim;2;0.5;;1;1;4. Mose 33
+Jothbatha;2;0.5;;1;1;4. Mose 33
+Zalmona;2;0.5;;1;1;4. Mose 33
+Dibon-Gad;2;0.5;;1;1;4. Mose 33
+Stacheln;2;1.0;ja;1;2;4. Mose 33|Hesekiel 3
+Kadesch-B;2;1.0;ja;1;2;4. Mose 34|Josua 14
+Schepham;2;0.5;;1;1;4. Mose 34
+Zufluchtsorte;2;1.0;ja;1;2;4. Mose 35|5. Mose 1
+Suph;2;0.5;;1;1;5. Mose 1
+KadeschBarnea;2;0.5;;1;1;5. Mose 1
+Numeri;2;1.0;ja;1;2;5. Mose 1|5. Mose 31
+Besitztums;2;0.5;;1;1;5. Mose 2
+Friedensb;2;1.0;ja;1;2;5. Mose 2|Jesaja 54
+Samsummiter;2;0.5;;1;1;5. Mose 2
+Kreta;2;1.0;ja;1;2;5. Mose 2|Hesekiel 26
+Maachat;2;1.0;ja;1;2;5. Mose 2|Josua 14
+Östlich;2;1.0;ja;1;2;5. Mose 2|5. Mose 4
+Sion;2;0.5;;1;1;5. Mose 4
+Viertens;2;1.0;ja;1;2;2. Samuel 13|5. Mose 6
+Erziehungswege;2;1.0;ja;1;2;5. Mose 7|Hosea 4
+Gudgodah;2;0.5;;1;1;5. Mose 10
+Steinbock;2;1.0;ja;1;2;1. Samuel 23|5. Mose 13
+Trauerbräuche;2;1.0;ja;1;2;5. Mose 13|Hesekiel 26
+Leihgaben;2;1.0;ja;1;2;5. Mose 15|Hesekiel 18
+Abwege;2;1.0;ja;1;2;5. Mose 18|Jeremia 50
+Entspricht;2;1.0;ja;1;2;5. Mose 18|Jeremia 30
+November;2;0.5;;1;1;5. Mose 18
+Dezember;2;0.5;;1;1;5. Mose 18
+Februar;2;0.5;;1;1;5. Mose 18
+Datteln;2;1.0;ja;1;2;5. Mose 18|Josua 6
+Einrichtungen;2;1.0;ja;1;2;5. Mose 20|Hesekiel 42
+Mühlstein;2;1.0;ja;1;2;5. Mose 24|Hiob 42
+Trauerzeit;2;1.0;ja;1;2;2. Samuel 12|5. Mose 26
+Ausblick;2;1.0;ja;1;2;5. Mose 26|Jesaja 58
+Schwiegermutter;2;0.5;;1;1;5. Mose 28
+Künstlerhand;2;1.0;ja;1;2;5. Mose 28|Hohelied 8
+Backtrog;2;0.5;;1;1;5. Mose 28
+Getreidebrand;2;1.0;ja;1;2;5. Mose 28|Haggai 2
+Vergilben;2;1.0;ja;1;2;5. Mose 28|Haggai 2
+Wahnsinn;2;1.0;ja;1;2;5. Mose 28|Sacharja 13
+Deutlich;2;1.0;ja;1;2;1. Samuel 4|5. Mose 28
+Wasserschöpfer;2;1.0;ja;1;2;5. Mose 29|Josua 9
+Kaiser;2;1.0;ja;1;2;5. Mose 29|Hesekiel 20
+Auslegern;2;1.0;ja;1;2;5. Mose 29|5. Mose 33
+Maßstabs;2;1.0;ja;1;2;5. Mose 29|Sacharja 13
+Bezüglich;2;1.0;ja;1;2;5. Mose 29|Hesekiel 46
+Strategien;2;1.0;ja;1;2;5. Mose 32|Jesaja 27
+Zerstörungskraft;2;1.0;ja;1;2;5. Mose 32|Psalmen 104
+Militärische;2;1.0;ja;1;2;1. Samuel 31|5. Mose 32
+Zehntausenden;2;0.5;;1;1;5. Mose 33
+Ungeachtet;2;1.0;ja;1;2;5. Mose 33|Psalmen 62
+Sicherlich;2;1.0;ja;1;2;5. Mose 33|Jeremia 10
+Erfolge;2;1.0;ja;1;2;2. Samuel 19|5. Mose 33
+Siedlungsgebiet;2;1.0;ja;1;2;5. Mose 33|Josua 20
+Sehvermögen;2;1.0;ja;1;2;5. Mose 33|Sprüche 7
+Jagt;2;1.0;ja;1;2;Josua 2|Psalmen 69
+Herrschaftsbereich;2;1.0;ja;1;2;Jeremia 49|Josua 2
+Halme;2;1.0;ja;1;2;Jesaja 16|Josua 2
+Erhalter;2;1.0;ja;1;2;Josua 2|Psalmen 36
+Überlebende;2;1.0;ja;1;2;Jesaja 1|Josua 4
+Anbruch;2;1.5;ja;1;3;Hosea 10|Jesaja 11|Josua 6
+Aushungern;2;1.0;ja;1;2;Jeremia 2|Josua 6
+Batseba;2;0.5;;1;1;Josua 8
+Speisevorrat;2;0.5;;1;1;Josua 9
+Adoni-Zedek;2;0.5;;1;1;Josua 9
+Japhia;2;1.0;ja;1;2;Josua 19|Josua 9
+Schöpfermacht;2;1.0;ja;1;2;Jesaja 41|Josua 9
+Hajaschar;2;0.5;;1;1;Josua 10
+Beth-Jesimot;2;1.0;ja;1;2;Hesekiel 26|Josua 12
+Nebenarm;2;1.0;ja;1;2;Hesekiel 1|Josua 12
+Nephtoach;2;1.0;ja;1;2;Josua 14|Josua 19
+Kirjat-Sepher;2;0.5;;1;1;Josua 14
+Dimona;2;0.5;;1;1;Josua 16
+Bealot;2;0.5;;1;1;Josua 16
+Ezem;2;1.0;ja;1;2;Josua 16|Josua 19
+Estaol;2;1.0;ja;1;2;Josua 16|Josua 19
+En-Gannim;2;1.0;ja;1;2;Josua 16|Josua 19
+Atarot-Addar;2;1.0;ja;1;2;Josua 16|Josua 19
+Naama;2;1.0;ja;1;2;Hiob 2|Josua 16
+Janoach;2;0.5;;1;1;Josua 16
+Atarot;2;0.5;;1;1;Josua 16
+Achsib;2;1.0;ja;1;2;Josua 16|Josua 19
+Estemo;2;0.5;;1;1;Josua 16
+Gedor;2;0.5;;1;1;Josua 16
+Apheka;2;0.5;;1;1;Josua 16
+Juta;2;0.5;;1;1;Josua 16
+Kirjat-Baal;2;1.0;ja;1;2;Josua 16|Josua 19
+Jebus;2;0.5;;1;1;Josua 16
+Jibleam;2;0.5;;1;1;Josua 17
+Asriels;2;1.0;ja;1;2;Jeremia 36|Josua 17
+Beth-Schean;2;1.0;ja;1;2;1. Samuel 29|Josua 17
+Kephira;2;0.5;;1;1;Josua 19
+Jebusi;2;0.5;;1;1;Josua 19
+Bala;2;0.5;;1;1;Josua 19
+Simeund;2;0.5;;1;1;Josua 19
+Sarid;2;0.5;;1;1;Josua 19
+Kabul;2;0.5;;1;1;Josua 19
+Baalat;2;0.5;;1;1;Josua 19
+Leschem;2;0.5;;1;1;Josua 19
+Jutta;2;0.5;;1;1;Josua 21
+Daberat;2;0.5;;1;1;Josua 21
+Abdon;2;0.5;;1;1;Josua 21
+Ramataim-Zophim;2;1.0;ja;1;2;1. Samuel 1|1. Samuel 20
+Jerohams;2;1.0;ja;1;2;1. Samuel 1|Nehemia 11
+Simson;2;0.5;;1;1;1. Samuel 1
+Vermessenes;2;0.5;;1;1;1. Samuel 2
+Geschlechtsverkehr;2;1.0;ja;1;2;1. Samuel 2|2. Samuel 11
+Beth;2;2.0;ja;1;4;1. Samuel 31|1. Samuel 4|Josua 19|Psalmen 119
+Ratten;2;0.5;;1;1;1. Samuel 6
+Beth-Kar;2;0.5;;1;1;1. Samuel 7
+Souverän;2;1.0;ja;1;2;1. Samuel 7|Psalmen 28
+Fehlern;2;1.0;ja;1;2;1. Samuel 31|1. Samuel 7
+Reichtümern;2;1.0;ja;1;2;1. Samuel 7|Sprüche 13
+Abiels;2;1.0;ja;1;2;1. Samuel 14|1. Samuel 9
+Betont;2;1.0;ja;1;2;1. Samuel 9|Hiob 36
+Vorbehalte;2;1.0;ja;1;2;1. Samuel 12|2. Samuel 14
+GeRöm;2;1.0;ja;1;2;1. Samuel 12|Jesaja 44
+Metall;2;1.0;ja;1;2;1. Samuel 14|Hesekiel 22
+Zählt;2;1.0;ja;1;2;1. Samuel 14|Jesaja 28
+Malkischua;2;1.0;ja;1;2;1. Samuel 14|1. Samuel 31
+Hewila;2;0.5;;1;1;1. Samuel 14
+Philistäa;2;1.0;ja;1;2;1. Samuel 14|Jesaja 14
+Wuchses;2;1.0;ja;1;2;1. Samuel 15|Sacharja 1
+Wahnvorstellungen;2;1.0;ja;1;2;1. Samuel 16|Hiob 6
+Erwähnungen;2;1.0;ja;1;2;1. Samuel 18|Jeremia 30
+Heiratsgabe;2;0.5;;1;1;1. Samuel 18
+Sechu;2;0.5;;1;1;1. Samuel 20
+Hausgötter;2;1.0;ja;1;2;1. Samuel 20|Sacharja 9
+Unterkünfte;2;1.0;ja;1;2;1. Samuel 20|Jeremia 8
+Neumondfeiern;2;1.0;ja;1;2;1. Samuel 20|Hosea 2
+Urlaub;2;1.0;ja;1;2;1. Samuel 20|Nehemia 12
+Gewändern;2;1.0;ja;1;2;1. Samuel 21|Hesekiel 27
+Haret;2;0.5;;1;1;1. Samuel 21
+Kalkstein;2;1.0;ja;1;2;1. Samuel 23|Jesaja 33
+Hält;2;1.0;ja;1;2;1. Samuel 26|Psalmen 51
+Girsitern;2;0.5;;1;1;1. Samuel 28
+Jerachmeeliter;2;0.5;;1;1;1. Samuel 28
+Wohlmöglich;2;1.0;ja;1;2;1. Samuel 29|Habakuk 2
+Landsleute;2;1.0;ja;1;2;1. Samuel 29|Jeremia 28
+Höchst;2;1.0;ja;1;2;1. Samuel 29|2. Samuel 1
+Fremdes;2;1.0;ja;1;2;1. Samuel 31|Hosea 7
+Malchischua;2;0.5;;1;1;1. Samuel 31
+Schan;2;1.0;ja;1;2;1. Samuel 31|2. Samuel 21
+Befehlshabers;2;1.0;ja;1;2;2. Samuel 2|Habakuk 1
+Kileab;2;0.5;;1;1;2. Samuel 3
+Einflusses;2;1.0;ja;1;2;2. Samuel 3|Hesekiel 4
+Sira;2;0.5;;1;1;2. Samuel 3
+Rehabeam;2;0.5;;1;1;2. Samuel 4
+Terrassen;2;1.0;ja;1;2;2. Samuel 4|Hesekiel 42
+Baale-Juda;2;0.5;;1;1;2. Samuel 5
+Zimbeln;2;1.0;ja;1;2;2. Samuel 5|Nehemia 12
+Luftzug;2;1.0;ja;1;2;2. Samuel 5|Hiob 42
+Rechobs;2;0.5;;1;1;2. Samuel 8
+Insignien;2;1.0;ja;1;2;2. Samuel 8|Jeremia 23
+Armeeführer;2;1.0;ja;1;2;2. Samuel 20|2. Samuel 8
+Sobach;2;0.5;;1;1;2. Samuel 10
+Beth-Rechob;2;0.5;;1;1;2. Samuel 10
+Gewohnheiten;2;1.0;ja;1;2;2. Samuel 11|Sprüche 21
+Eliam;2;1.0;ja;1;2;2. Samuel 11|2. Samuel 24
+Verstärke;2;0.5;;1;1;2. Samuel 12
+Affäre;2;1.0;ja;1;2;2. Samuel 12|Psalmen 50
+Bußworte;2;1.0;ja;1;2;2. Samuel 12|Hosea 7
+Baal-Hazor;2;0.5;;1;1;2. Samuel 13
+Allmählich;2;1.0;ja;1;2;2. Samuel 14|Hesekiel 29
+Schobi;2;0.5;;1;1;2. Samuel 18
+Rogelim;2;1.0;ja;1;2;2. Samuel 18|2. Samuel 19
+Töpfergefäße;2;0.5;;1;1;2. Samuel 18
+Bohnen;2;1.0;ja;1;2;2. Samuel 18|Hesekiel 4
+Verfahrensweise;2;1.0;ja;1;2;2. Samuel 18|Hiob 23
+Traditionell;2;1.0;ja;1;2;2. Samuel 18|Psalmen 112
+Sängerinnen;2;1.0;ja;1;2;2. Samuel 19|Nehemia 7
+Beth-Maacha;2;0.5;;1;1;2. Samuel 20
+Seja;2;0.5;;1;1;2. Samuel 20
+Kommandanten;2;0.5;;1;1;2. Samuel 20
+Zuchtmaßnahme;2;1.0;ja;1;2;2. Samuel 21|Hiob 33
+Danklied;2;1.0;ja;1;2;2. Samuel 21|Jesaja 51
+Raphas;2;0.5;;1;1;2. Samuel 21
+Beständiger;2;1.0;ja;1;2;2. Samuel 21|Jeremia 17
+Dodos;2;0.5;;1;1;2. Samuel 24
+Tekoiters;2;0.5;;1;1;2. Samuel 24
+Asmaweth;2;0.5;;1;1;2. Samuel 24
+Festgedränge;2;0.5;;1;1;Jesaja 1
+Erhabene;2;1.0;ja;1;2;Jesaja 2|Jesaja 58
+Felshöhlen;2;1.0;ja;1;2;Jesaja 2|Jesaja 3
+Mutwilligen;2;0.5;;1;1;Jesaja 3
+Rechtsbruch;2;0.5;;1;1;Jesaja 3
+Weherufe;2;1.0;ja;1;2;Hesekiel 3|Jesaja 3
+Schear-Jaschub;2;0.5;;1;1;Jesaja 7
+Tiglat-Pileser;2;1.0;ja;1;2;Hosea 10|Jesaja 7
+Siedlern;2;1.0;ja;1;2;Jeremia 24|Jesaja 7
+Nenne;2;0.5;;1;1;Jesaja 8
+Binse;2;1.0;ja;1;2;Jesaja 10|Jesaja 19
+Geführten;2;0.5;;1;1;Jesaja 10
+Bösewichte;2;0.5;;1;1;Jesaja 10
+Palmzweig;2;1.0;ja;1;2;Jesaja 10|Jesaja 19
+Ewig-Vater;2;0.5;;1;1;Jesaja 10
+Wunderbarer;2;0.5;;1;1;Jesaja 10
+Thronerbe;2;1.0;ja;1;2;Jesaja 10|Psalmen 88
+Andernfalls;2;1.0;ja;1;2;Jesaja 11|Psalmen 128
+Krämpfe;2;1.0;ja;1;2;Jeremia 23|Jesaja 13
+Eulen;2;1.0;ja;1;2;Jesaja 13|Psalmen 102
+Gewalttaten;2;1.0;ja;1;2;Habakuk 1|Jesaja 13
+Versammlungsberg;2;0.5;;1;1;Jesaja 14
+Proselyten;2;1.0;ja;1;2;Jesaja 14|Psalmen 116
+Repräsentationen;2;1.0;ja;1;2;Jesaja 14|Jesaja 41
+Kir-Moab;2;0.5;;1;1;Jesaja 14
+Weinranken;2;1.0;ja;1;2;Jeremia 5|Jesaja 16
+Leinenweber;2;0.5;;1;1;Jesaja 19
+Tributzahlungen;2;1.0;ja;1;2;Jesaja 19|Psalmen 68
+Innerer;2;1.0;ja;1;2;Hesekiel 40|Jesaja 19
+Bedrücker;2;1.0;ja;1;2;Jesaja 19|Jesaja 49
+Ir-Heres;2;0.5;;1;1;Jesaja 19
+Golfes;2;1.0;ja;1;2;Jesaja 21|Nehemia 1
+Schaut;2;1.0;ja;1;2;Jesaja 21|Jesaja 30
+Dächer;2;0.5;;1;1;Jesaja 21
+Aufgebot;2;1.0;ja;1;2;Hesekiel 38|Jesaja 21
+Gerichtswort;2;1.0;ja;1;2;Jesaja 23|Jesaja 27
+Einfahrt;2;0.5;;1;1;Jesaja 23
+Hafen;2;0.5;;1;1;Jesaja 23
+Lobgesänge;2;1.0;ja;1;2;Jesaja 24|Nehemia 12
+Hängematte;2;0.5;;1;1;Jesaja 24
+Tausendjähriger;2;1.0;ja;1;2;Haggai 2|Jesaja 24
+Vertraut;2;0.5;;1;1;Jesaja 25
+Unterton;2;1.0;ja;1;2;Jesaja 25|Jesaja 33
+Überwältigten;2;0.5;;1;1;Jesaja 27
+Fronherren;2;1.0;ja;1;2;Jesaja 28|Jesaja 41
+Gottesaltar;2;0.5;;1;1;Jesaja 28
+Felde;2;1.0;ja;1;2;Jesaja 28|Jesaja 66
+Schlafes;2;0.5;;1;1;Jesaja 28
+Ackerbau;2;1.0;ja;1;2;Jesaja 28|Nehemia 11
+Zukunftsverheißungen;2;1.0;ja;1;2;Hosea 13|Jesaja 30
+Täuschungen;2;0.5;;1;1;Jesaja 30
+Harfenspiel;2;0.5;;1;1;Jesaja 31
+Edler;2;0.5;;1;1;Jesaja 31
+Felsenfesten;2;0.5;;1;1;Jesaja 33
+Bekenner;2;1.0;ja;1;2;Jeremia 5|Jesaja 33
+Nesseln;2;1.0;ja;1;2;Jesaja 35|Sprüche 24
+Weltreich;2;1.0;ja;1;2;Jesaja 35|Jesaja 49
+Einfältige;2;0.5;;1;1;Jesaja 35
+Ewige;2;0.5;;1;1;Jesaja 35
+Annalen;2;1.0;ja;1;2;Jesaja 35|Jesaja 38
+Gosan;2;1.0;ja;1;2;Jesaja 37|Sacharja 3
+Entkommene;2;1.0;ja;1;2;Hesekiel 33|Jesaja 38
+Lebenstagen;2;0.5;;1;1;Jesaja 38
+Hirtenzelt;2;0.5;;1;1;Jesaja 38
+Salbe;2;0.5;;1;1;Jesaja 40
+Merodach-Baladan;2;0.5;;1;1;Jesaja 40
+Gleicherweise;2;1.0;ja;1;2;Jesaja 40|Maleachi 1
+Verkündet;2;1.5;ja;1;3;Jeremia 31|Jesaja 41|Jesaja 45
+Wahn;2;1.5;ja;1;3;Jeremia 30|Jesaja 42|Psalmen 74
+Südarabien;2;1.0;ja;1;2;Jesaja 43|Psalmen 72
+Errettungen;2;1.0;ja;1;2;Jesaja 43|Jesaja 46
+Hämmern;2;1.0;ja;1;2;Jesaja 44|Psalmen 74
+Brecht;2;1.0;ja;1;2;Jesaja 44|Jesaja 49
+Versiege;2;0.5;;1;1;Jesaja 44
+Ratschlusses;2;1.0;ja;1;2;Hiob 42|Jesaja 46
+Verzärtelte;2;1.0;ja;1;2;Jeremia 5|Jesaja 46
+Beherrscherin;2;0.5;;1;1;Jesaja 46
+Verborgenes;2;1.0;ja;1;2;Jesaja 48|Sprüche 30
+Verborgen;2;1.0;ja;1;2;Jesaja 48|Psalmen 9
+Verachteten;2;0.5;;1;1;Jesaja 49
+Knechtslieder;2;1.0;ja;1;2;Jesaja 49|Jesaja 52
+Wärter;2;0.5;;1;1;Jesaja 49
+Pein;2;1.0;ja;1;2;Jeremia 8|Jesaja 51
+Ehrenkleider;2;0.5;;1;1;Jesaja 52
+Rührt;2;0.5;;1;1;Jesaja 52
+Reinigt;2;0.5;;1;1;Jesaja 52
+Vereinsamte;2;0.5;;1;1;Jesaja 54
+Saphiren;2;0.5;;1;1;Jesaja 54
+Karfunkeln;2;0.5;;1;1;Jesaja 54
+Tröstungen;2;1.0;ja;1;2;Hiob 15|Jesaja 58
+Segensverheißungen;2;1.0;ja;1;2;Jesaja 58|Joel 4
+Unwahres;2;0.5;;1;1;Jesaja 58
+Schlangeneier;2;0.5;;1;1;Jesaja 58
+Bußfertige;2;1.0;ja;1;2;Hosea 13|Jesaja 58
+Zustands;2;1.0;ja;1;2;Hesekiel 35|Jesaja 60
+Feierkleider;2;0.5;;1;1;Jesaja 61
+Kopfschmuck;2;0.5;;1;1;Jesaja 61
+Vermählte;2;0.5;;1;1;Jesaja 62
+Schweinefleisch;2;1.0;ja;1;2;Jesaja 64|Jesaja 66
+Wilde;2;0.5;;1;1;Jesaja 65
+Nordafrika;2;1.0;ja;1;2;Jesaja 66|Nahum 2
+Krüge;2;1.0;ja;1;2;Jeremia 1|Jeremia 36
+Kamelin;2;0.5;;1;1;Jeremia 2
+Eroberungsmacht;2;1.0;ja;1;2;Jeremia 3|Jeremia 50
+Verwüstete;2;1.0;ja;1;2;Hesekiel 36|Jeremia 5
+Oftmals;2;1.0;ja;1;2;Jeremia 5|Jona 3
+Überschwemmungen;2;1.0;ja;1;2;Jeremia 5|Nahum 2
+Predigt;2;1.0;ja;1;2;Jeremia 6|Nahum 1
+Gehorcht;2;0.5;;1;1;Jeremia 8
+Haarschmuck;2;0.5;;1;1;Jeremia 8
+Uphas;2;0.5;;1;1;Jeremia 10
+Rücksichtnahme;2;1.0;ja;1;2;Hesekiel 4|Jeremia 12
+Fußgängern;2;0.5;;1;1;Jeremia 12
+Setzt;2;0.5;;1;1;Jeremia 13
+Mohr;2;0.5;;1;1;Jeremia 13
+Aufhören;2;1.0;ja;1;2;Jeremia 13|Psalmen 36
+Trostbecher;2;0.5;;1;1;Jeremia 15
+Trauerhaus;2;0.5;;1;1;Jeremia 15
+Vitalität;2;1.0;ja;1;2;Jeremia 17|Psalmen 110
+Sichtweite;2;1.0;ja;1;2;Jeremia 17|Psalmen 74
+Oberaufseher;2;0.5;;1;1;Jeremia 19
+Magor-Missabib;2;0.5;;1;1;Jeremia 19
+Trommel;2;1.0;ja;1;2;Jeremia 19|Psalmen 147
+Nebukadne;2;1.5;ja;1;3;Jeremia 21|Jeremia 26|Jeremia 52
+Sterbende;2;1.0;ja;1;2;Hiob 23|Jeremia 21
+Schalom;2;1.0;ja;1;2;Jeremia 21|Maleachi 1
+Schreibt;2;0.5;;1;1;Jeremia 23
+Aasfresser;2;1.0;ja;1;2;Jeremia 23|Psalmen 65
+Hirtendienst;2;0.5;;1;1;Jeremia 23
+Schauderhaftes;2;1.0;ja;1;2;Hosea 7|Jeremia 23
+Sinnbild;2;1.0;ja;1;2;Jeremia 24|Joel 1
+Keltertreter;2;0.5;;1;1;Jeremia 26
+Jochstangen;2;0.5;;1;1;Jeremia 26
+Kolajas;2;1.0;ja;1;2;Jeremia 30|Nehemia 11
+Künftige;2;1.0;ja;1;2;Jeremia 30|Psalmen 45
+Entwurf;2;1.0;ja;1;2;Hiob 2|Jeremia 31
+Machsejas;2;1.0;ja;1;2;Jeremia 32|Jeremia 52
+Jerija;2;0.5;;1;1;Jeremia 37
+Jechonjas;2;1.0;ja;1;2;Jeremia 23|Jeremia 37
+Flüchtlingen;2;0.5;;1;1;Jeremia 44
+Umschweife;2;1.0;ja;1;2;Jeremia 44|Psalmen 4
+Langschild;2;1.0;ja;1;2;Jeremia 46|Psalmen 34
+Mastkälbern;2;0.5;;1;1;Jeremia 46
+Kir-Heres;2;0.5;;1;1;Jeremia 48
+Horonaim;2;1.0;ja;1;2;Jeremia 48|Nehemia 2
+Trümmerstätten;2;1.0;ja;1;2;Hesekiel 29|Jeremia 49
+Benhadads;2;0.5;;1;1;Jeremia 49
+Handelt;2;0.5;;1;1;Jeremia 50
+Süd-Babylon;2;0.5;;1;1;Jeremia 50
+Vergeltet;2;0.5;;1;1;Jeremia 50
+Heulen;2;1.0;ja;1;2;Hesekiel 21|Jeremia 51
+Schluß;2;1.0;ja;1;2;Hiob 36|Jeremia 52
+Getöses;2;1.0;ja;1;2;Hesekiel 3|Jeremia 52
+Quartiermeister;2;0.5;;1;1;Jeremia 52
+Evil-Merodach;2;0.5;;1;1;Jeremia 52
+Menschengestalt;2;0.5;;1;1;Hesekiel 1
+Antrieb;2;1.0;ja;1;2;Haggai 1|Hesekiel 1
+Mühsale;2;1.0;ja;1;2;Hesekiel 3|Psalmen 1
+Zeitpunkte;2;1.0;ja;1;2;Hesekiel 4|Sprüche 10
+Verunreinigt;2;1.0;ja;1;2;Hesekiel 20|Hesekiel 8
+Benajas;2;0.5;;1;1;Hesekiel 10
+Bemerkungen;2;1.0;ja;1;2;Hesekiel 10|Hiob 33
+Verhülle;2;0.5;;1;1;Hesekiel 12
+Prophetinnen;2;1.0;ja;1;2;Hesekiel 12|Hesekiel 14
+Zeitpunkten;2;1.0;ja;1;2;Hesekiel 14|Psalmen 34
+Mörderinnen;2;1.0;ja;1;2;Hesekiel 16|Hesekiel 23
+Triebe;2;1.0;ja;1;2;Hesekiel 16|Hohelied 6
+Apries;2;1.0;ja;1;2;Hesekiel 16|Hesekiel 29
+Belagerungstürme;2;1.0;ja;1;2;Hesekiel 18|Hesekiel 26
+Reis;2;0.5;;1;1;Hesekiel 18
+Schösslinge;2;1.0;ja;1;2;Hesekiel 18|Psalmen 128
+Nasenringen;2;0.5;;1;1;Hesekiel 20
+Gleichnissen;2;1.0;ja;1;2;Hesekiel 21|Hosea 13
+Fort;2;1.0;ja;1;2;Hesekiel 22|Jesaja 58
+Makkabäus;2;1.0;ja;1;2;Hesekiel 22|Hesekiel 26
+Regenguß;2;1.0;ja;1;2;Hesekiel 22|Hosea 7
+Grimmes;2;0.5;;1;1;Hesekiel 22
+Erguß;2;0.5;;1;1;Hesekiel 23
+Schoa;2;0.5;;1;1;Hesekiel 23
+Gerichtsworte;2;1.0;ja;1;2;Hesekiel 23|Hesekiel 24
+Fleischstück;2;0.5;;1;1;Hesekiel 24
+Brennmaterial;2;1.0;ja;1;2;Hesekiel 24|Hesekiel 39
+Amman;2;1.0;ja;1;2;Hesekiel 24|Hohelied 6
+Sardes;2;1.0;ja;1;2;Hesekiel 24|Maleachi 3
+Tarsus;2;1.0;ja;1;2;Hesekiel 24|Maleachi 3
+Ekbatana;2;1.0;ja;1;2;Hesekiel 24|Maleachi 3
+Immer;2;1.0;ja;1;2;Hesekiel 26|Nehemia 7
+Örtern;2;1.0;ja;1;2;Hesekiel 26|Hesekiel 30
+Elischas;2;0.5;;1;1;Hesekiel 27
+Helbon;2;0.5;;1;1;Hesekiel 27
+Tauschware;2;0.5;;1;1;Hesekiel 27
+Arwad;2;0.5;;1;1;Hesekiel 27
+Kilmad;2;0.5;;1;1;Hesekiel 27
+Gammaditer;2;0.5;;1;1;Hesekiel 27
+Byblos;2;0.5;;1;1;Hesekiel 27
+Nordsyrien;2;0.5;;1;1;Hesekiel 27
+Tabal;2;1.0;ja;1;2;Hesekiel 27|Hesekiel 37
+Armenien;2;0.5;;1;1;Hesekiel 27
+Tamburine;2;0.5;;1;1;Hesekiel 27
+Texte;2;1.0;ja;1;2;Hesekiel 27|Hiob 1
+Musikinstrumente;2;1.0;ja;1;2;Hesekiel 29|Psalmen 137
+Krokodile;2;1.0;ja;1;2;Hesekiel 29|Hiob 40
+Pi-Beset;2;0.5;;1;1;Hesekiel 30
+Seitenarme;2;1.0;ja;1;2;Hesekiel 30|Hesekiel 32
+Fette;2;1.0;ja;1;2;Hesekiel 33|Hesekiel 35
+Schämt;2;0.5;;1;1;Hesekiel 36
+Totengebeine;2;1.0;ja;1;2;Hesekiel 36|Hosea 7
+Kleinschilde;2;1.0;ja;1;2;Hesekiel 37|Hesekiel 39
+Kleinschild;2;1.0;ja;1;2;Hesekiel 37|Psalmen 34
+Versionen;2;1.0;ja;1;2;Hesekiel 37|Psalmen 42
+Hamona;2;0.5;;1;1;Hesekiel 39
+Quartiere;2;0.5;;1;1;Hesekiel 40
+Südtor;2;0.5;;1;1;Hesekiel 40
+Milleniale;2;1.0;ja;1;2;Hesekiel 40|Hesekiel 45
+Reale;2;1.0;ja;1;2;Hesekiel 40|Sprüche 6
+Israder;2;1.0;ja;1;2;Hesekiel 45|Hosea 10
+En-Eglaim;2;0.5;;1;1;Hesekiel 47
+Hazar-Enon;2;0.5;;1;1;Hesekiel 47
+Isebel;2;0.5;;1;1;Hosea 2
+Element;2;1.0;ja;1;2;Habakuk 3|Hosea 4
+Elias;2;1.0;ja;1;2;Habakuk 2|Hosea 7
+Unterscheidungsvermögen;2;1.0;ja;1;2;Hosea 10|Maleachi 2
+Fallt;2;0.5;;1;1;Hosea 10
+Gelegentlich;2;0.5;;1;1;Joel 1
+Durcheinander;2;1.0;ja;1;2;Joel 1|Sprüche 28
+Spießen;2;1.0;ja;1;2;Hiob 40|Joel 4
+Amittais;2;0.5;;1;1;Jona 1
+Historikern;2;1.0;ja;1;2;Jona 1|Jona 3
+Assurbanipal;2;1.0;ja;1;2;Nahum 1|Nahum 2
+Verzagte;2;0.5;;1;1;Nahum 2
+Verwüstet;2;0.5;;1;1;Nahum 2
+Geheiß;2;1.0;ja;1;2;Habakuk 1|Hiob 40
+Durchhaltevermögen;2;1.0;ja;1;2;Habakuk 1|Sacharja 5
+Gerichtsinstrument;2;1.0;ja;1;2;Habakuk 1|Sacharja 9
+Pfandgut;2;0.5;;1;1;Habakuk 2
+Menschenblutes;2;0.5;;1;1;Habakuk 2
+Entweiht;2;0.5;;1;1;Haggai 2
+Königslinie;2;0.5;;1;1;Haggai 2
+Medo-Persien;2;0.5;;1;1;Sacharja 1
+Ölbaumzweige;2;0.5;;1;1;Sacharja 5
+Röhren;2;1.0;ja;1;2;Hiob 40|Sacharja 5
+Störche;2;0.5;;1;1;Sacharja 5
+Tobia;2;0.5;;1;1;Sacharja 6
+Heldai;2;0.5;;1;1;Sacharja 6
+Festtagen;2;1.0;ja;1;2;Nehemia 11|Sacharja 8
+Hadrach;2;0.5;;1;1;Sacharja 8
+Kriegsbogen;2;0.5;;1;1;Sacharja 9
+Erbittet;2;0.5;;1;1;Sacharja 9
+Versprechungen;2;1.0;ja;1;2;Sacharja 9|Sprüche 24
+Iskariot;2;0.5;;1;1;Sacharja 11
+Hadad-Rimmon;2;0.5;;1;1;Sacharja 13
+Bekenntnisse;2;0.5;;1;1;Sacharja 13
+Ausführungen;2;1.0;ja;1;2;Maleachi 2|Sacharja 13
+Azel;2;0.5;;1;1;Sacharja 14
+Getreideernte;2;1.0;ja;1;2;Hiob 36|Sacharja 14
+Unschuldsbekundungen;2;1.0;ja;1;2;Hiob 8|Maleachi 2
+Verweise;2;1.0;ja;1;2;Hiob 27|Maleachi 2
+Szenen;2;1.0;ja;1;2;Hiob 2|Psalmen 1
+Nichtigkeiten;2;1.0;ja;1;2;Hiob 20|Psalmen 1
+Orients;2;1.0;ja;1;2;Psalmen 1|Psalmen 22
+Verstoße;2;0.5;;1;1;Psalmen 4
+Gerechtigkeitsmaßstab;2;0.5;;1;1;Psalmen 4
+Abschließender;2;1.0;ja;1;2;Psalmen 133|Psalmen 7
+Beobachtungen;2;0.5;;1;1;Psalmen 9
+Distanz;2;1.0;ja;1;2;Hohelied 4|Psalmen 9
+Mundkrankheiten;2;1.0;ja;1;2;Psalmen 31|Psalmen 9
+Erleuchte;2;0.5;;1;1;Psalmen 13
+Gegründet;2;0.5;;1;1;Psalmen 20
+Heiler;2;1.0;ja;1;2;Psalmen 22|Psalmen 28
+Ernährer;2;0.5;;1;1;Psalmen 22
+Vorwürfen;2;1.0;ja;1;2;Nehemia 4|Psalmen 25
+Gegensätzen;2;1.0;ja;1;2;Psalmen 25|Sprüche 10
+Bewegungen;2;1.0;ja;1;2;Hiob 4|Psalmen 28
+Erinnern;2;1.0;ja;1;2;Psalmen 28|Psalmen 31
+Herangehensweise;2;0.5;;1;1;Psalmen 31
+Handbreiten;2;0.5;;1;1;Psalmen 40
+Gefühlen;2;1.0;ja;1;2;Psalmen 45|Psalmen 65
+Saphon;2;0.5;;1;1;Psalmen 48
+Machalat;2;0.5;;1;1;Psalmen 51
+Menschenhilfe;2;1.0;ja;1;2;Psalmen 107|Psalmen 61
+Taumelwein;2;0.5;;1;1;Psalmen 61
+Gebetserhörungen;2;1.0;ja;1;2;Psalmen 61|Psalmen 65
+Silberbarren;2;0.5;;1;1;Psalmen 68
+Rechtssprüche;2;0.5;;1;1;Psalmen 72
+Trümmerh;2;1.0;ja;1;2;Hiob 15|Psalmen 79
+Haderwas;2;0.5;;1;1;Psalmen 82
+Sebach;2;0.5;;1;1;Psalmen 82
+Zalmunna;2;0.5;;1;1;Psalmen 82
+Göttersöhnen;2;0.5;;1;1;Psalmen 88
+Hilfsmittel;2;1.0;ja;1;2;Hiob 4|Psalmen 102
+Obergemächern;2;0.5;;1;1;Psalmen 104
+Fliegenschwärme;2;0.5;;1;1;Psalmen 105
+Kriegszuges;2;0.5;;1;1;Psalmen 110
+Lobpreispsalmen;2;0.5;;1;1;Psalmen 112
+Bindet;2;0.5;;1;1;Psalmen 118
+Pilgern;2;1.0;ja;1;2;Psalmen 119|Psalmen 133
+Pflüger;2;0.5;;1;1;Psalmen 128
+Eintracht;2;0.5;;1;1;Psalmen 133
+Komponist;2;1.0;ja;1;2;Psalmen 133|Psalmen 147
+Rühre;2;0.5;;1;1;Psalmen 144
+Obstbäume;2;1.0;ja;1;2;Nehemia 9|Psalmen 147
+Meide;2;1.0;ja;1;2;Sprüche 1|Sprüche 14
+Zuchtmaßnahmen;2;1.0;ja;1;2;Sprüche 3|Sprüche 4
+Anziehungskraft;2;0.5;;1;1;Sprüche 6
+Spiegel;2;1.0;ja;1;2;Hiob 38|Sprüche 6
+Irrwege;2;0.5;;1;1;Sprüche 10
+Gewalttätige;2;0.5;;1;1;Sprüche 11
+Gesandter;2;1.0;ja;1;2;Hiob 33|Sprüche 13
+Erziehungsmaßnahmen;2;1.0;ja;1;2;Hiob 6|Sprüche 13
+Torheiten;2;0.5;;1;1;Sprüche 14
+Zänkerei;2;0.5;;1;1;Sprüche 20
+Regierende;2;1.0;ja;1;2;Sprüche 20|Sprüche 31
+Geweiht;2;0.5;;1;1;Sprüche 20
+Untugenden;2;1.0;ja;1;2;Sprüche 21|Sprüche 31
+Natron;2;0.5;;1;1;Sprüche 24
+Äpfel;2;1.0;ja;1;2;Hohelied 8|Sprüche 24
+Selbstsucht;2;1.0;ja;1;2;Sprüche 24|Sprüche 26
+Bittere;2;0.5;;1;1;Sprüche 26
+Tüchtige;2;0.5;;1;1;Sprüche 31
+Fehlgeburt;2;1.0;ja;1;2;Hiob 20|Hiob 4
+Lehmhütten;2;0.5;;1;1;Hiob 4
+Schwerer;2;0.5;;1;1;Hiob 6
+Beschwerden;2;1.0;ja;1;2;Hiob 6|Nehemia 4
+Augenblicke;2;1.0;ja;1;2;Hiob 8|Nehemia 12
+Siebengestirn;2;0.5;;1;1;Hiob 8
+Verdamme;2;0.5;;1;1;Habakuk 1
+Schutzwehren;2;0.5;;1;1;Hiob 13
+Besinnt;2;0.5;;1;1;Hiob 18
+Wolkendunkel;2;1.0;ja;1;2;Hiob 23|Hiob 38
+Weingärten;2;0.5;;1;1;Hiob 26
+Fern;2;1.0;ja;1;2;Hiob 27|Hiob 33
+Ehrenkranz;2;0.5;;1;1;Hiob 31
+Baracheels;2;0.5;;1;1;Hiob 31
+Siegelton;2;0.5;;1;1;Hiob 38
+Keren-Happuch;2;0.5;;1;1;Hiob 42
+Erregt;2;1.0;ja;1;2;Hohelied 2|Hohelied 8
+Gewürzpulver;2;0.5;;1;1;Hohelied 2
+Gazellenzwillingen;2;1.0;ja;1;2;Hohelied 4|Hohelied 8
+Safran;2;0.5;;1;1;Hohelied 4
+Nord-Israel;2;1.0;ja;1;2;Hohelied 4|Hohelied 6
+Kriegsbannern;2;0.5;;1;1;Hohelied 6
+Dreh;2;0.5;;1;1;Hohelied 6
+Batrabbim;2;1.0;ja;1;2;Hohelied 6|Hohelied 8
+Baal-Hamon;2;1.0;ja;1;2;Hohelied 6|Hohelied 8
+Harumaphs;2;0.5;;1;1;Nehemia 3
+Harims;2;0.5;;1;1;Nehemia 3
+Kol-Hoses;2;1.0;ja;1;2;Nehemia 11|Nehemia 3
+Schechanjas;2;1.0;ja;1;2;Nehemia 3|Nehemia 6
+Miphkad;2;0.5;;1;1;Nehemia 3
+Speeren;2;0.5;;1;1;Nehemia 4
+Mißstände;2;1.0;ja;1;2;Nehemia 12|Nehemia 4
+Sotais;2;0.5;;1;1;Nehemia 7
+Anaja;2;1.0;ja;1;2;Nehemia 7|Nehemia 9
+Haschum;2;1.0;ja;1;2;Nehemia 7|Nehemia 9
+Hasdie;2;1.0;ja;1;2;Nehemia 11|Nehemia 7
+Pelaja;2;0.5;;1;1;Nehemia 9
+Petachja;2;1.0;ja;1;2;Nehemia 11|Nehemia 9
+Jojaribs;2;0.5;;1;1;Nehemia 11
+Sallai;2;0.5;;1;1;Nehemia 11
+Hasabjas;2;0.5;;1;1;Nehemia 11
+Bilga;2;0.5;;1;1;Nehemia 11
+Mattanjas;2;1.0;ja;1;2;Nehemia 11|Nehemia 12
+Merajot;2;0.5;;1;1;Nehemia 11
+Sammua;2;0.5;;1;1;Nehemia 11
+Ananja;2;0.5;;1;1;Nehemia 11
+Asareel;2;0.5;;1;1;Nehemia 12
+Asmawet;2;0.5;;1;1;Nehemia 12
+Hosaja;2;0.5;;1;1;Nehemia 12

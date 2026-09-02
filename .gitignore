@@ -1,0 +1,26 @@
+# Was hier steht, gehoert nicht ins Repo: entweder weil es beim Einrichten
+# neu entsteht, oder weil es pro Rechner verschieden ist.
+
+# Python-Umgebung und Zwischenstaende
+.venv/
+__pycache__/
+*.pyc
+
+# Wird von einrichten.sh geladen, zusammen mehrere Gigabyte
+models/
+voices/
+
+# Laufzeitdaten
+ergebnisse/
+zustand.json
+
+# Aufnahmen und Testtoene. predigt.mp3 ist die Testdatei, sie ist eine
+# echte Predigt und hat im Repo nichts verloren.
+*.mp3
+*.wav
+*.m4a
+*.flac
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
