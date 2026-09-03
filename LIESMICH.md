@@ -32,20 +32,35 @@ läuft alles auf der CPU und ist für den Livebetrieb zu langsam.
 
 ```
 ./start.sh                        Voreinstellung
-./start.sh --mikro 1              Ton vom Aufnahmegerät Nummer 1
 ./start.sh --datei predigt.mp3    Dauerlauf mit einer Aufnahme
+./start.sh --mikro 1              Aufnahmegerät erzwingen, zur Fehlersuche
 ```
 
-Welche Gerätenummer die richtige ist, listet `einrichten.sh` auf. Im
-Fenster stehen dann drei Adressen: für die Zuhörer, für die QR-Codes am
+Im Fenster stehen drei Adressen: für die Zuhörer, für die QR-Codes am
 Beamer, und für das Pult.
+
+## Einmal einrichten
+
+Am Pult öffnet das Zahnrad die Einrichtung: Tonquelle, Sprachen, WLAN.
+
+**Tonquelle.** Gerät auswählen, hineinsprechen, Ausschlag am Balken
+prüfen. Lässt sich ein Gerät nicht öffnen, kommt das vorherige zurück und
+der Grund steht daneben. Der Server läuft dabei weiter.
+
+Alles davon steht anschließend in `zustand.json` neben dem Programm und
+gilt nach dem Neustart weiter, die eingemessene Mindestlautstärke
+eingeschlossen. Was in `config.py` steht, gilt für alle Gemeinden gleich
+und wird beim Aktualisieren überschrieben; `zustand.json` bleibt davon
+unberührt. Sie enthält das WLAN-Passwort im Klartext und ist deshalb nur
+für den eigenen Benutzer lesbar.
 
 ## Vor dem Gottesdienst
 
 Zwei Handgriffe am Pult, zusammen unter fünf Minuten.
 
 **Einmessen.** Den Prediger zwölf Sekunden sprechen lassen, das setzt die
-Mindestlautstärke. Bei jedem neuen Sprecher wiederholen.
+Mindestlautstärke. Bei jedem neuen Sprecher wiederholen. Der Wert bleibt
+bis dahin erhalten, auch über einen Neustart hinweg.
 
 **Thema und Bibelstellen eintragen.** Daraus zieht das Programm die
 Eigennamen der genannten Kapitel. Daran hängt, ob Bethsaida richtig
@@ -61,8 +76,8 @@ ZIELSPRACHEN = ["en", "ru", "fa"]
 ```
 
 Danach einmal `./einrichten.sh`, das lädt die fehlenden Stimmen. Umschalten
-geht auch am Pult zur Laufzeit. Sprachen ohne Stimme laufen als reiner
-Untertitel.
+geht auch am Pult; das bleibt dann so, bis es jemand wieder ändert.
+Sprachen ohne Stimme laufen als reiner Untertitel.
 
 Bei Deutsch, Englisch, Russisch und Persisch hat ein Muttersprachler das
 Fachwortverzeichnis durchgesehen. Die übrigen Sprachen laufen technisch

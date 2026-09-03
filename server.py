@@ -1033,7 +1033,17 @@ def auf_16k(block, rate):
                      np.arange(len(gefiltert)), gefiltert).astype(np.float32)
 
 
-def mikrofon_thread(lauf, geraet, segmentierer, stoppen, rate, blockgroesse):
+def mikrofon_thread(lauf, geraet, segmentierer, stoppen, rate, blockgroesse,
+                    offen=None, melder=None):
+    """Nimmt auf, bis stoppen gesetzt wird.
+
+    stoppen gehoert diesem einen Thread und ist bewusst nicht das
+    Abschalt-Event des Servers: beim Geraetewechsel wird es gesetzt, und
+    ein gemeinsames Event waere danach fuer immer gesetzt.
+
+    offen wird gesetzt, sobald der Datenstrom wirklich steht, melder
+    nimmt den Grund auf, wenn nicht. Ohne beides wuesste der Aufrufer nur,
+    dass er einen Thread gestartet hat, nicht ob Ton ankommt."""
     import sounddevice as sd
 
     def rueckruf(daten, rahmen, zeit, status):
@@ -1050,10 +1060,14 @@ def mikrofon_thread(lauf, geraet, segmentierer, stoppen, rate, blockgroesse):
         with sd.InputStream(device=geraet, channels=1, samplerate=rate,
                             blocksize=blockgroesse, dtype="float32",
                             callback=rueckruf):
+            if offen is not None:
+                offen.set()
             print(f"Mikrofon offen: {rate} Hz -> {MIKRO_RATE} Hz.")
             while not stoppen.is_set():
                 time.sleep(0.2)
     except Exception as e:
+        if melder is not None:
+            melder["fehler"] = str(e).replace("\n", " ")[:200]
         print("\n" + "=" * 62)
         print("MIKROFON LAESST SICH NICHT OEFFNEN")
         print(f"  {str(e)[:200]}")
@@ -1064,8 +1078,8 @@ def mikrofon_thread(lauf, geraet, segmentierer, stoppen, rate, blockgroesse):
             print("  Windows das Mikrofon noch belegt. Nimm stattdessen einen")
             print("  MME- oder WASAPI-Eintrag desselben Mikrofons.")
         print("  Verfuegbare Geraete mit Schnittstelle: server.py --geraete")
+        print("  Anderes Geraet waehlen: am Pult unter Einrichtung.")
         print("=" * 62 + "\n")
-        stoppen.set()
 
 
 def datei_thread(lauf, pfad, segmentierer, stoppen, tempo=1.0):
@@ -1125,43 +1139,196 @@ def rate_waehlen(geraet, wunsch=None):
             return rate, int(round(BLOCK * rate / MIKRO_RATE))
         except Exception:
             continue
-    raise SystemExit(
-        "Keine der ueblichen Aufnahmeraten funktioniert mit diesem Geraet.\n"
-        "Anderes Geraet waehlen (--geraete) oder Rate erzwingen (--rate).")
+    # Frueher ein SystemExit. Das war vertretbar, solange die Rate nur beim
+    # Start gewaehlt wurde. Seit der Gerätewechsel im Betrieb geht, ruft
+    # auch ein Endpunkt hier an, und ein unbrauchbares Geraet darf nicht
+    # den ganzen Server mitnehmen.
+    return None
 
 
-def geraete_zeigen():
-    """Listet Eingabegeraete MIT Schnittstelle.
+# Reihenfolge der Schnittstellen. Windows meldet dasselbe Mikrofon
+# mehrfach, einmal je Schnittstelle, und die Unterschiede sind erheblich:
+# WDM-KS greift exklusiv zu und scheitert oft, MME ist am vertraeglichsten,
+# WASAPI hat die geringste Latenz.
+#
+# Was hier nicht steht, gilt als brauchbar. Frueher fiel alles Unbekannte
+# auf 5 und bekam damit das Ausrufezeichen: auf Linux, dem Zielsystem, war
+# das jedes einzelne Geraet, mit der Begruendung "WDM-KS" darunter, die es
+# dort gar nicht gibt.
+API_RANG = {"MME": 0, "Windows WASAPI": 1, "Windows DirectSound": 2,
+            "Windows WDM-KS": 9,
+            "ALSA": 1, "PulseAudio": 0, "JACK Audio Connection Kit": 3,
+            "OSS": 4}
 
-    Windows meldet dasselbe Mikrofon mehrfach, einmal je Schnittstelle. Die
-    Unterschiede sind erheblich: WDM-KS greift exklusiv zu und scheitert oft,
-    MME ist am vertraeglichsten, WASAPI hat die geringste Latenz. Ohne diese
-    Spalte waehlt man blind."""
+
+def geraete_liste():
+    """Alle Eingabegeraete mit Schnittstelle, empfohlene zuerst.
+
+    Eine Quelle fuer beides: die Terminalausgabe von --geraete und die
+    Auswahl am Pult. Zwei getrennte Listen liefen sonst irgendwann
+    auseinander, und dann zeigt das Pult eine Nummer an, die das Terminal
+    anders zaehlt."""
     import sounddevice as sd
     apis = {i: a["name"] for i, a in enumerate(sd.query_hostapis())}
-    rang = {"MME": 0, "Windows WASAPI": 1, "Windows DirectSound": 2,
-            "Windows WDM-KS": 9}
     zeilen = []
     for i, g in enumerate(sd.query_devices()):
         if g["max_input_channels"] > 0:
             api = apis.get(g["hostapi"], "?")
-            zeilen.append((rang.get(api, 5), i, g["name"], api,
-                           g["max_input_channels"],
-                           int(g["default_samplerate"])))
+            rang = API_RANG.get(api, 3)
+            zeilen.append({"nummer": i, "name": g["name"],
+                           "schnittstelle": api,
+                           "kanaele": g["max_input_channels"],
+                           "hz": int(g["default_samplerate"]),
+                           "empfohlen": rang < 5, "rang": rang})
+    zeilen.sort(key=lambda z: (z["rang"], z["nummer"]))
+    return zeilen
+
+
+def geraete_zeigen():
+    """Druckt die Geraeteliste ins Terminal."""
+    zeilen = geraete_liste()
     print("Eingabegeraete, empfohlene zuerst:\n")
     print(f"  {'Nr':>3}  {'Schnittstelle':20} {'Hz':>6}  Name")
-    for r, i, name, api, kan, hz in sorted(zeilen):
-        marke = "  " if r < 5 else " !"
-        print(f"{marke}{i:3}  {api:20} {hz:6}  {name}")
-    print("\n  ! = WDM-KS, greift exklusiv zu und scheitert haeufig.")
-    print("  Starten mit: python server.py --geraet <Nummer>")
+    for g in zeilen:
+        marke = "  " if g["empfohlen"] else " !"
+        print(f"{marke}{g['nummer']:3}  {g['schnittstelle']:20} "
+              f"{g['hz']:6}  {g['name']}")
+    if any(not g["empfohlen"] for g in zeilen):
+        print("\n  ! = WDM-KS, greift exklusiv zu und scheitert haeufig.")
+    print("\n  Auswaehlen laesst sich das Geraet auch am Pult unter "
+          "Einrichtung.")
+    print("  Fest vorgeben: python server.py --geraet <Nummer>")
+
+
+class Tonquelle:
+    """Haelt den Mikrofon-Thread und wechselt ihn im laufenden Betrieb.
+
+    Jeder Thread bekommt sein eigenes Stopp-Event. Vorher war es ein
+    einziges, geteilt mit dem Abschalten des Servers -- wer es zum Stoppen
+    des alten Threads gesetzt haette, haette den neuen in eine bereits
+    gesetzte Bedingung gestartet, und der Ton waere bis zum Neustart weg
+    geblieben.
+
+    Scheitert ein Wechsel, kommt das vorherige Geraet zurueck. Scheitert
+    auch das, laeuft der Server ohne Ton weiter und sagt es. Stehenbleiben
+    ist keine Antwort: am Pult sitzt jemand, der genau jetzt ein anderes
+    Geraet auswaehlen koennen muss."""
+
+    # So lange wird auf den offenen Datenstrom gewartet, bevor der Versuch
+    # als gescheitert gilt. Ein USB-Mikrofon meldet sich in Sekundenbruch-
+    # teilen; wer laenger braucht, ist belegt oder defekt.
+    WARTEN = 5.0
+
+    def __init__(self, lauf, segmentierer, wunschrate=None):
+        self.lauf = lauf
+        self.segmentierer = segmentierer
+        self.wunschrate = wunschrate
+        self.geraet = None
+        self.rate = None
+        self.blockgroesse = None
+        self.fehler = ""
+        self._thread = None
+        self._stoppen = None
+        # Zwei Anfragen vom Pult gleichzeitig wuerden sonst zwei Threads
+        # auf dasselbe Geraet setzen.
+        self._schloss = threading.Lock()
+
+    @property
+    def laeuft(self):
+        return self._thread is not None and self._thread.is_alive()
+
+    def starten(self, geraet):
+        with self._schloss:
+            return self._starten(geraet)
+
+    def anhalten(self):
+        with self._schloss:
+            self._anhalten()
+
+    def wechseln(self, geraet):
+        """Stellt auf ein anderes Aufnahmegeraet um.
+
+        Gibt (True, "") zurueck oder (False, Grund)."""
+        with self._schloss:
+            vorher = self.geraet
+            self._anhalten()
+            gelungen, grund = self._starten(geraet)
+            if gelungen:
+                return True, ""
+            # Der Grund kommt teils aus dem Treiber und endet dann ohne
+            # Satzzeichen. Am Pult stehen beide Saetze nebeneinander.
+            if not grund.endswith((".", "!", "?")):
+                grund += "."
+            if vorher is not None and vorher != geraet:
+                zurueck, _ = self._starten(vorher)
+                if zurueck:
+                    return False, (f"{grund} Es bleibt bei Geraet {vorher}.")
+            self.fehler = grund
+            return False, (f"{grund} Auch das vorherige Geraet laeuft nicht "
+                           f"mehr, es kommt gerade kein Ton.")
+
+    @staticmethod
+    def _vorgabegeraet():
+        """Die Nummer, die sounddevice ohne Angabe nehmen wuerde.
+
+        Aufgeloest statt als None weitergereicht: am Pult soll stehen,
+        welches Geraet tatsaechlich aufnimmt. "Vorgabegeraet" ist keine
+        Auskunft, wenn die Frage lautet, warum kein Ton kommt."""
+        import sounddevice as sd
+        try:
+            nummer = sd.default.device[0]
+            return int(nummer) if nummer is not None and nummer >= 0 else None
+        except Exception:
+            return None
+
+    # ---- innen, immer unter dem Schloss ----
+    def _starten(self, geraet):
+        if geraet is None:
+            geraet = self._vorgabegeraet()
+        gewaehlt = rate_waehlen(geraet, self.wunschrate)
+        if gewaehlt is None:
+            return False, ("Keine der ueblichen Aufnahmeraten funktioniert "
+                           "mit diesem Geraet.")
+        rate, blockgroesse = gewaehlt
+        stoppen = threading.Event()
+        offen = threading.Event()
+        melder = {"fehler": ""}
+        thread = threading.Thread(
+            target=mikrofon_thread,
+            args=(self.lauf, geraet, self.segmentierer, stoppen, rate,
+                  blockgroesse),
+            kwargs={"offen": offen, "melder": melder},
+            daemon=True)
+        thread.start()
+        # Auf den offenen Datenstrom warten. Ohne das meldete das Pult
+        # Erfolg, waehrend im Terminal der Fehler steht und kein Ton kommt.
+        offen.wait(self.WARTEN)
+        if not offen.is_set():
+            stoppen.set()
+            return False, (melder["fehler"]
+                           or "Das Geraet liess sich nicht oeffnen.")
+        self.geraet, self.rate, self.blockgroesse = geraet, rate, blockgroesse
+        self._thread, self._stoppen = thread, stoppen
+        self.fehler = ""
+        return True, ""
+
+    def _anhalten(self):
+        if self._stoppen is not None:
+            self._stoppen.set()
+        if self._thread is not None:
+            # Der Thread prueft alle 0,2 s; danach schliesst der
+            # Kontextmanager den Datenstrom. Wer laenger braucht, haengt im
+            # Treiber, und darauf wartet das Pult nicht.
+            self._thread.join(timeout=3.0)
+        self._thread = None
+        self._stoppen = None
 
 
 # ================================================================
 # Web
 # ================================================================
 
-def app_bauen(lauf, basis, port=8000):
+def app_bauen(lauf, basis, port=8000, tonquelle=None):
     a_port = [port]
     from fastapi import (FastAPI, File, Form, Request, UploadFile, WebSocket,
                          WebSocketDisconnect)
@@ -1312,6 +1479,52 @@ def app_bauen(lauf, basis, port=8000):
         finally:
             lauf.audio_quelle = None
             print(f"Audioquelle getrennt nach {empfangen} Bloecken.")
+
+    @app.get("/api/geraete")
+    def geraete():
+        """Die Aufnahmegeraete, dieselbe Liste wie server.py --geraete.
+
+        Bewusst kein async: das Abfragen geht ueber den Treiber und kann
+        haengen. Als gewoehnliche Funktion laeuft es im Threadpool, statt
+        die Ereignisschleife und damit alle Zuhoerer anzuhalten."""
+        if tonquelle is None:
+            return {"aktiv": False, "aktuell": None, "liste": [],
+                    "fehler": "Der Ton kommt nicht vom Mikrofon dieses "
+                              "Rechners (--netz oder --datei)."}
+        try:
+            liste = geraete_liste()
+        except Exception as e:
+            return {"aktiv": True, "aktuell": tonquelle.geraet, "liste": [],
+                    "fehler": f"Geraeteliste nicht lesbar: {str(e)[:120]}"}
+        return {"aktiv": True, "aktuell": tonquelle.geraet,
+                "rate": tonquelle.rate, "laeuft": tonquelle.laeuft,
+                "liste": liste, "fehler": tonquelle.fehler}
+
+    @app.post("/api/geraet")
+    def geraet_waehlen(daten: dict):
+        """Stellt im Betrieb auf ein anderes Aufnahmegeraet um.
+
+        Auch hier kein async, aus demselben Grund: der Wechsel schliesst
+        einen Datenstrom und oeffnet einen anderen, und das dauert."""
+        if tonquelle is None:
+            return JSONResponse(
+                {"fehler": "Der Ton kommt nicht vom Mikrofon dieses "
+                           "Rechners."}, status_code=400)
+        try:
+            nummer = int(daten.get("nummer"))
+        except (TypeError, ValueError):
+            return JSONResponse({"fehler": "Keine Geraetenummer"},
+                                status_code=400)
+        gelungen, grund = tonquelle.wechseln(nummer)
+        if gelungen:
+            lauf.zustand["geraet"] = nummer
+            zustandsdatei.speichern(lauf.zustand)
+            print(f"Tonquelle: Geraet {nummer}, {tonquelle.rate} Hz")
+        else:
+            print(f"Geraetewechsel gescheitert: {grund}")
+        return {"gelungen": gelungen, "fehler": grund,
+                "aktuell": tonquelle.geraet, "rate": tonquelle.rate,
+                "laeuft": tonquelle.laeuft}
 
     @app.get("/api/sprachen")
     def sprachen():
@@ -1797,6 +2010,13 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
  input[type=range]{width:100%;margin:.2rem 0 .5rem}
  select{width:100%;font:.9rem system-ui,sans-serif;padding:.5rem;
          border:1px solid #d9dce4;background:#fff;margin-bottom:.3rem}
+ /* Auswahlfeld und Pegel nebeneinander: waehlen, hineinsprechen,
+    Ausschlag sehen -- ohne den Blick an eine andere Stelle zu nehmen.
+    Bricht auf schmalen Schirmen um, das Pult steht auch mal auf einem
+    Tablet. */
+ .tonreihe{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+ .tonreihe select{flex:1 1 14rem;margin-bottom:0}
+ .tonreihe .balken{flex:1 1 8rem}
  .zielliste{display:flex;flex-wrap:wrap;gap:.4rem;margin:.2rem 0 .3rem}
  .zielliste label{display:inline-flex;align-items:center;gap:.35rem;
    margin:0;padding:.35rem .6rem;border:1px solid #d9dce4;cursor:pointer;
@@ -1941,6 +2161,16 @@ Rechner per USB angeschlossen ist.</p>
 <div id=einrichtung hidden>
 <p class=hin data-t=einrichtung_hin>Einmal je Gemeinde einstellen, danach
 bleibt es so.</p>
+<h2 data-t=tonquelle>Tonquelle</h2>
+<div class=tonreihe>
+  <select id=geraetwahl onchange=geraetSetzen()></select>
+  <div class=balken><div class=fuell id=tonfuell></div></div>
+</div>
+<p class=hin id=geraetstand></p>
+<p class=hin data-t=tonquelle_hin>Gerät wählen und hineinsprechen. Schlägt der
+Balken aus, kommt Ton an. Geräte mit Ausrufezeichen greifen exklusiv auf den
+Treiber zu und scheitern häufig.</p>
+
 <h2 data-t=sprachen>Sprachen</h2>
 <label for=quellwahl data-t=quelle>Gesprochene Sprache</label>
 <select id=quellwahl onchange=sprachenSetzen()></select>
@@ -1973,6 +2203,12 @@ Beamer öffnen</a></p>
 // englische, die alle verstehen.
 const TEXTE={
  de:{pult:"Pult",sprachen:"Sprachen",quelle:"Gesprochene Sprache",
+   tonquelle:"Tonquelle",
+   tonquelle_hin:"Gerät wählen und hineinsprechen. Schlägt der Balken aus, "
+     +"kommt Ton an. Geräte mit Ausrufezeichen greifen exklusiv auf den "
+     +"Treiber zu und scheitern häufig.",
+   tonlaeuft:"Nimmt auf, {hz} Hz.",tonaus:"Kein Gerät offen, es kommt "
+     +"kein Ton.",tonwechsel:"Wird umgestellt …",
    ziele:"Übersetzt nach",lautstaerke:"Mindestlautstärke",
    mitschnitt:"Mitschnitt",wlan:"WLAN für die Zuhörer",
    manuskript:"Predigtmanuskript",start:"Übersetzung starten",
@@ -2009,6 +2245,12 @@ const TEXTE={
    post_hin:"Antworten ist nicht vorgesehen. Wer etwas meldet, weiß das "
      +"und erwartet keine Rückmeldung."},
  en:{pult:"Control desk",sprachen:"Languages",quelle:"Spoken language",
+   tonquelle:"Audio source",
+   tonquelle_hin:"Pick a device and speak into it. If the bar moves, audio "
+     +"is arriving. Devices marked with an exclamation mark claim the "
+     +"driver exclusively and often fail.",
+   tonlaeuft:"Recording, {hz} Hz.",tonaus:"No device open, no audio "
+     +"arriving.",tonwechsel:"Switching …",
    ziele:"Translated into",lautstaerke:"Minimum volume",
    mitschnitt:"Recording",wlan:"Wi-Fi for listeners",
    manuskript:"Sermon manuscript",start:"Start translation",
@@ -2120,7 +2362,9 @@ function einrichtungZeigen(){
   zahnrad.classList.toggle("an", zeigen);
   document.querySelector("h1").textContent =
     zeigen ? TEXTE[UI].einrichtung : TEXTE[UI].pult;
-  if(zeigen){ sprachenLaden(); wlanLaden(); }
+  // Auch die Geraete: wer waehrend des Betriebs ein Mikrofon einsteckt,
+  // soll es finden, ohne die Seite neu zu laden.
+  if(zeigen){ sprachenLaden(); wlanLaden(); geraeteLaden(); }
 }
 
 function uiSprache(){
@@ -2248,6 +2492,51 @@ async function messungBeenden(){
   handBetrieb=false;
 }
 
+async function geraeteLaden(){
+  try{
+    const d=await(await fetch("/api/geraete")).json();
+    if(!d.aktiv){
+      geraetwahl.innerHTML="<option>—</option>";
+      geraetwahl.disabled=true;
+      geraetstand.textContent=d.fehler||"";
+      return;
+    }
+    geraetwahl.disabled=false;
+    geraetwahl.innerHTML=d.liste.map(g=>
+      `<option value="${g.nummer}"${g.nummer===d.aktuell?" selected":""}>`
+      +`${g.nummer}: ${g.name} (${g.schnittstelle})${g.empfohlen?"":" !"}`
+      +`</option>`).join("");
+    geraetstand.textContent = d.fehler ? d.fehler
+      : (d.laeuft ? TEXTE[UI].tonlaeuft.replace("{hz}", d.rate)
+                  : TEXTE[UI].tonaus);
+  }catch(e){console.error("Geraete:", e)}
+}
+
+async function geraetSetzen(){
+  const nummer=parseInt(geraetwahl.value,10);
+  if(isNaN(nummer)) return;
+  geraetstand.textContent=TEXTE[UI].tonwechsel;
+  try{
+    const a=await fetch("/api/geraet",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({nummer:nummer})});
+    const d=await a.json();
+    if(d.gelungen){
+      geraetstand.textContent=TEXTE[UI].gespeichert;
+      warnungZeigen("", false);
+    }else{
+      // Der Server ist auf das vorherige Geraet zurueck. Das Auswahlfeld
+      // muss das mitmachen, sonst steht dort ein Geraet, das nicht laeuft.
+      geraetstand.textContent=d.fehler||"";
+      warnungZeigen(d.fehler||"", true);
+    }
+    if(d.aktuell!==null&&d.aktuell!==undefined) geraetwahl.value=d.aktuell;
+  }catch(e){
+    geraetstand.textContent="Der Wechsel kam nicht durch.";
+    console.error("Geraetewechsel:", e);
+  }
+}
+
 async function wlanLaden(){
   // Was schon eingetragen ist, soll dastehen: sonst tippt jemand es
   // erneut ein, weil er die Felder leer sieht.
@@ -2295,6 +2584,10 @@ async function pegel(){
     const hoerbar = d.jetzt > Math.max(d.grund*2.5, 0.0015);
     fuell.className = "fuell" + (d.jetzt > d.schwelle ? " ueber"
                                  : (hoerbar ? " knapp" : ""));
+    // Derselbe Wert, dieselbe Farbe, nur ohne Marke und Regler: der
+    // Balken in der Einrichtung dient allein der Frage, ob Ton ankommt.
+    tonfuell.style.width=pz+"%";
+    tonfuell.className=fuell.className;
     if(!handBetrieb){marke.style.left=sz+"%";regler.value=Math.round(sz)}
     pegelwert.textContent=(d.spricht?"spricht":"still")+" · "+Math.round(pz)+" %";
     // "knapp darunter" ist der Fall, den man am Regler sofort beheben
@@ -2384,6 +2677,7 @@ try{
   }
 }catch(e){}
 sprachenLaden().then(uiZeichnen);
+geraeteLaden();
 lies();setInterval(lies,2000);
 pegel();setInterval(pegel,150);
 </script></html>"""
@@ -2481,8 +2775,12 @@ def main():
         # gleich wieder ueberschrieben, das ist Absicht: eine Aufnahme hat
         # keinen wandernden Raumklang.
         seg.feste_schwelle = stand["schwelle"]["wert"]
+    # Das Abschalt-Event des Servers. Der Mikrofon-Thread haengt bewusst
+    # nicht mehr daran, sondern an seinem eigenen in Tonquelle; hier bleibt,
+    # was den Dateibetrieb beendet.
     stoppen = threading.Event()
     rate = MIKRO_RATE
+    tonquelle = None
 
     lauf.audio_schluessel = a.schluessel
 
@@ -2514,13 +2812,17 @@ def main():
                          args=(lauf, a.datei, seg, stoppen, a.tempo),
                          daemon=True).start()
     else:
-        rate, blockgroesse = rate_waehlen(geraet, a.rate)
+        tonquelle = Tonquelle(lauf, seg, a.rate)
         if a.sofort:
             lauf.laeuft = True
             lauf.begonnen = time.time()
-        threading.Thread(target=mikrofon_thread,
-                         args=(lauf, geraet, seg, stoppen, rate, blockgroesse),
-                         daemon=True).start()
+        gelungen, grund = tonquelle.starten(geraet)
+        if not gelungen:
+            # Kein Abbruchgrund mehr. Frueher lief der Server an dieser
+            # Stelle ohne Ton weiter und ohne Ausweg; jetzt gibt es einen,
+            # und dafuer muss er stehen.
+            print(f"\nKein Ton: {grund}")
+            print("Am Pult unter Einrichtung ein anderes Geraet waehlen.\n")
 
     import uvicorn
     ip = lokale_ip()
@@ -2543,12 +2845,15 @@ def main():
               f"--geraet <Nr>\n")
     elif a.datei:
         print(f"  Quelle    {Path(a.datei).name} (Dauerlauf)\n")
+    elif tonquelle is not None and tonquelle.laeuft:
+        print(f"  Aufnahme  Geraet {tonquelle.geraet}, {tonquelle.rate} Hz "
+              f"-> {MIKRO_RATE} Hz\n")
     else:
-        print(f"  Aufnahme  {rate} Hz -> {MIKRO_RATE} Hz\n")
+        print("  Aufnahme  kein Geraet offen, am Pult auswaehlen\n")
 
     try:
-        uvicorn.run(app_bauen(lauf, basis, a.port), host="0.0.0.0", port=a.port,
-                    log_level="warning")
+        uvicorn.run(app_bauen(lauf, basis, a.port, tonquelle),
+                    host="0.0.0.0", port=a.port, log_level="warning")
     except OSError as e:
         if "10048" in str(e) or "address" in str(e).lower():
             print(f"\nPort {a.port} ist belegt. Laeuft noch ein anderer "
@@ -2559,6 +2864,8 @@ def main():
             raise
     finally:
         stoppen.set()
+        if tonquelle is not None:
+            tonquelle.anhalten()
 
 
 if __name__ == "__main__":
