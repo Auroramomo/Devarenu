@@ -3163,8 +3163,8 @@ def main():
                     host="0.0.0.0", port=a.port, log_level="warning")
     except OSError as e:
         if "10048" in str(e) or "address" in str(e).lower():
-            print(f"\nPort {a.port} ist belegt. Laeuft noch ein anderer "
-                  f"Server, etwa mock_server.py?")
+            print(f"\nPort {a.port} ist belegt. Laeuft der Dienst schon?")
+            print("  systemctl status devarenu")
             print(f"Anderen Port nehmen: server.py --geraet {geraet} "
                   f"--port {a.port + 1}")
         else:
