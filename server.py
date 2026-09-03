@@ -828,6 +828,10 @@ class Lauf:
         # ist oder schlicht, dass es hilft. Bewusst nur in diese Richtung
         # und ohne Antwort: es ist eine Meldung, kein Gespraech.
         self.nachrichten = deque(maxlen=40)
+        # Erkennungsfehler: einmal ausschreiben, danach zaehlen. Vorher
+        # stand dieselbe Zeile bei jedem Segment neu im Log, und was sich
+        # endlos wiederholt, liest niemand mehr.
+        self.stt_fehler = {"text": "", "anzahl": 0, "seit": None}
         self.audio_schluessel = "gemeinde"
         self.audio_quelle = None
         self.mitschnitt = Mitschnitt(config.ERGEBNIS_ORDNER / "predigten")
@@ -911,7 +915,18 @@ class Lauf:
             try:
                 text = await eis.run_in_executor(self.pool, self.werk.hoeren, audio)
             except Exception as e:
-                print(f"  Whisper: {str(e)[:90]}")
+                meldung = str(e).replace("\n", " ")[:160]
+                if meldung != self.stt_fehler["text"]:
+                    self.stt_fehler = {"text": meldung, "anzahl": 1,
+                                       "seit": time.time()}
+                    print("\n" + "=" * 62)
+                    print("WHISPER ERKENNT NICHTS")
+                    print(f"  {meldung}")
+                    print("  Weitere gleiche Fehler werden nur noch gezaehlt")
+                    print("  und stehen am Pult.")
+                    print("=" * 62 + "\n")
+                else:
+                    self.stt_fehler["anzahl"] += 1
                 continue
             if not text or len(text) < 2:
                 continue
@@ -1677,6 +1692,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
                 # Worauf tatsaechlich gerechnet wird. Stand vorher nur im
                 # Terminal, und das liest im Gottesdienst niemand.
                 "rechenwerk": getattr(lauf.werk, "rechenwerk", ""),
+                "stt_fehler": (lauf.stt_fehler
+                               if lauf.stt_fehler["anzahl"] else None),
                 "gesamt": sum(lauf.anzahl.values()),
                 "laeuft_seit": round(time.time() - lauf.begonnen, 1)
                 if lauf.begonnen else 0,
@@ -2702,10 +2719,21 @@ async function lies(){
     // Eigene Zeile und nicht die Pegelwarnung: die wird zehnmal je
     // Sekunde neu gesetzt und wuerde diese hier ueberschreiben.
     const cpu = (d.rechenwerk||"").startsWith("cpu");
-    rechenwarnung.hidden = !cpu;
-    if(cpu) rechenwarnung.textContent =
-      "Die Erkennung läuft auf der CPU ("+d.rechenwerk+"). Für den "
-      +"Livebetrieb ist das zu langsam.";
+    // Der Fehler zuerst: laeuft die Erkennung gar nicht, ist es
+    // zweitrangig, worauf sie nicht laeuft.
+    if(d.stt_fehler){
+      rechenwarnung.hidden = false;
+      rechenwarnung.textContent =
+        "Die Erkennung scheitert seit "+d.stt_fehler.anzahl+" Abschnitten: "
+        +d.stt_fehler.text;
+    }else if(cpu){
+      rechenwarnung.hidden = false;
+      rechenwarnung.textContent =
+        "Die Erkennung läuft auf der CPU ("+d.rechenwerk+"). Für den "
+        +"Livebetrieb ist das zu langsam.";
+    }else{
+      rechenwarnung.hidden = true;
+    }
     const quelle = (d.audio_quelle!==undefined && d.audio_quelle!==null)
       ? " · "+t.tonda : "";
     if(zustandLive!==d.live){ zustandLive=d.live; uiZeichnen(); }
