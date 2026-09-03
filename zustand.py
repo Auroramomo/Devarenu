@@ -47,10 +47,18 @@ def vorgabe():
     """Was gilt, solange nichts eingestellt wurde: die Werte aus config.py.
 
     geraet=None heisst Vorgabegeraet des Systems, schwelle.wert=None
-    heisst mitlaufende Schwelle statt festgenagelter."""
+    heisst mitlaufende Schwelle statt festgenagelter.
+
+    geraet_name steht neben der Nummer, weil die Nummer allein nicht
+    traegt: ohne angemeldete Sitzung zaehlt ALSA weniger Geraete auf als
+    mit einer -- die Eintraege fuer PipeWire und Pulse fallen weg, und
+    alles dahinter rutscht. Im Systemdienst bezeichnete dieselbe Nummer
+    damit ein anderes Geraet als am Pult. Beim Umstecken eines USB-
+    Mikrofons verschieben sich auch die vorderen Nummern."""
     return {
         "fassung": FASSUNG,
         "geraet": None,
+        "geraet_name": "",
         "quelle": config.AUSGANGSSPRACHE,
         "ziele": list(config.ZIELSPRACHEN),
         "wlan": {"ssid": "", "passwort": ""},
@@ -79,6 +87,12 @@ def _uebernehmen(roh, daten):
         daten["geraet"] = roh["geraet"]
     elif roh.get("geraet") is not None:
         fehlerhaft.append("geraet")
+
+    if "geraet_name" in roh:
+        if isinstance(roh["geraet_name"], str):
+            daten["geraet_name"] = roh["geraet_name"]
+        else:
+            fehlerhaft.append("geraet_name")
 
     if "quelle" in roh:
         gueltig = _sprache_pruefen(roh["quelle"], None)
@@ -184,8 +198,10 @@ def speichern(daten):
 
 def kurzfassung(daten):
     """Eine Zeile fuer die Startausgabe des Servers."""
-    geraet = "Vorgabegeraet" if daten["geraet"] is None \
-        else f"Geraet {daten['geraet']}"
+    if daten["geraet"] is None and not daten["geraet_name"]:
+        geraet = "Vorgabegeraet"
+    else:
+        geraet = daten["geraet_name"] or f"Geraet {daten['geraet']}"
     schwelle = daten["schwelle"]["wert"]
     return (f"{geraet}, {daten['quelle']} -> "
             f"{', '.join(daten['ziele']) or 'nichts'}, "

@@ -1,0 +1,61 @@
+# Devarenu als Systemdienst.
+#
+# Diese Datei ist eine Vorlage. dienst.sh setzt die Platzhalter auf die
+# Werte dieses Rechners und legt das Ergebnis in
+# /etc/systemd/system/devarenu.service ab. Von Hand bearbeitet gehoert
+# dort die fertige Datei, nicht diese.
+#
+# System-Unit mit User= und nicht Nutzer-Unit, aus zwei Gruenden:
+#
+#   Eine Nutzer-Unit kann nicht gegen eine System-Unit ordnen. Ollama
+#   laeuft als System-Dienst; die Abhaengigkeit unten waere aus einer
+#   Nutzer-Unit heraus nicht ausdrueckbar.
+#
+#   Headless ohne Anmeldung braucht eine Nutzer-Unit zwingend
+#   "loginctl enable-linger". Das geht, ist aber eine Bedingung mehr, und
+#   ihr Fehlen zeigt sich als "Dienst startet nicht", ohne zu sagen warum.
+#
+# PipeWire wird nicht gebraucht: der Server spricht ueber PortAudio
+# direkt ALSA an (hw:X,Y). Ohne Sitzung faellt der Zugriff ueber die
+# uaccess-ACL weg, deshalb SupplementaryGroups=audio -- so haengt es
+# nicht daran, ob jemand usermod ausgefuehrt und sich neu angemeldet hat.
+
+[Unit]
+Description=Devarenu, Live-Uebersetzung im Gottesdienst
+Documentation=https://github.com/Auroramomo/Devarenu
+# Ollama muss vorher laufen, sonst scheitert die erste Uebersetzung.
+# Ordnen allein genuegt nicht: systemd haelt eine Type=simple-Unit fuer
+# gestartet, sobald der Prozess laeuft, nicht wenn die Schnittstelle
+# antwortet. Deshalb wartet server.py zusaetzlich selbst.
+After=network-online.target ollama.service
+Wants=network-online.target ollama.service
+
+# Gehoert hierher und nicht zu [Service]: dort nimmt systemd den
+# Schluessel still nicht an. Ohne ihn gibt es nach fuenf schnellen
+# Fehlstarts endgueltig auf. Im Gemeindesaal ist Weiterprobieren besser --
+# ein Mikrofon, das erst mit der Tonanlage auftaucht, waere sonst ein Fall
+# fuer einen Handgriff, den am Sabbat niemand kennt.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=@BENUTZER@
+SupplementaryGroups=audio
+WorkingDirectory=@ORDNER@
+# -u, weil die Ausgabe ins Journal geht. Ohne das puffert Python
+# blockweise, und beim Absturz ist genau die letzte Meldung verloren.
+ExecStart=@ORDNER@/.venv/bin/python -u @ORDNER@/server.py --port @PORT@
+
+# KEIN --geraet und kein --mikro. Die Tonquelle steht in zustand.json und
+# wird am Pult gewaehlt. Stuende sie hier, wuerde der Dienst die Auswahl
+# aus der Oberflaeche bei jedem Neustart still ueberstimmen.
+
+Restart=always
+RestartSec=10
+
+# Bewusst ohne Haertung. PrivateDevices, ProtectHome oder DeviceAllow
+# nehmen /dev/snd oder /dev/nvidia* weg, und das Fehlerbild ist dasselbe
+# wie bei der fehlenden libcublas: laeuft scheinbar, liefert nichts.
+
+[Install]
+WantedBy=multi-user.target

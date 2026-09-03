@@ -82,6 +82,24 @@ else
   SYMBOL=0
 fi
 
+# ---------------------------------------------------------------- Dienst
+# Nur auf Nachfrage und mit "nein" als Vorgabe: wer entwickelt, will
+# keinen Dienst, der beim naechsten Einschalten den Port belegt. Fuer den
+# Rechner in der Gemeinde ist es dagegen der Normalfall -- dort meldet
+# sich niemand an und tippt ./start.sh.
+DIENST=0
+if [ -d /run/systemd/system ] && [ -f dienst.sh ]; then
+  printf '\n\033[1;34m== Systemdienst\033[0m\n'
+  printf '   Soll Devarenu beim Einschalten des Rechners von allein\n'
+  printf '   starten und sich nach einem Absturz selbst wieder fangen?\n'
+  printf '   Fuer den Rechner in der Gemeinde: ja. Zum Entwickeln: nein.\n\n'
+  read -rp "   Als Systemdienst einrichten? [j/N] " dienstantwort
+  case "${dienstantwort:-n}" in
+    [jJyY]*) bash ./dienst.sh && DIENST=1 ;;
+    *)       printf '   Gut. Nachholen jederzeit mit: ./dienst.sh\n' ;;
+  esac
+fi
+
 printf '\n\033[1;34m== Fertig\033[0m\n'
 if [ "$SYMBOL" = "1" ]; then
   printf '   Auf dem Schreibtisch liegt jetzt "Devarenu starten".\n'
@@ -96,6 +114,13 @@ fi
 if [ "$ERGEBNIS" != "0" ]; then
   printf '   \033[33mDer Selbsttest hat etwas beanstandet.\033[0m Nachlesen oben,\n'
   printf '   Test wiederholen mit:  .venv/bin/python selbsttest.py\n\n'
+fi
+
+# Laeuft der Dienst, laeuft der Server schon. Ein zweiter Start wuerde
+# nur am belegten Port scheitern.
+if [ "$DIENST" = "1" ]; then
+  printf '   Der Dienst läuft bereits. Adressen stehen oben.\n\n'
+  exit 0
 fi
 
 read -rp "   Jetzt gleich starten? [J/n] " antwort

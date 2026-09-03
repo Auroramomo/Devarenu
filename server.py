@@ -1299,6 +1299,7 @@ class Tonquelle:
         self.segmentierer = segmentierer
         self.wunschrate = wunschrate
         self.geraet = None
+        self.geraet_name = ""
         self.rate = None
         self.blockgroesse = None
         self.fehler = ""
@@ -1312,9 +1313,9 @@ class Tonquelle:
     def laeuft(self):
         return self._thread is not None and self._thread.is_alive()
 
-    def starten(self, geraet):
+    def starten(self, geraet, name=""):
         with self._schloss:
-            return self._starten(geraet)
+            return self._starten(self._aufloesen(geraet, name))
 
     def anhalten(self):
         with self._schloss:
@@ -1341,6 +1342,48 @@ class Tonquelle:
             self.fehler = grund
             return False, (f"{grund} Auch das vorherige Geraet laeuft nicht "
                            f"mehr, es kommt gerade kein Ton.")
+
+    @staticmethod
+    def _name_zu(nummer):
+        """Wie das Geraet mit dieser Nummer gerade heisst."""
+        try:
+            for g in geraete_liste():
+                if g["nummer"] == nummer:
+                    return g["name"]
+        except Exception:
+            pass
+        return ""
+
+    @staticmethod
+    def _aufloesen(nummer, name):
+        """Welche Nummer heute zu dieser Auswahl gehoert.
+
+        Der Name zuerst, die Nummer nur als Rueckfall. Die Nummern sind
+        nicht stabil: ohne angemeldete Sitzung zaehlt ALSA weniger
+        Geraete auf als mit einer, weil die Eintraege fuer PipeWire und
+        Pulse wegfallen und alles dahinter rutscht. Im Systemdienst haette
+        dieselbe Nummer damit ein anderes Geraet bezeichnet als am Pult.
+        Beim Umstecken eines USB-Mikrofons verschieben sich auch die
+        vorderen Nummern."""
+        if not name:
+            return nummer
+        try:
+            liste = geraete_liste()
+        except Exception:
+            return nummer
+        for g in liste:
+            if g["name"] == name:
+                if g["nummer"] != nummer:
+                    print(f"Tonquelle \"{name}\" hat jetzt Nummer "
+                          f"{g['nummer']} statt {nummer}.")
+                return g["nummer"]
+        if any(g["nummer"] == nummer for g in liste):
+            print(f"Tonquelle \"{name}\" ist nicht da. Es bleibt bei "
+                  f"Nummer {nummer}, das ist jetzt ein anderes Geraet.")
+            return nummer
+        print(f"Tonquelle \"{name}\" ist nicht da und Nummer {nummer} "
+              f"auch nicht. Es gilt das Vorgabegeraet.")
+        return None
 
     @staticmethod
     def _vorgabegeraet():
@@ -1383,6 +1426,7 @@ class Tonquelle:
             return False, (melder["fehler"]
                            or "Das Geraet liess sich nicht oeffnen.")
         self.geraet, self.rate, self.blockgroesse = geraet, rate, blockgroesse
+        self.geraet_name = self._name_zu(geraet)
         self._thread, self._stoppen = thread, stoppen
         self.fehler = ""
         return True, ""
@@ -1572,6 +1616,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
             return {"aktiv": True, "aktuell": tonquelle.geraet, "liste": [],
                     "fehler": f"Geraeteliste nicht lesbar: {str(e)[:120]}"}
         return {"aktiv": True, "aktuell": tonquelle.geraet,
+                "name": tonquelle.geraet_name,
                 "rate": tonquelle.rate, "laeuft": tonquelle.laeuft,
                 "liste": liste, "fehler": tonquelle.fehler}
 
@@ -1592,14 +1637,16 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
                                 status_code=400)
         gelungen, grund = tonquelle.wechseln(nummer)
         if gelungen:
-            lauf.zustand["geraet"] = nummer
+            lauf.zustand["geraet"] = tonquelle.geraet
+            lauf.zustand["geraet_name"] = tonquelle.geraet_name
             zustandsdatei.speichern(lauf.zustand)
-            print(f"Tonquelle: Geraet {nummer}, {tonquelle.rate} Hz")
+            print(f"Tonquelle: {tonquelle.geraet_name or nummer} "
+                  f"(Nr. {tonquelle.geraet}), {tonquelle.rate} Hz")
         else:
             print(f"Geraetewechsel gescheitert: {grund}")
         return {"gelungen": gelungen, "fehler": grund,
-                "aktuell": tonquelle.geraet, "rate": tonquelle.rate,
-                "laeuft": tonquelle.laeuft}
+                "aktuell": tonquelle.geraet, "name": tonquelle.geraet_name,
+                "rate": tonquelle.rate, "laeuft": tonquelle.laeuft}
 
     @app.get("/api/sprachen")
     def sprachen():
@@ -2784,6 +2831,39 @@ pegel();setInterval(pegel,150);
 
 # ================================================================
 
+def ollama_abwarten(frist=90.0):
+    """Wartet, bis Ollama antwortet. Gibt zurueck, ob es soweit ist.
+
+    Im Systemdienst reicht After=ollama.service nicht: systemd haelt eine
+    Type=simple-Unit fuer gestartet, sobald der Prozess exec\'t ist, nicht
+    wenn die Schnittstelle antwortet. Ohne dieses Warten scheitert nach
+    dem Einschalten die erste Uebersetzung -- also die im Gottesdienst.
+
+    Laeuft die Frist ab, geht es trotzdem weiter. Ohne Ollama gibt es
+    keine Uebersetzung, aber Untertitel in der Ausgangssprache, Pult und
+    Einrichtung funktionieren, und der Techniker sieht die Meldung. Ein
+    Abbruch waere hier die schlechtere Antwort: dann kaeme er nicht
+    einmal ans Pult, um nachzusehen."""
+    import requests
+    ende = time.time() + frist
+    gemeldet = False
+    while True:
+        try:
+            if requests.get(config.OLLAMA_URL + "/api/tags", timeout=3).ok:
+                return True
+        except Exception:
+            pass
+        if time.time() >= ende:
+            print(f"\nOllama antwortet nicht auf {config.OLLAMA_URL}. Der "
+                  f"Server laeuft weiter, aber ohne Uebersetzung.")
+            print("  Laeuft der Dienst?  systemctl status ollama\n")
+            return False
+        if not gemeldet:
+            print(f"Warte auf Ollama auf {config.OLLAMA_URL} ...")
+            gemeldet = True
+        time.sleep(1.0)
+
+
 def lokale_ip():
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -2859,6 +2939,9 @@ def main():
     # Fehlersuche da: wer ein Geraet ausprobiert, will damit nicht die
     # Einstellung der Gemeinde ueberschreiben.
     geraet = a.geraet if a.geraet is not None else stand["geraet"]
+    # Der Name gilt nur fuer die Auswahl aus der Datei. Wer auf der
+    # Kommandozeile eine Nummer nennt, meint diese Nummer.
+    geraet_name = "" if a.geraet is not None else stand["geraet_name"]
 
     werk = Werk(nur_text=a.nur_text)
     seg = Segmentierer(pause=a.pause, min_dauer=a.min_dauer,
@@ -2915,7 +2998,7 @@ def main():
         if a.sofort:
             lauf.laeuft = True
             lauf.begonnen = time.time()
-        gelungen, grund = tonquelle.starten(geraet)
+        gelungen, grund = tonquelle.starten(geraet, geraet_name)
         if not gelungen:
             # Kein Abbruchgrund mehr. Frueher lief der Server an dieser
             # Stelle ohne Ton weiter und ohne Ausweg; jetzt gibt es einen,
@@ -2923,13 +3006,16 @@ def main():
             print(f"\nKein Ton: {grund}")
             print("Am Pult unter Einrichtung ein anderes Geraet waehlen.\n")
 
+    ollama_da = ollama_abwarten()
+
     import uvicorn
     ip = lokale_ip()
     print(f"\n  Zuhörer   http://{ip}:{a.port}/")
     print(f"  Pult      http://{ip}:{a.port}/pult")
     print(f"  QR-Codes  http://{ip}:{a.port}/qr")
     print(f"  Modell    {config.LIVE_MODELL}"
-          f"{'  (nur Text)' if a.nur_text else ''}")
+          f"{'  (nur Text)' if a.nur_text else ''}"
+          f"{'' if ollama_da else '  (Ollama antwortet nicht)'}")
     print(f"  Rechnet   {werk.rechenwerk}")
     print(f"  Zustand   {woher}")
     print(f"            {zustandsdatei.kurzfassung(stand)}")
