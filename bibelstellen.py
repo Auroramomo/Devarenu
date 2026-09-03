@@ -2,18 +2,12 @@
 # -*- coding: utf-8 -*-
 """Baut aus Bibelstellen den Whisper-Prompt.
 
-Der Nachtlauf hat gezeigt, dass ein fester Prompt nichts bringt: er war mit
-adventistischen Lehrbegriffen gefuellt, waehrend Whisper sich an
-Eigennamen verhoert. Von 24 Begriffen kamen fuenf in der Predigt vor.
-
-Der Ausweg ist der Ablauf, den die Technik am Pult ohnehin leisten kann:
-vor dem Gottesdienst den Prediger nach Thema und Bibelstellen fragen, zwei
-Zeilen eintippen, fertig. Dieses Modul macht daraus eine Namensliste.
-
-Warum das hilft, auch bei Namen, die gar nicht in der Liste stehen:
-Whisper hat einen Sprachmodellanteil im Dekoder. Steht im Prompt ein
-Namensraum, bewertet es unbekannte Lautfolgen anders und schreibt eher
-einen Eigennamen als ein zerlegtes Alltagswort.
+Ein fester Prompt bringt nichts: Whisper verhoert sich an Eigennamen,
+nicht an Lehrbegriffen. Der Ausweg ist der Ablauf, den die Technik am
+Pult ohnehin leisten kann -- vor dem Gottesdienst Thema und Bibelstellen
+erfragen, zwei Zeilen eintippen. Dieses Modul macht daraus eine
+Namensliste. Ausfuehrlich begruendet in LIESMICH.md unter "Warum es so
+gebaut ist".
 
 Aufruf zum Ausprobieren:
     python bibelstellen.py "Predigt über Vergebung. 1. Samuel 15, Matthäus 18"

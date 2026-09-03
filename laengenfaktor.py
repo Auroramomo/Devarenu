@@ -2,16 +2,12 @@
 # -*- coding: utf-8 -*-
 """Misst, wie viel laenger die gesprochene Uebersetzung dauert als das Original.
 
-Der Laengenfaktor ist der wichtigste ungemessene Wert der Latenzsimulation.
-Ich hatte 1,2 angenommen. Ist er in Wahrheit 1,35, verschiebt sich die ganze
-Rechnung und der Kandidatenkreis wird kleiner.
-
-Gemessen wird gegen die ECHTE Sprechdauer aus woerter.json, nicht gegen eine
-synthetische deutsche Referenz. Genau dieses Verhaeltnis braucht die
+Gemessen wird gegen die ECHTE Sprechdauer aus woerter.json, nicht gegen
+eine synthetische deutsche Referenz. Genau dieses Verhaeltnis braucht die
 Simulation: der Prediger spricht, Piper muss hinterherkommen.
 
-Zusaetzlich wird deutsches Piper mitgemessen, um zwei Effekte zu trennen:
-spricht Piper generell anders schnell als der Prediger, und ist Russisch
+Deutsches Piper wird mitgemessen, um zwei Effekte zu trennen: spricht
+Piper generell anders schnell als der Prediger, und ist Russisch
 beziehungsweise Persisch darueber hinaus laenger.
 
 Ablauf:
@@ -82,9 +78,6 @@ def sprich(befehl, modell, text, ziel, tempo=1.0):
     dann zwei Zeichen, die einzeln vorgelesen werden, und aus "ã" wird der
     Unicode-Name "atilde". Genau das ist im ersten Anlauf passiert und hat
     saemtliche Messwerte unbrauchbar gemacht, bei Farsi bis Faktor 5,5.
-
-    Gerd hatte dasselbe Problem bereits dokumentiert und mit einer
-    UTF-8-Datei geloest. Das war zu ignorieren mein Fehler.
 
     tempo steuert --length-scale. Piper rechnet dabei umgekehrt: kleinere
     Werte bedeuten kuerzere Phoneme, also schnelleres Sprechen. Ein

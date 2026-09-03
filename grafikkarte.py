@@ -2,27 +2,25 @@
 # -*- coding: utf-8 -*-
 """Die CUDA-Bibliotheken der venv in den Prozess laden.
 
-Warum das noetig ist: ctranslate2 unter faster_whisper bindet libcublas
-nicht ueber den Linker ein, sondern oeffnet sie erst beim ersten
-transcribe mit dlopen. Im Binaercode stehen genau zwei Namen,
-libcublas.so.12 und libcuda.so.1. Die zweite kommt vom Treiber und liegt
-im Systempfad; die erste liegt bei einer pip-Installation nur in
-site-packages/nvidia/cublas/lib, und dort sucht der Lader nicht.
+ctranslate2 unter faster_whisper bindet libcublas nicht ueber den Linker
+ein, sondern oeffnet sie beim ersten transcribe mit dlopen. Bei einer
+pip-Installation liegt sie nur in site-packages/nvidia/cublas/lib, und
+dort sucht der Lader nicht.
 
-Die Folge war nicht etwa ein Abbruch, sondern ein stiller Ausfall: das
-Modell laedt einwandfrei, und erst jedes einzelne Segment scheitert mit
-"Library libcublas.so.12 is not found or cannot be loaded". Der
-Selbsttest lief dabei gruen, weil er torch importierte -- torch laedt
-dieselben Bibliotheken beim Import selbst nach und machte sie damit
-nebenbei auch fuer ctranslate2 auffindbar. Er hat also eine Umgebung
-geprueft, die im Betrieb nicht existierte.
+Die Folge war kein Abbruch, sondern ein stiller Ausfall: das Modell laedt
+einwandfrei, und erst jedes einzelne Segment scheitert mit "Library
+libcublas.so.12 is not found or cannot be loaded". Der Selbsttest lief
+dabei gruen, weil er torch importierte -- torch laedt dieselben
+Bibliotheken beim Import nach und machte sie nebenbei auch fuer
+ctranslate2 auffindbar. Er prueft also eine Umgebung, die im Betrieb
+nicht existiert.
 
 Vorladen statt LD_LIBRARY_PATH: der Lader liest die Variable beim
-Prozessstart, aus dem laufenden Python heraus ist sie nicht mehr
-wirksam zu setzen. Sie wirkte ausserdem nur beim Start ueber start.sh --
-ein systemd-Dienst braeuchte eine eigene Environment-Zeile, und wer
-server.py von Hand aufruft, staende wieder ohne da. Das Vorladen wirkt
-in genau dem Prozess, unabhaengig davon, wer ihn gestartet hat.
+Prozessstart, aus dem laufenden Python heraus ist sie nicht mehr wirksam
+zu setzen. Sie wirkte ausserdem nur ueber start.sh -- ein systemd-Dienst
+braeuchte eine eigene Environment-Zeile, und wer server.py von Hand
+aufruft, staende wieder ohne da. Das Vorladen wirkt in genau dem Prozess,
+gleich wer ihn gestartet hat.
 """
 
 import ctypes
@@ -84,15 +82,13 @@ def vorladen():
 def probe(modell):
     """Prueft, ob dieses Whisper-Modell tatsaechlich rechnen kann.
 
-    Eine Sekunde Stille durch transcribe. Bewertet wird ausschliesslich,
-    ob der Aufruf ohne Ausnahme durchlaeuft. Was dabei herauskommt, ist
-    egal: bei Stille ist leerer Text das erwartete Ergebnis und kein
-    Fehler.
+    Eine Sekunde Stille durch transcribe. Bewertet wird nur, ob der Aufruf
+    ohne Ausnahme durchlaeuft; bei Stille ist leerer Text das erwartete
+    Ergebnis.
 
-    Noetig ist die Probe, weil das Laden des Modells nichts beweist. Genau
-    das war der Befund: WhisperModel(device="cuda") lief anstandslos
-    durch, und erst das erste transcribe fiel um. Wer nur das Laden
-    prueft, prueft am Fehler vorbei.
+    Noetig, weil das Laden des Modells nichts beweist:
+    WhisperModel(device="cuda") lief anstandslos durch, und erst das erste
+    transcribe fiel um. Wer nur das Laden prueft, prueft am Fehler vorbei.
 
     Der Rueckgabewert von transcribe ist ein Generator; ohne ihn
     auszulesen passiert gar nichts, und die Probe waere wertlos."""

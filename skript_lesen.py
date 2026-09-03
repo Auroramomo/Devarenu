@@ -7,10 +7,9 @@ benutzt. Gesprochen wird, was gesprochen wird, und Prediger weichen ab,
 kuerzen, schweifen aus. Wer das Manuskript ausliefert, merkt Abweichungen
 nicht und uebersetzt am Ende etwas, das nie gesagt wurde.
 
-Gezogen werden nur die Namen. Sie sind der Teil, an dem Whisper scheitert,
-und ein Manuskript liefert genau die, die in keiner Bibelstelle stehen:
-Ortsnamen aus einer Anekdote, ein zitierter Autor, ein hebraeischer
-Ausdruck.
+Gezogen werden nur die Namen. An denen scheitert Whisper, und ein
+Manuskript liefert genau die, die in keiner Bibelstelle stehen: Ortsnamen
+aus einer Anekdote, ein zitierter Autor, ein hebraeischer Ausdruck.
 
 Drei Quellen werden zusammengefuehrt:
   1. Bibelstellen im Text, daraus die Namen des Kapitels

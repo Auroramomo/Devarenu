@@ -1,27 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Devarenu v0.1 — der echte Server.
-
-Bedient dieselbe Schnittstelle wie mock_server.py, rechnet aber wirklich:
+"""Der Server.
 
     Mikrofon -> Segmentierung -> Whisper -> Uebersetzung -> Piper -> Zuhoerer
 
-Damit bleibt client.html unveraendert.
+Zwei Entscheidungen tragen den Aufbau:
 
-Aufbau der Verarbeitung, und warum sie so ist:
+  Segmente NACHEINANDER, die Zielsprachen eines Segments GLEICHZEITIG.
+  Nacheinander, weil die Reihenfolge beim Zuhoerer stimmen muss;
+  gleichzeitig, weil drei parallele Anfragen bei kleinen Modellen kaum
+  mehr kosten als eine -- und das traegt die Latenz.
 
-  Die Segmente werden NACHEINANDER verarbeitet, die drei Zielsprachen eines
-  Segments dagegen GLEICHZEITIG. Beides ist Absicht. Nacheinander, weil die
-  Reihenfolge beim Zuhoerer stimmen muss; gleichzeitig, weil die Messung
-  gezeigt hat, dass drei parallele Anfragen bei kleinen Modellen kaum mehr
-  kosten als eine, und das ist der Faktor, der die Latenz traegt.
-
-  Die Segmentgrenze wird live an Sprechpausen gezogen, nicht an Satzzeichen.
-  Satzzeichen kennt man erst nach Whisper, also zu spaet.
+  Geschnitten wird an Sprechpausen, nicht an Satzzeichen. Satzzeichen
+  kennt man erst nach Whisper, also zu spaet.
 
 Aufruf:
     python server.py --geraete            # welche Mikrofone gibt es?
-    python server.py --geraet 3
     python server.py --geraet 3 --nur-text
 """
 
@@ -99,7 +93,6 @@ class Segmentierer:
         self.vorpuffer = deque(maxlen=int(vorlauf * MIKRO_RATE / BLOCK) + 1)
         self.stille_bloecke = 0
         self.spricht = False
-        # Beobachtungswerte fuer die Anzeige am Pult
         self.pegel_jetzt = 0.0
         self.pegel_spitze = 0.0
         self.verworfen = 0
@@ -654,16 +647,12 @@ SATZENDE = re.compile(r"[.!?…]\s*[\"»)]?\s*$")
 class Satzsammler:
     """Fasst Sprechabschnitte zu ganzen Saetzen zusammen.
 
-    Der Segmentierer schneidet an Sprechpausen, weil er live nichts anderes
-    kann: Satzzeichen kennt man erst nach Whisper. Uebersetzt man diese
-    Bruchstuecke einzeln, entstehen genau die Fehler, die eine russische
-    Muttersprachlerin bemaengelt hat: falsche Wortendungen.
-
-    Russisch hat sechs Faelle, und welcher richtig ist, ergibt sich aus der
-    Rolle im Satz. Bekommt das Modell nur "die Rechtfertigung", kann es
-    nicht wissen, ob das Subjekt oder Objekt ist, und raet. Bei Adjektiven
-    ist es schlimmer: sie richten sich nach ihrem Substantiv, und wenn das
-    im naechsten Bruchstueck steht, passt die Endung nicht.
+    Einzeln uebersetzte Bruchstuecke ergeben falsche Wortendungen -- von
+    einer russischen Muttersprachlerin bemaengelt. Russisch hat sechs
+    Faelle, und welcher richtig ist, ergibt sich aus der Rolle im Satz:
+    bei "die Rechtfertigung" allein raet das Modell, ob Subjekt oder
+    Objekt. Adjektive richten sich nach ihrem Substantiv, und das steht
+    womoeglich erst im naechsten Bruchstueck.
 
     Deshalb wird gesammelt, bis Whisper ein Satzzeichen setzt. Damit die
     Ausgabe bei einem Redner ohne Punkt nicht stehenbleibt, greifen zwei
@@ -1303,15 +1292,13 @@ class Tonquelle:
     """Haelt den Mikrofon-Thread und wechselt ihn im laufenden Betrieb.
 
     Jeder Thread bekommt sein eigenes Stopp-Event. Vorher war es ein
-    einziges, geteilt mit dem Abschalten des Servers -- wer es zum Stoppen
-    des alten Threads gesetzt haette, haette den neuen in eine bereits
-    gesetzte Bedingung gestartet, und der Ton waere bis zum Neustart weg
-    geblieben.
+    einziges, geteilt mit dem Abschalten des Servers -- der neue Thread
+    startete dann in eine bereits gesetzte Bedingung, und der Ton war bis
+    zum Neustart weg.
 
     Scheitert ein Wechsel, kommt das vorherige Geraet zurueck. Scheitert
-    auch das, laeuft der Server ohne Ton weiter und sagt es. Stehenbleiben
-    ist keine Antwort: am Pult sitzt jemand, der genau jetzt ein anderes
-    Geraet auswaehlen koennen muss."""
+    auch das, laeuft der Server ohne Ton weiter und sagt es: am Pult sitzt
+    jemand, der genau jetzt ein anderes Geraet auswaehlen koennen muss."""
 
     # So lange wird auf den offenen Datenstrom gewartet, bevor der Versuch
     # als gescheitert gilt. Ein USB-Mikrofon meldet sich in Sekundenbruch-
@@ -1691,7 +1678,6 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
                        if spende.get("iban") else None),
             "quelle": lauf.quelle,
             "ziele": lauf.ziele,
-            # Was gerade laeuft, fuer die Zuhoererseite.
             "liste": [{
                 "code": sp,
                 "name": config.SPRACHNAMEN.get(sp, sp),
@@ -1701,8 +1687,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
                 # Fachwortverzeichnis durchgesehen.
                 "geprueft": sp in getattr(config, "GEPRUEFT", set()),
             } for sp in lauf.sprachen],
-            # Was zur Auswahl steht, fuer das Pult. Sprachen ohne Stimme
-            # sind nicht ausgeschlossen: sie laufen als reiner Untertitel.
+            # Sprachen ohne Stimme sind nicht ausgeschlossen: sie laufen
+            # als reiner Untertitel.
             "moeglich": [{
                 "code": sp,
                 "name": name,
@@ -1891,15 +1877,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
     async def skript(datei: UploadFile = File(None), text: str = Form("")):
         """Nimmt ein Predigtmanuskript und zieht die Namen daraus.
 
-        Der Text wird ausdruecklich NICHT ausgeliefert. Prediger weichen ab,
-        kuerzen, schweifen aus; wer das Manuskript vorliest, merkt das nicht
-        und uebersetzt am Ende etwas, das nie gesagt wurde. Gesprochen wird,
-        was gesprochen wird.
-
-        Gezogen werden nur die Namen, und die sind das eigentliche Problem:
-        ein Manuskript liefert genau die, die in keiner Bibelstelle stehen.
-        Ein Ortsname aus einer Anekdote, ein zitierter Autor, ein
-        hebraeischer Ausdruck."""
+        Der Text wird ausdruecklich NICHT ausgeliefert, nur die Namen --
+        und zwar die, die in keiner Bibelstelle stehen. Ausfuehrlich
+        begruendet im Modulkommentar von skript_lesen.py."""
         from skript_lesen import auswerten, text_aus_datei
         if datei is not None and datei.filename:
             roh = await datei.read()
@@ -2872,11 +2852,10 @@ def ollama_abwarten(frist=90.0):
     wenn die Schnittstelle antwortet. Ohne dieses Warten scheitert nach
     dem Einschalten die erste Uebersetzung -- also die im Gottesdienst.
 
-    Laeuft die Frist ab, geht es trotzdem weiter. Ohne Ollama gibt es
-    keine Uebersetzung, aber Untertitel in der Ausgangssprache, Pult und
-    Einrichtung funktionieren, und der Techniker sieht die Meldung. Ein
-    Abbruch waere hier die schlechtere Antwort: dann kaeme er nicht
-    einmal ans Pult, um nachzusehen."""
+    Laeuft die Frist ab, geht es trotzdem weiter: Untertitel, Pult und
+    Einrichtung funktionieren auch ohne Ollama. Ein Abbruch waere die
+    schlechtere Antwort -- dann kaeme der Techniker nicht einmal ans Pult,
+    um nachzusehen."""
     import requests
     ende = time.time() + frist
     gemeldet = False

@@ -2,15 +2,13 @@
 # -*- coding: utf-8 -*-
 """Baut Block B des Glossars: Eigen- und Ortsnamen aus einer Bibel-PDF.
 
-Wozu: Der Whisper-Prompt fasst nur 224 Token. Der Nachtlauf hat gezeigt,
-dass er in der bisherigen Form nichts bringt, weil die falschen Begriffe
-darin standen: adventistische Lehrbegriffe, waehrend Whisper sich an
-Eigennamen verhoert. Mit einem Namensindex laesst sich der Prompt aus den
-Bibelstellen bauen, die der Techniker vor dem Gottesdienst eintraegt.
+Der Whisper-Prompt fasst nur 224 Token, und Whisper verhoert sich an
+Eigennamen, nicht an Lehrbegriffen. Mit einem Namensindex laesst sich der
+Prompt aus den Bibelstellen bauen, die der Techniker vor dem
+Gottesdienst eintraegt.
 
-Was herauskommt und was nicht: erzeugt wird eine Liste aus Namen,
-Haeufigkeiten und Fundstellen. Das ist ein Index, kein Textauszug. Der
-Bibeltext selbst bleibt auf dem Rechner und wird nicht gespeichert.
+Erzeugt wird ein Index aus Namen, Haeufigkeiten und Fundstellen, kein
+Textauszug: der Bibeltext selbst wird nicht gespeichert.
 
 Ablauf:
     python namen_aus_bibel.py --probe bibel.pdf       # was gibt das PDF her?
@@ -256,15 +254,14 @@ ZAHLWOERTER = {"zwei", "drei", "vier", "fünf", "fuenf", "sechs", "sieben",
 def kandidaten(text, hoechste_begleiterquote=0.25):
     """Trennt Eigennamen von normalen Substantiven.
 
-    Der erste Versuch, ueber Gross- und Kleinschreibung zu gehen, war falsch:
-    im Deutschen sind ALLE Substantive gross, nicht nur Namen. "Volk" kommt
-    nirgends klein vor und waere durchgerutscht.
+    Ueber Gross- und Kleinschreibung geht es nicht: im Deutschen sind ALLE
+    Substantive gross. "Volk" kommt nirgends klein vor und rutschte durch.
 
     Das tragfaehige Kriterium ist der Begleiter. Gattungsnamen stehen
-    ueberwiegend mit Artikel oder Possessivpronomen: das Volk, ein Altar,
-    seine Herden. Eigennamen stehen fast immer nackt: Elia sprach, nach
-    Zarpat, Jakobs Soehne. Gemessen wird der Anteil der Vorkommen mit
-    Begleiter; liegt er ueber einem Viertel, ist es ein Gattungsname.
+    ueberwiegend mit Artikel oder Possessivpronomen (das Volk, ein Altar),
+    Eigennamen fast immer nackt (Elia sprach, nach Zarpat). Gemessen wird
+    der Anteil der Vorkommen mit Begleiter; ueber einem Viertel ist es ein
+    Gattungsname.
 
     Das ist eine Heuristik, keine Grammatik. Sie irrt bei festen Wendungen
     wie "der Herr Zebaoth" und bei Voelkernamen mit Artikel. Fuer einen

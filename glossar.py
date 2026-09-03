@@ -85,12 +85,10 @@ class Glossar:
         """Sucht Glossarbegriffe in einem Text der angegebenen Quellsprache.
 
         Fuer Deutsch stehen gepflegte Suchvarianten bereit. Fuer andere
-        Quellsprachen gibt es die nicht, und sie waeren auch kaum zu
-        pflegen: Ukrainisch hat sieben Faelle, dazu Zahl und Geschlecht.
-        Stattdessen wird der Zieleintrag der Quellsprache auf seinen Stamm
-        gekuerzt und als Wortanfang gesucht. Das ist unschaerfer als die
-        deutsche Variantenliste, aber es erfasst die Flexion, ohne sie
-        aufzuzaehlen.
+        Quellsprachen waeren sie kaum zu pflegen -- Ukrainisch hat sieben
+        Faelle, dazu Zahl und Geschlecht. Stattdessen wird der Zieleintrag
+        auf seinen Stamm gekuerzt und als Wortanfang gesucht: unschaerfer,
+        erfasst die Flexion aber, ohne sie aufzuzaehlen.
 
         Dasselbe Verfahren hat schon bei der Auswertung gefehlt: dort galt
         russisches "благодати" im Dativ nicht als Treffer fuer
@@ -192,15 +190,14 @@ def glossarzeilen(eintraege, sprache, quelle="de"):
 def vokalisieren(glossar, text):
     """Setzt in einem persischen Text die Vokalzeichen der Glossarbegriffe.
 
-    Warum ueberhaupt: Persisch schreibt kurze Vokale nicht. Piper muss die
-    Aussprache also raten und liegt bei mehrdeutigen Woertern daneben. In
-    einem Test wurde koshti (Ringen) als kashti (Schiff) gesprochen, weil
-    beides كشتی geschrieben wird. Mit Vokalzeichen ist der Fall eindeutig.
+    Persisch schreibt kurze Vokale nicht, Piper muss die Aussprache also
+    raten. Im Test wurde koshti (Ringen) als kashti (Schiff) gesprochen,
+    weil beides كشتی geschrieben wird; mit Vokalzeichen ist es eindeutig.
 
-    Warum nur die Glossarbegriffe: eine vollstaendige automatische
-    Diakritisierung waere ein eigener Verarbeitungsschritt mit eigener
-    Fehlerquelle und eigener Latenz. Die Fachbegriffe sind genau die Stellen,
-    an denen ein Fehler weh tut, und fuer sie liegen gepruefte Formen vor.
+    Nur die Glossarbegriffe, weil eine vollstaendige Diakritisierung ein
+    eigener Verarbeitungsschritt mit eigener Fehlerquelle und Latenz
+    waere. Bei den Fachbegriffen tut ein Fehler weh, und fuer sie liegen
+    gepruefte Formen vor.
 
     Ersetzt wird laengster Treffer zuerst, damit bei mehrwortigen Begriffen
     nicht ein Bestandteil einzeln erwischt wird."""

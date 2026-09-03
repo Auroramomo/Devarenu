@@ -9,7 +9,6 @@ und landet spaeter in zustand.json daneben, nicht hier.
 from pathlib import Path
 
 # ---------------------------------------------------------------- Pfade
-# Ordner, in dem die Skripte und CSVs liegen.
 BASIS = Path(__file__).resolve().parent
 
 # Fassung des Programms. Steht in einer eigenen Datei, damit
@@ -32,7 +31,7 @@ ERGEBNIS_ORDNER = BASIS / "ergebnisse"
 # vollstaendig und laesst sich als Ganzes kopieren.
 MODELL_ORDNER = BASIS / "models"
 
-# Audiodatei fuer Test A. Liegt im selben Ordner wie die Skripte.
+# Audiodatei fuer Test A.
 AUDIO = str(BASIS / "predigt.mp3")
 
 # Ausschnitt fuer Test A in Sekunden. AUDIO_DAUER = None nimmt alles.

@@ -97,7 +97,22 @@ orthodoxen Wort für Heiligenanrufung übersetzt.
 **Der Whisper-Prompt besteht aus Eigennamen, nicht aus Lehrbegriffen.**
 Der erste Versuch brachte nichts, weil Sabbatschule und
 Untersuchungsgericht darin standen, die Predigt aber Bilha und Kapernaum
-brauchte.
+brauchte. Von 24 Begriffen im festen Prompt kamen fünf in der Predigt
+überhaupt vor.
+
+Er hilft auch bei Namen, die gar nicht in der Liste stehen. Whisper hat
+einen Sprachmodellanteil im Dekoder: steht im Prompt ein Namensraum,
+bewertet es unbekannte Lautfolgen anders und schreibt eher einen
+Eigennamen als ein zerlegtes Alltagswort. Der Prompt fasst nur 224 Token,
+deshalb wird er aus den eingetragenen Bibelstellen gebaut statt fest
+vorgegeben.
+
+**Das Predigtmanuskript wird ausgewertet, nicht ausgeliefert.** Prediger
+weichen ab, kürzen, schweifen aus. Wer das Manuskript vorliest, merkt die
+Abweichung nicht und überträgt am Ende etwas, das nie gesagt wurde.
+Gezogen werden nur die Namen — und zwar die, die in keiner Bibelstelle
+stehen: Ortsnamen aus einer Anekdote, ein zitierter Autor, ein
+hebräischer Ausdruck.
 
 **Es gibt keinen Rückfall.** Fällt eine Komponente aus, steht die
 Übersetzung still. Eine erfundene Übersetzung wäre schlimmer als keine.

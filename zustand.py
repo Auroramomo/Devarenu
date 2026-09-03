@@ -3,10 +3,10 @@
 """Was pro Gemeinde abweicht, ueber den Neustart hinweg.
 
 config.py gilt fuer alle Gemeinden gleich und wird beim Aktualisieren
-ueberschrieben. Hier steht, was genau diesem Rechner gehoert: das
-Aufnahmegeraet, die Sprachen, das WLAN und die eingemessene
-Mindestlautstaerke. Beides zu trennen ist der ganze Zweck der Datei --
-sonst kostet jedes Update dem Techniker seine Einstellungen.
+ueberschrieben. Hier steht, was diesem Rechner gehoert: Aufnahmegeraet,
+Sprachen, WLAN und die eingemessene Mindestlautstaerke. Die Trennung ist
+der ganze Zweck der Datei -- sonst kostet jedes Update dem Techniker
+seine Einstellungen.
 
 Geschrieben wird bei jeder Aenderung sofort, nicht erst beim Beenden.
 Ein Rechner im Gemeindesaal wird selten sauber heruntergefahren, und was
@@ -50,11 +50,13 @@ def vorgabe():
     heisst mitlaufende Schwelle statt festgenagelter.
 
     geraet_name steht neben der Nummer, weil die Nummer allein nicht
-    traegt: ohne angemeldete Sitzung zaehlt ALSA weniger Geraete auf als
-    mit einer -- die Eintraege fuer PipeWire und Pulse fallen weg, und
-    alles dahinter rutscht. Im Systemdienst bezeichnete dieselbe Nummer
-    damit ein anderes Geraet als am Pult. Beim Umstecken eines USB-
-    Mikrofons verschieben sich auch die vorderen Nummern."""
+    traegt: Dienst und angemeldete Sitzung zaehlen verschieden. Ohne
+    Sitzung zeigt ALSA einen anderen Satz Plugin-Eintraege, und der
+    Dienst haelt das benutzte Mikrofon exklusiv offen, es fehlt einer
+    zweiten Aufzaehlung deshalb ganz. Gemessen wurden 13 Geraete beim
+    Dienst gegen 7 im Terminal, mit verschiedener Nummer 0 -- die
+    Richtung steht nicht fest, nur dass die Nummern abweichen. Beim
+    Umstecken eines USB-Mikrofons verschieben sie sich zusaetzlich."""
     return {
         "fassung": FASSUNG,
         "geraet": None,

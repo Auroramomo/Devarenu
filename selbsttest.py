@@ -2,16 +2,15 @@
 # -*- coding: utf-8 -*-
 """Prueft nach dem Einrichten, ob die Kette wirklich laeuft.
 
-Warum ueberhaupt: einrichten.sh prueft nur, ob Dateien und Pakete da
-sind. Das ist etwas anderes als "es funktioniert". Ein Modell kann
-heruntergeladen und trotzdem nicht ladbar sein, eine Stimme kann fehlen,
-Ollama kann laufen ohne das gebrauchte Modell zu haben, und die
-Piper-Schnittstelle hat sich zwischen den Versionen mehrfach geaendert.
-Solche Sachen sollen hier auffallen und nicht am Sabbatmorgen.
+einrichten.sh prueft nur, ob Dateien und Pakete da sind, und das ist
+etwas anderes als "es funktioniert": ein Modell kann heruntergeladen und
+trotzdem nicht ladbar sein, Ollama laufen ohne das gebrauchte Modell, die
+Piper-Schnittstelle sich zwischen den Versionen geaendert haben. Solches
+soll hier auffallen und nicht am Sabbatmorgen.
 
 Der letzte Schritt ist der eigentliche Test: Piper spricht einen Satz,
-Whisper hoert ihn sich an und schreibt ihn auf. Kommt der Satz durch,
-funktionieren Sprachausgabe und Spracherkennung nachweislich zusammen.
+Whisper schreibt ihn wieder auf. Kommt er durch, funktionieren
+Sprachausgabe und Spracherkennung nachweislich zusammen.
 
     python selbsttest.py           alles
     python selbsttest.py --schnell ohne Whisper (spart das Modell-Laden)
