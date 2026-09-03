@@ -81,7 +81,12 @@ trap aufraeumen INT TERM EXIT
 echo "Server startet ..."
 # Die Ersatzform, weil ein leeres Array unter set -u in bash vor 4.4
 # als ungesetzte Variable gilt. Ohne Argument ist der Normalfall.
-$PY server.py ${QUELLE[@]+"${QUELLE[@]}"} --port "$PORT" &
+# -u, weil die Ausgabe hier nicht ins Terminal geht, sondern in eine
+# Pipe: Python puffert dann blockweise, und beim Beenden ist der Puffer
+# verloren. Genau die Meldungen, die zaehlen -- kein Ton, keine
+# Erkennung auf der Grafikkarte -- kamen so nie an. Fuer den spaeteren
+# Systemdienst gilt dasselbe, dort ist das Journal die Pipe.
+$PY -u server.py ${QUELLE[@]+"${QUELLE[@]}"} --port "$PORT" &
 SERVER_PID=$!
 
 for _ in $(seq 1 90); do
