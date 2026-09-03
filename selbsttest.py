@@ -62,7 +62,8 @@ def pruefe_dateien():
     abschnitt("Dateien")
     import config
 
-    for datei in ("server.py", "zustand.py", "glossar.py", "bibelstellen.py",
+    for datei in ("server.py", "zustand.py", "grafikkarte.py",
+                  "glossar.py", "bibelstellen.py",
                   "skript_lesen.py", "namen_aus_bibel.py",
                   "laengenfaktor.py", "client.html"):
         if (config.BASIS / datei).exists():
@@ -261,6 +262,28 @@ def pruefe_piper(ziel):
 def pruefe_whisper(quelle):
     abschnitt("Spracherkennung (Whisper)")
     import config
+    import grafikkarte
+
+    # Hier stand frueher ein "import torch", um nach der GPU zu fragen.
+    # Genau der hat den Test gruen gemeldet, waehrend der Server nichts
+    # erkannte: torch laedt die CUDA-Bibliotheken beim Import selbst nach
+    # und macht sie damit nebenbei auch fuer ctranslate2 auffindbar. Der
+    # Server tut das nicht. Der Test hat also eine Umgebung geprueft, die
+    # im Betrieb nicht existierte.
+    #
+    # Deshalb jetzt: die Karte ueber den Treiber erfragen, die
+    # Bibliotheken genauso vorladen wie der Server, und die Frage, ob es
+    # rechnet, allein an einer echten Transkription entscheiden.
+    karte = grafikkarte.karte_gefunden()
+    if karte:
+        ok(f"Grafikkarte: {karte}")
+    else:
+        warnung("Keine Grafikkarte gefunden (nvidia-smi meldet nichts). "
+                "Fuer den Livebetrieb ist die CPU zu langsam.")
+
+    geladen = grafikkarte.vorladen()
+    if geladen:
+        ok(f"CUDA-Bibliotheken der venv: {', '.join(geladen)}")
 
     try:
         from faster_whisper import WhisperModel
@@ -269,25 +292,52 @@ def pruefe_whisper(quelle):
         return
 
     geraet, rechenart = config.WHISPER_DEVICE, config.WHISPER_COMPUTE
-    try:
-        import torch
-        if geraet == "cuda" and not torch.cuda.is_available():
-            warnung("Keine GPU sichtbar, pruefe auf der CPU. Fuer den "
-                    "Livebetrieb ist die CPU zu langsam.")
-            geraet, rechenart = "cpu", "int8"
-    except ImportError:
-        pass
-
     t0 = time.perf_counter()
     try:
         modell = WhisperModel(config.WHISPER_MODELL, device=geraet,
                               compute_type=rechenart,
                               download_root=str(config.MODELL_ORDNER))
     except Exception as e:
-        fehler(f"Modell nicht ladbar: {kurz(e)}")
-        return
-    ok(f"{config.WHISPER_MODELL} geladen ({geraet}, "
-       f"{time.perf_counter()-t0:.1f}s)")
+        warnung(f"Auf {geraet} nicht ladbar: {kurz(e)}")
+        modell, geraet, rechenart = None, "cpu", "int8"
+
+    # Dass sich das Modell laden liess, sagt nichts darueber, ob es
+    # rechnet: mit fehlendem libcublas laedt es anstandslos und faellt
+    # erst beim ersten transcribe um. Bewertet wird nur, ob der Aufruf
+    # durchlaeuft -- Stille darf leeres Ergebnis liefern.
+    if modell is not None:
+        geht, grund = grafikkarte.probe(modell)
+        if not geht:
+            warnung(f"Auf {geraet} laedt das Modell, rechnet aber nicht: "
+                    f"{grund}")
+            modell, geraet, rechenart = None, "cpu", "int8"
+
+    if modell is None:
+        try:
+            modell = WhisperModel(config.WHISPER_MODELL, device=geraet,
+                                  compute_type=rechenart,
+                                  download_root=str(config.MODELL_ORDNER))
+            geht, grund = grafikkarte.probe(modell)
+        except Exception as e:
+            geht, grund = False, kurz(e)
+        if not geht:
+            fehler(f"Auch auf der CPU rechnet Whisper nicht: {grund}")
+            return
+
+    # Die Zeile, die vorher fehlte: worauf tatsaechlich gerechnet wurde.
+    hinweis = f"Whisper rechnet auf {geraet} ({rechenart})"
+    if geraet == "cpu" and karte:
+        # Eine Karte ist da und wird trotzdem nicht benutzt: das ist kein
+        # Hinweis, sondern kaputt. Genau dieser Fall lief hier frueher
+        # gruen durch.
+        fehler(f"{hinweis}, obwohl {karte} vorhanden ist. Fuer den "
+               f"Livebetrieb ist die CPU zu langsam.")
+    elif geraet == "cpu":
+        warnung(f"{hinweis}. Fuer den Livebetrieb ist das zu langsam: der "
+                f"Rueckstand waechst ueber die Predigt hinweg.")
+    else:
+        ok(f"{hinweis}, geladen und geprueft in "
+           f"{time.perf_counter()-t0:.1f}s")
 
     if not quelle or not Path(quelle).exists():
         warnung("Keine Tondatei aus der Sprachausgabe, "

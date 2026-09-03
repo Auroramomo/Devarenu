@@ -43,6 +43,7 @@ from pathlib import Path
 import numpy as np
 
 import config
+import grafikkarte
 # Unter anderem Namen, weil weiter unten ein Endpunkt /api/zustand mit der
 # Funktion zustand() steht. Die wuerde das Modul im ganzen Namensraum von
 # app_bauen verdecken, und zwar still: der Zugriff schluege erst zur
@@ -293,16 +294,19 @@ class Werk:
     in Threads und nicht im Ereignisschleifen-Thread."""
 
     def __init__(self, nur_text=False):
+        # Vor dem Import von faster_whisper: ctranslate2 darunter oeffnet
+        # libcublas erst beim ersten transcribe. Liegt sie nur in der venv,
+        # findet der Lader sie nicht, und es scheitert still, Segment fuer
+        # Segment. grafikkarte.py schreibt es ausfuehrlich auf.
+        geladen = grafikkarte.vorladen()
         from faster_whisper import WhisperModel
         import requests
         self.requests = requests
         self.nur_text = nur_text
+        if geladen:
+            print(f"CUDA-Bibliotheken vorgeladen: {', '.join(geladen)}")
 
-        print(f"Whisper {config.WHISPER_MODELL} laedt ...")
-        self.whisper = WhisperModel(config.WHISPER_MODELL,
-                                    device=config.WHISPER_DEVICE,
-                                    compute_type=config.WHISPER_COMPUTE,
-                                    download_root=str(config.MODELL_ORDNER))
+        self.whisper, self.rechenwerk = self._whisper_laden(WhisperModel)
         self.quelle = QUELLE
         self.glossar = Glossar.laden(config.GLOSSAR_CSV)
         from bibelstellen import Namensindex
@@ -354,6 +358,62 @@ class Werk:
                 print(f"Ohne Stimme, nur Text: {', '.join(fehlt)}")
         self.tmp = config.ERGEBNIS_ORDNER / "live"
         self.tmp.mkdir(parents=True, exist_ok=True)
+
+    def _whisper_laden(self, WhisperModel):
+        """Laedt Whisper und prueft, ob es wirklich rechnet.
+
+        Zwei Dinge koennen schiefgehen, und sie sahen bisher verschieden
+        aus, obwohl beide dasselbe bedeuten: ohne Grafikkarte wirft schon
+        das Laden, ohne die CUDA-Bibliotheken laedt es anstandslos und
+        jedes einzelne Segment faellt spaeter um. Beides endet hier im
+        selben Rueckfall auf die CPU, einmal deutlich gemeldet.
+
+        Zurueck kommt das Modell und eine Zeile, worauf tatsaechlich
+        gerechnet wird. Die gehoert in die Startausgabe und ans Pult:
+        ohne sie sieht niemand, dass die Karte nicht laeuft."""
+        def laden(geraet, rechenart):
+            print(f"Whisper {config.WHISPER_MODELL} laedt ({geraet}, "
+                  f"{rechenart}) ...")
+            return WhisperModel(config.WHISPER_MODELL, device=geraet,
+                                compute_type=rechenart,
+                                download_root=str(config.MODELL_ORDNER))
+
+        geraet, rechenart = config.WHISPER_DEVICE, config.WHISPER_COMPUTE
+        modell, grund = None, ""
+        try:
+            modell = laden(geraet, rechenart)
+        except Exception as e:
+            grund = str(e).replace("\n", " ")[:160]
+        if modell is not None:
+            geht, fehler = grafikkarte.probe(modell)
+            if geht:
+                return modell, f"{geraet} ({rechenart})"
+            grund = fehler
+
+        if geraet == "cpu":
+            # Schon die Vorgabe war die CPU. Dann gibt es nichts, worauf
+            # zurueckzufallen waere.
+            print("\n" + "=" * 62)
+            print("WHISPER RECHNET NICHT")
+            print(f"  {grund}")
+            print("=" * 62 + "\n")
+            return modell, f"cpu ({rechenart}), fehlerhaft"
+
+        print("\n" + "=" * 62)
+        print("KEINE ERKENNUNG AUF DER GRAFIKKARTE")
+        print(f"  {grund}")
+        print()
+        print("  Es wird auf die CPU zurueckgefallen. Das laeuft, ist fuer")
+        print("  den Livebetrieb aber zu langsam: der Rueckstand waechst")
+        print("  ueber die Predigt hinweg und holt sich nicht wieder ein.")
+        print("  Pruefen mit: .venv/bin/python selbsttest.py")
+        print("=" * 62 + "\n")
+        modell = laden("cpu", "int8")
+        geht, fehler = grafikkarte.probe(modell)
+        if not geht:
+            print(f"Auch auf der CPU scheitert die Erkennung: {fehler}")
+            return modell, "cpu (int8), fehlerhaft"
+        return modell, "cpu (int8), Rückfall von der Grafikkarte"
 
     def _synthese_pruefen(self):
         """Findet heraus, wie diese Piper-Fassung angesprochen werden will.
@@ -1614,6 +1674,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
     @app.get("/api/zustand")
     def zustand():
         return {"live": lauf.laeuft, "gesendet": lauf.n, "hoerer": lauf.anzahl,
+                # Worauf tatsaechlich gerechnet wird. Stand vorher nur im
+                # Terminal, und das liest im Gottesdienst niemand.
+                "rechenwerk": getattr(lauf.werk, "rechenwerk", ""),
                 "gesamt": sum(lauf.anzahl.values()),
                 "laeuft_seit": round(time.time() - lauf.begonnen, 1)
                 if lauf.begonnen else 0,
@@ -2081,6 +2144,7 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
 <h1 data-t=pult>Pult</h1>
 <p class=lage><span class=punkt id=punkt></span><span id=lage>…</span></p>
 <div id=betrieb>
+<p class="warnung schwer" id=rechenwarnung hidden></p>
 <button class=briefkasten id=briefkasten onclick=postZeigen() hidden>
   <span class=umschlag>✉</span><span id=postzahl></span>
   <span data-t=post_neu>neue Meldungen aus dem Saal</span></button>
@@ -2635,6 +2699,13 @@ async function lies(){
   try{
     const t=TEXTE[UI];
     punkt.className="punkt"+(d.live?" an":"");
+    // Eigene Zeile und nicht die Pegelwarnung: die wird zehnmal je
+    // Sekunde neu gesetzt und wuerde diese hier ueberschreiben.
+    const cpu = (d.rechenwerk||"").startsWith("cpu");
+    rechenwarnung.hidden = !cpu;
+    if(cpu) rechenwarnung.textContent =
+      "Die Erkennung läuft auf der CPU ("+d.rechenwerk+"). Für den "
+      +"Livebetrieb ist das zu langsam.";
     const quelle = (d.audio_quelle!==undefined && d.audio_quelle!==null)
       ? " · "+t.tonda : "";
     if(zustandLive!==d.live){ zustandLive=d.live; uiZeichnen(); }
@@ -2831,6 +2902,7 @@ def main():
     print(f"  QR-Codes  http://{ip}:{a.port}/qr")
     print(f"  Modell    {config.LIVE_MODELL}"
           f"{'  (nur Text)' if a.nur_text else ''}")
+    print(f"  Rechnet   {werk.rechenwerk}")
     print(f"  Zustand   {woher}")
     print(f"            {zustandsdatei.kurzfassung(stand)}")
     print(f"  Schnitt   Pause {a.pause}s, {a.min_dauer} bis {a.max_dauer}s")
