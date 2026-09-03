@@ -4,13 +4,19 @@
 # Startet Server und Tunnel zusammen und zeigt am Ende die drei Adressen,
 # die man am Sonntag braucht. Strg+C beendet beides.
 #
-#   ./start.sh              Voreinstellung
-#   ./start.sh --mikro 1    Ton vom Aufnahmegeraet Nummer 1
+#   ./start.sh              Mikrofon, Geraet aus zustand.json
+#   ./start.sh --mikro 1    Aufnahmegeraet erzwingen, zur Fehlersuche
 #   ./start.sh --datei predigt.mp3   Dauerlauf mit einer Aufnahme
+#   ./start.sh --netz       Ton ueber das Netz von einem zweiten Rechner
 #
-# Welche Geraetenummer die richtige ist, listet einrichten.sh auf.
-# Die Tonquelle steht bis auf Weiteres hier im Startbefehl; sie gehoert
-# in die Zustandsdatei, damit der Systemdienst sie kennt.
+# Ohne Argument wird nichts vorgegeben: server.py nimmt dann die Nummer
+# aus zustand.json, und steht dort keine, das Vorgabegeraet des Systems.
+# Ausgewaehlt wird das Geraet am Pult unter Einrichtung.
+#
+# Frueher stand hier --netz als Voreinstellung, aus der Zeit mit dem
+# Gemeindelaptop. Der ist weg, der Ton kommt per Klinke direkt in den
+# Rechner -- und im Netzbetrieb legt server.py keine Tonquelle an, sodass
+# die Auswahl am Pult leer blieb.
 #
 # Alles bleibt im eigenen Netz. Es gibt keine Verbindung nach aussen: kein
 # Tunnel, kein Anbieter, keine Verarbeitung ausserhalb der Gemeinde. Fuer
@@ -22,7 +28,7 @@ ORDNER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ORDNER"
 PY=.venv/bin/python
 PORT=8000
-QUELLE=(--netz)
+QUELLE=()
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -73,7 +79,9 @@ aufraeumen() {
 trap aufraeumen INT TERM EXIT
 
 echo "Server startet ..."
-$PY server.py "${QUELLE[@]}" --port "$PORT" &
+# Die Ersatzform, weil ein leeres Array unter set -u in bash vor 4.4
+# als ungesetzte Variable gilt. Ohne Argument ist der Normalfall.
+$PY server.py ${QUELLE[@]+"${QUELLE[@]}"} --port "$PORT" &
 SERVER_PID=$!
 
 for _ in $(seq 1 90); do
