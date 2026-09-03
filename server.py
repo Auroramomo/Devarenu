@@ -43,6 +43,11 @@ from pathlib import Path
 import numpy as np
 
 import config
+# Unter anderem Namen, weil weiter unten ein Endpunkt /api/zustand mit der
+# Funktion zustand() steht. Die wuerde das Modul im ganzen Namensraum von
+# app_bauen verdecken, und zwar still: der Zugriff schluege erst zur
+# Laufzeit fehl, beim ersten Speichern am Pult.
+import zustand as zustandsdatei
 from glossar import Glossar, glossarzeilen, vokalisieren
 
 # Die Ausgangssprache wird nicht uebersetzt: der Text kommt aus der
@@ -740,6 +745,11 @@ class Lauf:
         self.datei_beginn = None
         self.datei_tempo = 1.0
         self.wlan = {"ssid": "", "passwort": ""}
+        # Was diese Gemeinde eingestellt hat, so wie es in zustand.json
+        # steht. main() ersetzt es beim Start durch das Gelesene; hier die
+        # Vorgaben, damit die Endpunkte sich auf das Feld verlassen
+        # koennen, egal wie der Lauf entstanden ist.
+        self.zustand = zustandsdatei.vorgabe()
         # Sprachen sind zur Laufzeit umschaltbar, nicht fest verdrahtet.
         # Eine Gemeinde braucht nie alle gleichzeitig, sondern zwei bis
         # vier, und die Rechenzeit haengt genau daran. Dasselbe Geraet
@@ -1168,6 +1178,21 @@ def app_bauen(lauf, basis, port=8000):
     app = FastAPI(title="Devarenu v0.1", lifespan=lebenszyklus)
     client = basis / "client.html"
 
+    def schwelle_sichern():
+        """Haelt die Mindestlautstaerke in zustand.json nach.
+
+        Zusammen mit dem Zeitpunkt: eine Schwelle vom letzten Jahr ist
+        etwas anderes als eine von heute frueh, und wer sie im Herbst
+        wiederfindet, soll sehen, ob sie noch zum Raum passt. Wird die
+        Schwelle wieder freigegeben, faellt auch der Zeitpunkt weg -- es
+        gibt dann keine Messung mehr, die gilt."""
+        seg = lauf.segmentierer
+        fest = seg.feste_schwelle is not None
+        lauf.zustand["schwelle"] = {
+            "wert": round(seg.feste_schwelle, 5) if fest else None,
+            "gemessen": zustandsdatei.jetzt() if fest else None}
+        zustandsdatei.speichern(lauf.zustand)
+
     @app.get("/")
     def wurzel():
         if not client.exists():
@@ -1347,6 +1372,9 @@ def app_bauen(lauf, basis, port=8000):
                     pass
             lauf.hoerer.pop(sp, None)
         print(f"Sprachen: {lauf.quelle} -> {', '.join(lauf.ziele)}")
+        lauf.zustand["quelle"] = lauf.quelle
+        lauf.zustand["ziele"] = list(lauf.ziele)
+        zustandsdatei.speichern(lauf.zustand)
         return {"quelle": lauf.quelle, "ziele": lauf.ziele,
                 "getrennt": sorted(entfallen)}
 
@@ -1424,6 +1452,11 @@ def app_bauen(lauf, basis, port=8000):
             erg = seg.einmessen_auswerten()
             if erg:
                 print(f"Eingemessen: {erg['text']}")
+            # Nur bei Erfolg: sonst steht die Schwelle unveraendert, und
+            # ein Zeitstempel darauf wuerde eine Messung behaupten, die es
+            # nicht gab.
+            if erg and erg.get("erfolg"):
+                schwelle_sichern()
             return erg or {"erfolg": False,
                            "text": "Zu wenig gemessen. Länger sprechen lassen."}
         seg.einmessen_starten(float(daten.get("dauer", 12)))
@@ -1442,6 +1475,7 @@ def app_bauen(lauf, basis, port=8000):
         else:
             wert = float(daten.get("wert", 0))
             seg.feste_schwelle = max(0.0005, min(0.5, wert))
+        schwelle_sichern()
         return {"schwelle": round(seg.schwelle, 5),
                 "fest": seg.feste_schwelle is not None}
 
@@ -1605,6 +1639,8 @@ def app_bauen(lauf, basis, port=8000):
     async def wlan(daten: dict):
         lauf.wlan = {"ssid": (daten.get("ssid") or "").strip(),
                      "passwort": (daten.get("passwort") or "").strip()}
+        lauf.zustand["wlan"] = dict(lauf.wlan)
+        zustandsdatei.speichern(lauf.zustand)
         return lauf.wlan
 
     @app.get("/pult")
@@ -2416,6 +2452,21 @@ def main():
     basis = Path(__file__).resolve().parent
     config.ERGEBNIS_ORDNER.mkdir(exist_ok=True)
 
+    # Vor dem Werk, nicht danach. stimmen_finden() laeuft ueber die
+    # Globalen hier, und Werk laedt die Piper-Stimmen genau einmal beim
+    # Bauen. Wuerden die Sprachen erst danach gesetzt, liefen genau die
+    # wiederhergestellten Sprachen ohne Stimme, als reiner Untertitel.
+    global QUELLE, ZIELSPRACHEN, SPRACHEN
+    stand, woher = zustandsdatei.laden()
+    QUELLE = stand["quelle"]
+    ZIELSPRACHEN = list(stand["ziele"])
+    SPRACHEN = [QUELLE] + [s for s in ZIELSPRACHEN if s != QUELLE]
+
+    # Der Schalter auf der Kommandozeile schlaegt die Datei. Er ist zur
+    # Fehlersuche da: wer ein Geraet ausprobiert, will damit nicht die
+    # Einstellung der Gemeinde ueberschreiben.
+    geraet = a.geraet if a.geraet is not None else stand["geraet"]
+
     werk = Werk(nur_text=a.nur_text)
     seg = Segmentierer(pause=a.pause, min_dauer=a.min_dauer,
                        max_dauer=a.max_dauer,
@@ -2423,6 +2474,13 @@ def main():
     lauf = Lauf(werk, seg)
     lauf.betrieb = a.betrieb
     lauf.sammler = Satzsammler(a.max_woerter, a.max_warten)
+    lauf.zustand = stand
+    lauf.wlan = dict(stand["wlan"])
+    if stand["schwelle"]["wert"] is not None:
+        # Die eingemessene Schwelle gilt weiter. Im Dateibetrieb wird sie
+        # gleich wieder ueberschrieben, das ist Absicht: eine Aufnahme hat
+        # keinen wandernden Raumklang.
+        seg.feste_schwelle = stand["schwelle"]["wert"]
     stoppen = threading.Event()
     rate = MIKRO_RATE
 
@@ -2456,12 +2514,12 @@ def main():
                          args=(lauf, a.datei, seg, stoppen, a.tempo),
                          daemon=True).start()
     else:
-        rate, blockgroesse = rate_waehlen(a.geraet, a.rate)
+        rate, blockgroesse = rate_waehlen(geraet, a.rate)
         if a.sofort:
             lauf.laeuft = True
             lauf.begonnen = time.time()
         threading.Thread(target=mikrofon_thread,
-                         args=(lauf, a.geraet, seg, stoppen, rate, blockgroesse),
+                         args=(lauf, geraet, seg, stoppen, rate, blockgroesse),
                          daemon=True).start()
 
     import uvicorn
@@ -2471,6 +2529,8 @@ def main():
     print(f"  QR-Codes  http://{ip}:{a.port}/qr")
     print(f"  Modell    {config.LIVE_MODELL}"
           f"{'  (nur Text)' if a.nur_text else ''}")
+    print(f"  Zustand   {woher}")
+    print(f"            {zustandsdatei.kurzfassung(stand)}")
     print(f"  Schnitt   Pause {a.pause}s, {a.min_dauer} bis {a.max_dauer}s")
     beschriftung = {"kontext": "sofort, mit Satzanfang als Einordnung",
                     "satz": f"erst am Satzende, Notbremse bei "
@@ -2493,7 +2553,7 @@ def main():
         if "10048" in str(e) or "address" in str(e).lower():
             print(f"\nPort {a.port} ist belegt. Laeuft noch ein anderer "
                   f"Server, etwa mock_server.py?")
-            print(f"Anderen Port nehmen: server.py --geraet {a.geraet} "
+            print(f"Anderen Port nehmen: server.py --geraet {geraet} "
                   f"--port {a.port + 1}")
         else:
             raise

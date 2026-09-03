@@ -170,7 +170,7 @@ rm -f /tmp/stimmenliste
 # ---------------------------------------------------------------- Daten
 blau "Projektdateien"
 MANGEL=0
-for datei in server.py config.py glossar.py bibelstellen.py \
+for datei in server.py config.py zustand.py glossar.py bibelstellen.py \
              skript_lesen.py namen_aus_bibel.py laengenfaktor.py \
              selbsttest.py client.html; do
   if [ -f "$datei" ]; then gut "$datei"; else

@@ -62,7 +62,7 @@ def pruefe_dateien():
     abschnitt("Dateien")
     import config
 
-    for datei in ("server.py", "glossar.py", "bibelstellen.py",
+    for datei in ("server.py", "zustand.py", "glossar.py", "bibelstellen.py",
                   "skript_lesen.py", "namen_aus_bibel.py",
                   "laengenfaktor.py", "client.html"):
         if (config.BASIS / datei).exists():

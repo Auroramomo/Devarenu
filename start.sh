@@ -39,7 +39,7 @@ done
 # mit einem Traceback ab, aus dem nicht hervorgeht, dass schlicht eine
 # Datei im Ordner fehlt.
 FEHLEND=""
-for datei in server.py config.py glossar.py bibelstellen.py \
+for datei in server.py config.py zustand.py glossar.py bibelstellen.py \
              skript_lesen.py namen_aus_bibel.py laengenfaktor.py \
              client.html; do
   [ -f "$datei" ] || FEHLEND="$FEHLEND $datei"
