@@ -123,6 +123,18 @@ dort auch der Gerätename, und gesucht wird zuerst nach dem Namen: die
 Nummern verschieben sich, sobald jemand ein USB-Gerät umsteckt oder der
 Rechner ohne angemeldete Sitzung hochfährt.
 
+Nachsehen, ob alles steht:
+
+```
+./pruefen.sh
+```
+
+Das geht Grafikkarte, Ollama, Modelle, Dienst, Netz, Tonquelle und
+Zustand durch und sagt bei jedem Fund, was zu tun ist. Es läuft auch,
+wenn der Dienst gar nicht steht — dann zeigt es zusätzlich die letzten
+Zeilen aus dem Journal. Gedacht für den Fall, dass jemand anderes vor dem
+Rechner steht: `./pruefen.sh > bericht.txt 2>&1` und verschicken.
+
 Aktualisieren:
 
 ```
