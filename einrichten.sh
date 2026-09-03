@@ -225,6 +225,19 @@ for i, g in enumerate(sd.query_devices()):
         n += 1
 if not n:
     print("   Keine Aufnahmegeraete. Fuer den Netzbetrieb (--netz) egal.")
+else:
+    # Ohne diesen Hinweis wandert eine Nummer von hier in die Einstellung
+    # und trifft dort ein anderes Geraet: der Systemdienst haelt das
+    # benutzte Mikrofon exklusiv offen und zaehlt ohne angemeldete
+    # Sitzung andere Plugin-Eintraege mit.
+    print()
+    print("   ACHTUNG: Diese Nummern gelten fuer diese Sitzung. Der")
+    print("   Systemdienst zaehlt anders -- auf einem Rechner gemessen")
+    print("   13 Geraete gegen 7 hier. Eine Nummer von hier trifft dort")
+    print("   womoeglich ein anderes Geraet.")
+    print("   Deshalb am Pult unter Einrichtung AUSWAEHLEN, keine Nummern")
+    print("   abtippen. Dabei wird der Name mitgeschrieben, und nach dem")
+    print("   wird gesucht -- der gilt in beiden Zaehlungen.")
 PYCODE
 
 # ---------------------------------------------------------------- Probe

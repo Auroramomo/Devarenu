@@ -21,6 +21,8 @@ cd "$ORDNER"
 
 NAME=devarenu
 PORT="${DEVARENU_PORT:-8000}"
+# Fuer die Python-Schnipsel, die den laufenden Server fragen.
+export PRUEF_PORT="$PORT"
 PY="$ORDNER/.venv/bin/python"
 
 # Zum Lesen der Serverantwort genuegt irgendein Python: es geht nur um
@@ -99,6 +101,22 @@ fi
   warn "systemd laeuft, ist von hier aus aber nicht abfragbar. Alles zu" && \
   warn "Diensten wird deshalb uebersprungen."
 
+# Unter welchem Benutzer laeuft der DIENST? Nicht unbedingt der, der
+# gerade tippt: wer vor Ort per ssh oder mit sudo hereinkommt, ist ein
+# anderer. Dann sagt "ich bin in der Gruppe audio" nichts darueber, ob
+# der Dienst an das Mikrofon kommt, und "Rechte 600" nichts darueber, ob
+# er zustand.json lesen darf. Beide Pruefungen weiter unten nehmen
+# deshalb diesen Benutzer.
+BENUTZER="$(id -un)"
+WESSEN="Sie selbst"
+if [ -f "/etc/systemd/system/$NAME.service" ]; then
+  AUS_UNIT="$(sed -n 's/^User=//p' "/etc/systemd/system/$NAME.service" | head -1)"
+  if [ -n "${AUS_UNIT:-}" ]; then
+    BENUTZER="$AUS_UNIT"
+    WESSEN="der Dienst"
+  fi
+fi
+
 # ------------------------------------------------------- Grafikkarte
 blau "Grafikkarte"
 
@@ -122,10 +140,32 @@ blau "Netz"
 # Dieselbe Ermittlung wie im Server, damit hier nicht etwas anderes
 # herauskommt als in der Startausgabe.
 mit_python '
-import sys; sys.path.insert(0, ".")
+import json, os, sys, urllib.request
+sys.path.insert(0, ".")
 import server
+
 ip = server.lokale_ip()
-if ip:
+
+# Laeuft ein Server, ist SEINE Adresse die, die die Zuhoerer bekommen --
+# er hat sie in der Startausgabe genannt und im QR-Code. Die eigene
+# Ermittlung ist nur der Ersatz, solange keiner antwortet.
+vom_server = None
+try:
+    with urllib.request.urlopen(
+            "http://127.0.0.1:%s/api/zustand" % os.environ.get("PRUEF_PORT", "8000"),
+            timeout=5) as a:
+        vom_server = json.load(a).get("adresse") or None
+except Exception:
+    pass
+
+if vom_server:
+    print("OK|Adresse %s (so nennt der Server sie selbst)" % vom_server)
+    print("INFO|Die Handys im Saal erreichen ihn unter dieser Adresse.")
+    if ip and ip != vom_server:
+        print("WARN|Von hier aus ermittelt: %s -- also eine andere." % ip)
+        print("WARN|Bei mehreren Netzwerkkarten kann das vorkommen. Es gilt")
+        print("WARN|die des Servers; die andere kennen die Handys nicht.")
+elif ip:
     print("OK|Adresse %s" % ip)
     print("INFO|Die Handys im Saal erreichen den Server unter dieser Adresse.")
 else:
@@ -342,9 +382,8 @@ else
   fehl "/dev/snd fehlt. Ohne Tongeraete gibt es nichts aufzunehmen."
 fi
 
-BENUTZER="$(id -un)"
-if id -nG "$BENUTZER" | tr ' ' '\n' | grep -qx audio; then
-  gut "$BENUTZER ist in der Gruppe audio"
+if id -nG "$BENUTZER" 2>/dev/null | tr ' ' '\n' | grep -qx audio; then
+  gut "$BENUTZER ist in der Gruppe audio ($WESSEN)"
 else
   info "$BENUTZER ist nicht in der Gruppe audio. Die Unit gleicht das mit"
   info "SupplementaryGroups=audio aus, der Dienst kommt also trotzdem an"
@@ -352,18 +391,132 @@ else
   info "  sudo usermod -aG audio $BENUTZER"
 fi
 
-# Der wichtigste Punkt der ganzen Durchsicht. In zustand.json stehen
-# Nummer UND Name, gesucht wird zuerst nach Namen -- weil die Nummern sich
-# verschieben, sobald jemand ein USB-Geraet umsteckt oder der Rechner ohne
-# angemeldete Sitzung hochfaehrt. Ob das greift, sieht man nur daran, dass
-# beide Nummern nebeneinander stehen.
+# Der wichtigste Punkt der ganzen Durchsicht -- und der, an dem dieses
+# Skript zuerst falsch lag.
+#
+# Eine Geraeteliste aus DIESEM Prozess ist mit den Nummern des Dienstes
+# nicht vergleichbar. Gemessen auf demselben Rechner, zur selben Sekunde:
+#
+#   Dienst (ohne Sitzung)   13 Geraete, Nr. 0 = Auna Mic CM900 (hw:0,0)
+#   hier (mit Sitzung)       7 Geraete, Nr. 0 = USB Audio: - (hw:1,0)
+#
+# Zwei Ursachen ueberlagern sich: das benutzte Mikrofon haelt der Server
+# exklusiv offen und faellt hier aus der Aufzaehlung, und ohne Sitzung
+# zeigt ALSA einen anderen Satz Plugin-Eintraege (sysdefault, spdif,
+# lavrate statt pipewire, pulse, default). Alles dahinter verschiebt sich.
+#
+# Frueher verglich dieses Skript die hinterlegte Auswahl gegen die eigene
+# Aufzaehlung. Das schlug im Normalbetrieb rot aus -- nicht zufaellig,
+# sondern immer, sobald der Dienst laeuft. Wer davor steht, haelt ein
+# funktionierendes System fuer kaputt.
+#
+# Deshalb: nimmt der Server auf, ist seine Antwort die Wahrheit. Die
+# eigene Aufzaehlung gilt nur, wenn keiner laeuft oder keiner aufnimmt.
 mit_python '
-import sys; sys.path.insert(0, ".")
+import json, os, sys, urllib.request
+sys.path.insert(0, ".")
 import zustand as zd, server
 
 stand, woher = zd.laden()
 nummer, name = stand["geraet"], stand["geraet_name"]
+port = os.environ.get("PRUEF_PORT", "8000")
 
+
+def hinterlegt():
+    print("INFO|Hinterlegt in %s:" % woher)
+    print("INFO|  Nummer %s, Name %s"
+          % (nummer if nummer is not None else "-",
+             ("\"%s\"" % name) if name else "-"))
+
+
+def liste_zeigen(liste, quelle):
+    print("INFO|%d Aufnahmegeraete (%s):" % (len(liste), quelle))
+    for g in liste[:12]:
+        print("INFO|  %s%3d  %-18s %s"
+              % ("  " if g.get("empfohlen", True) else " !", g["nummer"],
+                 g["schnittstelle"], g["name"][:44]))
+    if len(liste) > 12:
+        print("INFO|  ... und %d weitere" % (len(liste) - 12))
+
+
+def eigene_nummern_warnen():
+    """Der wichtigste Satz dieser Ausgabe.
+
+    Wer eine Nummer von hier am Pult eintraegt, trifft womoeglich ein
+    anderes Geraet -- und merkt es erst im Gottesdienst."""
+    print("WARN|ACHTUNG: Diese Nummern stammen aus dieser Sitzung.")
+    print("WARN|Der Dienst zaehlt anders. Auf diesem Rechner gemessen:")
+    print("WARN|13 Geraete beim Dienst gegen 7 hier, mit unterschiedlichen")
+    print("WARN|Plugin-Eintraegen -- also auch andere Nummern.")
+    print("WARN|Wer eine Nummer von hier am Pult eintraegt, trifft")
+    print("WARN|womoeglich ein anderes Geraet.")
+    print("WARN|Am Pult AUSWAEHLEN, keine Nummern abtippen.")
+
+
+# ---- Was sagt der laufende Server? --------------------------------
+antwort = None
+try:
+    with urllib.request.urlopen(
+            "http://127.0.0.1:%s/api/geraete" % port, timeout=5) as a:
+        antwort = json.load(a)
+except Exception:
+    antwort = None
+
+if antwort and antwort.get("fehler"):
+    print("WARN|Server meldet: %s" % str(antwort["fehler"])[:100])
+
+nimmt_auf = bool(antwort and antwort.get("aktiv") and antwort.get("laeuft"))
+
+# ---- Fall A: der Server nimmt auf, seine Antwort gilt --------------
+if nimmt_auf:
+    offen_nr = antwort.get("aktuell")
+    offen_name = antwort.get("name") or ""
+    liste = antwort.get("liste") or []
+    if liste:
+        liste_zeigen(liste, "wie der Dienst sie zaehlt -- das sind die "
+                            "Nummern, die am Pult gelten")
+        print("INFO|")
+    hinterlegt()
+
+    print("INFO|Server nimmt auf: \"%s\" (Nr. %s), %s Hz"
+          % (offen_name or "?", offen_nr, antwort.get("rate")))
+
+    if not name and nummer is None:
+        print("WARN|Nichts festgelegt -- es gilt das Vorgabegeraet, und das")
+        print("WARN|ist gerade \"%s\". Am Pult einmal auswaehlen, dann steht"
+              % (offen_name or "?"))
+        print("WARN|der Name in zustand.json und ueberlebt das Umstecken.")
+    elif not name:
+        print("WARN|Nur eine Nummer hinterlegt, kein Name. Am Pult einmal")
+        print("WARN|auswaehlen, dann wird der Name mitgeschrieben -- die")
+        print("WARN|Nummer allein bezeichnet nach einem Neustart womoeglich")
+        print("WARN|ein anderes Geraet.")
+    elif name == offen_name:
+        print("OK|Hinterlegt ist dasselbe Geraet. Passt.")
+        if nummer != offen_nr:
+            print("INFO|Gefunden unter Nummer %s, hinterlegt war %s: die"
+                  % (offen_nr, nummer))
+            print("INFO|Nummer hat sich verschoben, der Name hat es")
+            print("INFO|aufgefangen. Genau dafuer steht er in zustand.json.")
+    else:
+        print("FEHL|Der Server nimmt etwas anderes auf als eingestellt.")
+        print("INFO|Hinterlegt: \"%s\"" % name)
+        print("INFO|Offen:      \"%s\"" % offen_name)
+        print("INFO|Der hinterlegte Name war beim Start nicht da, er ist auf")
+        print("INFO|ein anderes Geraet ausgewichen. Mikrofon angeschlossen?")
+        print("INFO|Sonst am Pult neu auswaehlen.")
+    raise SystemExit
+
+# ---- Fall B: Server antwortet, hat aber kein Geraet offen ----------
+if antwort and antwort.get("aktiv"):
+    print("FEHL|Der Server hat kein Geraet offen, es kommt kein Ton.")
+    print("INFO|Am Pult unter Einrichtung eines auswaehlen.")
+elif antwort is not None:
+    print("INFO|Der Ton kommt nicht vom Mikrofon dieses Rechners")
+    print("INFO|(--netz oder --datei).")
+    raise SystemExit
+
+# ---- Fall B und C: jetzt ist die eigene Aufzaehlung die beste Quelle
 try:
     liste = server.geraete_liste()
 except Exception as e:
@@ -374,18 +527,10 @@ if not liste:
     print("FEHL|Kein einziges Aufnahmegeraet gefunden.")
     raise SystemExit
 
-print("INFO|%d Aufnahmegeraete, empfohlene zuerst:" % len(liste))
-for g in liste[:12]:
-    print("INFO|  %s%3d  %-18s %s"
-          % ("  " if g["empfohlen"] else " !", g["nummer"],
-             g["schnittstelle"], g["name"][:44]))
-if len(liste) > 12:
-    print("INFO|  ... und %d weitere" % (len(liste) - 12))
-
+liste_zeigen(liste, "aus dieser Sitzung")
+eigene_nummern_warnen()
 print("INFO|")
-print("INFO|Hinterlegt in %s:" % woher)
-print("INFO|  Nummer %s, Name %s"
-      % (nummer if nummer is not None else "-", ("\"%s\"" % name) if name else "-"))
+hinterlegt()
 
 nach_name = [g for g in liste if g["name"] == name] if name else []
 in_liste  = [g for g in liste if g["nummer"] == nummer]
@@ -396,7 +541,7 @@ if not name and nummer is None:
     print("INFO|Name dabei und ueberlebt das Umstecken.")
 elif not name:
     print("WARN|Nur eine Nummer hinterlegt, kein Name. Genau das war der")
-    print("WARN|Grund fuer die Umstellung: Nummer %s zeigt heute auf" % nummer)
+    print("WARN|Grund fuer die Umstellung: Nummer %s zeigt hier auf" % nummer)
     print("WARN|  %s" % (in_liste[0]["name"] if in_liste else "gar kein Geraet"))
     print("INFO|Am Pult einmal auswaehlen, dann wird der Name mitgeschrieben.")
 elif nach_name:
@@ -407,54 +552,40 @@ elif nach_name:
         print("OK|Name gefunden unter Nummer %d, hinterlegt war %s."
               % (jetzt, nummer))
         print("INFO|Die Nummer hat sich verschoben, der Name greift. Genau")
-        print("INFO|dafuer steht er in zustand.json. Ohne ihn liefe der")
-        print("INFO|Server jetzt auf %s."
-              % (in_liste[0]["name"][:50] if in_liste else "gar keinem Geraet"))
+        print("INFO|dafuer steht er in zustand.json.")
 elif in_liste:
-    print("FEHL|Geraet \"%s\" ist nicht da." % name)
-    print("INFO|Nummer %s gibt es zwar, das ist aber ein anderes Geraet:" % nummer)
-    print("INFO|  %s" % in_liste[0]["name"][:50])
+    print("FEHL|Geraet \"%s\" ist in dieser Sitzung nicht da." % name)
+    print("INFO|Nummer %s gibt es zwar, das ist hier aber ein anderes" % nummer)
+    print("INFO|Geraet: %s" % in_liste[0]["name"][:50])
     print("INFO|Mikrofon angeschlossen? Sonst am Pult neu auswaehlen.")
 else:
-    print("FEHL|Weder \"%s\" noch Nummer %s ist da." % (name, nummer))
+    print("FEHL|Weder \"%s\" noch Nummer %s ist in dieser Sitzung da."
+          % (name, nummer))
     print("INFO|Es gilt das Vorgabegeraet. Mikrofon anschliessen und am")
     print("INFO|Pult unter Einrichtung auswaehlen.")
 '
-
-# Was der laufende Server tatsaechlich offen hat -- die einzige Auskunft,
-# die nicht auf einer Vermutung beruht.
-if [ -n "${ANTWORT:-}" ]; then
-  [ -n "$PYJSON" ] && \
-  curl -s -m 5 "http://127.0.0.1:$PORT/api/geraete" 2>/dev/null | "$PYJSON" -c '
-import json, sys
-try:
-    d = json.load(sys.stdin)
-except Exception:
-    raise SystemExit
-if d.get("fehler"):
-    print("WARN|Server meldet: %s" % str(d["fehler"])[:100])
-if not d.get("aktiv"):
-    raise SystemExit
-if d.get("laeuft"):
-    print("OK|Server nimmt gerade auf: \"%s\" (Nr. %s), %s Hz"
-          % (d.get("name") or "?", d.get("aktuell"), d.get("rate")))
-else:
-    print("FEHL|Server hat kein Geraet offen, es kommt kein Ton.")
-    print("INFO|Am Pult unter Einrichtung eines auswaehlen.")
-' 2>/dev/null | zeilen
-fi
 
 # ------------------------------------------------------------ Zustand
 blau "Zustand"
 
 if [ -f zustand.json ]; then
   RECHTE="$(stat -c %a zustand.json 2>/dev/null)"
-  if [ "${RECHTE:-}" = "600" ]; then
-    gut "zustand.json, Rechte $RECHTE"
-  else
+  EIGNER="$(stat -c %U zustand.json 2>/dev/null)"
+  if [ "${RECHTE:-}" != "600" ]; then
     warn "zustand.json hat Rechte ${RECHTE:-?}, erwartet 600. Darin steht"
     warn "das WLAN-Passwort im Klartext. Richten mit:"
     warn "  chmod 600 zustand.json"
+  elif [ -n "${EIGNER:-}" ] && [ "$EIGNER" != "$BENUTZER" ]; then
+    # Rechte 600 heisst: nur der Eigentuemer liest sie. Ist das ein
+    # anderer als der Dienstbenutzer, liest der Dienst sie NICHT und
+    # faellt still auf die Vorgaben aus config.py zurueck -- Tonquelle,
+    # Sprachen und Einmessung waeren weg, ohne dass es jemand merkt.
+    fehl "zustand.json gehoert $EIGNER, der Dienst laeuft als $BENUTZER."
+    info "Bei Rechten 600 liest er sie nicht und nimmt die Vorgaben aus"
+    info "config.py: Tonquelle, Sprachen und Einmessung waeren weg."
+    info "Richten mit:  sudo chown $BENUTZER zustand.json"
+  else
+    gut "zustand.json, Rechte $RECHTE, gehoert $EIGNER"
   fi
 else
   warn "Keine zustand.json. Es gelten die Vorgaben aus config.py; sie"

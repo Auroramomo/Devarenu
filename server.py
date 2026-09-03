@@ -1272,7 +1272,11 @@ def geraete_liste():
 
 
 def geraete_zeigen():
-    """Druckt die Geraeteliste ins Terminal."""
+    """Druckt die Geraeteliste ins Terminal.
+
+    Mit dem Hinweis, dass diese Nummern nur hier gelten. Der Systemdienst
+    zaehlt anders, und ohne diesen Satz wandert eine Nummer von hier in
+    die Einstellung und trifft dort ein anderes Geraet."""
     zeilen = geraete_liste()
     print("Eingabegeraete, empfohlene zuerst:\n")
     print(f"  {'Nr':>3}  {'Schnittstelle':20} {'Hz':>6}  Name")
@@ -1282,9 +1286,17 @@ def geraete_zeigen():
               f"{g['hz']:6}  {g['name']}")
     if any(not g["empfohlen"] for g in zeilen):
         print("\n  ! = WDM-KS, greift exklusiv zu und scheitert haeufig.")
-    print("\n  Auswaehlen laesst sich das Geraet auch am Pult unter "
-          "Einrichtung.")
-    print("  Fest vorgeben: python server.py --geraet <Nummer>")
+    print("\n  ACHTUNG: Diese Nummern gelten fuer einen Start aus diesem")
+    print("  Terminal. Der Systemdienst zaehlt anders -- er haelt das")
+    print("  benutzte Mikrofon exklusiv offen, und ohne angemeldete Sitzung")
+    print("  zeigt ALSA andere Plugin-Eintraege. Auf einem Rechner gemessen:")
+    print("  13 Geraete beim Dienst gegen 7 hier, mit anderer Zaehlung.")
+    print("  Eine Nummer von hier trifft dort womoeglich ein anderes Geraet.")
+    print("\n  Deshalb: am Pult unter Einrichtung AUSWAEHLEN, keine Nummern")
+    print("  abtippen. Am Pult wird der Name mitgeschrieben, und nach dem")
+    print("  wird gesucht -- der gilt in beiden Zaehlungen.")
+    print("\n  Fest vorgeben (nur zur Fehlersuche, aus diesem Terminal):")
+    print("    python server.py --geraet <Nummer>")
 
 
 class Tonquelle:

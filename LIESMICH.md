@@ -119,9 +119,17 @@ startet weiter mit `./start.sh`.
 
 Die Tonquelle steht bewusst **nicht** im Dienst, sondern in
 `zustand.json`, und wird am Pult gewählt. Neben der Gerätenummer steht
-dort auch der Gerätename, und gesucht wird zuerst nach dem Namen: die
-Nummern verschieben sich, sobald jemand ein USB-Gerät umsteckt oder der
-Rechner ohne angemeldete Sitzung hochfährt.
+dort auch der Gerätename, und gesucht wird zuerst nach dem Namen.
+
+**Gerätenummern nicht abtippen.** Sie verschieben sich nicht nur beim
+Umstecken eines USB-Geräts — der Dienst und ein Terminal zählen von
+vornherein verschieden. Der Dienst hält das benutzte Mikrofon exklusiv
+offen, es fehlt einer zweiten Aufzählung deshalb ganz, und ohne
+angemeldete Sitzung zeigt ALSA andere Plugin-Einträge. Am selben Rechner
+zur selben Sekunde gemessen: 13 Geräte beim Dienst, 7 im Terminal, mit
+verschiedener Nummer 0. Was `server.py --geraete` oder `./einrichten.sh`
+auflisten, gilt nur für einen Start aus demselben Terminal. Am Pult
+auswählen schreibt den Namen mit, und der gilt überall.
 
 Nachsehen, ob alles steht:
 

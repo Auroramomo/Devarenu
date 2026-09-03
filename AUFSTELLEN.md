@@ -67,13 +67,30 @@ Die damit abgedeckten Punkte sind unten mit (pruefen.sh) gekennzeichnet.
 - [ ] Am Pult unter Einrichtung: ist das Predigermikro in der Liste?
 - [ ] Auswählen, hineinsprechen, schlägt der Balken aus?
 - [ ] Rechner neu starten. Steht danach dasselbe Gerät da? `./pruefen.sh`
-      zeigt unter Ton die hinterlegte Nummer und die, unter der der Name
-      jetzt gefunden wird. Stehen dort zwei verschiedene, hat sich die
-      Nummer verschoben und der Name hat es aufgefangen — genau dafür
-      steht er drin. Ohne Sitzung zählt ALSA weniger Geräte auf als mit
-      einer, hier waren es 13 statt 16.
+      zeigt unter Ton, was der Dienst tatsächlich offen hat, und ob das
+      dem hinterlegten Namen entspricht. Weicht die Nummer ab, steht sie
+      neben der hinterlegten — dann hat sich die Nummer verschoben und
+      der Name hat es aufgefangen, genau dafür steht er drin.
 - [ ] USB-Mikro einmal umstecken und neu starten: wird es über den Namen
       wiedergefunden? `./pruefen.sh` zeigt beide Nummern nebeneinander.
+- [ ] **Keine Gerätenummer irgendwohin abtippen.** Die Zählungen des
+      Dienstes und einer angemeldeten Sitzung sind verschiedene Welten,
+      und zwar in beide Richtungen. Am selben Rechner zur selben Sekunde
+      gemessen:
+
+      | | Dienst, ohne Sitzung | Terminal, mit Sitzung |
+      |---|---|---|
+      | Nr. 0 | Auna Mic CM900 (hw:0,0) | USB Audio: - (hw:1,0) |
+      | Anzahl | 13 | 7 |
+      | Plugins | sysdefault, spdif, lavrate | pipewire, pulse, default |
+
+      Zwei Ursachen überlagern sich: der Dienst hält das benutzte Mikrofon
+      exklusiv offen, es fehlt der anderen Aufzählung deshalb ganz; und
+      ohne Sitzung zeigt ALSA einen anderen Satz Plugin-Einträge. Ob dabei
+      mehr oder weniger Geräte herauskommen, hängt davon ab, was gerade
+      läuft — verlässlich ist nur, dass die Nummern **nicht** dieselben
+      sind. Deshalb am Pult auswählen; dabei wird der Name mitgeschrieben,
+      und der gilt in beiden Zählungen.
 
 ## Im Gottesdienst
 
