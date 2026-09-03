@@ -142,18 +142,36 @@ def pruefe_ollama():
                             "antworte nur mit der Uebersetzung: "
                             "Der Herr ist mein Hirte.",
                   "stream": False,
-                  "options": {"temperature": 0.1, "num_predict": 60}},
+                  # Dieselben Optionen wie im Livebetrieb, nicht knapper.
+                  # Reasoning-Modelle verbrauchen einen Teil des Budgets im
+                  # Denkblock; ist num_predict zu klein, bleibt davon nichts
+                  # fuer die eigentliche Antwort uebrig und die Probe
+                  # scheitert, obwohl das Modell einwandfrei laeuft.
+                  # config.py erklaert es an der Definition.
+                  "options": config.OLLAMA_OPTIONEN},
             timeout=config.OLLAMA_TIMEOUT)
         antwort.raise_for_status()
-        text = (antwort.json().get("response") or "").strip()
+        daten = antwort.json()
     except Exception as e:
         fehler(f"Uebersetzung fehlgeschlagen: {kurz(e)}")
         return
 
-    if not text:
-        fehler("Modell antwortet leer")
-    else:
+    text = (daten.get("response") or "").strip()
+    denkblock = (daten.get("thinking") or "").strip()
+    grund = daten.get("done_reason") or "kein Grund gemeldet"
+
+    if text:
         ok(f"Probe nach {time.perf_counter()-t0:.1f}s: {text[:60]}")
+    elif denkblock:
+        # Der Fall, der sich von selbst nicht erklaert: das Modell hat
+        # gearbeitet, aber alles im Denkblock verbraucht. "Antwortet leer"
+        # haette hier in die falsche Richtung geschickt.
+        fehler(f"Modell denkt, antwortet aber nicht (Abbruch: {grund}). "
+               f"num_predict in config.OLLAMA_OPTIONEN ist vermutlich "
+               f"zu klein.")
+        print(f"        Denkblock: {denkblock[:80]}")
+    else:
+        fehler(f"Modell antwortet leer (Abbruch: {grund})")
 
 
 # ---------------------------------------------------------------- Piper
