@@ -12,6 +12,14 @@ from pathlib import Path
 # Ordner, in dem die Skripte und CSVs liegen.
 BASIS = Path(__file__).resolve().parent
 
+# Fassung des Programms. Steht in einer eigenen Datei, damit
+# aktualisieren.sh und der Blick von aussen dieselbe Quelle haben: was
+# am Pult steht, ist dann auch das, was im Ordner liegt.
+try:
+    VERSION = (BASIS / "VERSION").read_text(encoding="utf-8").strip()
+except OSError:
+    VERSION = "unbekannt"
+
 GLOSSAR_CSV = BASIS / "glossar_v0.4.csv"
 TESTSAETZE_CSV = BASIS / "testsaetze_v0.3.csv"
 ERGEBNIS_ORDNER = BASIS / "ergebnisse"

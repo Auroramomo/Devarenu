@@ -1461,7 +1461,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
         yield
         aufgabe.cancel()
 
-    app = FastAPI(title="Devarenu v0.1", lifespan=lebenszyklus)
+    app = FastAPI(title=f"Devarenu {config.VERSION}", lifespan=lebenszyklus)
     client = basis / "client.html"
 
     def schwelle_sichern():
@@ -1738,6 +1738,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
         return {"live": lauf.laeuft, "gesendet": lauf.n, "hoerer": lauf.anzahl,
                 # Worauf tatsaechlich gerechnet wird. Stand vorher nur im
                 # Terminal, und das liest im Gottesdienst niemand.
+                "fassung": config.VERSION,
                 "rechenwerk": getattr(lauf.werk, "rechenwerk", ""),
                 "stt_fehler": (lauf.stt_fehler
                                if lauf.stt_fehler["anzahl"] else None),
@@ -2289,6 +2290,7 @@ Rechner per USB angeschlossen ist.</p>
 <div id=einrichtung hidden>
 <p class=hin data-t=einrichtung_hin>Einmal je Gemeinde einstellen, danach
 bleibt es so.</p>
+<p class=hin id=fassung></p>
 <h2 data-t=tonquelle>Tonquelle</h2>
 <div class=tonreihe>
   <select id=geraetwahl onchange=geraetSetzen()></select>
@@ -2765,6 +2767,8 @@ async function lies(){
     punkt.className="punkt"+(d.live?" an":"");
     // Eigene Zeile und nicht die Pegelwarnung: die wird zehnmal je
     // Sekunde neu gesetzt und wuerde diese hier ueberschreiben.
+    // Aus der Ferne die erste Frage: was laeuft hier eigentlich?
+    fassung.textContent = "Devarenu " + (d.fassung||"?") + " · " + (d.rechenwerk||"?");
     const cpu = (d.rechenwerk||"").startsWith("cpu");
     // Der Fehler zuerst: laeuft die Erkennung gar nicht, ist es
     // zweitrangig, worauf sie nicht laeuft.
@@ -3016,6 +3020,7 @@ def main():
     print(f"  Modell    {config.LIVE_MODELL}"
           f"{'  (nur Text)' if a.nur_text else ''}"
           f"{'' if ollama_da else '  (Ollama antwortet nicht)'}")
+    print(f"  Fassung   {config.VERSION}")
     print(f"  Rechnet   {werk.rechenwerk}")
     print(f"  Zustand   {woher}")
     print(f"            {zustandsdatei.kurzfassung(stand)}")
