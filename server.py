@@ -61,6 +61,14 @@ SPRACHEN = [QUELLE] + [s for s in ZIELSPRACHEN if s != QUELLE]
 MIKRO_RATE = 16000          # was Whisper erwartet
 BLOCK = 512                 # Aufnahmeblock, gut 30 ms
 
+# Wie lange auf die Netzwerkadresse gewartet wird. ANLAUF haelt die
+# Startausgabe kurz an, FRIST laeuft danach im Hintergrund weiter.
+# Gemessen am Dienststart nach dem Einschalten: Ausgabe bei +4s, Adresse
+# bei +8s. Fuenf Sekunden fangen den Normalfall, zwei Minuten decken auch
+# eine DHCP-Anfrage ab, die in die Frist von 45s laeuft.
+ADRESSE_ANLAUF = 5.0
+ADRESSE_FRIST = 120.0
+
 
 # ================================================================
 # Segmentierung
@@ -834,6 +842,10 @@ class Lauf:
         self.stt_fehler = {"text": "", "anzahl": 0, "seit": None}
         self.audio_schluessel = "gemeinde"
         self.audio_quelle = None
+        # Die zuletzt gefundene Netzwerkadresse, None solange es keine
+        # gibt. Steht hier, damit sie nicht an drei Stellen neu geraten
+        # wird: das Pult, die QR-Notloesung und dienst.sh lesen dasselbe.
+        self.adresse = None
         self.mitschnitt = Mitschnitt(config.ERGEBNIS_ORDNER / "predigten")
         self.schleife = None
         self.pool = ThreadPoolExecutor(max_workers=len(SPRACHEN) + 1)
@@ -1739,6 +1751,10 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
                 # Worauf tatsaechlich gerechnet wird. Stand vorher nur im
                 # Terminal, und das liest im Gottesdienst niemand.
                 "fassung": config.VERSION,
+                # Leer, solange keine gefunden ist. Wer aus der Ferne
+                # fragt, soll den Unterschied sehen zwischen "noch keine"
+                # und einer Adresse, die nicht stimmt.
+                "adresse": lauf.adresse or "",
                 "rechenwerk": getattr(lauf.werk, "rechenwerk", ""),
                 "stt_fehler": (lauf.stt_fehler
                                if lauf.stt_fehler["anzahl"] else None),
@@ -1934,7 +1950,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
         if not adresse:
             weiter = request.headers.get("x-forwarded-host")
             gastgeber = weiter or request.headers.get("host") or \
-                f"{lokale_ip()}:{a_port[0]}"
+                (f"{lauf.adresse}:{a_port[0]}" if lauf.adresse
+                 else request.url.netloc)
             schema = (request.headers.get("x-forwarded-proto")
                       or ("https" if weiter else request.url.scheme))
             adresse = f"{schema}://{gastgeber}/"
@@ -2868,16 +2885,102 @@ def ollama_abwarten(frist=90.0):
         time.sleep(1.0)
 
 
-def lokale_ip():
+def brauchbare_adresse(ip):
+    """127.* ist der Rechner selbst und erreicht kein Handy im Saal.
+    169.254.* gibt er sich selbst, wenn kein DHCP antwortet: sieht aus wie
+    eine Adresse, ist aber genau das Gegenteil einer Auskunft."""
+    return bool(ip) and not ip.startswith("127.") \
+        and not ip.startswith("169.254.")
+
+
+def ip_ueber_route():
+    """Mit welcher Adresse geht dieser Rechner hinaus?
+
+    Verschickt nichts; der Kernel waehlt nur die Route und verraet dabei
+    die Absenderadresse. Bei mehreren Netzwerkkarten ist das die
+    richtige, deshalb steht dieser Weg vor dem anderen."""
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("10.255.255.255", 1))
-        return s.getsockname()[0]
+        ip = s.getsockname()[0]
+        return ip if brauchbare_adresse(ip) else None
     except Exception:
-        return "127.0.0.1"
+        return None
     finally:
         s.close()
+
+
+def ip_ueber_befehl():
+    """Notweg fuer ein Netz ohne Standardroute.
+
+    Ein geschlossenes Gemeindenetz ohne Router hat gueltige Adressen,
+    aber keinen Weg nach draussen. Der Weg ueber die Route scheitert dort
+    vollstaendig, obwohl die Handys im selben Netz haengen."""
+    import subprocess
+    try:
+        aus = subprocess.run(
+            ["ip", "-4", "-o", "addr", "show", "scope", "global"],
+            capture_output=True, text=True, timeout=3)
+    except Exception:
+        return None
+    for zeile in aus.stdout.splitlines():
+        teile = zeile.split()
+        if "inet" in teile:
+            ip = teile[teile.index("inet") + 1].split("/")[0]
+            if brauchbare_adresse(ip):
+                return ip
+    return None
+
+
+def lokale_ip():
+    """Die Adresse, unter der die Handys im Saal den Server erreichen,
+    oder None, wenn es gerade keine gibt.
+
+    Frueher stand in diesem Fall "127.0.0.1" da. Das ist keine fehlende
+    Auskunft, sondern eine falsche: die Zeile aus der Startausgabe wird
+    abgelesen und weitergegeben, und im Journal steht sie dauerhaft."""
+    return ip_ueber_route() or ip_ueber_befehl()
+
+
+def adresse_suchen(frist, takt=1.0):
+    """Sucht bis zu frist Sekunden lang und kommt beim ersten Treffer
+    sofort zurueck.
+
+    Steht die Adresse schon an -- der Normalfall mit fest eingebauter
+    Netzwerkkarte --, wird nicht gewartet: die Schleife greift erst,
+    wenn nichts da ist."""
+    ende = time.time() + frist
+    while True:
+        ip = lokale_ip()
+        if ip:
+            return ip
+        if time.time() >= ende:
+            return None
+        time.sleep(takt)
+
+
+def adresse_nachtragen(lauf, port, frist, seit, takt=1.0):
+    """Sucht im Hintergrund weiter, wenn beim Start keine Adresse da war.
+
+    Laeuft als eigener Faden, damit der Server sofort bedient: er bindet
+    auf 0.0.0.0 und antwortet ab der ersten Sekunde, auch ohne Netz. Was
+    fehlt, ist nur die Zeile zum Ablesen -- und die wird hier nachgereicht,
+    sobald sie stimmt."""
+    ip = adresse_suchen(frist, takt)
+    gebraucht = round(time.time() - seit)
+    if ip:
+        lauf.adresse = ip
+        print(f"\n  Netz da nach {gebraucht}s. Ab jetzt gilt:")
+        print(f"     Zuhörer   http://{ip}:{port}/")
+        print(f"     Pult      http://{ip}:{port}/pult")
+        print(f"     QR-Codes  http://{ip}:{port}/qr\n")
+    else:
+        print(f"\n  Nach {gebraucht}s keine Netzwerkadresse gefunden. Der "
+              f"Server antwortet auf")
+        print(f"  Port {port}, erreichbar ist er aber nur, wenn der Rechner "
+              f"ins Netz kommt.")
+        print(f"  Nachsehen mit:  ip -4 addr\n")
 
 
 def main():
@@ -3013,10 +3116,30 @@ def main():
     ollama_da = ollama_abwarten()
 
     import uvicorn
-    ip = lokale_ip()
-    print(f"\n  Zuhörer   http://{ip}:{a.port}/")
-    print(f"  Pult      http://{ip}:{a.port}/pult")
-    print(f"  QR-Codes  http://{ip}:{a.port}/qr")
+    # Nachfassen, aber nur solange nichts da ist. Mit fest eingebauter
+    # Netzwerkkarte steht die Adresse beim ersten Blick an und es wird
+    # nicht gewartet; beim Start aus dem Dienst heraus ist das Netz oft
+    # noch nicht fertig. network-online.target hilft dagegen nicht: es
+    # bedeutet "NetworkManager hat nichts mehr vor", nicht "es gibt eine
+    # Adresse". Gemessen wurde das Target erreicht, waehrend erst
+    # loopback stand und die Netzwerkkarte noch gar nicht angemeldet war.
+    adresse_seit = time.time()
+    ip = adresse_suchen(ADRESSE_ANLAUF)
+    lauf.adresse = ip
+    if ip:
+        print(f"\n  Zuhörer   http://{ip}:{a.port}/")
+        print(f"  Pult      http://{ip}:{a.port}/pult")
+        print(f"  QR-Codes  http://{ip}:{a.port}/qr")
+    else:
+        # Bewusst keine Adresse statt 127.0.0.1: was hier steht, liest
+        # jemand ab und gibt es weiter.
+        print("\n  Adresse   noch keine. Das Netz ist beim Start noch "
+              "nicht fertig.")
+        print("            Die Adressen erscheinen hier, sobald eine da "
+              "ist.")
+        threading.Thread(target=adresse_nachtragen,
+                         args=(lauf, a.port, ADRESSE_FRIST, adresse_seit),
+                         daemon=True).start()
     print(f"  Modell    {config.LIVE_MODELL}"
           f"{'  (nur Text)' if a.nur_text else ''}"
           f"{'' if ollama_da else '  (Ollama antwortet nicht)'}")
@@ -3032,7 +3155,9 @@ def main():
     print(f"  Übersetzt {beschriftung[a.betrieb]}")
     if a.netz:
         print(f"  Quelle    über das Netz, Schlüssel \"{a.schluessel}\"")
-        print(f"  Sender    python sender.py --ziel ws://{ip}:{a.port} "
+        # Auch hier keine erfundene Adresse: die Zeile wird abgetippt.
+        ziel = f"ws://{ip}:{a.port}" if ip else "ws://<Adresse>:%d" % a.port
+        print(f"  Sender    python sender.py --ziel {ziel} "
               f"--geraet <Nr>\n")
     elif a.datei:
         print(f"  Quelle    {Path(a.datei).name} (Dauerlauf)\n")

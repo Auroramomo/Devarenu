@@ -110,8 +110,11 @@ if [ -z "${ANTWORT:-}" ]; then
   exit 1
 fi
 
-RECHENWERK="$(printf '%s' "$ANTWORT" | "$ORDNER/.venv/bin/python" -c \
-  'import json,sys; print(json.load(sys.stdin).get("rechenwerk",""))' 2>/dev/null)"
+feld() {
+  printf '%s' "$ANTWORT" | "$ORDNER/.venv/bin/python" -c \
+    "import json,sys; print(json.load(sys.stdin).get('$1',''))" 2>/dev/null
+}
+RECHENWERK="$(feld rechenwerk)"
 gut "antwortet auf Port $PORT"
 case "$RECHENWERK" in
   cuda*) gut "rechnet auf der Grafikkarte: $RECHENWERK" ;;
@@ -121,17 +124,35 @@ case "$RECHENWERK" in
          warn "  .venv/bin/python selbsttest.py" ;;
 esac
 
-IP="$("$ORDNER/.venv/bin/python" -c \
-  'import sys; sys.path.insert(0,"'"$ORDNER"'"); import server; print(server.lokale_ip())' \
-  2>/dev/null || echo 127.0.0.1)"
+# Aus derselben Antwort wie oben. Frueher stand hier ein eigener
+# Python-Aufruf, der server.py importierte, nur um die Adresse zu
+# ermitteln -- das zieht Torch und faster-whisper hinterher und riet danach
+# genauso einmal wie der Server selbst. Der laufende Dienst weiss es
+# besser: er sucht weiter, bis eine Adresse da ist.
+IP="$(feld adresse)"
 
 blau "Fertig"
 cat <<ENDE
    Der Dienst startet ab jetzt mit dem Rechner und laeuft nach einem
    Absturz von allein wieder an.
+ENDE
+
+if [ -n "$IP" ]; then
+  cat <<ENDE
 
      Zuhoerer   http://$IP:$PORT/
      Pult       http://$IP:$PORT/pult
+ENDE
+else
+  cat <<ENDE
+
+     Noch keine Netzwerkadresse. Der Dienst laeuft und antwortet auf
+     Port $PORT; sobald der Rechner im Netz ist, steht die Adresse im
+     Journal und unter ./pruefen.sh.
+ENDE
+fi
+
+cat <<ENDE
 
    Nachsehen     systemctl status $NAME
    Mitlesen      journalctl -u $NAME -f

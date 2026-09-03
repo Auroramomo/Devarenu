@@ -27,6 +27,27 @@ Documentation=https://github.com/Auroramomo/Devarenu
 # Ordnen allein genuegt nicht: systemd haelt eine Type=simple-Unit fuer
 # gestartet, sobald der Prozess laeuft, nicht wenn die Schnittstelle
 # antwortet. Deshalb wartet server.py zusaetzlich selbst.
+#
+# network-online.target steht hier, hilft der Adressanzeige aber nicht,
+# und das ist gemessen, nicht vermutet. Bei einem Kaltstart:
+#
+#   08:24:48.56  NetworkManager meldet "startup complete" -- aktiviert
+#                ist zu dem Zeitpunkt nur loopback
+#   08:24:48     NetworkManager-wait-online startet UND endet in
+#                derselben Sekunde, mit Erfolg
+#   08:24:48     network-online.target erreicht, devarenu startet
+#   08:24:50     erst jetzt meldet sich die Netzwerkkarte an
+#   08:24:56     Adresse per DHCP da
+#
+# Das Target bedeutet "NetworkManager hat nichts mehr vor", nicht "es
+# gibt eine Adresse". Es wartete null Sekunden, weil zu dem Zeitpunkt
+# kein Geraet bekannt war, auf das es haette warten koennen.
+#
+# Frueher aufhaengen waere der falsche Handel: bis zu 45 Sekunden
+# Startverzoegerung (DHCP-Frist) fuer eine Anzeigezeile, obwohl der
+# Server das Netz zum Starten gar nicht braucht -- er bindet auf
+# 0.0.0.0 und antwortet ab der ersten Sekunde. Deshalb sucht server.py
+# die Adresse stattdessen selbst weiter und traegt sie nach.
 After=network-online.target ollama.service
 Wants=network-online.target ollama.service
 
