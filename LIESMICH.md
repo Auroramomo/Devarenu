@@ -62,6 +62,11 @@ Zwei Handgriffe am Pult, zusammen unter fünf Minuten.
 Mindestlautstärke. Bei jedem neuen Sprecher wiederholen. Der Wert bleibt
 bis dahin erhalten, auch über einen Neustart hinweg.
 
+**Die Übersetzung gehört nicht auf Lautsprecher im selben Raum wie das
+Predigermikro.** Sie läuft über Kopfhörer am Handy. Sonst hört das
+Mikrofon die eigene Ausgabe, übersetzt sie erneut und schaukelt sich auf.
+Im Testbetrieb ist genau das passiert.
+
 **Thema und Bibelstellen eintragen.** Daraus zieht das Programm die
 Eigennamen der genannten Kapitel. Daran hängt, ob Bethsaida richtig
 geschrieben wird.
@@ -96,6 +101,38 @@ brauchte.
 
 **Es gibt keinen Rückfall.** Fällt eine Komponente aus, steht die
 Übersetzung still. Eine erfundene Übersetzung wäre schlimmer als keine.
+
+## Dauerbetrieb
+
+Auf dem Rechner in der Gemeinde meldet sich niemand an. Dafür gibt es
+einen Systemdienst, der mit dem Rechner startet und sich nach einem
+Absturz selbst wieder fängt:
+
+```
+./dienst.sh              einrichten und starten
+./dienst.sh --status     nachsehen
+./dienst.sh --entfernen  wieder abschalten
+```
+
+`INSTALLIEREN.sh` fragt am Ende danach. Wer nur entwickelt, sagt nein und
+startet weiter mit `./start.sh`.
+
+Die Tonquelle steht bewusst **nicht** im Dienst, sondern in
+`zustand.json`, und wird am Pult gewählt. Neben der Gerätenummer steht
+dort auch der Gerätename, und gesucht wird zuerst nach dem Namen: die
+Nummern verschieben sich, sobald jemand ein USB-Gerät umsteckt oder der
+Rechner ohne angemeldete Sitzung hochfährt.
+
+Aktualisieren:
+
+```
+./aktualisieren.sh
+```
+
+Das holt den neuen Stand, ergänzt fehlende Abhängigkeiten, startet den
+Dienst neu und lässt den Selbsttest laufen. Lokale Änderungen werden
+nicht überschrieben: gibt es welche, bricht es ab und zeigt sie.
+`zustand.json` bleibt unangetastet.
 
 ## Lizenz
 

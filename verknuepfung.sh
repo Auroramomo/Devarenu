@@ -33,8 +33,11 @@ Terminal=true
 Categories=AudioVideo;
 ENDE
   chmod +x "$ziel"
-  # GNOME startet Verknuepfungen erst, wenn sie als vertrauenswuerdig
-  # markiert sind. Ohne das erscheint nur ein Warnhinweis.
+  # Manche Arbeitsumgebungen starten Verknuepfungen erst, wenn sie als
+  # vertrauenswuerdig markiert sind. Ohne das erscheint nur ein
+  # Warnhinweis. Welche hier laeuft, wissen wir nicht -- der Zielrechner
+  # kann GNOME oder KDE haben -- also wird es einfach gesetzt, wo es
+  # etwas bewirkt, und schadet sonst nicht.
   gio set "$ziel" metadata::trusted true 2>/dev/null || true
   echo "  angelegt: $2"
 }
@@ -49,5 +52,5 @@ anlegen "Devarenu Mikrofon.desktop" "Devarenu am Mikrofon" \
 
 echo
 echo "Auf dem Schreibtisch liegen jetzt zwei Verknuepfungen."
-echo "Beim ersten Doppelklick fragt GNOME einmal nach, ob sie ausgefuehrt"
-echo "werden duerfen. Danach nicht mehr."
+echo "Beim ersten Doppelklick fragt die Arbeitsumgebung einmal nach, ob sie"
+echo "ausgefuehrt werden duerfen. Danach nicht mehr."

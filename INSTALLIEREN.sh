@@ -48,11 +48,21 @@ if command -v pacman >/dev/null && ! command -v apt-get >/dev/null; then
     printf '   \033[32mok\033[0m   alles vorhanden\n'
   fi
 
-  if ! command -v nvidia-smi >/dev/null; then
-    printf '   \033[31m!\033[0m    Kein NVIDIA-Treiber gefunden.\n'
-    printf '        Ohne Grafikkarte läuft alles auf der CPU und ist für\n'
-    printf '        den Livebetrieb zu langsam.\n'
+fi
+
+# ---------------------------------------------------------------- Treiber
+# Stand frueher im pacman-Zweig und lief damit auf Ubuntu nie -- also
+# ausgerechnet auf dem Rechner, der in der Gemeinde steht. Eine fehlende
+# Grafikkarte waere dort erst im Selbsttest aufgefallen.
+if ! command -v nvidia-smi >/dev/null; then
+  printf '\n\033[1;34m== Grafikkarte\033[0m\n'
+  printf '   \033[31m!\033[0m    Kein NVIDIA-Treiber gefunden.\n'
+  printf '        Ohne Grafikkarte läuft alles auf der CPU und ist für\n'
+  printf '        den Livebetrieb zu langsam.\n'
+  if command -v pacman >/dev/null; then
     printf '        Nachholen mit: sudo pacman -S nvidia-open, dann neu starten\n'
+  elif command -v apt-get >/dev/null; then
+    printf '        Nachholen mit: sudo ubuntu-drivers install, dann neu starten\n'
   fi
 fi
 
@@ -61,7 +71,9 @@ fi
 # fehlgeschlagener Test ist kein Grund, die Einrichtung als gescheitert zu
 # melden: alles ist installiert, es hakt nur irgendwo. Deshalb wird hier
 # unterschieden.
-bash ./einrichten.sh
+# Sagt einrichten.sh, dass es aus einem groesseren Lauf kommt: sonst
+# steht sein Abschluss direkt ueber dem hiesigen, zweimal "Fertig".
+DEVARENU_SAMMELLAUF=1 bash ./einrichten.sh
 ERGEBNIS=$?
 if [ "$ERGEBNIS" -gt 1 ]; then
   echo; echo "Einrichtung abgebrochen."; exit 1

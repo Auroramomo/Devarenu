@@ -36,7 +36,7 @@ fi
 # und der Versuch zu installieren laeuft ins Leere, samt nutzloser
 # Passwortabfrage. Die Arch-Pakete erledigt INSTALLIEREN.sh.
 if command -v dpkg >/dev/null && command -v apt-get >/dev/null; then
-  for paket in python3-venv python3-pip ffmpeg libportaudio2; do
+  for paket in python3-venv python3-pip ffmpeg libportaudio2 git; do
     if dpkg -s "$paket" >/dev/null 2>&1; then gut "$paket"; else
       fehlt "$paket"; NACHINSTALLIEREN="${NACHINSTALLIEREN:-} $paket"; fi
   done
@@ -45,7 +45,7 @@ if command -v dpkg >/dev/null && command -v apt-get >/dev/null; then
     sudo apt-get update -qq && sudo apt-get install -y $NACHINSTALLIEREN
   fi
 else
-  for befehl in python3 ffmpeg; do
+  for befehl in python3 ffmpeg git; do
     if command -v "$befehl" >/dev/null; then gut "$befehl"; else
       warn "$befehl fehlt"; fi
   done
@@ -195,7 +195,14 @@ else
 fi
 
 if [ -f namen_block_b.csv ]; then
-  gut "namen_block_b.csv ($(($(wc -l < namen_block_b.csv) - 1)) Namen)"
+  # Nicht wc -l: die Datei hat mehr Zeilen als nutzbare Namen. Was der
+  # Streuungsfilter als Allgemeinwort markiert hat, faellt beim Laden
+  # weg. Frueher stand hier 2237, wo der Server 1212 sieht -- zwei
+  # Zahlen fuer dieselbe Sache, und die falsche war die groessere.
+  ANZAHL="$($PY -c 'from bibelstellen import Namensindex
+from pathlib import Path
+print(len(Namensindex.laden(Path("namen_block_b.csv")).eintraege))' 2>/dev/null)"
+  gut "namen_block_b.csv (${ANZAHL:-?} nutzbare Namen)"
 else
   warn "namen_block_b.csv fehlt. Der Server laeuft, aber das Kontextfeld"
   warn "am Pult findet keine Bibelnamen. Neu erzeugen mit:"
@@ -233,11 +240,15 @@ else
   ERGEBNIS=0
 fi
 
-blau "Fertig"
-cat <<'ENDE'
+# Beim Aufruf aus INSTALLIEREN.sh stand hier ein zweites "Fertig", direkt
+# ueber dem der Ersteinrichtung. Wer einrichten.sh einzeln aufruft,
+# braucht den Abschluss dagegen.
+if [ -z "${DEVARENU_SAMMELLAUF:-}" ]; then
+  blau "Fertig"
+  cat <<'ENDE'
    Starten:
-     ./start.sh                 Ton vom Mikrofoneingang
-     ./start.sh --mikro 1       bestimmtes Aufnahmegeraet
+     ./start.sh                 Mikrofon, Geraet aus zustand.json
+     ./start.sh --mikro 1       Aufnahmegeraet erzwingen
      ./start.sh --datei x.mp3   Dauerlauf mit einer Aufnahme
 
    Selbsttest jederzeit erneut:
@@ -245,4 +256,5 @@ cat <<'ENDE'
 
    Alles bleibt im eigenen Netz. Keine Verbindung nach aussen.
 ENDE
+fi
 exit $ERGEBNIS
