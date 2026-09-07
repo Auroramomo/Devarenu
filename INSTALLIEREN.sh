@@ -94,6 +94,44 @@ else
   SYMBOL=0
 fi
 
+# ------------------------------------------------------------ Netzfreigabe
+# Vor der Dienst-Frage, damit der Port schon offen ist, wenn dienst.sh
+# gleich darauf die Adressen ausgibt.
+#
+# Gefragt wird nur, wenn es etwas zu tun gibt. Ist keine Firewall aktiv --
+# auf Ubuntu Server der Normalfall -- oder gibt es die Regel schon,
+# passiert hier gar nichts und es steht auch nichts da.
+#
+# Und gefragt wird ueberhaupt: eine Firewall ungefragt zu oeffnen ist
+# nichts, was ein Installationsskript still entscheiden sollte. Ein
+# Tastendruck genuegt, aber man hat gesehen, was passiert.
+if [ -f firewall.sh ]; then
+  . ./firewall.sh
+  firewall_lage "${DEVARENU_PORT:-8000}"
+  if [ -n "${FW_ART:-}" ]; then
+    printf '\n\033[1;34m== Netzfreigabe\033[0m\n'
+    printf '   Die Firewall (%s) sperrt eingehende Verbindungen. Ohne\n' "$FW_ART"
+    printf '   Freigabe erreicht kein Handy im Saal den Server.\n\n'
+    if [ "$FW_ART" = "ufw" ]; then
+      read -rp "   Port ${DEVARENU_PORT:-8000} für $FW_NETZ freigeben? [J/n] " fwantwort
+      case "${fwantwort:-j}" in
+        [nN]*) printf '   Gut. Nachholen mit:\n     %s\n' "$FW_BEFEHL" ;;
+        *)     if eval "$FW_BEFEHL" >/dev/null 2>&1; then
+                 printf '   Freigegeben für %s.\n' "$FW_NETZ"
+               else
+                 printf '   \033[33mHat nicht geklappt.\033[0m Von Hand:\n     %s\n' \
+                        "$FW_BEFEHL"
+               fi ;;
+      esac
+    else
+      # firewalld wird erkannt, aber nicht angefasst: hier war keins zum
+      # Ausprobieren, und ungetestete Firewallbefehle gehoeren nicht auf
+      # einen fremden Rechner.
+      printf '   Freigeben mit:\n     %s\n' "$FW_BEFEHL"
+    fi
+  fi
+fi
+
 # ---------------------------------------------------------------- Dienst
 # Nur auf Nachfrage und mit "nein" als Vorgabe: wer entwickelt, will
 # keinen Dienst, der beim naechsten Einschalten den Port belegt. Fuer den

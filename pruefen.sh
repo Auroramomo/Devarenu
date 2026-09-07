@@ -195,6 +195,23 @@ else
   info "unerheblich -- der Server sucht die Adresse selbst weiter."
 fi
 
+# Sperrt eine Firewall den Port? Von diesem Rechner aus faellt das nie
+# auf: Loopback ist frei, und auch die eigene LAN-Adresse antwortet. Erst
+# das Handy im Saal laeuft in die Wand -- und bis dahin steht hier alles
+# auf gruen. Deshalb geprueft, obwohl nichts danach aussieht.
+if [ -f "$ORDNER/firewall.sh" ]; then
+  . "$ORDNER/firewall.sh"
+  firewall_lage "$PORT"
+  if [ -z "${FW_ART:-}" ]; then
+    gut "keine Firewall sperrt Port $PORT"
+  else
+    fehl "Die Firewall ($FW_ART) sperrt Port $PORT."
+    info "Von hier aus faellt das nicht auf, vom Handy im Saal schon."
+    info "Freigeben mit:"
+    info "  $FW_BEFEHL"
+  fi
+fi
+
 # ------------------------------------------------------------- Ollama
 blau "Ollama"
 

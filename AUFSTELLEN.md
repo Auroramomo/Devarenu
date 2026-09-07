@@ -101,6 +101,12 @@ Die damit abgedeckten Punkte sind unten mit (pruefen.sh) gekennzeichnet.
 - [ ] WLAN-Name und Passwort am Pult eintragen, QR-Seite am Beamer
       prüfen.
 - [ ] Ein Handy durchspielen: QR scannen, Sprache wählen, hören.
+      **Mit einem echten Handy, nicht vom Rechner aus.** Sperrt eine
+      Firewall den Port, antwortet der Server auf sich selbst und auf
+      seine eigene LAN-Adresse einwandfrei — nur das Handy kommt nicht
+      durch. `./pruefen.sh` sagt es vorher, `INSTALLIEREN.sh` fragt beim
+      Einrichten danach. Auf Ubuntu Server ist `ufw` ab Werk aus; wer ihn
+      einschaltet, muss Port 8000 fürs lokale Netz freigeben.
 
 ## Aktualisieren
 
