@@ -1,0 +1,27 @@
+# Wer ein Update signieren darf.
+#
+# Diese Datei ist der Vertrauensanker des Updates per USB-Stick. Ein Stick
+# wird nur eingespielt, wenn sein Tag mit einem Schluessel von hier
+# signiert ist. Geprueft wird immer gegen die Fassung, die auf dem
+# Rechner LIEGT -- nie gegen die im Bundle. Sonst brauchte ein Angreifer
+# nur einen Stick, der seinen eigenen Schluessel mitbringt.
+#
+# Format ist das von OpenSSH (ssh-keygen -Y, siehe ssh-keygen(1),
+# Abschnitt ALLOWED SIGNERS). Eine Zeile je Schluessel:
+#
+#   <E-Mail> <Schluesseltyp> <Schluessel>
+#
+# Die E-Mail vorn ist kein Kommentar. git verify-tag nimmt die Adresse
+# aus dem Tagger-Feld des Tags und sucht genau diese Zeile. Steht dort
+# eine andere, schlaegt die Pruefung fehl, obwohl der Schluessel stimmt.
+#
+# Schluessel erzeugen:
+#   ssh-keygen -t ed25519 -C "devarenu-freigabe" -f ~/.ssh/devarenu_freigabe
+# Danach den Inhalt von ~/.ssh/devarenu_freigabe.pub hier eintragen, mit
+# der E-Mail davor, die auch git commit/tag benutzt (git config user.email).
+#
+# Einen Schluessel abloesen heisst: neuen Schluessel hier ergaenzen, mit
+# dem ALTEN signiert ausliefern, und erst im uebernaechsten Update den
+# alten entfernen. Andersherum sperrt man sich aus.
+
+maurice.wessel@adventisten.de ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOwRWgx/zc8CrgcjZ9NPhVQrdrgZPQWJwrYgyhhj//e6

@@ -1,0 +1,23 @@
+# Spielt ein vorgemerktes Update ein, sobald es ruhig ist.
+#
+# Diese Datei ist eine Vorlage. dienst.sh setzt den Platzhalter und legt
+# das Ergebnis in /etc/systemd/system/devarenu-update.service ab.
+#
+# Liegt nichts vor, endet der Lauf nach Millisekunden. Deshalb darf der
+# Timer daneben ruhig jede Minute ticken.
+
+[Unit]
+Description=Devarenu, vorgemerktes Update einspielen
+Documentation=https://github.com/Auroramomo/Devarenu
+
+[Service]
+Type=oneshot
+ExecStart=@ORDNER@/stick_update.sh --einspielen
+
+# Grosszuegig: im schlimmsten Fall stecken hier ein pip-Lauf aus wheels/,
+# ein Dienstneustart mit 120 Sekunden Gesundheitspruefung und, wenn der
+# scheitert, der Rueckweg samt zweitem Neustart.
+TimeoutStartSec=900
+
+StandardOutput=journal
+StandardError=journal

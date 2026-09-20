@@ -24,3 +24,9 @@ zustand.json
 # Betriebssystem
 .DS_Store
 Thumbs.db
+
+# Was das Update per USB-Stick auf der Platte ablegt: Bundle, Wheels und
+# die Statusdatei, die das Pult anzeigt. Gehoert dem Rechner, nicht dem
+# Repo -- und muss hier stehen bleiben: ohne diese Zeile meldet
+# pruefen.sh eine schmutzige Arbeitskopie und aktualisieren.sh bricht ab.
+update/

@@ -112,3 +112,71 @@ Die damit abgedeckten Punkte sind unten mit (pruefen.sh) gekennzeichnet.
 
 - [ ] `./aktualisieren.sh` einmal ausführen. `zustand.json` muss danach
       unverändert sein — das Skript prüft und meldet es selbst.
+
+## Aktualisieren ohne Netz, per USB-Stick
+
+Die meisten Gemeinderechner haben kein Internet. `./aktualisieren.sh`
+braucht aber `git fetch` und ruft `einrichten.sh` auf, das pip, Ollama
+und Hugging Face erwartet — beides geht offline nicht. Dafür gibt es den
+Stick.
+
+### Am Rechner in der Gemeinde
+
+- [ ] Stick einstecken. Sonst nichts.
+- [ ] Am Pult unter **Einrichtung** steht, was passiert ist: geprüft und
+      vorgemerkt, eingespielt, oder warum nicht.
+- [ ] Der Stick kann sofort wieder abgezogen werden. Er wird nur gelesen,
+      nie beschrieben, und ist nach ein paar Sekunden ausgehängt.
+- [ ] Eingespielt wird **nicht sofort**, sondern wenn die Übersetzung
+      angehalten ist und zwanzig Minuten lang niemand mehr zugehört hat.
+      Mitten im Gottesdienst passiert nichts. Wer es eilig hat, drückt
+      unter Einrichtung auf **Jetzt einspielen**; das dauert dann bis zu
+      eine Minute.
+- [ ] Geht etwas schief, kommt der alte Stand von allein zurück und der
+      Dienst läuft weiter. Am Pult steht dann, welche Fassung wieder
+      läuft.
+
+Ein Stick ohne `upd-dev.txt` löst gar nichts aus — der Fotostick der
+Gemeinde darf also bedenkenlos in denselben Rechner.
+
+### Beim ersten Mal
+
+Rechner mit einer Fassung vor 0.2.1 kennen das Verfahren noch nicht. Bei
+ihnen einmal von Hand:
+
+    sudo bash /pfad/zum/stick/bootstrap.sh
+
+Dabei wird ein Fingerabdruck angezeigt. Er muss mit dem übereinstimmen,
+den Sie **auf einem anderen Weg als über den Stick** bekommen haben —
+fragen Sie nach, am Telefon oder persönlich. Stimmt er nicht: abbrechen.
+Das ist der einzige Moment, in dem ein Mensch das Vertrauen herstellt;
+danach prüft der Rechner selbst.
+
+Neu aufgesetzte Rechner brauchen das nicht, `./dienst.sh` richtet alles
+gleich mit ein.
+
+### Was der Rechner prüft, bevor er etwas anfasst
+
+Der Reihe nach, und beim ersten Nein ist Schluss:
+
+1. Ist das Bundle unversehrt?
+2. Ist das Tag mit einem Schlüssel aus `schluessel.erlaubt` signiert?
+   Geprüft wird gegen die Liste **auf dem Rechner**, nie gegen die auf
+   dem Stick — sonst brächte ein Stick einfach seinen eigenen Schlüssel
+   mit.
+3. Ist die Fassung überhaupt neuer als die laufende?
+4. Liegen lokale Änderungen im Ordner? Dann nichts anfassen.
+5. Ist die Übersetzung angehalten und ruhig?
+6. Liegen Sprachmodell und Stimmen da? Das Bundle bringt sie nicht mit,
+   und ohne Netz lädt nichts nach.
+7. Braucht das Update neue Pakete, und sind sie auf dem Stick?
+
+Erst danach wird der Dienst neu gestartet. Meldet er sich nicht binnen
+zwei Minuten mit der neuen Fassung, geht alles zurück.
+
+### Nachsehen
+
+    ./pruefen.sh                     Abschnitt „Fassung"
+    ./stick_update.sh --stand        nur die Statusdatei
+    journalctl -u devarenu-update    was der Timer gemacht hat
+    journalctl -u 'devarenu-stick@*' was beim Einstecken passierte

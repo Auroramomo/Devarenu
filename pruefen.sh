@@ -86,6 +86,14 @@ else
   fehl "Keine venv in $ORDNER. Einrichten mit: bash INSTALLIEREN.sh"
 fi
 
+# Die kurze Fassung eigens: nach ihr richten sich die Wheels auf einem
+# Update-Stick. Wer einen baut, braucht genau diese Zahl -- und rueckfragen
+# kann er auf einem Rechner ohne Netz schlecht.
+if [ -x "$PY" ]; then
+  info "Stickziel $("$PY" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null) \
+(fuer stick_bauen.sh --python)"
+fi
+
 # Einmal feststellen, ob systemd zu fragen ist -- danach dreimal benutzt.
 # Ohne diese Unterscheidung meldet ein blosses "systemctl is-active" bei
 # fehlendem Zugriff auf den Systembus dasselbe wie ein wirklich
@@ -647,6 +655,41 @@ if command -v git >/dev/null 2>&1 && [ -d .git ]; then
   fi
 else
   warn "Kein Git-Ordner. ./aktualisieren.sh braucht einen."
+fi
+
+# ------------------------------------------------------- Update per Stick
+# Auf einem Rechner ohne Netz ist das der einzige Weg, der noch geht.
+# Deshalb gehoert in die Durchsicht, ob er ueberhaupt offensteht.
+if [ -s schluessel.erlaubt ] \
+   && grep -qE '^[^#[:space:]]+[[:space:]]+(ssh|sk-)' schluessel.erlaubt; then
+  gut "schluessel.erlaubt: $(grep -cE '^[^#[:space:]]+[[:space:]]+(ssh|sk-)' schluessel.erlaubt) Schluessel eingetragen"
+else
+  warn "schluessel.erlaubt hat keinen Schluessel. Ein Update-Stick wird"
+  warn "abgelehnt, egal was darauf liegt."
+fi
+
+if [ "$SYSTEMD" = ja ]; then
+  if systemctl list-unit-files 2>/dev/null | grep -q "^$NAME-update\.timer"; then
+    if systemctl is-active --quiet "$NAME-update.timer"; then
+      gut "Update per Stick ist scharf (Timer laeuft)"
+    else
+      warn "Der Timer fuer Updates ist eingerichtet, laeuft aber nicht."
+      warn "Anwerfen mit: sudo systemctl enable --now $NAME-update.timer"
+    fi
+  else
+    warn "Update per Stick nicht eingerichtet. Ein eingesteckter Stick"
+    warn "loest nichts aus. Nachholen mit: sudo ./dienst.sh --stick"
+  fi
+fi
+
+if [ -s update/stand.json ]; then
+  info "Letztes Update:"
+  sed -n 's/.*"text"[[:space:]]*:[[:space:]]*"\(.*\)".*/   \1/p' \
+      update/stand.json | head -1
+fi
+if [ -s update/bereit ]; then
+  warn "Vorgemerkt: Fassung $(tr -d '\r\n ' < update/bereit). Wird"
+  warn "eingespielt, sobald die Uebersetzung angehalten ist."
 fi
 
 # ----------------------------------------------------------- Schluss

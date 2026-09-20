@@ -78,11 +78,17 @@ else
 fi
 
 blau "Python-Pakete"
-$PY -m pip install -q \
-  faster-whisper transformers sentencepiece requests \
-  fastapi uvicorn websockets python-multipart \
-  sounddevice numpy segno piper-tts \
-  && gut "alle Pakete da"
+# Welche Pakete und in welcher Fassung, steht in requirements.txt. Frueher
+# stand die Liste hier im Skript -- dann kannte der USB-Stick sie nicht,
+# und ein Rechner ohne Netz bekam andere Versionen als einer mit.
+if [ ! -f requirements.txt ]; then
+  warn "requirements.txt fehlt. Ohne sie ist nicht zu sagen, welche"
+  warn "Pakete gebraucht werden. Datei aus dem Repo nachlegen."
+else
+  $PY -m pip install -q -r requirements.txt \
+    && gut "alle Pakete da ($(grep -cE '^[a-zA-Z]' requirements.txt) Stueck)" \
+    || warn "pip hat etwas beanstandet. Oben nachlesen."
+fi
 
 # ---------------------------------------------------------------- Ollama
 blau "Ollama"

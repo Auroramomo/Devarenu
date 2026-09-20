@@ -1,0 +1,34 @@
+# Wertet einen eingesteckten USB-Stick aus. Angestossen von der
+# udev-Regel, ein Aufruf je Partition.
+#
+# Diese Datei ist eine Vorlage. dienst.sh setzt den Platzhalter und legt
+# das Ergebnis in /etc/systemd/system/devarenu-stick@.service ab.
+#
+# Der Lauf ist kurz: einhaengen, kopieren, aushaengen, Signatur pruefen,
+# vormerken. Eingespielt wird hier nichts -- das macht devarenu-update
+# spaeter, wenn der Gottesdienst vorbei ist. Wuerde diese Unit warten,
+# waere sie beim naechsten Ausschalten weg, und das fertige Paket laege
+# ungenutzt auf der Platte.
+#
+# Laeuft als root, weil Einhaengen root braucht. Alles, was den
+# Projektordner anfasst, stuft stick_update.sh selbst auf den Besitzer
+# des Ordners zurueck.
+
+[Unit]
+Description=Devarenu, USB-Stick auf ein Update pruefen (%i)
+Documentation=https://github.com/Auroramomo/Devarenu
+
+[Service]
+Type=oneshot
+ExecStart=@ORDNER@/stick_update.sh --lesen /dev/%i
+
+# Reicht fuer Kopieren und Signaturpruefung mit weitem Abstand. Bleibt
+# etwas haengen -- ein Stick, der beim Lesen abgezogen wurde --, soll es
+# aufgeben und nicht bis zum naechsten Neustart stehen.
+TimeoutStartSec=300
+
+# Ein Stick, der nichts fuer uns hat, ist der Normalfall und kein Fehler.
+# stick_update.sh endet dann mit 0; was hier als Fehler im Journal
+# auftaucht, ist wirklich einer.
+StandardOutput=journal
+StandardError=journal

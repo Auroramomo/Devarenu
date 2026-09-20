@@ -1,0 +1,37 @@
+# Die Python-Pakete von Devarenu, mit festen Versionen.
+#
+# Feste Versionen, weil dieselbe Datei zwei Wege bedient: einrichten.sh
+# holt sie online, stick_bauen.sh legt sie als Wheels auf den USB-Stick.
+# Waeren die Versionen offen, brauchte pip auf dem Gemeinderechner eine
+# Aufloesung -- und genau die geht ohne Netz nicht. Gleich installiert
+# ueberall ist hier mehr wert als neu.
+#
+# Aendern heisst: Version hier anheben, dann stick_bauen.sh laufen
+# lassen. Findet pip fuer die Zielversion kein Wheel, sagt es das mit
+# Paketnamen, und der Eintrag hier muss zurueck.
+#
+# Torch steht bewusst NICHT hier. Es kommt von einem eigenen Index
+# (download.pytorch.org) und in einer Fassung, die zur CUDA-Version des
+# Rechners passt; einrichten.sh holt es getrennt.
+
+# Spracherkennung
+faster-whisper==1.2.1
+
+# Uebersetzung und Zerlegung
+transformers==5.16.1
+sentencepiece==0.2.2
+
+# Server und Schnittstelle
+fastapi==0.141.1
+uvicorn==0.52.4
+websockets==17.1
+python-multipart==0.0.32
+requests==2.34.2
+
+# Ton
+sounddevice==0.5.6
+numpy==2.5.2
+piper-tts==1.7.0
+
+# QR-Codes fuer die Beamerseite
+segno==1.6.6

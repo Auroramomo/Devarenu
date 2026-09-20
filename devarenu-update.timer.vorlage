@@ -1,0 +1,27 @@
+# Sieht nach, ob ein Update daraufwartet, eingespielt zu werden.
+#
+# Diese Datei ist eine Vorlage. dienst.sh legt sie als
+# /etc/systemd/system/devarenu-update.timer ab; ein Platzhalter steckt
+# nicht darin, sie liegt nur der Vollstaendigkeit halber hier.
+#
+# Jede Minute, und einmal kurz nach dem Hochfahren. Die Minute klingt
+# haeufig, kostet aber nichts: ohne vorgemerktes Update endet der Lauf
+# sofort. Sie ist die Wartezeit, die zwischen "Jetzt einspielen" am Pult
+# und dem tatsaechlichen Neustart vergeht -- laenger waere unangenehm.
+#
+# OnBootSec ist der eigentliche Grund fuer den Timer: wird der Rechner
+# mit einem vorgemerkten Update ausgeschaltet, greift es beim naechsten
+# Einschalten. Ein wartender Prozess waere an dieser Stelle verloren.
+
+[Unit]
+Description=Devarenu, regelmaessig nach vorgemerkten Updates sehen
+Documentation=https://github.com/Auroramomo/Devarenu
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Unit=devarenu-update.service
+
+[Install]
+WantedBy=timers.target

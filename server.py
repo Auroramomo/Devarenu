@@ -1767,6 +1767,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
                                  if lauf.audio_quelle else None),
                 "mitschnitt": lauf.mitschnitt.lage(),
                 "nachrichten": list(lauf.nachrichten),
+                # Steht hier und nicht nur unter Einrichtung: ein Update,
+                # das aufs Anhalten wartet, geht den Techniker waehrend
+                # des Gottesdienstes an -- und da hat er die Einrichtung
+                # nicht offen. Leer, solange nichts ansteht.
+                "update": update_kurz(),
                 "letzte": list(lauf.letzte)[-8:]}
 
     @app.post("/api/steuerung/{was}")
@@ -1992,6 +1997,74 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
         lauf.zustand["wlan"] = dict(lauf.wlan)
         zustandsdatei.speichern(lauf.zustand)
         return lauf.wlan
+
+    # ------------------------------------------------------------ Update
+    # Was das Update per USB-Stick zuletzt gemacht hat. Geschrieben wird
+    # die Datei von stick_update.sh, hier wird sie nur gelesen: ueber
+    # Updates entscheidet der Server nichts, er richtet aus.
+    #
+    # Der Umweg ueber eine Datei und nicht ueber den Speicher ist Absicht.
+    # Ein Update startet den Dienst neu -- was sich der Server gemerkt
+    # haette, waere genau dann weg, wenn die Meldung gebraucht wird.
+    stand_zwischen = {"zeit": 0.0, "wert": {}}
+
+    def update_stand():
+        """Liest update/stand.json, hoechstens einmal je Sekunde.
+
+        Das Pult fragt /api/zustand mehrmals je Minute ab; ohne den
+        Zwischenspeicher laege bei jeder Abfrage ein Dateizugriff dahinter,
+        nur damit meistens dasselbe herauskommt."""
+        jetzt = time.time()
+        if jetzt - stand_zwischen["zeit"] < 1.0:
+            return stand_zwischen["wert"]
+        try:
+            wert = json.loads(
+                (basis / "update" / "stand.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            wert = {}
+        stand_zwischen.update(zeit=jetzt, wert=wert)
+        return wert
+
+    def update_kurz():
+        """Ein Satz fuer die Betriebsansicht, oder nichts.
+
+        Nur was ansteht, nicht was war: ein eingespieltes Update gehoert
+        unter Einrichtung nachgelesen, nicht neben den Pegel."""
+        stand = update_stand()
+        if stand.get("lage") in ("bereit", "wartet"):
+            return stand.get("text") or ""
+        return ""
+
+    @app.get("/api/update")
+    def update_lesen():
+        stand = dict(update_stand())
+        # Ob der Knopf etwas bewirken kann, weiss der Server besser als
+        # die Oberflaeche: nur wenn wirklich etwas vorgemerkt ist.
+        stand["bereit"] = (basis / "update" / "bereit").exists()
+        stand["gedrueckt"] = (basis / "update" / "jetzt").exists()
+        return stand
+
+    @app.post("/api/update/jetzt")
+    async def update_jetzt():
+        """Setzt die Marke, auf die stick_update.sh wartet.
+
+        Der Server startet nichts selbst neu -- er laeuft als gewoehnlicher
+        Benutzer und hat mit systemd nichts zu schaffen. Er legt eine
+        Datei an, und der Timer, der ohnehin jede Minute nachsieht,
+        ueberspringt daraufhin die Wartezeit. Das kostet bis zu eine
+        Minute und spart eine sudo-Regel, die sonst dauerhaft offenstuende."""
+        ablage = basis / "update"
+        if not (ablage / "bereit").exists():
+            return JSONResponse({"fehler": "Es ist kein Update vorgemerkt."},
+                                status_code=400)
+        try:
+            (ablage / "jetzt").write_text("", encoding="utf-8")
+        except OSError as e:
+            return JSONResponse(
+                {"fehler": f"Marke nicht schreibbar: {str(e)[:120]}"},
+                status_code=500)
+        print("Update: am Pult auf Einspielen gedrueckt.")
+        return {"angenommen": True}
 
     @app.get("/pult")
     def pult():
@@ -2219,6 +2292,7 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
 <p class=lage><span class=punkt id=punkt></span><span id=lage>…</span></p>
 <div id=betrieb>
 <p class="warnung schwer" id=rechenwarnung hidden></p>
+<p class=warnung id=updatehin hidden></p>
 <button class=briefkasten id=briefkasten onclick=postZeigen() hidden>
   <span class=umschlag>✉</span><span id=postzahl></span>
   <span data-t=post_neu>neue Meldungen aus dem Saal</span></button>
@@ -2300,6 +2374,9 @@ Rechner per USB angeschlossen ist.</p>
 <p class=hin data-t=einrichtung_hin>Einmal je Gemeinde einstellen, danach
 bleibt es so.</p>
 <p class=hin id=fassung></p>
+<p class=hin id=updatestand hidden></p>
+<button class=klein id=updateknopf onclick=updateJetzt() hidden
+        data-t=update_jetzt>Jetzt einspielen</button>
 <h2 data-t=tonquelle>Tonquelle</h2>
 <div class=tonreihe>
   <select id=geraetwahl onchange=geraetSetzen()></select>
@@ -2365,6 +2442,10 @@ const TEXTE={
      +"Maschine.",
    einrichtung:"Einrichtung",
    einrichtung_hin:"Einmal je Gemeinde einstellen, danach bleibt es so.",
+   update_jetzt:"Jetzt einspielen",
+   update_laeuft:"Wird eingespielt, das dauert eine Minute. Der Dienst "
+     +"startet dabei neu.",
+   update_kein:"Es ist gerade kein Update vorgemerkt.",
    wlan_hin:"Netzname und Passwort des Routers, an dem dieser Rechner hängt. "
      +"Sie wandern in den ersten QR-Code, damit sich die Handys mit einem "
      +"Scan verbinden, ohne dass jemand ein Passwort abtippt. Ohne Eintrag "
@@ -2406,6 +2487,10 @@ const TEXTE={
      +"their technical terms come straight from the machine.",
    einrichtung:"Setup",
    einrichtung_hin:"Set once per congregation, then leave it alone.",
+   update_jetzt:"Install now",
+   update_laeuft:"Installing, this takes a minute. The service restarts "
+     +"while it does.",
+   update_kein:"No update is pending right now.",
    wlan_hin:"Network name and password of the router this computer is "
      +"connected to. They go into the first QR code so that phones can join "
      +"with one scan, without anyone typing a password. Without an entry the "
@@ -2503,7 +2588,7 @@ function einrichtungZeigen(){
     zeigen ? TEXTE[UI].einrichtung : TEXTE[UI].pult;
   // Auch die Geraete: wer waehrend des Betriebs ein Mikrofon einsteckt,
   // soll es finden, ohne die Seite neu zu laden.
-  if(zeigen){ sprachenLaden(); wlanLaden(); geraeteLaden(); }
+  if(zeigen){ sprachenLaden(); wlanLaden(); geraeteLaden(); updateLaden(); }
 }
 
 function uiSprache(){
@@ -2697,6 +2782,40 @@ async function wlanSetzen(){
   wlanstand.textContent = ssid.value ? TEXTE[UI].gespeichert : "";
 }
 
+async function updateLaden(){
+  // Was der Stick zuletzt gemacht hat. Der Text kommt fertig vom Server
+  // -- er wird dort auch ins Journal geschrieben, und zwei Stellen, an
+  // denen derselbe Satz anders lautet, will hinterher niemand vergleichen.
+  try{
+    const d=await(await fetch("/api/update")).json();
+    if(!d.text){ updatestand.hidden=true; updateknopf.hidden=true; return; }
+    updatestand.hidden=false;
+    updatestand.textContent=d.text;
+    // Der Knopf nur, wenn er etwas bewirkt: ein Update ist vorgemerkt und
+    // es wurde noch nicht gedrueckt.
+    updateknopf.hidden = !(d.bereit && !d.gedrueckt);
+  }catch(e){}
+}
+
+async function updateJetzt(){
+  updateknopf.disabled=true;
+  try{
+    const a=await fetch("/api/update/jetzt",{method:"POST"});
+    const d=await a.json();
+    updatestand.hidden=false;
+    // Bis zu eine Minute, weil der Timer daneben so oft nachsieht. Das
+    // hier zu verschweigen hiesse, dass jemand ein zweites Mal drueckt.
+    updatestand.textContent = a.ok ? TEXTE[UI].update_laeuft
+                                   : (d.fehler||TEXTE[UI].update_kein);
+    if(a.ok) updateknopf.hidden=true;
+  }catch(e){
+    updatestand.hidden=false;
+    updatestand.textContent=String(e.message||e);
+  }finally{
+    updateknopf.disabled=false;
+  }
+}
+
 async function hochladen(){
   const f=datei.files[0]; if(!f) return;
   skriptinfo.textContent="wird gelesen …";
@@ -2794,6 +2913,12 @@ async function lies(){
     }else{
       rechenwarnung.hidden = true;
     }
+    // Ein wartendes Update gehoert in die Betriebsansicht, nicht nur
+    // unter Einrichtung: waehrend des Gottesdienstes hat niemand die
+    // Einrichtung offen. Eingespielt und fehlgeschlagen stehen dort,
+    // hier steht nur, was noch bevorsteht -- der Server entscheidet das.
+    updatehin.hidden = !d.update;
+    if(d.update) updatehin.textContent = d.update;
     const quelle = (d.audio_quelle!==undefined && d.audio_quelle!==null)
       ? " · "+t.tonda : "";
     if(zustandLive!==d.live){ zustandLive=d.live; uiZeichnen(); }

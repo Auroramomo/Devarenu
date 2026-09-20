@@ -1,0 +1,26 @@
+# Ein USB-Stick steckt -- Devarenu soll nachsehen, ob ein Update drauf ist.
+#
+# Diese Datei ist eine Vorlage. dienst.sh setzt den Platzhalter und legt
+# das Ergebnis in /etc/udev/rules.d/99-devarenu-stick.rules ab.
+#
+# In der Regel steht bewusst kein Befehl, der laenger laeuft als einen
+# Wimpernschlag: udev raeumt lange Jobs nach 180 Sekunden ab und blockiert
+# so lange die Ereignisverarbeitung. SYSTEMD_WANTS reicht den Auftrag
+# stattdessen an systemd weiter, das ihn in Ruhe ausfuehrt. Das
+# funktioniert headless und ohne dass sich jemand anmeldet -- genau der
+# Fall in der Gemeinde.
+#
+# Die Bedingungen der Reihe nach:
+#   ACTION=="add"              nur beim Einstecken, nicht beim Abziehen
+#   SUBSYSTEM=="block"         Datentraeger, keine Tastaturen
+#   ENV{ID_BUS}=="usb"         nur USB. Ohne das feuert die Regel beim
+#                              Hochfahren fuer jede eingebaute Platte mit
+#   ENV{ID_FS_USAGE}=="filesystem"
+#                              es liegt ein Dateisystem darauf. Faengt
+#                              beide Faelle: Stick mit Partitionstabelle
+#                              und Stick, der direkt formatiert wurde
+#
+# %k ist der Kernelname, also sdb1. Der landet im Instanznamen der Unit,
+# die daraus /dev/sdb1 macht.
+
+ACTION=="add", SUBSYSTEM=="block", ENV{ID_BUS}=="usb", ENV{ID_FS_USAGE}=="filesystem", ENV{SYSTEMD_WANTS}+="devarenu-stick@%k.service"
