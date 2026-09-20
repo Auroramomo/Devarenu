@@ -1355,6 +1355,10 @@ class Tonquelle:
         self.fehler = ""
         self._thread = None
         self._stoppen = None
+        # Threads, die beim Anhalten die Frist gerissen haben und noch im
+        # Treiber stehen. Sie halten ihr Geraet weiter offen; frei()
+        # raeumt sie weg, sobald sie durch sind.
+        self._haengt = []
         # Zwei Anfragen vom Pult gleichzeitig wuerden sonst zwei Threads
         # auf dasselbe Geraet setzen.
         self._schloss = threading.Lock()
@@ -1425,7 +1429,10 @@ class Tonquelle:
         der Aufseher dazwischen einen Strom, und _terminate() nimmt ihn
         still mit."""
         with self._schloss:
-            if self._thread is not None:
+            # frei() statt self._thread: ein Strom, der beim Anhalten die
+            # Frist gerissen hat, steht noch offen, auch wenn _thread
+            # schon geleert ist. _terminate() risse ihn mit.
+            if not self.frei():
                 return False
             return geraete_neu_aufzaehlen()
 
@@ -1540,8 +1547,10 @@ class Tonquelle:
               f"oeffne {alt} neu.")
         # Erst schliessen, dann neu aufzaehlen: vorher waere der Strom noch
         # offen, und _terminate() risse ihn mit, ohne etwas zu melden.
-        self._anhalten()
-        geraete_neu_aufzaehlen()
+        # Haengt er noch im Treiber, wird NICHT neu aufgezaehlt -- lieber
+        # mit der alten Liste oeffnen als den haengenden Strom zerreissen.
+        if self._anhalten():
+            geraete_neu_aufzaehlen()
         gelungen, _, einzelheit = self._versuchen()
         if gelungen:
             self._rueckzug = 0.0
@@ -1724,16 +1733,49 @@ class Tonquelle:
         return True, ""
 
     def _anhalten(self):
+        """Schliesst den Datenstrom. Gibt zurueck, ob er wirklich zu ist.
+
+        False heisst: der Thread haengt nach der Frist noch im Treiber,
+        der Strom ist also NICHT geschlossen und das Geraet weiter
+        belegt. Frueher ging diese Auskunft verloren -- self._thread
+        wurde bedingungslos geleert, und der Server hielt ein Geraet fuer
+        frei, das noch offen war.
+
+        Fuer den Livebetrieb aendert das nichts: wer danach ein anderes
+        Geraet aufmacht, kommt damit durch. Fuer den Reihum-Scan ist es
+        der Unterschied zwischen "naechster Kanal" und einem EBUSY auf
+        einem Geraet, das wir selbst noch festhalten. Der Scan fragt
+        deshalb frei() und laesst einen Takt aus, statt draufzuoeffnen."""
         if self._stoppen is not None:
             self._stoppen.set()
+        zu = True
         if self._thread is not None:
             # Der Thread prueft alle 0,2 s; danach schliesst der
             # Kontextmanager den Datenstrom. Wer laenger braucht, haengt im
             # Treiber, und darauf wartet das Pult nicht.
             self._thread.join(timeout=3.0)
+            if self._thread.is_alive():
+                zu = False
+                # Nicht vergessen, sondern merken: der Thread schliesst
+                # den Strom, wenn der Treiber ihn freigibt. Bis dahin
+                # muss frei() ihn sehen koennen.
+                self._haengt.append(self._thread)
+                print(f"Tonstrom haengt noch im Treiber "
+                      f"({self.geraet_name or self.geraet}). Das Geraet "
+                      f"bleibt belegt, bis er sich loest.")
         self._thread = None
         self._stoppen = None
         self.offen_seit = None
+        return zu
+
+    def frei(self):
+        """Ist gerade kein Datenstrom von uns offen?
+
+        Sieht auch nach den haengenden Threads: ein Strom, der beim
+        Anhalten die Frist gerissen hat, schliesst sich spaeter von
+        selbst, und danach ist das Geraet wieder zu haben."""
+        self._haengt = [t for t in self._haengt if t.is_alive()]
+        return self._thread is None and not self._haengt
 
 
 # ================================================================
