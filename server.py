@@ -488,6 +488,68 @@ class Werk:
         self.verlauf.append(text)
         return text
 
+    # ---- Sprachpruefung am Eingang ----
+    # Ab hier gilt ein Abschnitt als "kein Sprechen". Beide Werte sind
+    # NEU: no_speech_prob und avg_logprob wurden bisher nirgends
+    # ausgewertet, hoeren() wirft die Segmentobjekte weg und behaelt nur
+    # den Text.
+    #
+    # ACHTUNG, gemessen mit large-v3-turbo auf 1,8-Sekunden-Abschnitten:
+    #
+    #   Sprache    n_sp 0.0000   logp -0.1941   "Liebe Gemeinde, wir ..."
+    #   Rauschen   n_sp 0.0000   logp -0.4034   "Vielen Dank."
+    #   Stille     n_sp 0.0000   logp -0.2586   "Vielen Dank."
+    #
+    # Das Modell meldet auf reinem Rauschen und auf digitaler Stille
+    # dieselbe Zuversicht wie auf echter Sprache und erfindet dazu eine
+    # Dankesformel. Beide Schwellen hier greifen in diesen Messungen
+    # also NICHT -- was Rauschen von Sprache trennt, ist allein die
+    # Leerlaufphrasenliste ERFUNDEN, davor der Pegel.
+    #
+    # Sie bleiben trotzdem stehen: sie kosten nichts, und ein Modell,
+    # das no_speech_prob sinnvoll fuellt, faengt damit einen Fall ab,
+    # den keine Phrasenliste kennt. Verlassen darf man sich nicht
+    # darauf. Wer sie nachziehen will, findet die Rohwerte je
+    # geprueftem Kanal im Ergebnis, nicht nur das Urteil.
+    KEINE_SPRACHE_AB = 0.6
+    LOGPROB_MINDESTENS = -1.0
+
+    def sprache_messen(self, audio):
+        """Laesst Whisper einen kurzen Abschnitt hoeren.
+
+        Gibt die Rohwerte zurueck und faellt kein Urteil: das faellt der
+        Kanalscan, der auch den Pegel kennt. Hier steht nur, was das
+        Modell gesagt hat.
+
+        Kein VAD-Paket: das waere eine neue Abhaengigkeit, eine neue
+        Lizenz und ein weiteres Wheel auf den Stick, und der Rechner in
+        der Gemeinde hat kein Netz. Whisper liegt ohnehin geladen da und
+        liefert zusaetzlich den erkannten Text -- der beantwortet die
+        Frage "ist das der Prediger oder das Radio in der Kueche"
+        besser als jede Wahrscheinlichkeit.
+
+        Ohne initial_prompt und ohne Verlauf: der Prompt soll die
+        Erkennung hier gerade NICHT stuetzen. Ein Glossar, das dem
+        Modell Predigtbegriffe nahelegt, macht aus Rauschen eher einen
+        frommen Satz, und genau den wollen wir nicht sehen."""
+        segmente, _ = self.whisper.transcribe(
+            audio, language=self.quelle, beam_size=1, vad_filter=False,
+            condition_on_previous_text=False)
+        segmente = list(segmente)
+        text = " ".join(s.text.strip() for s in segmente).strip()
+        if not segmente:
+            # Whisper hat gar nichts geschnitten. Das ist die deutlichste
+            # Form von "hier spricht niemand".
+            return {"text": "", "no_speech_prob": 1.0, "avg_logprob": -9.9}
+        # Der schwaechste Beleg zaehlt. Ein einzelnes zuversichtliches
+        # Segment neben drei unsicheren ist kein Sprechen, sondern ein
+        # Treffer im Rauschen.
+        return {
+            "text": text,
+            "no_speech_prob": max(float(s.no_speech_prob) for s in segmente),
+            "avg_logprob": min(float(s.avg_logprob) for s in segmente),
+        }
+
     # ---- Uebersetzung ----
     def uebersetzen(self, text, sprache, kontext=None):
         treffer = self.glossar.finde_in(text, self.quelle)
@@ -1919,6 +1981,32 @@ def kanal_schluessel(name, kanal, kanaele):
 # auch liefern wuerde.
 KANAELE_HOECHSTENS = 16
 
+# ALSA-Umsetzer, die nicht aufgemacht werden duerfen.
+#
+# Das sind keine Eingaenge, sondern Glieder in ALSAs Umrechnungskette:
+# sie wandeln Abtastrate oder Kanalzahl eines Stromes, der schon da ist.
+# Als Aufnahmequelle ergeben sie nichts, und einer von ihnen ist
+# gefaehrlich: "upmix" stuerzt beim Aufnehmen im Plugin selbst ab.
+#
+#   libasound_module_pcm_upmix.so -> snd_pcm_area_copy -> Segfault
+#
+# Gemessen auf dem Entwicklungsrechner, reproduzierbar beim ersten
+# Block. Ein Segfault laesst sich nicht abfangen -- kein try, kein
+# except --, er nimmt den ganzen Serverprozess mit. Waehrend eines
+# Gottesdienstes waere das der Ausfall der Uebersetzung, ausgeloest
+# davon, dass jemand die Geraeteliste aufgeklappt hat.
+#
+# Bewusst eine Sperrliste und keine Erlaubnisliste: eine Erlaubnisliste
+# verschwiege auf einem ungewoehnlichen Rechner eine echte Karte, und
+# dann fehlt genau das Mikrofon, das gesucht wird. Hier stehen nur
+# Namen, die per Bauart kein Mikrofon sein koennen.
+#
+# "pulse", "pipewire", "default" und "sysdefault" stehen mit Absicht
+# NICHT hier: das sind die ueblichen Wege zur Karte und oft der
+# einzige, der funktioniert, wenn der hw-Eingang belegt ist.
+UMSETZER = {"upmix", "vdownmix", "lavrate", "samplerate", "speexrate",
+            "speex"}
+
 
 def kanaele_aufzaehlen():
     """Jeder Eingangskanal als eigene Zeile.
@@ -1943,6 +2031,8 @@ def kanaele_aufzaehlen():
     karten = sorted(geraete_liste(),
                     key=lambda g: 0 if "(hw:" in g["name"] else 1)
     for g in karten:
+        if g["name"].strip().lower() in UMSETZER:
+            continue
         kanaele = max(1, int(g["kanaele"]))
         marke = (Tonquelle._namenskern(g["name"]), kanaele)
         if marke in gesehen:
@@ -2107,12 +2197,19 @@ class Testton:
 
     def messen(self, kanal, fenster):
         spur = self._schneiden(kanal, fenster, weiter=True).astype(np.float64)
+        # Das Fenster wird abgewartet, obwohl die Daten schon dastehen.
+        # Sonst liefe die Probe um Groessenordnungen schneller als der
+        # Ernstfall, und genau das Verhalten, das geprueft werden soll
+        # -- wie sich eine Liste von dreissig Zeilen anfuehlt, die
+        # reihum einzeln aktualisiert wird --, waere nicht zu sehen.
+        threading.Event().wait(fenster)
         return float(np.sqrt(np.mean(spur ** 2))), ""
 
     def aufnehmen(self, kanal, dauer):
         # Ohne Weiterruecken: die Sprachpruefung soll die Stelle hoeren,
         # an der eben Pegel gemessen wurde.
         spur = self._schneiden(kanal, dauer, weiter=False)
+        threading.Event().wait(dauer)
         return auf_16k(np.ascontiguousarray(spur, dtype=np.float32),
                        self.rate), ""
 
@@ -2166,9 +2263,18 @@ class Kanalscan:
         # fertig wird, wenn die naechste Reihe schon laeuft -- und
         # zurueckholen() naehme ihr dann mitten im Umlauf das Geraet weg.
         self._wechsel = threading.Lock()
-        # Wird gesetzt, solange gerade gemessen wird. Die Sprachpruefung
-        # wartet darauf, statt sich ein zweites Geraet aufzumachen.
+        # Wird gesetzt, solange die Sprachpruefung laeuft. Der Scan
+        # macht dann nichts auf, statt um dasselbe Geraet zu streiten.
         self._pause = threading.Event()
+        # Das eigentliche Geraeteschloss. Messung und Sprachpruefung
+        # halten es abwechselnd; damit ist ausgeschlossen, dass zwei
+        # Stroeme gleichzeitig offen sind. _pause ist nur die
+        # Hoeflichkeit davor, dieses Schloss ist die Zusicherung.
+        self._geraet_schloss = threading.Lock()
+        self._pruef_thread = None
+        self._pruef_ende = threading.Event()
+        self._pruef_schloss = threading.Lock()
+        self._pruef_jetzt = ""
         self.hinweis = ""
 
     @property
@@ -2247,6 +2353,8 @@ class Kanalscan:
         return {
             "laeuft": self.laeuft,
             "uebersetzung": laeuft_uebersetzung,
+            "pruefung": self.pruefung_laeuft,
+            "pruefung_jetzt": self._pruef_jetzt,
             "testton": self.testton.name if self.testton else "",
             "rauschgrenze": self.RAUSCHGRENZE,
             "vermisst": (self.tonquelle.wartet_auf
@@ -2355,12 +2463,15 @@ class Kanalscan:
             self._ende.wait(self.RUHE)
 
     def _messen(self, z):
-        if self.testton is not None:
-            pegel, fehler = self.testton.messen(z["kanal"], self.FENSTER)
-        else:
-            pegel, fehler = kanal_messen(z["nummer"], z["kanal"],
-                                         z["kanaele"], self.FENSTER,
-                                         self.wunschrate)
+        # Unter demselben Schloss wie die Sprachpruefung: nie zwei
+        # Stroeme gleichzeitig, auch nicht fuer einen Wimpernschlag.
+        with self._geraet_schloss:
+            if self.testton is not None:
+                pegel, fehler = self.testton.messen(z["kanal"], self.FENSTER)
+            else:
+                pegel, fehler = kanal_messen(z["nummer"], z["kanal"],
+                                             z["kanaele"], self.FENSTER,
+                                             self.wunschrate)
         if fehler:
             # Die Zeile bleibt stehen und der Scan laeuft weiter. Ein
             # belegtes Geraet ist die Regel, nicht die Ausnahme: der
@@ -2369,6 +2480,167 @@ class Kanalscan:
             self._ergebnis(z["schluessel"], None, "nicht lesbar")
         else:
             self._ergebnis(z["schluessel"], pegel, "")
+
+    # ---- Stufe 2: liegt wirklich Sprache an? -------------------------
+    # Wie lange je Kandidat aufgenommen wird. Kuerzer als eineinhalb
+    # Sekunden schneidet Whisper regelmaessig mitten im ersten Wort ab
+    # und meldet dann Unsinn; laenger kostet nur Wartezeit, weil hier
+    # niemand einen Satz mitlesen will, sondern nur wissen muss, ob
+    # ueberhaupt geredet wird.
+    PRUEF_DAUER = 1.8
+    # Wieviel Text am Pult stehenbleibt. Genug, um das Gesprochene
+    # wiederzuerkennen, zu wenig, um die Zeile zu sprengen.
+    TEXT_ZEICHEN = 40
+
+    def pruefung_starten(self):
+        """Knopf "Sprache pruefen".
+
+        Gibt (gestartet, grund). Nicht von selbst beim Oeffnen der
+        Liste: die Pruefung haelt jeden Kandidaten noch einmal auf und
+        laesst Whisper darueber laufen. Das ist nichts, was im
+        Hintergrund passieren soll, waehrend jemand nur nachsieht,
+        welches Kabel steckt."""
+        with self._pruef_schloss:
+            if self._pruef_thread is not None and self._pruef_thread.is_alive():
+                return False, "laeuft_schon"
+            if self.lauf.laeuft:
+                # Waehrend einer Uebersetzung wird nichts aufgemacht.
+                return False, "uebersetzung"
+            kandidaten = self.kandidaten()
+            if not kandidaten:
+                return False, "keine_kandidaten"
+            self._pruef_ende.clear()
+            self._pruef_thread = threading.Thread(
+                target=self._pruef_schleife, args=(kandidaten,), daemon=True)
+            self._pruef_thread.start()
+            return True, ""
+
+    def pruefung_abbrechen(self):
+        """Knopf "Abbrechen".
+
+        Setzt nur das Signal und wartet nicht: der laufende Kandidat
+        wird zu Ende gehoert -- das dauert keine zwei Sekunden --, und
+        danach hoert die Reihe auf. Am Pult haengen darf das nicht."""
+        self._pruef_ende.set()
+
+    @property
+    def pruefung_laeuft(self):
+        return (self._pruef_thread is not None
+                and self._pruef_thread.is_alive()
+                and not self._pruef_ende.is_set())
+
+    def _pruef_schleife(self, kandidaten):
+        """Geht die Kandidaten der Reihe nach durch.
+
+        Nur Kanaele, die in Stufe 1 ueberhaupt Pegel gezeigt haben:
+        Whisper auf einen Eingang loszulassen, an dem nachweislich
+        nichts anliegt, kostet Zeit, deren Ergebnis vorher feststeht.
+
+        Der Scan ruht solange. Beide messen ueber dasselbe Geraet, und
+        zwei Stroeme gleichzeitig ist genau das, was hier nie passieren
+        darf."""
+        self._pause.set()
+        try:
+            for z in kandidaten:
+                if self._pruef_ende.is_set() or self._ende.is_set():
+                    break
+                if self.lauf.laeuft:
+                    # Jemand hat mitten in der Reihe auf Start gedrueckt.
+                    # Dann gehoert das Geraet der Predigt.
+                    break
+                self.pruefung_zeigen(z["schluessel"])
+                self._einen_pruefen(z)
+        except Exception as e:
+            print(f"Sprachpruefung: {type(e).__name__}: {str(e)[:150]}")
+        finally:
+            self.pruefung_zeigen("")
+            self._pause.clear()
+
+    def pruefung_zeigen(self, schluessel):
+        """Welcher Kanal gerade abgehoert wird -- fuer das Pult."""
+        with self._schloss:
+            self._pruef_jetzt = schluessel
+
+    def _einen_pruefen(self, z):
+        # Das Geraeteschloss: der Scan haelt es waehrend seiner Messung,
+        # hier wird es fuer die Aufnahme gehalten. Nie zwei Stroeme.
+        with self._geraet_schloss:
+            if self.testton is not None:
+                audio, fehler = self.testton.aufnehmen(z["kanal"],
+                                                       self.PRUEF_DAUER)
+            else:
+                audio, fehler = kanal_aufnehmen(
+                    z["nummer"], z["kanal"], z["kanaele"], self.PRUEF_DAUER,
+                    self.wunschrate)
+        if fehler or audio is None or not len(audio):
+            self.sprachurteil_setzen(z["schluessel"], {
+                "urteil": "nichts", "text": "", "grund": "nicht lesbar",
+                "rms": None, "no_speech_prob": None, "avg_logprob": None,
+                "zeit": time.time()})
+            return
+
+        # Der Pegel der Aufnahme selbst, nicht der aus Stufe 1: zwischen
+        # Messung und Pruefung koennen Sekunden liegen, und in denen hat
+        # der Prediger womoeglich aufgehoert zu reden.
+        rms = float(np.sqrt(np.mean(audio.astype(np.float64) ** 2)))
+
+        # Erste Stufe des Gates: der Pegel. Darunter braucht Whisper gar
+        # nicht erst zu laufen -- es gibt nichts zu hoeren.
+        if rms <= self.RAUSCHGRENZE:
+            self.sprachurteil_setzen(z["schluessel"], {
+                "urteil": "nichts", "text": "", "grund": "kein Pegel",
+                "rms": round(rms, 5), "no_speech_prob": None,
+                "avg_logprob": None, "zeit": time.time()})
+            return
+
+        werk = getattr(self.lauf, "werk", None)
+        if werk is None or getattr(werk, "whisper", None) is None:
+            self.sprachurteil_setzen(z["schluessel"], {
+                "urteil": "ton_ohne_sprache", "text": "",
+                "grund": "kein Modell geladen", "rms": round(rms, 5),
+                "no_speech_prob": None, "avg_logprob": None,
+                "zeit": time.time()})
+            return
+
+        mass = werk.sprache_messen(audio)
+        urteil, grund = self._urteilen(werk, mass)
+        self.sprachurteil_setzen(z["schluessel"], {
+            "urteil": urteil,
+            "text": (mass["text"][:self.TEXT_ZEICHEN]
+                     if urteil == "sprache" else ""),
+            "grund": grund,
+            "rms": round(rms, 5),
+            "no_speech_prob": round(mass["no_speech_prob"], 4),
+            "avg_logprob": round(mass["avg_logprob"], 4),
+            "zeit": time.time()})
+
+    @staticmethod
+    def _urteilen(werk, mass):
+        """Das Gate, in dieser Reihenfolge.
+
+        Pegel hat der Aufrufer schon geprueft. Hier: no_speech_prob,
+        avg_logprob, dann die Leerlaufphrasen. Ein Treffer der
+        Phrasenliste gilt als KEINE Sprache -- das ist dieselbe Liste,
+        die im Livebetrieb erfundene Abspaenne abfaengt.
+
+        Nach den Messungen an KEINE_SPRACHE_AB ist sie hier nicht bloss
+        der wichtigere, sondern der einzige wirksame Schritt: auf
+        Rauschen antwortet large-v3-turbo mit "Vielen Dank." bei
+        no_speech_prob 0.0. Ohne die Phrasenliste saehe das am Pult nach
+        einem gefundenen Predigtkanal aus."""
+        if mass["no_speech_prob"] > werk.KEINE_SPRACHE_AB:
+            return "ton_ohne_sprache", "no_speech_prob"
+        if mass["avg_logprob"] < werk.LOGPROB_MINDESTENS:
+            return "ton_ohne_sprache", "avg_logprob"
+        text = mass["text"]
+        if not text:
+            return "ton_ohne_sprache", "kein Text"
+        if werk.ERFUNDEN.match(text):
+            return "ton_ohne_sprache", "Leerlaufphrase"
+        woerter = text.lower().split()
+        if len(woerter) >= 4 and len(set(woerter)) <= 2:
+            return "ton_ohne_sprache", "Schleife im Dekoder"
+        return "sprache", ""
 
 
 # ================================================================
@@ -2649,6 +2921,21 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             # holt die eingestellte Quelle zurueck.
             threading.Thread(target=kanalscan.stoppen, daemon=True).start()
         return {"laeuft": kanalscan.laeuft}
+
+    @app.post("/api/sprachpruefung")
+    def sprachpruefung(daten: dict):
+        """Stufe 2 an und aus.
+
+        Kein async: das Starten faellt zwar sofort zurueck, aber die
+        Auskunft darueber steht unter demselben Schloss wie der
+        pruefende Thread."""
+        if kanalscan is None:
+            return JSONResponse({"lage": "nicht_lokal"}, status_code=400)
+        if not daten.get("an"):
+            kanalscan.pruefung_abbrechen()
+            return {"laeuft": False, "lage": ""}
+        gestartet, grund = kanalscan.pruefung_starten()
+        return {"laeuft": kanalscan.pruefung_laeuft, "lage": grund}
 
     @app.get("/api/sprachen")
     def sprachen():
@@ -3422,10 +3709,16 @@ bleibt es so.</p>
   <div class=balken><div class=fuell id=tonfuell></div></div>
 </div>
 <div id=kanalliste></div>
+<div class=reihe>
+  <button class=klein id=bSprache onclick=spracheKnopf()
+          data-t=spr_pruefen>Sprache prüfen</button>
+</div>
+<p class=hin id=sprachstand></p>
 <p class=hin id=geraetstand></p>
 <p class=hin data-t=tonquelle_hin>Jede Zeile ist ein Kanal. Hineinsprechen und
 zusehen, welche ausschlägt — gemessen wird reihum, eine Zeile nach der
-anderen.</p>
+anderen. „Sprache prüfen“ hört bei jedem Kanal mit Pegel kurz hin und sagt,
+ob wirklich jemand redet oder nur ein Lüfter brummt.</p>
 </div>
 
 <h2 data-t=sprachen>Sprachen</h2>
@@ -3471,6 +3764,10 @@ const TEXTE={
      +"Bitte neu wählen.",
    ton_testton:"Gemessen wird {name}, nicht die Soundkarte.",
    ton_uebernommen:"Übernommen. Nach dem Start einmal neu einmessen.",
+   spr_pruefen:"Sprache prüfen", spr_abbrechen:"Abbrechen",
+   spr_laeuft:"Hört hin: {name} …",
+   spr_ja:"Sprache", spr_ton:"Ton, aber keine Sprache", spr_nichts:"nichts",
+   spr_keine:"Kein Kanal zeigt Pegel. Erst hineinsprechen, dann prüfen.",
    tonlaeuft:"Nimmt auf, {hz} Hz.",tonaus:"Kein Gerät offen, es kommt "
      +"kein Ton.",tonwechsel:"Wird umgestellt …",
    ziele:"Übersetzt nach",lautstaerke:"Mindestlautstärke",
@@ -3576,6 +3873,10 @@ const TEXTE={
      +"Please pick a new one.",
    ton_testton:"Measuring {name}, not the sound card.",
    ton_uebernommen:"Saved. Calibrate once after starting.",
+   spr_pruefen:"Check for speech", spr_abbrechen:"Cancel",
+   spr_laeuft:"Listening: {name} …",
+   spr_ja:"speech", spr_ton:"audio, but no speech", spr_nichts:"nothing",
+   spr_keine:"No channel shows any level. Speak first, then check.",
    tonlaeuft:"Recording, {hz} Hz.",tonaus:"No device open, no audio "
      +"arriving.",tonwechsel:"Switching …",
    ziele:"Translated into",lautstaerke:"Minimum volume",
@@ -3906,6 +4207,19 @@ async function kanaeleLaden(){
     if(!d.aktiv){ kanalliste.innerHTML=""; return; }
     kanalZeilen=d.zeilen||[];
     kanalListeZeichnen(d);
+    // Der Knopf macht ein Geraet auf. Waehrend einer Uebersetzung gibt
+    // es dafuer keinen Grund, der eine Gemeinde interessiert.
+    bSprache.disabled = d.uebersetzung;
+    bSprache.textContent = d.pruefung
+      ? TEXTE[UI].spr_abbrechen : TEXTE[UI].spr_pruefen;
+    if(d.pruefung){
+      const z=kanalZeilen.find(k=>k.schluessel===d.pruefung_jetzt);
+      sprachstand.textContent = z
+        ? TEXTE[UI].spr_laeuft.replace("{name}",
+            z.name+" "+z.kanalname) : TEXTE[UI].spr_laeuft.replace("{name}","…");
+    }else if(sprachstand.dataset.halten!=="1"){
+      sprachstand.textContent="";
+    }
   }catch(e){console.error("Kanaele:", e)}
 }
 
@@ -3949,6 +4263,7 @@ function kanalListeZeichnen(d){
       +`<span class=balken><span class="${farbe}" `
       +`style="display:block;height:100%;width:${pz}%"></span></span>`
       +`<span class=kwort>${wort}</span>`
+      +(z.sprache ? `<span class=kurteil>${sprachSatz(z.sprache)}</span>` : "")
       +`</button>`);
   }
   kanalliste.innerHTML=teile.join("");
@@ -3964,6 +4279,53 @@ function entschaerfen(t){
 // Die Schwelle aus dem Pegelabruf, damit die Kanalzeilen dieselbe Grenze
 // faerben wie der grosse Balken. Bis zum ersten Abruf die Vorgabe.
 let pegelSchwelle=0.0025;
+
+// ---- Stufe 2: Sprache pruefen -------------------------------------
+async function spracheKnopf(){
+  // Derselbe Knopf schaltet an und ab. Zwei nebeneinander waeren einer
+  // zu viel: abbrechen kann man nur, was laeuft.
+  const an = bSprache.textContent===TEXTE[UI].spr_pruefen;
+  sprachstand.dataset.halten="";
+  try{
+    const a=await fetch("/api/sprachpruefung",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({an:an})});
+    const d=await a.json();
+    if(an && !d.laeuft && d.lage==="keine_kandidaten"){
+      // Der haeufigste Fall, und einer, den man beheben kann: es hat
+      // einfach noch niemand ins Mikrofon gesprochen.
+      sprachstand.textContent=TEXTE[UI].spr_keine;
+      sprachstand.dataset.halten="1";
+    }
+    kanaeleLaden();
+  }catch(e){console.error("Sprachpruefung:", e)}
+}
+
+// Das Ergebnis bleibt mit Zeitstempel stehen, bis erneut geprueft wird:
+// wer drei Kanaele durchgeht, will den ersten noch sehen, wenn er beim
+// dritten ist.
+function sprachSatz(u){
+  const zeit=new Date(u.zeit*1000).toLocaleTimeString(
+    UI==="de"?"de-DE":"en-GB",{hour:"2-digit",minute:"2-digit"});
+  let kern;
+  if(u.urteil==="sprache"){
+    kern="<b>"+TEXTE[UI].spr_ja+"</b>"
+      +(u.text?" · „"+entschaerfen(u.text)+"“":"");
+  }else if(u.urteil==="ton_ohne_sprache"){
+    kern=TEXTE[UI].spr_ton+(u.grund?" ("+entschaerfen(u.grund)+")":"");
+  }else{
+    kern=TEXTE[UI].spr_nichts+(u.grund?" ("+entschaerfen(u.grund)+")":"");
+  }
+  // Die Rohwerte stehen mit da. Sie sind fuer den Techniker Rauschen,
+  // aber die Schwellen dahinter sind neu und unerprobt -- ohne Zahlen
+  // liesse sich nach zwei Einsaetzen nicht nachziehen, sondern nur raten.
+  const roh=[u.rms!==null&&u.rms!==undefined ? "RMS "+u.rms : "",
+             u.no_speech_prob!==null&&u.no_speech_prob!==undefined
+               ? "n_sp "+u.no_speech_prob : "",
+             u.avg_logprob!==null&&u.avg_logprob!==undefined
+               ? "logp "+u.avg_logprob : ""].filter(Boolean).join(" · ");
+  return kern+" · "+zeit+(roh?" · "+roh:"");
+}
 
 async function kanalSetzen(schluessel){
   const z=kanalZeilen.find(k=>k.schluessel===schluessel);
