@@ -1405,6 +1405,11 @@ class Tonquelle:
         self._naechster_versuch = 0.0
         self._aufseher = None
         self._ende = threading.Event()
+        # Worauf zurueckzukehren ist, waehrend der Kanalscan das Geraet
+        # hat. Solange das gesetzt ist, liegt _wunsch brach und der
+        # Aufseher haelt still -- sonst risse er dem Scan das Geraet
+        # unter den Haenden weg, weil kein Block mehr ankommt.
+        self._abgegeben = None
 
     @property
     def laeuft(self):
@@ -1442,6 +1447,44 @@ class Tonquelle:
     def beenden(self):
         """Beim Herunterfahren: den Aufseher gehen lassen."""
         self._ende.set()
+
+    def abgeben(self):
+        """Gibt das Geraet an den Kanalscan ab.
+
+        Gibt zurueck, ob der Strom wirklich zu ist. False heisst, er
+        haengt noch im Treiber -- dann darf der Scan dieses Geraet noch
+        nicht aufmachen.
+
+        Der Aufseher ruht waehrenddessen: _wunsch wird geleert, und
+        _nachsehen() steigt darauf sofort aus. Ohne das wuerde er nach
+        wenigen Sekunden "Tonstrom tot" feststellen -- richtig erkannt,
+        aber falsch geschlossen -- und mitten in die Messreihe hinein
+        das alte Geraet wieder aufmachen."""
+        with self._schloss:
+            if self._abgegeben is None:
+                self._abgegeben = self._wunsch or (None, "", 0, 1)
+            self._wunsch = None
+            self.wartet_auf = ""
+            return self._anhalten()
+
+    def zurueckholen(self):
+        """Nimmt nach dem Scan wieder die eingestellte Quelle.
+
+        Auch wenn zwischendurch am Pult etwas anderes gewaehlt wurde:
+        wechseln() setzt _abgegeben zurueck, und dann gibt es hier nichts
+        mehr zu tun."""
+        with self._schloss:
+            if self._abgegeben is None:
+                return True, "", ""
+            self._wunsch, self._abgegeben = self._abgegeben, None
+            if self._wunsch[0] is None and not self._wunsch[1]:
+                # Vor dem Scan lief gar nichts. Dann soll danach auch
+                # nichts laufen, statt das Vorgabegeraet aufzumachen.
+                self._wunsch = None
+                return True, "", ""
+            ergebnis = self._versuchen()
+        self._aufseher_anwerfen()
+        return ergebnis
 
     # Wie lange "wurde neu geoeffnet" am Pult stehen bleibt. Das ist ein
     # Ereignis und kein Zustand: eine Minute lang soll es jemand sehen
@@ -1634,6 +1677,11 @@ class Tonquelle:
                 self.wartet_auf = ""
                 self._wunsch = (self.geraet, self.geraet_name,
                                 self.kanal, self.kanaele)
+                # Die Wahl am Pult sticht auch die Rueckkehr nach dem
+                # Scan. Sonst waehlt jemand waehrend der Messreihe eine
+                # Quelle, und das Schliessen der Liste holt die alte
+                # zurueck.
+                self._abgegeben = None
                 self._rueckzug = 0.0
                 self._naechster_versuch = 0.0
                 return True, "", ""
@@ -1842,10 +1890,492 @@ class Tonquelle:
 
 
 # ================================================================
+# Kanalscan: welcher Eingang fuehrt Ton?
+# ================================================================
+
+def kanal_schluessel(name, kanal, kanaele):
+    """Der stabile Schluessel einer Zeile.
+
+    Nicht die Geraetenummer: die verschiebt sich beim Umstecken und
+    zaehlt im Systemdienst anders als in der angemeldeten Sitzung.
+    Anzeigename, Kanalzahl und Kanalindex zusammen bezeichnen den
+    Eingang so, wie ein Mensch ihn wiedererkennt."""
+    return f"{name}␟{kanaele}␟{kanal}"
+
+
+# Ab wie vielen Kanaelen ein Eintrag nicht mehr als Karte gilt.
+#
+# Gemessen auf dem Entwicklungsrechner: die ALSA-Umsetzer melden
+# "default", "pipewire", "sysdefault", "lavrate", "samplerate" und
+# "speexrate" mit je 128 Eingangskanaelen, "pulse" mit 32. Das sind
+# keine Buchsen, sondern die Obergrenze, die ein Umsetzer eben
+# entgegennimmt -- er reicht ohnehin an dieselbe Karte weiter. Ohne
+# Deckel ergab die Liste 826 Zeilen und ein Umlauf haette elf Minuten
+# gedauert; mit Deckel sind es rund 40.
+#
+# 16 und nicht kleiner, weil es Tonkarten mit acht und mehr echten
+# Eingaengen gibt. Wer mehr meldet, bekommt eine einzige Zeile auf
+# Kanal 0 -- das ist der Kanal, den ein Umsetzer ohne weitere Angabe
+# auch liefern wuerde.
+KANAELE_HOECHSTENS = 16
+
+
+def kanaele_aufzaehlen():
+    """Jeder Eingangskanal als eigene Zeile.
+
+    Einheit ist der Kanal und nicht das Geraet: ein Stereogeraet haengt
+    am Mischpult regelmaessig so, dass links die Summe liegt und rechts
+    das Predigtmikrofon. Wer nur Geraete sieht, waehlt dann die Summe
+    und wundert sich ueber die Uebersetzung der Gemeinde.
+
+    Duplikate derselben Karte ueber verschiedene Schnittstellen fallen
+    zusammen. geraete_liste() ist bereits nach Rang sortiert, der erste
+    Treffer ist also der vertraeglichste -- unter Windows MME statt
+    WDM-KS. Unterschieden wird nach Namenskern und Kanalzahl: zwei
+    baugleiche Mikrofone waeren danach eines, und das ist derselbe
+    Handel, den _namenskern ohnehin schon eingeht."""
+    zeilen = []
+    gesehen = set()
+    # Echte Karten zuerst messen. Unter ALSA steht der Kartenindex im
+    # Namen -- "(hw:4,0)" --, und genau die sind gesucht; die Umsetzer
+    # dahinter reichen nur weiter. Unter Windows trifft das Muster auf
+    # nichts zu, dort bleibt die Reihenfolge wie sie war.
+    karten = sorted(geraete_liste(),
+                    key=lambda g: 0 if "(hw:" in g["name"] else 1)
+    for g in karten:
+        kanaele = max(1, int(g["kanaele"]))
+        marke = (Tonquelle._namenskern(g["name"]), kanaele)
+        if marke in gesehen:
+            continue
+        gesehen.add(marke)
+        # Ein Umsetzer, der 128 Kanaele meldet, hat keine 128 Buchsen.
+        zeigen = 1 if kanaele > KANAELE_HOECHSTENS else kanaele
+        for kanal in range(zeigen):
+            zeilen.append({
+                "schluessel": kanal_schluessel(g["name"], kanal, kanaele),
+                "nummer": g["nummer"],
+                "name": g["name"],
+                "kanal": kanal,
+                "kanaele": kanaele,
+                "kanalname": zustandsdatei.kanalname(kanal, kanaele),
+                "empfohlen": g["empfohlen"],
+            })
+    return zeilen
+
+
+def kanal_messen(geraet, kanal, kanaele, fenster=0.8, wunschrate=None):
+    """Macht einen Kanal kurz auf und gibt seinen Pegel zurueck.
+
+    Gibt (pegel, fehler). pegel ist None, wenn nichts zu holen war; der
+    Fehler steht dann als Wort da und wandert in die Zeile, damit sie
+    stehenbleiben kann, statt zu verschwinden.
+
+    Ein eigener, kurzer Strom und NICHT der Weg ueber mikrofon_thread:
+    der schiebt in den Segmentierer, und eine Messreihe ueber zwoelf
+    Eingaenge wuerde dessen Schwellennachfuehrung mit dem Rauschen
+    fremder Geraete fuellen. Gemessen wird der Spitzenwert im Fenster,
+    nicht der Mittelwert: gesucht ist, ob ueberhaupt etwas anliegt, und
+    ein einzelner Satz in 800 ms verschwindet im Mittel."""
+    import sounddevice as sd
+    mehrkanal = kanal > 0
+    offen_kanaele = kanaele if mehrkanal else 1
+    spalte = kanal if mehrkanal else 0
+
+    gewaehlt = rate_waehlen(geraet, wunschrate, offen_kanaele)
+    if gewaehlt is None:
+        return None, "keine brauchbare Aufnahmerate"
+    rate, blockgroesse = gewaehlt
+
+    werte = []
+
+    def rueckruf(daten, rahmen, zeit, status):
+        spur = daten[:, spalte].astype(np.float64)
+        werte.append(float(np.sqrt(np.mean(spur ** 2))))
+
+    try:
+        with sd.InputStream(device=geraet, channels=offen_kanaele,
+                            samplerate=rate, blocksize=blockgroesse,
+                            dtype="float32", callback=rueckruf):
+            threading.Event().wait(fenster)
+    except Exception as e:
+        return None, str(e).replace("\n", " ")[:120]
+
+    if not werte:
+        return None, "kein Block angekommen"
+    return max(werte), ""
+
+
+def kanal_aufnehmen(geraet, kanal, kanaele, dauer, wunschrate=None):
+    """Nimmt einen Kanal auf und gibt ihn als 16-kHz-Mono zurueck.
+
+    Derselbe Weg wie die Pipeline: auf_16k, also Tiefpass und dann
+    Ratenaenderung. Eine eigene Umrechnung haette geheissen, dass die
+    Sprachpruefung etwas anderes hoert als der Server nachher.
+
+    Gibt (audio, fehler)."""
+    import sounddevice as sd
+    mehrkanal = kanal > 0
+    offen_kanaele = kanaele if mehrkanal else 1
+    spalte = kanal if mehrkanal else 0
+
+    gewaehlt = rate_waehlen(geraet, wunschrate, offen_kanaele)
+    if gewaehlt is None:
+        return None, "keine brauchbare Aufnahmerate"
+    rate, blockgroesse = gewaehlt
+
+    stuecke = []
+
+    def rueckruf(daten, rahmen, zeit, status):
+        stuecke.append(auf_16k(daten[:, spalte].copy(), rate))
+
+    try:
+        with sd.InputStream(device=geraet, channels=offen_kanaele,
+                            samplerate=rate, blocksize=blockgroesse,
+                            dtype="float32", callback=rueckruf):
+            threading.Event().wait(dauer)
+    except Exception as e:
+        return None, str(e).replace("\n", " ")[:120]
+
+    if not stuecke:
+        return None, "kein Block angekommen"
+    return np.concatenate(stuecke), ""
+
+
+class Testton:
+    """Eine WAV-Datei anstelle der Soundkarte.
+
+    Damit laesst sich die Kanaltrennung ohne Mischpult pruefen: eine
+    Stereodatei mit Sprache links und Stille rechts muss genau eine
+    Zeile mit Pegel ergeben und bei der Sprachpruefung genau ein
+    "sprache". Der Oeffnungspfad wird damit NICHT geprueft -- dafuer
+    braucht es ein echtes Geraet.
+
+    Stdlib-wave und kein neues Paket: es geht um PCM-WAV, und das kann
+    Python selbst. av liegt zwar im Ordner, liefert ueber decode_audio
+    aber Mono -- und genau die Kanaltrennung soll hier geprueft werden.
+    """
+
+    def __init__(self, pfad):
+        self.pfad = Path(pfad)
+        with wave.open(str(self.pfad), "rb") as w:
+            self.kanaele = w.getnchannels()
+            self.rate = w.getframerate()
+            breite = w.getsampwidth()
+            roh = w.readframes(w.getnframes())
+        if breite == 2:
+            daten = np.frombuffer(roh, dtype="<i2").astype(np.float32) / 32768.0
+        elif breite == 4:
+            daten = (np.frombuffer(roh, dtype="<i4").astype(np.float32)
+                     / 2147483648.0)
+        elif breite == 1:
+            # 8-Bit-WAV ist vorzeichenlos, 128 ist die Null.
+            daten = (np.frombuffer(roh, dtype="u1").astype(np.float32)
+                     - 128.0) / 128.0
+        else:
+            raise ValueError(f"{breite * 8} Bit je Abtastwert kann ich nicht "
+                             f"lesen. Erwartet werden 8, 16 oder 32 Bit PCM.")
+        self.spuren = daten.reshape(-1, self.kanaele)
+        self.name = f"Testton: {self.pfad.name}"
+        # Wo die naechste Messung ansetzt. Laeuft umlaufend weiter, damit
+        # die Messreihe ueber die Datei wandert statt immer dieselben
+        # 800 ms zu lesen -- sonst zeigte eine Sprechpause am Dateianfang
+        # dauerhaft "still".
+        self._pos = 0
+        self._schloss = threading.Lock()
+
+    def zeilen(self):
+        return [{
+            "schluessel": kanal_schluessel(self.name, k, self.kanaele),
+            "nummer": -1,
+            "name": self.name,
+            "kanal": k,
+            "kanaele": self.kanaele,
+            "kanalname": zustandsdatei.kanalname(k, self.kanaele),
+            "empfohlen": True,
+        } for k in range(self.kanaele)]
+
+    def _schneiden(self, kanal, dauer, weiter):
+        laenge = max(1, int(dauer * self.rate))
+        with self._schloss:
+            anfang = self._pos
+            if weiter:
+                self._pos = (self._pos + laenge) % max(1, len(self.spuren))
+        # Umlaufend lesen, damit auch das Dateiende ein volles Fenster
+        # hergibt und die Reihe nicht kuerzer wird.
+        i = np.arange(anfang, anfang + laenge) % len(self.spuren)
+        return self.spuren[i, kanal]
+
+    def messen(self, kanal, fenster):
+        spur = self._schneiden(kanal, fenster, weiter=True).astype(np.float64)
+        return float(np.sqrt(np.mean(spur ** 2))), ""
+
+    def aufnehmen(self, kanal, dauer):
+        # Ohne Weiterruecken: die Sprachpruefung soll die Stelle hoeren,
+        # an der eben Pegel gemessen wurde.
+        spur = self._schneiden(kanal, dauer, weiter=False)
+        return auf_16k(np.ascontiguousarray(spur, dtype=np.float32),
+                       self.rate), ""
+
+
+class Kanalscan:
+    """Misst reihum jeden Eingangskanal und sagt, wo Ton anliegt.
+
+    Im Serverprozess und in genau einem Thread. Kein zweiter Prozess:
+    ALSA-hw-Geraete sind exklusiv, ein fremder Prozess bekaeme EBUSY auf
+    genau dem Geraet, das der Server selbst haelt, und ob PipeWire das
+    abfaengt, haengt an der Installation vor Ort. Sequenziell und nicht
+    parallel, aus demselben Grund: nie zwei Geraete gleichzeitig offen.
+
+    Gelaufen wird nur, solange die Uebersetzung steht. Waehrend einer
+    Predigt wird nichts gemessen und nichts geoeffnet -- der aktive
+    Kanal zeigt seinen normalen Pegel weiter, alle anderen Zeilen
+    stehen still da. Ein Messfenster von 800 ms auf dem Predigtmikrofon
+    waere ein Loch in der Uebersetzung, und dafuer gibt es keinen Grund,
+    der eine Gemeinde interessiert.
+
+    Die Zeilen bleiben ueber die Runden stehen, auch fehlerhafte. Eine
+    Zeile, die bei EBUSY verschwindet und beim naechsten Umlauf
+    wiederkommt, laesst die Liste springen, und der Techniker klickt
+    daneben."""
+
+    # Messfenster je Kanal. Kurz genug, dass ein Umlauf ueber ein
+    # Dutzend Eingaenge im zweistelligen Sekundenbereich bleibt, lang
+    # genug fuer ein paar Silben.
+    FENSTER = 0.8
+    # Verschnaufen zwischen zwei Geraeten. Manche USB-Karten geben den
+    # Descriptor nicht sofort frei, und der naechste Griff faellt dann
+    # unnoetig auf EBUSY.
+    RUHE = 0.12
+    # Ab hier gilt ein Kanal als "fuehrt Ton". Derselbe Wert, den das
+    # Pult schon als Hoerbarkeitsgrenze benutzt -- unterhalb davon ist
+    # es Rauschen der Vorverstaerkung, nicht Signal.
+    RAUSCHGRENZE = 0.0015
+
+    def __init__(self, lauf, tonquelle, testton=None, wunschrate=None):
+        self.lauf = lauf
+        self.tonquelle = tonquelle
+        self.testton = testton
+        self.wunschrate = wunschrate
+        self._zeilen = {}
+        self._reihenfolge = []
+        self._schloss = threading.Lock()
+        self._thread = None
+        self._ende = threading.Event()
+        # Haelt An und Aus auseinander. Wer die Liste hastig zu- und
+        # wieder aufklappt, loest sonst ein Aufraeumen aus, das erst
+        # fertig wird, wenn die naechste Reihe schon laeuft -- und
+        # zurueckholen() naehme ihr dann mitten im Umlauf das Geraet weg.
+        self._wechsel = threading.Lock()
+        # Wird gesetzt, solange gerade gemessen wird. Die Sprachpruefung
+        # wartet darauf, statt sich ein zweites Geraet aufzumachen.
+        self._pause = threading.Event()
+        self.hinweis = ""
+
+    @property
+    def laeuft(self):
+        # _ende zaehlt mit: das Aufraeumen laeuft in einem eigenen
+        # Thread und darf ein paar Sekunden brauchen. Bis dahin ist der
+        # Scan am Pult schon aus, sonst zeigte die Liste noch "misst",
+        # waehrend niemand mehr hinsieht.
+        if self._ende.is_set():
+            return False
+        return self._thread is not None and self._thread.is_alive()
+
+    # ---- an und aus --------------------------------------------------
+    def starten(self):
+        """Beim Oeffnen des Abschnitts "Tonquelle".
+
+        Nicht dauerhaft im Hintergrund: der Scan macht fremde Geraete
+        auf, und das gehoert an eine Stelle, an der jemand hinsieht."""
+        with self._wechsel:
+            if self._thread is not None and self._thread.is_alive():
+                self._ende.clear()
+                return True
+            self._ende.clear()
+            self._thread = threading.Thread(target=self._schleife,
+                                            daemon=True)
+            self._thread.start()
+            return True
+
+    def stoppen(self, warten=True):
+        """Beim Schliessen des Abschnitts.
+
+        Holt die eingestellte Quelle zurueck. Ohne das bliebe der Server
+        nach einem Blick in die Liste ohne Ton da -- der Scan hat das
+        Geraet ja zuletzt einem anderen Kanal ueberlassen."""
+        self._ende.set()
+        with self._wechsel:
+            # Unter dem Schloss noch einmal nachsehen: wer in der
+            # Zwischenzeit wieder aufgeklappt hat, hat _ende geloescht,
+            # und dann gibt es hier nichts mehr aufzuraeumen.
+            if not self._ende.is_set():
+                return
+            thread = self._thread
+            if warten and thread is not None:
+                # Grosszuegiger als das Messfenster: der letzte Strom
+                # muss zugehen, bevor die eigentliche Quelle aufmacht.
+                thread.join(timeout=self.FENSTER + 3.0)
+            self._thread = None
+            if self.tonquelle is not None:
+                gelungen, lage, grund = self.tonquelle.zurueckholen()
+                if not gelungen and lage == "kein_ton":
+                    print(f"Tonquelle nach dem Scan nicht zurueck: {grund}")
+
+    # ---- was das Pult sieht ------------------------------------------
+    def lage(self):
+        """Alle Zeilen, in fester Reihenfolge, plus der Gesamtzustand."""
+        with self._schloss:
+            zeilen = [dict(self._zeilen[s]) for s in self._reihenfolge
+                      if s in self._zeilen]
+        laeuft_uebersetzung = bool(self.lauf.laeuft)
+        aktiv = self._aktiver_schluessel()
+        for z in zeilen:
+            z["aktiv"] = (z["schluessel"] == aktiv)
+            # Waehrend der Uebersetzung wird nicht gemessen. Das ist kein
+            # Fehler, und die Zeile soll auch nicht wie einer aussehen --
+            # sie ist nur gerade nicht zu beurteilen.
+            z["ruht"] = laeuft_uebersetzung and not z["aktiv"]
+        if laeuft_uebersetzung and aktiv:
+            # Der aktive Kanal zeigt den normalen Betriebspegel weiter,
+            # aus derselben Quelle wie der Balken oben: gemessen wird er
+            # ohnehin laufend, nur eben vom Segmentierer.
+            for z in zeilen:
+                if z["aktiv"]:
+                    z["pegel"] = round(self.lauf.segmentierer.pegel_jetzt, 5)
+                    z["gemessen"] = time.time()
+                    z["fehler"] = ""
+        return {
+            "laeuft": self.laeuft,
+            "uebersetzung": laeuft_uebersetzung,
+            "testton": self.testton.name if self.testton else "",
+            "rauschgrenze": self.RAUSCHGRENZE,
+            "vermisst": (self.tonquelle.wartet_auf
+                         if self.tonquelle is not None else ""),
+            "hinweis": self.hinweis,
+            "zeilen": zeilen,
+        }
+
+    def _aktiver_schluessel(self):
+        if self.testton is not None or self.tonquelle is None:
+            return ""
+        if not self.tonquelle.geraet_name:
+            return ""
+        return kanal_schluessel(self.tonquelle.geraet_name,
+                                self.tonquelle.kanal,
+                                self.tonquelle.kanaele)
+
+    def kandidaten(self):
+        """Die Kanaele, die ueberhaupt Pegel gezeigt haben.
+
+        Nur die kommen in die Sprachpruefung. Whisper auf einen Eingang
+        loszulassen, an dem nachweislich nichts anliegt, kostet nur
+        Zeit: das Ergebnis steht vorher fest."""
+        with self._schloss:
+            return [dict(self._zeilen[s]) for s in self._reihenfolge
+                    if s in self._zeilen
+                    and (self._zeilen[s].get("pegel") or 0) > self.RAUSCHGRENZE]
+
+    # ---- die Reihe ---------------------------------------------------
+    def _eintragen(self, zeile):
+        """Legt eine Zeile an oder frischt ihre Stammdaten auf.
+
+        Der gemessene Wert bleibt stehen: die Nummer eines Geraets kann
+        sich zwischen zwei Umlaeufen verschieben, sein letzter Pegel
+        wird davon nicht falsch."""
+        with self._schloss:
+            vorhanden = self._zeilen.get(zeile["schluessel"])
+            if vorhanden is None:
+                self._zeilen[zeile["schluessel"]] = dict(
+                    zeile, pegel=None, gemessen=None, fehler="",
+                    sprache=None)
+                self._reihenfolge.append(zeile["schluessel"])
+            else:
+                vorhanden.update({k: zeile[k] for k in
+                                  ("nummer", "name", "kanalname", "empfohlen")})
+
+    def _ergebnis(self, schluessel, pegel, fehler):
+        with self._schloss:
+            z = self._zeilen.get(schluessel)
+            if z is None:
+                return
+            z["gemessen"] = time.time()
+            z["fehler"] = fehler
+            if pegel is not None:
+                z["pegel"] = round(pegel, 5)
+
+    def sprachurteil_setzen(self, schluessel, urteil):
+        with self._schloss:
+            z = self._zeilen.get(schluessel)
+            if z is not None:
+                z["sprache"] = urteil
+
+    def _schleife(self):
+        """Round-Robin, bis jemand den Abschnitt zuklappt.
+
+        Faengt alles ab. Ein Treiber, der beim Aufmachen wirft, darf die
+        Reihe nicht beenden -- die naechste Karte ist womoeglich genau
+        die gesuchte."""
+        # Das Geraet abgeben, bevor irgendetwas anderes aufgemacht wird.
+        # Der Aufseher ruht dann ebenfalls; ohne das riefe er mitten in
+        # die Messreihe hinein "Tonstrom tot" und oeffnete die alte
+        # Quelle wieder.
+        if self.tonquelle is not None and self.testton is None:
+            if not self.tonquelle.abgeben():
+                self.hinweis = ("Der bisherige Tonstrom haengt noch im "
+                                "Treiber. Die Messung faengt an, sobald "
+                                "er zu ist.")
+        while not self._ende.is_set():
+            try:
+                self._umlauf()
+            except Exception as e:
+                print(f"Kanalscan: {type(e).__name__}: {str(e)[:150]}")
+                self._ende.wait(1.0)
+
+    def _umlauf(self):
+        zeilen = (self.testton.zeilen() if self.testton is not None
+                  else kanaele_aufzaehlen())
+        for z in zeilen:
+            self._eintragen(z)
+
+        for z in zeilen:
+            if self._ende.is_set():
+                return
+            # Waehrend einer Uebersetzung wird nichts geoeffnet. Nicht
+            # abbrechen, sondern warten: der Techniker klappt die Liste
+            # oft auf, drueckt Start und laesst sie offen stehen.
+            if self.lauf.laeuft:
+                self._ende.wait(1.0)
+                return
+            # Die Sprachpruefung hat Vorrang: sie haelt gerade selbst ein
+            # Geraet offen.
+            if self._pause.is_set():
+                self._ende.wait(0.3)
+                return
+            self._messen(z)
+            self._ende.wait(self.RUHE)
+
+    def _messen(self, z):
+        if self.testton is not None:
+            pegel, fehler = self.testton.messen(z["kanal"], self.FENSTER)
+        else:
+            pegel, fehler = kanal_messen(z["nummer"], z["kanal"],
+                                         z["kanaele"], self.FENSTER,
+                                         self.wunschrate)
+        if fehler:
+            # Die Zeile bleibt stehen und der Scan laeuft weiter. Ein
+            # belegtes Geraet ist die Regel, nicht die Ausnahme: der
+            # Rechner spielt womoeglich gerade Musik ueber dieselbe
+            # Karte, und der naechste Umlauf trifft es wieder frei.
+            self._ergebnis(z["schluessel"], None, "nicht lesbar")
+        else:
+            self._ergebnis(z["schluessel"], pegel, "")
+
+
+# ================================================================
 # Web
 # ================================================================
 
-def app_bauen(lauf, basis, port=8000, tonquelle=None):
+def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
     a_port = [port]
     from fastapi import (FastAPI, File, Form, Request, UploadFile, WebSocket,
                          WebSocketDisconnect)
@@ -1863,6 +2393,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
         # des Dienstes den halben Takt, in dem er noch einmal nachsieht.
         if tonquelle is not None:
             tonquelle.beenden()
+        # Der Scan haelt womoeglich gerade ein fremdes Geraet offen.
+        # Ohne Warten: beim Herunterfahren wird niemand mehr bedient,
+        # und der Strom geht mit dem Prozess ohnehin zu.
+        if kanalscan is not None and kanalscan.laeuft:
+            kanalscan.stoppen(warten=False)
 
     app = FastAPI(title=f"Devarenu {config.VERSION}", lifespan=lebenszyklus)
     client = basis / "client.html"
@@ -2086,6 +2621,34 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
                 "aktuell": tonquelle.geraet, "name": tonquelle.geraet_name,
                 "kanal": tonquelle.kanal, "kanaele": tonquelle.kanaele,
                 "rate": tonquelle.rate, "laeuft": tonquelle.laeuft}
+
+    @app.get("/api/tonscan")
+    def tonscan():
+        """Was der Kanalscan gerade weiss.
+
+        Kein async, wie bei /api/geraete: die Auskunft selbst ist zwar
+        billig, aber sie steht unter demselben Schloss wie der messende
+        Thread, und der haelt es, waehrend ein Treiber aufmacht."""
+        if kanalscan is None:
+            return {"aktiv": False, "laeuft": False, "zeilen": []}
+        return dict(kanalscan.lage(), aktiv=True)
+
+    @app.post("/api/tonscan")
+    def tonscan_schalten(daten: dict):
+        """Scan an und aus, gebunden an den Abschnitt "Tonquelle".
+
+        Kein Dauerlauf im Hintergrund: der Scan macht fremde Geraete auf,
+        und das soll nur geschehen, solange jemand hinsieht."""
+        if kanalscan is None:
+            return JSONResponse({"lage": "nicht_lokal"}, status_code=400)
+        if daten.get("an"):
+            kanalscan.starten()
+        else:
+            # Ohne Warten: das Zuklappen der Liste soll nicht bis zu vier
+            # Sekunden am Pult haengen. Der Thread raeumt selbst auf und
+            # holt die eingestellte Quelle zurueck.
+            threading.Thread(target=kanalscan.stoppen, daemon=True).start()
+        return {"laeuft": kanalscan.laeuft}
 
     @app.get("/api/sprachen")
     def sprachen():
@@ -2671,6 +3234,34 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
  .tonreihe{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
  .tonreihe select{flex:1 1 14rem;margin-bottom:0}
  .tonreihe .balken{flex:1 1 8rem}
+ /* Kanalliste: eine Zeile je Eingang, Name links, Pegelbalken rechts.
+    Die Zeile ist der Knopf -- wer den Kanal gefunden hat, drueckt genau
+    dorthin, wo er gerade hingesehen hat. */
+ .kanal{display:flex;align-items:center;gap:.6rem;width:100%;
+   padding:.5rem .6rem;margin-bottom:.25rem;border:1px solid #d9dce4;
+   background:#fff;cursor:pointer;text-align:left;
+   font:.85rem system-ui,sans-serif;color:#141f52}
+ .kanal:hover{border-color:#1c3a8f}
+ .kanal.an{border-color:#141f52;box-shadow:inset 0 0 0 1px #141f52}
+ /* Nicht messbar heisst nicht unsichtbar: die Zeile bleibt stehen, damit
+    die Liste zwischen zwei Umlaeufen nicht springt und niemand daneben
+    drueckt. */
+ .kanal.ruht{opacity:.55;cursor:default}
+ .kanal .kname{flex:1 1 10rem;min-width:0;overflow:hidden;
+   text-overflow:ellipsis;white-space:nowrap}
+ .kanal .kkanal{flex:0 0 auto;font-variant-numeric:tabular-nums;
+   color:#6b7385;font-size:.78rem}
+ .kanal .balken{flex:1 1 6rem;height:14px}
+ .kanal .kwort{flex:0 0 5.5rem;text-align:right;font-size:.75rem;
+   color:#6b7385}
+ .kanal .kurteil{flex:0 0 100%;font-size:.78rem;color:#6b7385;
+   padding-left:.1rem}
+ .kanal .kurteil b{color:#141f52}
+ /* Die gelbe Zeile fuer eine gespeicherte Quelle, die es nicht mehr
+    gibt. Sie steht oben und nicht unten: sie ist der Grund, warum der
+    Techniker ueberhaupt hier ist. */
+ .kanal.vermisst{background:#fdf6e3;border-color:#c8991f;color:#7a5c12;
+   cursor:default;display:block}
  .zielliste{display:flex;flex-wrap:wrap;gap:.4rem;margin:.2rem 0 .3rem}
  .zielliste label{display:inline-flex;align-items:center;gap:.35rem;
    margin:0;padding:.35rem .6rem;border:1px solid #d9dce4;cursor:pointer;
@@ -2822,15 +3413,20 @@ bleibt es so.</p>
 <p class=hin id=updatestand hidden></p>
 <button class=klein id=updateknopf onclick=updateJetzt() hidden
         data-t=upd_jetzt>Jetzt einspielen</button>
-<h2 data-t=tonquelle>Tonquelle</h2>
+<h2 class=klapp id=tonquelleKopf onclick=tonquelleKlappen()>
+  <span data-t=tonquelle>Tonquelle</span>
+  <span class=klapptext><span id=tonquelleWort>Zuklappen</span>
+  <span class=pfeil id=tonquellePfeil>▾</span></span></h2>
+<div id=tonquelleFeld>
 <div class=tonreihe>
-  <select id=geraetwahl onchange=geraetSetzen()></select>
   <div class=balken><div class=fuell id=tonfuell></div></div>
 </div>
+<div id=kanalliste></div>
 <p class=hin id=geraetstand></p>
-<p class=hin data-t=tonquelle_hin>Gerät wählen und hineinsprechen. Schlägt der
-Balken aus, kommt Ton an. Geräte mit Ausrufezeichen greifen exklusiv auf den
-Treiber zu und scheitern häufig.</p>
+<p class=hin data-t=tonquelle_hin>Jede Zeile ist ein Kanal. Hineinsprechen und
+zusehen, welche ausschlägt — gemessen wird reihum, eine Zeile nach der
+anderen.</p>
+</div>
 
 <h2 data-t=sprachen>Sprachen</h2>
 <label for=quellwahl data-t=quelle>Gesprochene Sprache</label>
@@ -2865,9 +3461,16 @@ Beamer öffnen</a></p>
 const TEXTE={
  de:{pult:"Pult",sprachen:"Sprachen",quelle:"Gesprochene Sprache",
    tonquelle:"Tonquelle",
-   tonquelle_hin:"Gerät wählen und hineinsprechen. Schlägt der Balken aus, "
-     +"kommt Ton an. Geräte mit Ausrufezeichen greifen exklusiv auf den "
+   tonquelle_hin:"Jede Zeile ist ein Kanal. Hineinsprechen und zusehen, "
+     +"welche ausschlägt — gemessen wird reihum, eine Zeile nach der "
+     +"anderen. Geräte mit Ausrufezeichen greifen exklusiv auf den "
      +"Treiber zu und scheitern häufig.",
+   ton_still:"still", ton_ruht:"läuft", ton_offen:"noch nicht gemessen",
+   ton_unlesbar:"nicht lesbar",
+   ton_vermisst:"Gespeicherte Quelle „{name}“ nicht gefunden. "
+     +"Bitte neu wählen.",
+   ton_testton:"Gemessen wird {name}, nicht die Soundkarte.",
+   ton_uebernommen:"Übernommen. Nach dem Start einmal neu einmessen.",
    tonlaeuft:"Nimmt auf, {hz} Hz.",tonaus:"Kein Gerät offen, es kommt "
      +"kein Ton.",tonwechsel:"Wird umgestellt …",
    ziele:"Übersetzt nach",lautstaerke:"Mindestlautstärke",
@@ -2963,9 +3566,16 @@ const TEXTE={
      +"und erwartet keine Rückmeldung."},
  en:{pult:"Control desk",sprachen:"Languages",quelle:"Spoken language",
    tonquelle:"Audio source",
-   tonquelle_hin:"Pick a device and speak into it. If the bar moves, audio "
-     +"is arriving. Devices marked with an exclamation mark claim the "
-     +"driver exclusively and often fail.",
+   tonquelle_hin:"Each row is one channel. Speak and watch which one "
+     +"moves — they are measured in turn, one row after another. Devices "
+     +"marked with an exclamation mark claim the driver exclusively and "
+     +"often fail.",
+   ton_still:"silent", ton_ruht:"running", ton_offen:"not measured yet",
+   ton_unlesbar:"cannot be read",
+   ton_vermisst:"Saved source \u201c{name}\u201d not found. "
+     +"Please pick a new one.",
+   ton_testton:"Measuring {name}, not the sound card.",
+   ton_uebernommen:"Saved. Calibrate once after starting.",
    tonlaeuft:"Recording, {hz} Hz.",tonaus:"No device open, no audio "
      +"arriving.",tonwechsel:"Switching …",
    ziele:"Translated into",lautstaerke:"Minimum volume",
@@ -3125,7 +3735,11 @@ function einrichtungZeigen(){
     zeigen ? TEXTE[UI].einrichtung : TEXTE[UI].pult;
   // Auch die Geraete: wer waehrend des Betriebs ein Mikrofon einsteckt,
   // soll es finden, ohne die Seite neu zu laden.
-  if(zeigen){ sprachenLaden(); wlanLaden(); geraeteLaden(); updateLaden(); }
+  if(zeigen){ sprachenLaden(); wlanLaden(); updateLaden(); }
+  // Der Scan macht fremde Geraete auf. Er laeuft nur, solange die
+  // Einrichtung offen ist UND der Abschnitt aufgeklappt -- wer zurueck
+  // aufs Pult geht, hat ihn damit aus.
+  scanSchalten(zeigen && !tonquelleFeld.hidden);
 }
 
 function uiSprache(){
@@ -3253,49 +3867,130 @@ async function messungBeenden(){
   handBetrieb=false;
 }
 
-async function geraeteLaden(){
+// ---- Tonquelle: eine Zeile je Kanal -------------------------------
+// Der Scan macht fremde Geraete auf. Das darf nur laufen, solange
+// jemand hinsieht, deshalb haengt er am Auf- und Zuklappen des
+// Abschnitts und nicht am Laden der Seite.
+let scanAn=false, kanalZeilen=[], scanUhr=null;
+
+async function scanSchalten(an){
+  if(an===scanAn) return;
+  scanAn=an;
   try{
-    const d=await(await fetch("/api/geraete")).json();
-    if(!d.aktiv){
-      geraetwahl.innerHTML="<option>—</option>";
-      geraetwahl.disabled=true;
-      geraetstand.textContent=tonSatz(d);
-      return;
-    }
-    geraetwahl.disabled=false;
-    geraetwahl.innerHTML=d.liste.map(g=>
-      `<option value="${g.nummer}"${g.nummer===d.aktuell?" selected":""}>`
-      +`${g.nummer}: ${g.name} (${g.schnittstelle})${g.empfohlen?"":" !"}`
-      +`</option>`).join("");
-    geraetstand.textContent = tonSatz(d)
-      || (d.laeuft ? TEXTE[UI].tonlaeuft.replace("{hz}", d.rate)
-                   : TEXTE[UI].tonaus);
-  }catch(e){console.error("Geraete:", e)}
+    await fetch("/api/tonscan",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({an:an})});
+  }catch(e){console.error("Tonscan:", e)}
+  if(an){
+    kanaeleLaden();
+    // Schneller als die uebrige Pult-Abfrage: das Messfenster ist
+    // 800 ms, und ein Ausschlag soll waehrend des Hineinsprechens zu
+    // sehen sein und nicht danach.
+    scanUhr=setInterval(kanaeleLaden,500);
+  }else{
+    clearInterval(scanUhr); scanUhr=null;
+  }
 }
 
-async function geraetSetzen(){
-  const nummer=parseInt(geraetwahl.value,10);
-  if(isNaN(nummer)) return;
+function tonquelleKlappen(){
+  const zu = tonquelleFeld.hidden = !tonquelleFeld.hidden;
+  tonquellePfeil.classList.toggle("zu", zu);
+  tonquelleWort.textContent = zu ? TEXTE[UI].ausklappen : TEXTE[UI].zuklappen;
+  try{ localStorage.setItem("tonquelleZu", zu ? "1" : ""); }catch(e){}
+  scanSchalten(!zu);
+}
+
+async function kanaeleLaden(){
+  try{
+    const d=await(await fetch("/api/tonscan")).json();
+    if(!d.aktiv){ kanalliste.innerHTML=""; return; }
+    kanalZeilen=d.zeilen||[];
+    kanalListeZeichnen(d);
+  }catch(e){console.error("Kanaele:", e)}
+}
+
+function kanalListeZeichnen(d){
+  const teile=[];
+  if(d.vermisst){
+    // Kein Rueckfall auf irgendein Geraet: der Server laeuft angehalten,
+    // und hier steht, warum.
+    teile.push(`<div class="kanal vermisst">`
+      +TEXTE[UI].ton_vermisst.replace("{name}", entschaerfen(d.vermisst))
+      +`</div>`);
+  }
+  if(d.hinweis) teile.push(`<div class="kanal vermisst">`
+    +entschaerfen(d.hinweis)+`</div>`);
+  if(d.testton) teile.push(`<div class="kanal vermisst">`
+    +TEXTE[UI].ton_testton.replace("{name}", entschaerfen(d.testton))+`</div>`);
+
+  for(const z of kanalZeilen){
+    const pz = z.pegel===null||z.pegel===undefined ? 0 : zuProzent(z.pegel);
+    // Dieselbe Farbregel wie der grosse Balken: grau nur Raum, rot
+    // hoerbar aber unter der Schwelle, blau darueber. Eine zweite
+    // Farblogik haette geheissen, dass dasselbe Signal an zwei Stellen
+    // im Pult verschieden aussieht.
+    const ueber = z.pegel > pegelSchwelle;
+    const hoerbar = z.pegel > d.rauschgrenze;
+    const farbe = "fuell" + (ueber ? " ueber" : (hoerbar ? " knapp" : ""));
+    let wort;
+    if(z.fehler) wort = TEXTE[UI].ton_unlesbar;
+    else if(z.ruht) wort = TEXTE[UI].ton_ruht;
+    else if(z.gemessen===null||z.gemessen===undefined) wort = TEXTE[UI].ton_offen;
+    // "Still" als Wort und nicht nur als grauer Balken: ein leerer
+    // Balken sieht aus wie einer, der noch nicht gemessen wurde.
+    else wort = hoerbar ? Math.round(pz)+" %" : TEXTE[UI].ton_still;
+
+    teile.push(`<button class="kanal${z.aktiv?" an":""}${z.ruht?" ruht":""}"`
+      +` onclick="kanalSetzen('${entschaerfen(z.schluessel)}')"`
+      +`${z.ruht?" disabled":""}>`
+      +`<span class=kname>${entschaerfen(z.name)}`
+      +`${z.empfohlen?"":" !"}</span>`
+      +`<span class=kkanal>${entschaerfen(z.kanalname)}</span>`
+      +`<span class=balken><span class="${farbe}" `
+      +`style="display:block;height:100%;width:${pz}%"></span></span>`
+      +`<span class=kwort>${wort}</span>`
+      +`</button>`);
+  }
+  kanalliste.innerHTML=teile.join("");
+}
+
+// Die Zeilen tragen Geraetenamen, und die kommen aus dem Treiber. Was
+// von dort kommt, wird nicht als HTML eingesetzt.
+function entschaerfen(t){
+  return String(t==null?"":t).replace(/[&<>"']/g,
+    c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+// Die Schwelle aus dem Pegelabruf, damit die Kanalzeilen dieselbe Grenze
+// faerben wie der grosse Balken. Bis zum ersten Abruf die Vorgabe.
+let pegelSchwelle=0.0025;
+
+async function kanalSetzen(schluessel){
+  const z=kanalZeilen.find(k=>k.schluessel===schluessel);
+  if(!z) return;
   geraetstand.textContent=TEXTE[UI].tonwechsel;
   try{
     const a=await fetch("/api/geraet",{method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({nummer:nummer})});
+      body:JSON.stringify({nummer:z.nummer, kanal:z.kanal,
+                           kanaele:z.kanaele})});
     const d=await a.json();
     if(d.gelungen){
-      geraetstand.textContent=TEXTE[UI].gespeichert;
+      // Die Schwelle gehoerte der alten Quelle und ist beim Wechsel
+      // verworfen worden. Das muss dastehen, sonst geht jemand mit einer
+      // mitlaufenden Schwelle in den Gottesdienst und meint, sie sei
+      // noch die eingemessene.
+      geraetstand.textContent=TEXTE[UI].ton_uebernommen;
       warnungZeigen("", false);
     }else{
-      // Der Server ist auf das vorherige Geraet zurueck. Das Auswahlfeld
-      // muss das mitmachen, sonst steht dort ein Geraet, das nicht laeuft.
       const satz=tonSatz(d);
       geraetstand.textContent=satz;
       warnungZeigen(satz, true);
     }
-    if(d.aktuell!==null&&d.aktuell!==undefined) geraetwahl.value=d.aktuell;
+    kanaeleLaden();
   }catch(e){
     geraetstand.textContent=TEXTE[UI].ton_weg;
-    console.error("Geraetewechsel:", e);
+    console.error("Kanalwechsel:", e);
   }
 }
 
@@ -3413,6 +4108,9 @@ async function pegel(){
     // Balken in der Einrichtung dient allein der Frage, ob Ton ankommt.
     tonfuell.style.width=pz+"%";
     tonfuell.className=fuell.className;
+    // Dieselbe Schwelle fuer die Kanalzeilen: sonst faerbte dasselbe
+    // Signal oben blau und unten rot.
+    pegelSchwelle=d.schwelle;
     if(!handBetrieb){marke.style.left=sz+"%";regler.value=Math.round(sz)}
     pegelwert.textContent=(d.spricht?"spricht":"still")+" · "+Math.round(pz)+" %";
     // "knapp darunter" ist der Fall, den man am Regler sofort beheben
@@ -3532,8 +4230,14 @@ try{
     vorbereitungWort.textContent = TEXTE[UI].ausklappen;
   }
 }catch(e){}
+try{
+  if(localStorage.getItem("tonquelleZu")){
+    tonquelleFeld.hidden = true;
+    tonquellePfeil.classList.add("zu");
+    tonquelleWort.textContent = TEXTE[UI].ausklappen;
+  }
+}catch(e){}
 sprachenLaden().then(uiZeichnen);
-geraeteLaden();
 lies();setInterval(lies,2000);
 pegel();setInterval(pegel,150);
 </script></html>"""
@@ -3675,6 +4379,11 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--geraete", action="store_true")
     p.add_argument("--geraet", type=int, default=None)
+    p.add_argument("--ton-test", default=None, metavar="WAV",
+                   help="Kanalscan an einer WAV-Datei statt an der "
+                        "Soundkarte. Zum Pruefen der Kanaltrennung ohne "
+                        "Mischpult; der Oeffnungspfad wird damit nicht "
+                        "geprueft.")
     p.add_argument("--kanal", type=int, default=None,
                    help="Kanal im Geraet: 0 = links/mono, 1 = rechts. "
                         "Ohne Angabe gilt, was am Pult gewaehlt wurde.")
@@ -3773,6 +4482,19 @@ def main():
     stoppen = threading.Event()
     rate = MIKRO_RATE
     tonquelle = None
+    kanalscan = None
+
+    testton = None
+    if a.ton_test:
+        if not Path(a.ton_test).exists():
+            sys.exit(f"Nicht gefunden: {a.ton_test}")
+        try:
+            testton = Testton(a.ton_test)
+        except Exception as e:
+            sys.exit(f"{Path(a.ton_test).name} laesst sich nicht lesen: {e}")
+        print(f"Kanalscan an der Datei: {testton.name}, "
+              f"{testton.kanaele} Kanaele, {testton.rate} Hz. "
+              f"Es wird kein Geraet aufgemacht.")
 
     lauf.audio_schluessel = a.schluessel
 
@@ -3879,8 +4601,15 @@ def main():
     else:
         print("  Aufnahme  kein Geraet offen, am Pult auswaehlen\n")
 
+    # Der Scan gehoert auch dann ans Pult, wenn der Ton aus einer Datei
+    # oder ueber das Netz kommt: dann ist er der Weg, ueberhaupt erst ein
+    # Geraet zu finden. Ohne Tonquelle misst er nur und waehlt nicht --
+    # dort gibt es nichts umzustellen.
+    if tonquelle is not None or testton is not None:
+        kanalscan = Kanalscan(lauf, tonquelle, testton, a.rate)
+
     try:
-        uvicorn.run(app_bauen(lauf, basis, a.port, tonquelle),
+        uvicorn.run(app_bauen(lauf, basis, a.port, tonquelle, kanalscan),
                     host="0.0.0.0", port=a.port, log_level="warning")
     except OSError as e:
         if "10048" in str(e) or "address" in str(e).lower():
