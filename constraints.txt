@@ -1,0 +1,73 @@
+# Die vollstaendige Aufloesung, so wie sie fuer Python 3.13 herauskam.
+#
+# requirements.txt nennt die zwoelf Pakete, die Devarenu wirklich
+# braucht. Was die mitziehen -- vierzig weitere -- stand bisher nirgends,
+# und zwei an verschiedenen Tagen gebaute Sticks konnten sich darin
+# unterscheiden. Diese Datei nagelt auch das fest.
+#
+# Gedacht als Randbedingung, nicht als Einkaufsliste: pip installiert
+# nichts davon allein, sondern nur, was requirements.txt anfordert -- und
+# dann genau in dieser Fassung. Deshalb schadet ein Eintrag hier nicht,
+# der auf einem anderen Weg gar nicht gebraucht wird.
+#
+#   einrichten.sh    pip install -c constraints.txt -r requirements.txt
+#   stick_bauen.sh   pip download -c constraints.txt -r requirements.txt
+#
+# Neu erzeugen nach einer Aenderung an requirements.txt:
+#   ./stick_bauen.sh --nur-constraints
+#
+# Nicht von Hand pflegen. Torch fehlt auch hier, es hat einen eigenen
+# Index und eine eigene CUDA-Fassung.
+
+annotated-doc==0.0.5    # mitgezogen
+annotated-types==0.8.0    # mitgezogen
+anyio==4.15.1    # mitgezogen
+av==18.1.0    # mitgezogen
+certifi==2026.7.22    # mitgezogen
+cffi==2.1.1    # mitgezogen
+charset-normalizer==3.5.1    # mitgezogen
+click==8.5.0    # mitgezogen
+ctranslate2==4.8.2    # mitgezogen
+fastapi==0.141.1
+faster-whisper==1.2.1
+filelock==4.0.1    # mitgezogen
+flatbuffers==25.12.19    # mitgezogen
+fsspec==2026.9.0    # mitgezogen
+h11==0.16.0    # mitgezogen
+hf-xet==1.6.0    # mitgezogen
+httpcore==1.0.9    # mitgezogen
+httpx==0.28.1    # mitgezogen
+huggingface-hub==1.32.0    # mitgezogen
+idna==3.20    # mitgezogen
+markdown-it-py==4.2.0    # mitgezogen
+mdurl==0.1.2    # mitgezogen
+numpy==2.5.2
+onnxruntime==1.30.0    # mitgezogen
+packaging==26.3    # mitgezogen
+pathvalidate==3.3.1    # mitgezogen
+piper-tts==1.7.0
+protobuf==7.36.2    # mitgezogen
+pycparser==3.0    # mitgezogen
+pydantic==2.13.5    # mitgezogen
+pydantic-core==2.46.5    # mitgezogen
+pygments==2.21.0    # mitgezogen
+python-multipart==0.0.32
+pyyaml==6.0.3    # mitgezogen
+regex==2026.9.10    # mitgezogen
+requests==2.34.2
+rich==15.0.0    # mitgezogen
+safetensors==0.8.0    # mitgezogen
+segno==1.6.6
+sentencepiece==0.2.2
+shellingham==1.5.4    # mitgezogen
+sounddevice==0.5.6
+starlette==1.6.0    # mitgezogen
+tokenizers==0.23.2    # mitgezogen
+tqdm==4.70.1    # mitgezogen
+transformers==5.16.1
+typer==0.27.2    # mitgezogen
+typing-extensions==4.16.0    # mitgezogen
+typing-inspection==0.4.4    # mitgezogen
+urllib3==2.8.0    # mitgezogen
+uvicorn==0.52.4
+websockets==17.1

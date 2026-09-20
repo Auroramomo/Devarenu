@@ -487,8 +487,21 @@ try:
 except Exception:
     antwort = None
 
-if antwort and antwort.get("fehler"):
-    print("WARN|Server meldet: %s" % str(antwort["fehler"])[:100])
+# Der Server schickt seit 0.2.1 ein Wort statt eines fertigen Satzes:
+# das Pult baut seine Meldung selbst, auf Deutsch oder Englisch. Hier
+# liest ein Mensch an einer deutschen Konsole, also steht der deutsche
+# Satz in dieser Datei.
+TON_LAGE = {
+    "nicht_lokal": "Der Ton kommt nicht vom Mikrofon dieses Rechners "
+                   "(--netz oder --datei).",
+    "liste_unlesbar": "Die Geraeteliste ist nicht lesbar.",
+    "kein_ton": "Das Geraet laeuft nicht, es kommt gerade kein Ton.",
+}
+if antwort and antwort.get("lage"):
+    satz = TON_LAGE.get(antwort["lage"], antwort["lage"])
+    if antwort.get("einzelheit"):
+        satz += " (%s)" % str(antwort["einzelheit"])[:80]
+    print("WARN|Server meldet: %s" % satz[:160])
 
 nimmt_auf = bool(antwort and antwort.get("aktiv") and antwort.get("laeuft"))
 
@@ -683,13 +696,16 @@ if [ "$SYSTEMD" = ja ]; then
 fi
 
 if [ -s update/stand.json ]; then
+  # [^"]* und nicht .*: mit .* frisst der Ausdruck bis zum letzten
+  # Anfuehrungszeichen der Zeile und nimmt den Zeitstempel mit.
   info "Letztes Update:"
-  sed -n 's/.*"text"[[:space:]]*:[[:space:]]*"\(.*\)".*/   \1/p' \
+  sed -n 's/.*"text"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/   \1/p' \
       update/stand.json | head -1
 fi
 if [ -s update/bereit ]; then
   warn "Vorgemerkt: Fassung $(tr -d '\r\n ' < update/bereit). Wird"
-  warn "eingespielt, sobald die Uebersetzung angehalten ist."
+  warn "eingespielt, wenn 20 Minuten nichts laeuft und niemand verbunden"
+  warn "ist, oder sofort am Pult unter Einrichtung."
 fi
 
 # ----------------------------------------------------------- Schluss

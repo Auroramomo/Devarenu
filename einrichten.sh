@@ -85,8 +85,14 @@ if [ ! -f requirements.txt ]; then
   warn "requirements.txt fehlt. Ohne sie ist nicht zu sagen, welche"
   warn "Pakete gebraucht werden. Datei aus dem Repo nachlegen."
 else
-  $PY -m pip install -q -r requirements.txt \
-    && gut "alle Pakete da ($(grep -cE '^[a-zA-Z]' requirements.txt) Stueck)" \
+  # constraints.txt nagelt zusaetzlich fest, was die zwoelf Pakete
+  # mitziehen. Damit installiert dieser Rechner dieselben Fassungen wie
+  # der, fuer den der USB-Stick gebaut wurde. Fehlt die Datei, geht es
+  # auch ohne -- dann eben nur mit den zwoelf.
+  BEDINGUNG=""
+  [ -f constraints.txt ] && BEDINGUNG="-c constraints.txt"
+  $PY -m pip install -q $BEDINGUNG -r requirements.txt \
+    && gut "alle Pakete da ($(grep -cE '^[a-zA-Z]' requirements.txt) angefordert)" \
     || warn "pip hat etwas beanstandet. Oben nachlesen."
 fi
 

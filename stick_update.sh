@@ -62,15 +62,20 @@ als_benutzer() {
 }
 
 # ------------------------------------------------------------ Statusdatei
-# Was hier landet, liest der Server und zeigt es am Pult unter
-# Einrichtung. Deshalb ganze Saetze und keine Fehlernummern: davor sitzt
-# der Techniker der Gemeinde, nicht der, der das gebaut hat.
+# Zwei Leser, zwei Formen. "lage" ist das Wort, aus dem das Pult seinen
+# Satz baut -- auf Deutsch oder Englisch, je nachdem, was dort eingestellt
+# ist. "text" ist derselbe Sachverhalt als deutscher Satz und geht ins
+# Journal, in pruefen.sh und in --stand; dort liest ihn ein Mensch an
+# einer Konsole, und die spricht Deutsch.
+#
+# Das Pult darf "text" also NICHT anzeigen, sonst steht unter englischer
+# Oberflaeche ein deutscher Satz. Es nimmt "lage" und die Felder daneben.
 #
 # Anfuehrungszeichen und Backslashes kommen in den Texten nicht vor, damit
 # das JSON ohne Maskierung auskommt. Wer neue Meldungen ergaenzt, haelt
 # sich daran.
 stand_schreiben() {
-  local lage="$1" version="$2" text="$3" vorher="${4:-}"
+  local lage="$1" version="$2" text="$3" vorher="${4:-}" stimmen="${5:-}"
   mkdir -p "$ABLAGE"
 
   # Steht dasselbe schon drin, nicht noch einmal schreiben und vor allem
@@ -87,6 +92,7 @@ stand_schreiben() {
   "lage": "$lage",
   "version": "$version",
   "vorher": "$vorher",
+  "stimmen": "$stimmen",
   "text": "$text",
   "zeit": "$(date '+%Y-%m-%d %H:%M:%S')"
 }
@@ -332,7 +338,7 @@ pruefen_und_vormerken() {
   chmod 644 "$BEREIT"
   rm -f "$RUHIG"
   stand_schreiben bereit "$version" \
-    "Update $version ist geprueft und bereit. Es wird eingespielt, sobald die Uebersetzung angehalten ist."
+    "Update $version liegt geprueft bereit. Es wird eingespielt, wenn 20 Minuten nichts laeuft und niemand verbunden ist, oder sofort unter Einrichtung -> Jetzt einspielen."
   blau "Bereit"
   echo "   Der Stick kann abgezogen werden. Eingespielt wird nach dem Anhalten."
 }
@@ -379,7 +385,7 @@ einspielen() {
   if [ "$live" = "True" ] || [ "$live" = "true" ]; then
     printf '0\n' > "$RUHIG"
     stand_schreiben wartet "$version" \
-      "Update $version ist bereit und wird eingespielt, sobald die Uebersetzung angehalten ist."
+      "Update $version liegt bereit. Es wird eingespielt, wenn 20 Minuten nichts laeuft und niemand verbunden ist, oder sofort unter Einrichtung -> Jetzt einspielen."
     exit 0
   fi
 
@@ -402,7 +408,7 @@ einspielen() {
     printf '%s\n' "$n" > "$RUHIG"
     if [ "$n" -lt "$RUHE_LAEUFE" ]; then
       stand_schreiben wartet "$version" \
-        "Update $version ist bereit. Es wird eingespielt, sobald es eine Weile ruhig ist, oder sofort auf Knopfdruck."
+        "Update $version liegt bereit. Es wird eingespielt, wenn 20 Minuten nichts laeuft und niemand verbunden ist, oder sofort unter Einrichtung -> Jetzt einspielen."
       exit 0
     fi
   fi
@@ -463,11 +469,12 @@ einspielen() {
   fi
   gut "Sprachmodell ist da"
 
-  local ohne_stimme nachsatz=""
+  # Als eigenes Feld und nicht als angehaengter Satz: das Pult baut seine
+  # Meldung selbst und braucht die Sprachen, nicht deutsche Prosa.
+  local ohne_stimme
   ohne_stimme="$(stimmen_fehlen)"
   if [ -n "$ohne_stimme" ]; then
     warn "Ohne Stimme, laeuft als Untertitel: $ohne_stimme"
-    nachsatz=" Fuer diese Sprachen fehlt die Stimme, sie laufen als Untertitel: $ohne_stimme."
   else
     gut "alle eingestellten Sprachen haben eine Stimme"
   fi
@@ -537,8 +544,9 @@ einspielen() {
 
   rm -f "$BEREIT" "$RUHIG" "$JETZT"
   als_benutzer git update-ref -d "$ref" 2>/dev/null
-  stand_schreiben eingespielt "$version" \
-    "Update auf Fassung $version ist eingespielt und laeuft.$nachsatz" "$hier"
+  local satz="Update auf Fassung $version ist eingespielt und laeuft."
+  [ -n "$ohne_stimme" ] && satz="$satz Ohne Stimme, laufen als Untertitel: $ohne_stimme."
+  stand_schreiben eingespielt "$version" "$satz" "$hier" "$ohne_stimme"
   blau "Fertig"
 }
 

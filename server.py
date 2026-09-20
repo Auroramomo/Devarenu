@@ -1335,24 +1335,25 @@ class Tonquelle:
     def wechseln(self, geraet):
         """Stellt auf ein anderes Aufnahmegeraet um.
 
-        Gibt (True, "") zurueck oder (False, Grund)."""
+        Gibt (True, "", "") zurueck oder (False, Lage, Einzelheit).
+
+        Lage ist ein Wort, aus dem das Pult seinen Satz baut -- auf
+        Deutsch oder Englisch, je nachdem, was dort eingestellt ist.
+        Einzelheit ist die Meldung des Treibers und bleibt, wie sie kommt:
+        sie ist meist ohnehin englisch, und uebersetzen liesse sie sich
+        nicht, ohne sie zu verfaelschen."""
         with self._schloss:
             vorher = self.geraet
             self._anhalten()
             gelungen, grund = self._starten(geraet)
             if gelungen:
-                return True, ""
-            # Der Grund kommt teils aus dem Treiber und endet dann ohne
-            # Satzzeichen. Am Pult stehen beide Saetze nebeneinander.
-            if not grund.endswith((".", "!", "?")):
-                grund += "."
+                return True, "", ""
             if vorher is not None and vorher != geraet:
                 zurueck, _ = self._starten(vorher)
                 if zurueck:
-                    return False, (f"{grund} Es bleibt bei Geraet {vorher}.")
+                    return False, "zurueck", grund
             self.fehler = grund
-            return False, (f"{grund} Auch das vorherige Geraet laeuft nicht "
-                           f"mehr, es kommt gerade kein Ton.")
+            return False, "kein_ton", grund
 
     @staticmethod
     def _name_zu(nummer):
@@ -1617,19 +1618,23 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
         Bewusst kein async: das Abfragen geht ueber den Treiber und kann
         haengen. Als gewoehnliche Funktion laeuft es im Threadpool, statt
         die Ereignisschleife und damit alle Zuhoerer anzuhalten."""
+        # lage ist das Wort fuers Pult, einzelheit die Meldung des
+        # Treibers. Frueher stand hier ein fertiger deutscher Satz, und
+        # der blieb auch unter englischer Oberflaeche deutsch.
         if tonquelle is None:
             return {"aktiv": False, "aktuell": None, "liste": [],
-                    "fehler": "Der Ton kommt nicht vom Mikrofon dieses "
-                              "Rechners (--netz oder --datei)."}
+                    "lage": "nicht_lokal", "einzelheit": ""}
         try:
             liste = geraete_liste()
         except Exception as e:
             return {"aktiv": True, "aktuell": tonquelle.geraet, "liste": [],
-                    "fehler": f"Geraeteliste nicht lesbar: {str(e)[:120]}"}
+                    "lage": "liste_unlesbar", "einzelheit": str(e)[:120]}
         return {"aktiv": True, "aktuell": tonquelle.geraet,
                 "name": tonquelle.geraet_name,
                 "rate": tonquelle.rate, "laeuft": tonquelle.laeuft,
-                "liste": liste, "fehler": tonquelle.fehler}
+                "liste": liste,
+                "lage": "kein_ton" if tonquelle.fehler else "",
+                "einzelheit": tonquelle.fehler}
 
     @app.post("/api/geraet")
     def geraet_waehlen(daten: dict):
@@ -1638,15 +1643,12 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
         Auch hier kein async, aus demselben Grund: der Wechsel schliesst
         einen Datenstrom und oeffnet einen anderen, und das dauert."""
         if tonquelle is None:
-            return JSONResponse(
-                {"fehler": "Der Ton kommt nicht vom Mikrofon dieses "
-                           "Rechners."}, status_code=400)
+            return JSONResponse({"lage": "nicht_lokal"}, status_code=400)
         try:
             nummer = int(daten.get("nummer"))
         except (TypeError, ValueError):
-            return JSONResponse({"fehler": "Keine Geraetenummer"},
-                                status_code=400)
-        gelungen, grund = tonquelle.wechseln(nummer)
+            return JSONResponse({"lage": "keine_nummer"}, status_code=400)
+        gelungen, lage, einzelheit = tonquelle.wechseln(nummer)
         if gelungen:
             lauf.zustand["geraet"] = tonquelle.geraet
             lauf.zustand["geraet_name"] = tonquelle.geraet_name
@@ -1654,8 +1656,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
             print(f"Tonquelle: {tonquelle.geraet_name or nummer} "
                   f"(Nr. {tonquelle.geraet}), {tonquelle.rate} Hz")
         else:
-            print(f"Geraetewechsel gescheitert: {grund}")
-        return {"gelungen": gelungen, "fehler": grund,
+            print(f"Geraetewechsel gescheitert ({lage}): {einzelheit}")
+        return {"gelungen": gelungen, "lage": lage, "einzelheit": einzelheit,
                 "aktuell": tonquelle.geraet, "name": tonquelle.geraet_name,
                 "rate": tonquelle.rate, "laeuft": tonquelle.laeuft}
 
@@ -2026,22 +2028,29 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
         return wert
 
     def update_kurz():
-        """Ein Satz fuer die Betriebsansicht, oder nichts.
+        """Was die Betriebsansicht braucht, oder nichts.
 
         Nur was ansteht, nicht was war: ein eingespieltes Update gehoert
-        unter Einrichtung nachgelesen, nicht neben den Pegel."""
+        unter Einrichtung nachgelesen, nicht neben den Pegel.
+
+        Lage und Fassung statt eines fertigen Satzes -- den baut das Pult,
+        und zwar in der Sprache, die dort eingestellt ist. Frueher stand
+        hier der deutsche Text aus der Statusdatei, und der blieb auch
+        unter englischer Oberflaeche deutsch."""
         stand = update_stand()
         if stand.get("lage") in ("bereit", "wartet"):
-            return stand.get("text") or ""
-        return ""
+            return {"lage": stand["lage"], "version": stand.get("version", "")}
+        return None
 
     @app.get("/api/update")
     def update_lesen():
         stand = dict(update_stand())
         # Ob der Knopf etwas bewirken kann, weiss der Server besser als
-        # die Oberflaeche: nur wenn wirklich etwas vorgemerkt ist.
+        # die Oberflaeche: nur wenn wirklich etwas vorgemerkt ist, noch
+        # nicht gedrueckt wurde und die Uebersetzung steht.
         stand["bereit"] = (basis / "update" / "bereit").exists()
         stand["gedrueckt"] = (basis / "update" / "jetzt").exists()
+        stand["live"] = lauf.laeuft
         return stand
 
     @app.post("/api/update/jetzt")
@@ -2055,14 +2064,18 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
         Minute und spart eine sudo-Regel, die sonst dauerhaft offenstuende."""
         ablage = basis / "update"
         if not (ablage / "bereit").exists():
-            return JSONResponse({"fehler": "Es ist kein Update vorgemerkt."},
-                                status_code=400)
+            return JSONResponse({"grund": "kein_update"}, status_code=400)
+        # Waehrend der Uebersetzung nicht. Der Knopf ist dann zwar
+        # gesperrt, aber die Sperre sitzt in der Oberflaeche -- und wer
+        # zwei Pulte offen hat, sieht auf dem einen noch den Stand von
+        # vorhin. Die Entscheidung gehoert hierher.
+        if lauf.laeuft:
+            return JSONResponse({"grund": "laeuft"}, status_code=409)
         try:
             (ablage / "jetzt").write_text("", encoding="utf-8")
         except OSError as e:
-            return JSONResponse(
-                {"fehler": f"Marke nicht schreibbar: {str(e)[:120]}"},
-                status_code=500)
+            print(f"Update: Marke nicht schreibbar: {str(e)[:120]}")
+            return JSONResponse({"grund": "nicht_schreibbar"}, status_code=500)
         print("Update: am Pult auf Einspielen gedrueckt.")
         return {"angenommen": True}
 
@@ -2376,7 +2389,7 @@ bleibt es so.</p>
 <p class=hin id=fassung></p>
 <p class=hin id=updatestand hidden></p>
 <button class=klein id=updateknopf onclick=updateJetzt() hidden
-        data-t=update_jetzt>Jetzt einspielen</button>
+        data-t=upd_jetzt>Jetzt einspielen</button>
 <h2 data-t=tonquelle>Tonquelle</h2>
 <div class=tonreihe>
   <select id=geraetwahl onchange=geraetSetzen()></select>
@@ -2442,10 +2455,59 @@ const TEXTE={
      +"Maschine.",
    einrichtung:"Einrichtung",
    einrichtung_hin:"Einmal je Gemeinde einstellen, danach bleibt es so.",
-   update_jetzt:"Jetzt einspielen",
-   update_laeuft:"Wird eingespielt, das dauert eine Minute. Der Dienst "
-     +"startet dabei neu.",
-   update_kein:"Es ist gerade kein Update vorgemerkt.",
+   // Meldungen zum Update per USB-Stick. Der Server schickt nur die
+   // Lage und die Fassungen, den Satz baut das Pult -- sonst stuende
+   // unter englischer Oberflaeche der deutsche Satz aus der Statusdatei.
+   // {v} ist die neue Fassung, {alt} die bisherige, {s} die Sprachen
+   // ohne Stimme.
+   // Tonquelle und Anzeige. Der Server schickt nur die Lage, den Satz
+   // baut das Pult -- sonst stuende unter englischer Oberflaeche ein
+   // deutscher. Die Einzelheit aus dem Treiber haengt unuebersetzt hinten
+   // dran, sie ist meist ohnehin englisch.
+   ton_nicht_lokal:"Der Ton kommt nicht vom Mikrofon dieses Rechners "
+     +"(--netz oder --datei).",
+   ton_liste_unlesbar:"Die Geräteliste ist nicht lesbar.",
+   ton_kein_ton:"Das Gerät läuft nicht, es kommt gerade kein Ton.",
+   ton_zurueck:"Das Gerät ließ sich nicht öffnen. Es bleibt beim "
+     +"vorherigen.",
+   ton_keine_nummer:"Keine Gerätenummer.",
+   ton_weg:"Der Wechsel kam nicht durch.",
+   skript_leer:"Datei ist leer oder unlesbar.",
+   server_weg:"Server nicht erreichbar",
+   stt_hin:"Die Erkennung scheitert seit {n} Abschnitten: {was}",
+   cpu_hin:"Die Erkennung läuft auf der CPU ({was}). Für den Livebetrieb "
+     +"ist das zu langsam.",
+   upd_jetzt:"Jetzt einspielen",
+   upd_wird:"Wird eingespielt, das dauert eine Minute. Der Dienst startet "
+     +"dabei neu.",
+   upd_kein_update:"Es ist gerade kein Update vorgemerkt.",
+   upd_laeuft:"Erst die Übersetzung anhalten, dann einspielen.",
+   upd_nicht_schreibbar:"Die Marke ließ sich nicht schreiben. Platte voll "
+     +"oder Rechte falsch — im Journal steht, woran es lag.",
+   upd_stimmen:" Ohne Stimme, laufen als Untertitel: {s}.",
+   upd_bereit:"Update {v} liegt bereit. Es wird eingespielt, wenn 20 Minuten "
+     +"nichts läuft und niemand verbunden ist, oder sofort unter "
+     +"Einrichtung → Jetzt einspielen.",
+   upd_wartet:"Update {v} liegt bereit. Es wird eingespielt, wenn 20 Minuten "
+     +"nichts läuft und niemand verbunden ist, oder sofort unter "
+     +"Einrichtung → Jetzt einspielen.",
+   upd_eingespielt:"Fassung {v} ist eingespielt und läuft.",
+   upd_fehlgeschlagen:"Update {v} ist fehlgeschlagen. Fassung {alt} läuft "
+     +"weiter.",
+   upd_fehlgeschlagen_roh:"Update {v} ist fehlgeschlagen. Es wurde nichts "
+     +"verändert.",
+   upd_signatur:"Die Signatur des Updates {v} stimmt nicht. Es wird nicht "
+     +"eingespielt.",
+   upd_nicht_neuer:"Der Stick bringt Fassung {v}, hier läuft schon {alt}. "
+     +"Nichts zu tun.",
+   upd_schmutzig:"Im Ordner liegen lokale Änderungen. Update {v} wartet, "
+     +"bis sie geklärt sind.",
+   upd_unvollstaendig:"Der Stick ist unvollständig. Es fehlt das Bundle "
+     +"oder das Tag {v}.",
+   upd_kein_wheel:"Update {v} braucht Pakete, die nicht auf dem Stick "
+     +"liegen. Fassung {alt} läuft weiter.",
+   upd_unlesbar:"Auf dem Stick steht eine Datei upd-dev.txt, aber keine "
+     +"Fassung darin.",
    wlan_hin:"Netzname und Passwort des Routers, an dem dieser Rechner hängt. "
      +"Sie wandern in den ersten QR-Code, damit sich die Handys mit einem "
      +"Scan verbinden, ohne dass jemand ein Passwort abtippt. Ohne Eintrag "
@@ -2487,10 +2549,47 @@ const TEXTE={
      +"their technical terms come straight from the machine.",
    einrichtung:"Setup",
    einrichtung_hin:"Set once per congregation, then leave it alone.",
-   update_jetzt:"Install now",
-   update_laeuft:"Installing, this takes a minute. The service restarts "
-     +"while it does.",
-   update_kein:"No update is pending right now.",
+   ton_nicht_lokal:"The audio does not come from this computer's "
+     +"microphone (--netz or --datei).",
+   ton_liste_unlesbar:"The device list cannot be read.",
+   ton_kein_ton:"The device is not running, no audio is coming in.",
+   ton_zurueck:"The device could not be opened. The previous one stays "
+     +"in use.",
+   ton_keine_nummer:"No device number.",
+   ton_weg:"The change did not go through.",
+   skript_leer:"File is empty or unreadable.",
+   server_weg:"Server unreachable",
+   stt_hin:"Recognition has been failing for {n} segments: {was}",
+   cpu_hin:"Recognition is running on the CPU ({was}). That is too slow "
+     +"for live use.",
+   upd_jetzt:"Install now",
+   upd_wird:"Installing, this takes a minute. The service restarts while "
+     +"it does.",
+   upd_kein_update:"No update is pending right now.",
+   upd_laeuft:"Pause the translation first, then install.",
+   upd_nicht_schreibbar:"The marker could not be written. Disk full or "
+     +"wrong permissions — the journal says which.",
+   upd_stimmen:" No voice, running as subtitles only: {s}.",
+   upd_bereit:"Update {v} is ready. It will be installed once nothing has "
+     +"run for 20 minutes and nobody is connected, or straight away under "
+     +"Setup → Install now.",
+   upd_wartet:"Update {v} is ready. It will be installed once nothing has "
+     +"run for 20 minutes and nobody is connected, or straight away under "
+     +"Setup → Install now.",
+   upd_eingespielt:"Version {v} is installed and running.",
+   upd_fehlgeschlagen:"Update {v} failed. Version {alt} is still running.",
+   upd_fehlgeschlagen_roh:"Update {v} failed. Nothing was changed.",
+   upd_signatur:"The signature of update {v} does not check out. It will "
+     +"not be installed.",
+   upd_nicht_neuer:"The stick carries version {v}, this computer already "
+     +"runs {alt}. Nothing to do.",
+   upd_schmutzig:"There are local changes in the folder. Update {v} waits "
+     +"until they are sorted out.",
+   upd_unvollstaendig:"The stick is incomplete. The bundle or the tag {v} "
+     +"is missing.",
+   upd_kein_wheel:"Update {v} needs packages that are not on the stick. "
+     +"Version {alt} keeps running.",
+   upd_unlesbar:"The stick has a file upd-dev.txt, but no version in it.",
    wlan_hin:"Network name and password of the router this computer is "
      +"connected to. They go into the first QR code so that phones can join "
      +"with one scan, without anyone typing a password. Without an entry the "
@@ -2722,7 +2821,7 @@ async function geraeteLaden(){
     if(!d.aktiv){
       geraetwahl.innerHTML="<option>—</option>";
       geraetwahl.disabled=true;
-      geraetstand.textContent=d.fehler||"";
+      geraetstand.textContent=tonSatz(d);
       return;
     }
     geraetwahl.disabled=false;
@@ -2730,9 +2829,9 @@ async function geraeteLaden(){
       `<option value="${g.nummer}"${g.nummer===d.aktuell?" selected":""}>`
       +`${g.nummer}: ${g.name} (${g.schnittstelle})${g.empfohlen?"":" !"}`
       +`</option>`).join("");
-    geraetstand.textContent = d.fehler ? d.fehler
-      : (d.laeuft ? TEXTE[UI].tonlaeuft.replace("{hz}", d.rate)
-                  : TEXTE[UI].tonaus);
+    geraetstand.textContent = tonSatz(d)
+      || (d.laeuft ? TEXTE[UI].tonlaeuft.replace("{hz}", d.rate)
+                   : TEXTE[UI].tonaus);
   }catch(e){console.error("Geraete:", e)}
 }
 
@@ -2751,12 +2850,13 @@ async function geraetSetzen(){
     }else{
       // Der Server ist auf das vorherige Geraet zurueck. Das Auswahlfeld
       // muss das mitmachen, sonst steht dort ein Geraet, das nicht laeuft.
-      geraetstand.textContent=d.fehler||"";
-      warnungZeigen(d.fehler||"", true);
+      const satz=tonSatz(d);
+      geraetstand.textContent=satz;
+      warnungZeigen(satz, true);
     }
     if(d.aktuell!==null&&d.aktuell!==undefined) geraetwahl.value=d.aktuell;
   }catch(e){
-    geraetstand.textContent="Der Wechsel kam nicht durch.";
+    geraetstand.textContent=TEXTE[UI].ton_weg;
     console.error("Geraetewechsel:", e);
   }
 }
@@ -2782,18 +2882,45 @@ async function wlanSetzen(){
   wlanstand.textContent = ssid.value ? TEXTE[UI].gespeichert : "";
 }
 
+// Dasselbe fuer die Tonquelle. Die Einzelheit haengt hinten dran und
+// bleibt unuebersetzt: sie kommt aus dem Treiber, ist meist ohnehin
+// englisch, und wer damit suchen geht, braucht sie im Wortlaut.
+function tonSatz(d){
+  const s = d.lage ? (TEXTE[UI]["ton_"+d.lage] || "") : "";
+  if(!s) return "";
+  return d.einzelheit ? s+" ("+d.einzelheit+")" : s;
+}
+
+// Baut aus der Lage einen Satz in der eingestellten Sprache. Der Server
+// schickt bewusst keinen fertigen Text: der waere deutsch, auch wenn das
+// Pult auf Englisch steht.
+function updateSatz(d){
+  const t=TEXTE[UI];
+  let schluessel="upd_"+(d.lage||"");
+  // Zwei Faelle fuer dasselbe Wort: scheitert es nach dem Vorspulen, gibt
+  // es eine wiederhergestellte Fassung; scheitert es davor, wurde nichts
+  // angefasst, und "Fassung ... laeuft weiter" waere irrefuehrend.
+  if(d.lage==="fehlgeschlagen" && !d.vorher) schluessel="upd_fehlgeschlagen_roh";
+  let s=t[schluessel];
+  if(!s) return "";
+  s=s.split("{v}").join(d.version||"?").split("{alt}").join(d.vorher||"?");
+  if(d.stimmen) s+=t.upd_stimmen.split("{s}").join(d.stimmen);
+  return s;
+}
+
 async function updateLaden(){
-  // Was der Stick zuletzt gemacht hat. Der Text kommt fertig vom Server
-  // -- er wird dort auch ins Journal geschrieben, und zwei Stellen, an
-  // denen derselbe Satz anders lautet, will hinterher niemand vergleichen.
   try{
     const d=await(await fetch("/api/update")).json();
-    if(!d.text){ updatestand.hidden=true; updateknopf.hidden=true; return; }
-    updatestand.hidden=false;
-    updatestand.textContent=d.text;
-    // Der Knopf nur, wenn er etwas bewirkt: ein Update ist vorgemerkt und
-    // es wurde noch nicht gedrueckt.
+    const s=updateSatz(d);
+    updatestand.hidden=!s;
+    if(s) updatestand.textContent=s;
+    // Der Knopf nur, wenn er etwas bewirkt: etwas ist vorgemerkt, es
+    // wurde noch nicht gedrueckt, und die Uebersetzung laeuft nicht.
+    // Waehrend sie laeuft bleibt er sichtbar, aber gesperrt -- sonst
+    // sucht jemand einen Knopf, von dem er weiss, dass es ihn gibt.
     updateknopf.hidden = !(d.bereit && !d.gedrueckt);
+    updateknopf.disabled = !!d.live;
+    updateknopf.title = d.live ? TEXTE[UI].upd_laeuft : "";
   }catch(e){}
 }
 
@@ -2805,14 +2932,14 @@ async function updateJetzt(){
     updatestand.hidden=false;
     // Bis zu eine Minute, weil der Timer daneben so oft nachsieht. Das
     // hier zu verschweigen hiesse, dass jemand ein zweites Mal drueckt.
-    updatestand.textContent = a.ok ? TEXTE[UI].update_laeuft
-                                   : (d.fehler||TEXTE[UI].update_kein);
+    updatestand.textContent = a.ok ? TEXTE[UI].upd_wird
+      : (TEXTE[UI]["upd_"+(d.grund||"")] || TEXTE[UI].upd_kein_update);
     if(a.ok) updateknopf.hidden=true;
   }catch(e){
     updatestand.hidden=false;
     updatestand.textContent=String(e.message||e);
   }finally{
-    updateknopf.disabled=false;
+    if(!updateknopf.hidden) updateknopf.disabled=false;
   }
 }
 
@@ -2823,7 +2950,7 @@ async function hochladen(){
   try{
     const a=await fetch("/api/skript",{method:"POST",body:daten});
     const d=await a.json();
-    if(d.fehler){skriptinfo.textContent="Datei ist leer oder unlesbar.";return}
+    if(d.fehler){skriptinfo.textContent=TEXTE[UI].skript_leer;return}
     skriptinfo.innerHTML=d.woerter+" Wörter gelesen. "
       +(d.stellen.length?"Stellen: <b>"+d.stellen.join(", ")+"</b>. ":"")
       +d.bekannt+" bekannte und "+d.neu+" weitere Namen.<br>"
@@ -2887,7 +3014,7 @@ async function lies(){
     if(!a.ok) throw new Error("HTTP " + a.status);
     d = await a.json();
   }catch(e){
-    lage.textContent = "Server nicht erreichbar (" + e.message + ")";
+    lage.textContent = TEXTE[UI].server_weg + " (" + e.message + ")";
     return;
   }
   try{
@@ -2902,14 +3029,13 @@ async function lies(){
     // zweitrangig, worauf sie nicht laeuft.
     if(d.stt_fehler){
       rechenwarnung.hidden = false;
-      rechenwarnung.textContent =
-        "Die Erkennung scheitert seit "+d.stt_fehler.anzahl+" Abschnitten: "
-        +d.stt_fehler.text;
+      rechenwarnung.textContent = TEXTE[UI].stt_hin
+        .split("{n}").join(d.stt_fehler.anzahl)
+        .split("{was}").join(d.stt_fehler.text);
     }else if(cpu){
       rechenwarnung.hidden = false;
       rechenwarnung.textContent =
-        "Die Erkennung läuft auf der CPU ("+d.rechenwerk+"). Für den "
-        +"Livebetrieb ist das zu langsam.";
+        TEXTE[UI].cpu_hin.split("{was}").join(d.rechenwerk);
     }else{
       rechenwarnung.hidden = true;
     }
@@ -2917,8 +3043,9 @@ async function lies(){
     // unter Einrichtung: waehrend des Gottesdienstes hat niemand die
     // Einrichtung offen. Eingespielt und fehlgeschlagen stehen dort,
     // hier steht nur, was noch bevorsteht -- der Server entscheidet das.
-    updatehin.hidden = !d.update;
-    if(d.update) updatehin.textContent = d.update;
+    const uSatz = d.update ? updateSatz(d.update) : "";
+    updatehin.hidden = !uSatz;
+    if(uSatz) updatehin.textContent = uSatz;
     const quelle = (d.audio_quelle!==undefined && d.audio_quelle!==null)
       ? " · "+t.tonda : "";
     if(zustandLive!==d.live){ zustandLive=d.live; uiZeichnen(); }

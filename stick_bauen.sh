@@ -4,6 +4,8 @@
 #   ./stick_bauen.sh /run/media/name/STICK
 #   ./stick_bauen.sh /run/media/name/STICK --python 3.12
 #   ./stick_bauen.sh /run/media/name/STICK --ohne-wheels
+#   ./stick_bauen.sh --nur-constraints          nach jeder Aenderung an
+#                                               requirements.txt
 #
 # Legt auf den Stick:
 #   upd-dev.txt        die Zeile, an der der Gemeinderechner das Update erkennt
@@ -39,15 +41,59 @@ ZIEL_PLATTFORM=(--platform manylinux_2_28_x86_64 --platform manylinux2014_x86_64
 WHEELS=ja
 STICK=""
 
+NUR_BEDINGUNGEN=nein
+
 while [ $# -gt 0 ]; do
   case "$1" in
-    --python)       ZIEL_PYTHON="${2:-}"; shift 2 ;;
-    --ohne-wheels)  WHEELS=nein; shift ;;
+    --python)           ZIEL_PYTHON="${2:-}"; shift 2 ;;
+    --ohne-wheels)      WHEELS=nein; shift ;;
+    --nur-constraints)  NUR_BEDINGUNGEN=ja; shift ;;
     -h|--hilfe)     sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*)             fehl "Unbekannt: $1"; exit 1 ;;
     *)              STICK="$1"; shift ;;
   esac
 done
+
+# ------------------------------------------------------------ Bedingungen
+# constraints.txt neu aufloesen. Braucht weder Stick noch Tag: es geht
+# nur darum, welche Fassungen pip fuer die Zielversion zusammenstellt.
+# Nach jeder Aenderung an requirements.txt faellig.
+if [ "$NUR_BEDINGUNGEN" = "ja" ]; then
+  blau "constraints.txt fuer Python $ZIEL_PYTHON"
+  ZWISCHEN="$(mktemp -d)"
+  # trap und nicht rm am Ende: bei Abbruch bleibt sonst ein Ordner mit
+  # ein paar hundert Megabyte im temporaeren Verzeichnis liegen.
+  trap 'rm -rf "$ZWISCHEN"' EXIT INT TERM
+  # Bewusst OHNE -c: hier entsteht die Aufloesung ja gerade erst. Mit der
+  # alten Datei als Bedingung koennte sie sich nie aendern.
+  pip download -r requirements.txt -d "$ZWISCHEN" \
+    --only-binary=:all: --python-version "$ZIEL_PYTHON" \
+    "${ZIEL_PLATTFORM[@]}" 2>&1 | tail -3 | sed 's/^/   /'
+  ls "$ZWISCHEN"/*.whl >/dev/null 2>&1 || {
+    fehl "pip hat nichts geholt. Oben nachlesen."; exit 1; }
+
+  ZIEL_PYTHON="$ZIEL_PYTHON" python3 - "$ZWISCHEN" <<'PYCODE'
+import pathlib, re, sys, os
+quelle = pathlib.Path(sys.argv[1])
+paare = {}
+for w in sorted(quelle.glob("*.whl")):
+    teile = w.name[:-4].split("-")
+    paare[teile[0].replace("_", "-").lower()] = teile[1]
+direkt = {m.group(1).replace("_", "-").lower()
+          for m in (re.match(r"^([A-Za-z][A-Za-z0-9._-]*)==", z.strip())
+                    for z in open("requirements.txt", encoding="utf-8")) if m}
+kopf = pathlib.Path("constraints.txt").read_text(encoding="utf-8") \
+    .split("\n\n", 1)[0] + "\n\n" if pathlib.Path("constraints.txt").exists() else ""
+zeilen = [f"{n}=={paare[n]}" + ("" if n in direkt else "    # mitgezogen")
+          for n in sorted(paare)]
+pathlib.Path("constraints.txt").write_text(kopf + "\n".join(zeilen) + "\n",
+                                           encoding="utf-8")
+print(f"   {len(paare)} Pakete, davon {len(direkt & set(paare))} direkt angefordert")
+PYCODE
+  gut "constraints.txt neu geschrieben"
+  warn "Der Kommentarkopf der Datei bleibt stehen. Nachsehen, ob er noch stimmt."
+  exit 0
+fi
 
 [ -n "$STICK" ] || { fehl "Aufruf: $0 /pfad/zum/stick [--python 3.13]"; exit 1; }
 
@@ -169,7 +215,11 @@ if [ "$WHEELS" = "ja" ]; then
   # --only-binary=:all: ist bei --platform Pflicht und hier ohnehin
   # richtig: eine Quelldistribution muesste auf dem Gemeinderechner
   # uebersetzt werden, und dafuer fehlt dort alles.
-  if pip download -r requirements.txt -d "$STICK/wheels" \
+  # -c constraints.txt: sonst haengt es vom Tag ab, welche Fassung der
+  # vierzig mitgezogenen Pakete auf dem Stick landet.
+  BEDINGUNG=""
+  [ -f constraints.txt ] && BEDINGUNG="-c constraints.txt"
+  if pip download -r requirements.txt $BEDINGUNG -d "$STICK/wheels" \
        --only-binary=:all: \
        --python-version "$ZIEL_PYTHON" \
        "${ZIEL_PLATTFORM[@]}" 2>&1 | sed 's/^/   /'; then
