@@ -2546,11 +2546,25 @@ class Kanalscan:
     # Echte Rede dagegen war in zwei von zwei Fenstern Rede. Ein
     # Halluzinat wiederholt sich nicht.
     #
-    # Zwei und nicht drei, weil es Wartezeit am Pult ist: geprueft
-    # werden nur Kanaele mit Pegel aus Stufe 1, in der Praxis zwei bis
-    # vier. Das sind rund neun Sekunden. Drei Fenster wuerden daraus
-    # vierzehn, fuer einen Gewinn, den keine Messung belegt.
+    # Zwei und nicht grundsaetzlich drei, weil es Wartezeit am Pult ist:
+    # geprueft werden nur Kanaele mit Pegel aus Stufe 1, in der Praxis
+    # zwei bis vier. Das sind rund neun Sekunden.
     PRUEF_FENSTER = 2
+
+    # Ein drittes Fenster, aber nur wenn die ersten beiden uneins sind.
+    #
+    # Zwei Fenster, die uebereinstimmen muessen, sind streng gegen Musik
+    # -- und ebenso streng gegen einen Prediger, der zwischen den
+    # Fenstern Luft holt. Der zweite Fall ist der teurere: wer den
+    # richtigen Kanal als "kein Sprechen erkannt" gemeldet bekommt,
+    # waehlt das falsche Geraet und merkt es erst im Gottesdienst. Ein
+    # Halluzinat auf der Orgel dagegen faellt beim Lesen des Textes auf,
+    # der daneben steht.
+    #
+    # Bei Uneinigkeit entscheidet deshalb ein drittes Fenster, zwei von
+    # dreien gewinnen. Das kostet nur im Zweifelsfall: stimmen die
+    # ersten beiden ueberein -- der Normalfall -- bleibt es bei zwei.
+    STICHENTSCHEID = 3
     # Wieviel Text am Pult stehenbleibt. Genug, um das Gesprochene
     # wiederzuerkennen, zu wenig, um die Zeile zu sprengen.
     TEXT_ZEICHEN = 40
@@ -2643,7 +2657,7 @@ class Kanalscan:
     def _einen_pruefen(self, z):
         """Hoert denselben Kanal mehrfach ab und fasst zusammen."""
         fenster = []
-        for _ in range(self.PRUEF_FENSTER):
+        while len(fenster) < self.STICHENTSCHEID:
             if self._pruef_ende.is_set() or self._ende.is_set():
                 # Mitten im Kandidaten abgebrochen. Kein halbes Urteil
                 # hinschreiben: "ein Fenster von zwei" ist keine
@@ -2652,37 +2666,55 @@ class Kanalscan:
             erg = self._ein_fenster(z)
             fenster.append(erg)
             # Weiterhoeren lohnt nur, wenn ueberhaupt etwas ankam. Ein
-            # stummer oder belegter Kanal wird vom zweiten Fenster nicht
-            # gespraechiger.
+            # stummer oder belegter Kanal wird vom naechsten Fenster
+            # nicht gespraechiger.
             if erg["grund"] in ("kein Pegel", "nicht lesbar",
                                 "kein Modell geladen"):
+                break
+            if len(fenster) >= self.PRUEF_FENSTER and self._einig(fenster):
+                # Die ersten beiden sind sich einig. Ein drittes Fenster
+                # koennte daran nichts mehr aendern und waere nur
+                # Wartezeit am Pult.
                 break
         if fenster:
             self.sprachurteil_setzen(z["schluessel"],
                                      self._zusammenfassen(fenster))
 
+    @staticmethod
+    def _einig(fenster):
+        """Sagen alle bisherigen Fenster dasselbe ueber Sprache?"""
+        return len({f["urteil"] == "sprache" for f in fenster}) == 1
+
     def _zusammenfassen(self, fenster):
-        """Aus mehreren Fenstern ein Urteil.
+        """Aus mehreren Fenstern ein Urteil. Die Mehrheit entscheidet.
 
-        Sprache gilt nur, wenn ALLE Fenster sie sehen. Das ist der
-        einzige gemessene Weg, Musik von Rede zu trennen, nachdem der
-        Text es nicht kann: auf Orgel sagte das Modell in einem von
-        fuenf Fenstern "sprache" und erfand dazu einen frommen Satz, auf
-        echter Rede in zwei von zwei. Ein Halluzinat wiederholt sich
-        nicht, ein Prediger hoert nach 1,8 Sekunden nicht auf.
+        Zwei Fenster, die uebereinstimmen, reichen. Sind sie uneins, hat
+        ein drittes den Ausschlag gegeben und es zaehlen zwei von
+        dreien.
 
-        Der Preis ist ein Fehlurteil in die andere Richtung: wer mitten
-        im zweiten Fenster Luft holt, bekommt "Ton, aber keine Sprache".
-        Das ist der billigere Fehler -- er steht am Pult, man spricht
-        nochmal, und es kostet zehn Sekunden. Der andere Fehler schickt
-        die Gemeinde mit dem Orgelmikrofon in den Gottesdienst."""
-        # Das Fenster, das entscheidet: das erste, das keine Sprache
-        # sah. Sahen alle Sprache, entscheidet das erste. So gehoeren
-        # die angezeigten Rohwerte immer zu dem Grund, der danebensteht.
-        abweichler = next((f for f in fenster if f["urteil"] != "sprache"),
-                          None)
-        einig = abweichler is None and len(fenster) >= self.PRUEF_FENSTER
-        entscheidend = abweichler or fenster[0]
+        Warum ueberhaupt mehrfach: auf Orgel sagte das Modell in einem
+        von fuenf Fenstern "sprache" und erfand dazu einen frommen Satz,
+        auf echter Rede in zwei von zwei. Ein Halluzinat wiederholt sich
+        nicht, ein Prediger hoert nach 1,8 Sekunden nicht auf. Das ist
+        der einzige gemessene Weg, Musik von Rede zu trennen, nachdem
+        der Text es nicht kann.
+
+        Warum Mehrheit und nicht Einstimmigkeit: Einstimmigkeit ist
+        ebenso streng gegen einen Prediger, der zwischen zwei Fenstern
+        Luft holt. Und dieser Fehler ist der teurere -- wer den
+        richtigen Kanal als "kein Sprechen erkannt" gemeldet bekommt,
+        waehlt das falsche Geraet und merkt es erst im Gottesdienst. Ein
+        Halluzinat auf der Orgel faellt dagegen beim Lesen des Textes
+        auf, der daneben steht."""
+        dafuer = [f for f in fenster if f["urteil"] == "sprache"]
+        dagegen = [f for f in fenster if f["urteil"] != "sprache"]
+        sprache = len(dafuer) > len(dagegen)
+
+        # Das Fenster, dessen Rohwerte angezeigt werden, gehoert zur
+        # Mehrheit: sonst stuende am Pult ein Grund neben Zahlen, die
+        # ihn nicht belegen.
+        entscheidend = (dafuer[0] if sprache
+                        else (dagegen[0] if dagegen else fenster[0]))
 
         ergebnis = dict(entscheidend)
         ergebnis["fenster"] = [
@@ -2690,22 +2722,28 @@ class Kanalscan:
                                "no_speech_prob", "avg_logprob")}
             for f in fenster]
         ergebnis["zeit"] = time.time()
+        # Wie knapp es war. Am Pult steht das nur bei Uneinigkeit, aber
+        # im Ergebnis steht es immer -- zum Nachziehen nach der Beta.
+        ergebnis["stimmen"] = [len(dafuer), len(fenster)]
 
-        if einig:
+        if sprache:
             ergebnis["urteil"] = "sprache"
-            ergebnis["text"] = fenster[0]["text"]
-            ergebnis["grund"] = ""
+            ergebnis["text"] = entscheidend["text"]
+            # Zwei von drei ist ein Urteil, aber ein knappes, und das
+            # soll man sehen, bevor man das Geraet uebernimmt.
+            ergebnis["grund"] = ("" if not dagegen
+                                 else f"{len(dafuer)} von {len(fenster)} Fenstern")
             return ergebnis
 
         ergebnis["text"] = ""
-        if abweichler is not None and any(f["urteil"] == "sprache"
-                                          for f in fenster):
+        if dafuer:
             # Genau der Orgelfall. Er gehoert benannt und nicht unter
             # "keine Sprache" versteckt: beim naechsten Mal will jemand
             # wissen, warum hier einmal ein Satz stand.
             ergebnis["urteil"] = "ton_ohne_sprache"
-            ergebnis["grund"] = ("nur in einem Fenster, "
-                                 + (abweichler["grund"] or "im zweiten nicht"))
+            ergebnis["grund"] = (f"nur in {len(dafuer)} von "
+                                 f"{len(fenster)} Fenstern, sonst "
+                                 + (dagegen[0]["grund"] or "nichts"))
         return ergebnis
 
     def _ein_fenster(self, z):
@@ -4488,7 +4526,11 @@ function sprachSatz(u){
   let gross="", klein;
   if(u.urteil==="sprache"){
     gross="„"+entschaerfen(u.text||"")+"“";
-    klein=TEXTE[UI].spr_gehoert;
+    // Der Grund steht auch bei "gehoert", wenn es knapp war: zwei von
+    // drei Fenstern ist ein Urteil, aber eines, das man sehen soll,
+    // bevor man das Geraet uebernimmt.
+    klein=TEXTE[UI].spr_gehoert
+      +(u.grund?" ("+entschaerfen(u.grund)+")":"");
   }else if(u.urteil==="ton_ohne_sprache"){
     klein=TEXTE[UI].spr_ton+(u.grund?" ("+entschaerfen(u.grund)+")":"");
   }else{
