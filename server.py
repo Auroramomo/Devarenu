@@ -461,11 +461,21 @@ class Werk:
     # Standardsaetze aus seinen Trainingsdaten: Abspaenne von
     # Untertitelungsdiensten, Dankesformeln, Kanalnamen. Die klingen
     # plausibel und wandern sonst ungeprueft in die Uebersetzung.
+    # Die Senderabspaenne sind gemessen dazugekommen: auf Orgel und
+    # Gemeindegesang antwortete large-v3-turbo unter anderem mit
+    # "Die Sendung wurde vom NDR live untertitelt." und "WDR mediagroup
+    # GmbH im Auftrag des WDR". Beides faengt die alte Fassung nicht,
+    # weil sie am Wortanfang haengt und dort "die" bzw. "wdr" steht.
+    # Ein Prediger sagt keines von beidem, der Zusatz ist also auch fuer
+    # die Livepipeline unbedenklich.
     ERFUNDEN = re.compile(
         r"^\W*(untertitel|untertitelung|amara\.org|copyright|abonniert|"
         r"vielen dank( fuer|für)? (das|ihre|eure)|"
         r"vielen dank\.?$|danke\.?$|tschüss\.?$|"
         r"bis zum n(ä|ae)chsten mal|"
+        r"die sendung wurde|"
+        r"(wdr|ndr|zdf|ard|swr|mdr|rbb|arte)[ -]?(mediagroup|presse|text)|"
+        r"im auftrag (des|der) (wdr|ndr|zdf|ard|swr|mdr|rbb)|"
         r"mit freundlicher unterst(ü|ue)tzung)", re.IGNORECASE)
 
     def hoeren(self, audio):
@@ -495,23 +505,37 @@ class Werk:
     # ausgewertet, hoeren() wirft die Segmentobjekte weg und behaelt nur
     # den Text.
     #
-    # ACHTUNG, gemessen mit large-v3-turbo auf 1,8-Sekunden-Abschnitten:
+    # KEINE_SPRACHE_AB ist bei DIESEM Modell wirkungslos, und zwar aus
+    # einem nachgewiesenen Grund, nicht aus Zufall: der Token
+    # <|nospeech|> (id 50363) steht in suppress_ids der Konvertierung
+    # mobiuslabsgmbh/faster-whisper-large-v3-turbo. CTranslate2
+    # unterdrueckt ihn beim Dekodieren, seine Wahrscheinlichkeit ist
+    # damit zwangsweise null. Gemessen ueber Sprache, Rauschen, Stille
+    # und einen 1-kHz-Sinus: immer exakt 0.0. Gegengeprueft auf drei
+    # Wegen -- am Segmentfeld, an faster-whispers eigener
+    # Unterdrueckung mit no_speech_threshold=1e-7 (unterdrueckt nichts)
+    # und direkt an ctranslate2.Whisper.generate (gibt 0.0).
     #
-    #   Sprache    n_sp 0.0000   logp -0.1941   "Liebe Gemeinde, wir ..."
-    #   Rauschen   n_sp 0.0000   logp -0.4034   "Vielen Dank."
-    #   Stille     n_sp 0.0000   logp -0.2586   "Vielen Dank."
+    # Wer ein anderes Modell einsetzt, sollte das nachmessen, bevor er
+    # sich auf den Wert verlaesst. Er bleibt stehen, weil er nichts
+    # kostet und bei einer Konvertierung ohne diese Unterdrueckung
+    # einen Fall abfaengt, den keine Phrasenliste kennt.
     #
-    # Das Modell meldet auf reinem Rauschen und auf digitaler Stille
-    # dieselbe Zuversicht wie auf echter Sprache und erfindet dazu eine
-    # Dankesformel. Beide Schwellen hier greifen in diesen Messungen
-    # also NICHT -- was Rauschen von Sprache trennt, ist allein die
-    # Leerlaufphrasenliste ERFUNDEN, davor der Pegel.
+    # LOGPROB_MINDESTENS greift dagegen wirklich, wenn auch nicht
+    # zuverlaessig. Gemessen auf 1,8-Sekunden-Abschnitten:
     #
-    # Sie bleiben trotzdem stehen: sie kosten nichts, und ein Modell,
-    # das no_speech_prob sinnvoll fuellt, faengt damit einen Fall ab,
-    # den keine Phrasenliste kennt. Verlassen darf man sich nicht
-    # darauf. Wer sie nachziehen will, findet die Rohwerte je
-    # geprueftem Kanal im Ergebnis, nicht nur das Urteil.
+    #   Sprache          logp -0.19 bis -0.53   -> durch
+    #   Rauschen         logp -0.40             -> durch (Phrasenliste faengt)
+    #   Orgel            logp -0.10 bis -0.97   -> durch
+    #   Gesang           logp -0.98 bis -1.57   -> teils gefangen
+    #
+    # Sprache und Musik ueberschneiden sich also. Die Schwelle nimmt
+    # einen Teil des Gesangs mit, trennt aber nicht. Was wirklich
+    # traegt, ist die Leerlaufphrasenliste ERFUNDEN, davor der Pegel
+    # und dahinter MINDESTWOERTER.
+    #
+    # Zum Nachziehen stehen die Rohwerte je geprueftem Kanal im
+    # Ergebnis, nicht nur das Urteil.
     KEINE_SPRACHE_AB = 0.6
     LOGPROB_MINDESTENS = -1.0
 
@@ -2500,6 +2524,22 @@ class Kanalscan:
     # wiederzuerkennen, zu wenig, um die Zeile zu sprengen.
     TEXT_ZEICHEN = 40
 
+    # Wie viele Woerter ein Fenster mindestens hergeben muss, damit es
+    # als Sprechen gilt.
+    #
+    # Gemessen: 1,8 Sekunden zusammenhaengende deutsche Rede ergeben
+    # vier bis sechs Woerter. Auf Orgel und Gesang antwortete Whisper
+    # dagegen mit "Musik" oder "Amen." -- ein Wort fuer ein volles,
+    # lautes Fenster. Das ist keine Rede, das ist ein Etikett, das das
+    # Modell auf Klang klebt. Und gerade "Amen." wiegt schwer: im
+    # Gottesdienst sieht es nach dem richtigen Kanal aus.
+    #
+    # Nur hier und NICHT in der Livepipeline: dort ist ein kurzer
+    # Einwurf ein echter Satz, der uebersetzt gehoert. Hier ist die
+    # Frage eine andere -- es wird ausdruecklich hineingesprochen, und
+    # wer das tut, sagt mehr als ein Wort.
+    MINDESTWOERTER = 3
+
     def pruefung_starten(self):
         """Knopf "Sprache pruefen".
 
@@ -2634,11 +2674,18 @@ class Kanalscan:
         Phrasenliste gilt als KEINE Sprache -- das ist dieselbe Liste,
         die im Livebetrieb erfundene Abspaenne abfaengt.
 
-        Nach den Messungen an KEINE_SPRACHE_AB ist sie hier nicht bloss
-        der wichtigere, sondern der einzige wirksame Schritt: auf
-        Rauschen antwortet large-v3-turbo mit "Vielen Dank." bei
-        no_speech_prob 0.0. Ohne die Phrasenliste saehe das am Pult nach
-        einem gefundenen Predigtkanal aus."""
+        Nach den Messungen an KEINE_SPRACHE_AB ist sie hier der
+        tragende Schritt: auf Rauschen antwortet large-v3-turbo mit
+        "Vielen Dank." bei no_speech_prob 0.0. Ohne die Phrasenliste
+        saehe das am Pult nach einem gefundenen Predigtkanal aus.
+
+        Eine Luecke bleibt und laesst sich mit Text nicht schliessen.
+        Auf Orgel antwortete das Modell einmal mit "Vertraue und
+        glaube, es hilft, es heilt die goettliche Kraft!" -- zehn
+        Woerter, sauberes Deutsch, fromm. Keine Regel hier
+        unterscheidet das von einem Prediger. Das Pult darf deshalb
+        nicht versprechen, dass "sprache" den richtigen Kanal
+        beweist; es ist ein starker Hinweis, mehr nicht."""
         if mass["no_speech_prob"] > werk.KEINE_SPRACHE_AB:
             return "ton_ohne_sprache", "no_speech_prob"
         if mass["avg_logprob"] < werk.LOGPROB_MINDESTENS:
@@ -2651,6 +2698,8 @@ class Kanalscan:
         woerter = text.lower().split()
         if len(woerter) >= 4 and len(set(woerter)) <= 2:
             return "ton_ohne_sprache", "Schleife im Dekoder"
+        if len(woerter) < Kanalscan.MINDESTWOERTER:
+            return "ton_ohne_sprache", "zu wenig Worte"
         return "sprache", ""
 
 
