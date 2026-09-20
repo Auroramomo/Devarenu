@@ -180,3 +180,42 @@ zwei Minuten mit der neuen Fassung, geht alles zurück.
     ./stick_update.sh --stand        nur die Statusdatei
     journalctl -u devarenu-update    was der Timer gemacht hat
     journalctl -u 'devarenu-stick@*' was beim Einstecken passierte
+
+## Wenn am Pult „Warte auf …" steht
+
+Der Server öffnet **nur** das Mikrofon, das unter Einrichtung ausgewählt
+wurde — erkannt am Namen, nicht an der Nummer. Ist es beim Einschalten
+noch nicht da, wartet er darauf und nimmt bewusst kein anderes.
+
+Das ist Absicht. Vorher griff er in diesem Fall auf die alte Nummer
+zurück, und die zeigte dann auf den Onboard-Eingang: der Rechner nahm
+scheinbar auf, meldete keinen Fehler, und es kam nie Ton. Das fiel erst
+im Gottesdienst auf.
+
+- [ ] **Steht die Meldung nur kurz nach dem Einschalten?** Dann ist alles
+      in Ordnung. USB braucht länger als der Dienst; sobald das Mikrofon
+      aufgezählt ist, greift er von allein zu, meist in ein paar Sekunden.
+- [ ] **Bleibt sie stehen?** Dann ist das Gerät wirklich nicht da. Kabel
+      prüfen. Ist dauerhaft ein anderes Mikrofon im Einsatz, unter
+      Einrichtung auswählen — damit ist das Warten beendet.
+
+Der Kartenindex im Namen (`… (hw:4,0)`) darf sich verschieben, danach
+wird ebenfalls gesucht. Zwei baugleiche Mikrofone am selben Rechner sind
+so allerdings nicht zu unterscheiden.
+
+### „Der Tonstrom war tot und wurde neu geöffnet."
+
+Der Server überwacht, ob noch Tonblöcke ankommen. Bleiben sie aus, öffnet
+er den Strom von allein neu; die Übersetzung läuft weiter, es fehlt
+weniger als eine Sekunde.
+
+**Stille löst das nicht aus.** Auch bei völliger Ruhe kommen Blöcke an,
+nur leise. Gebet, Lieder und Pausen sind davon nicht betroffen.
+
+Die Meldung verschwindet nach einer Minute von selbst — sie sagt, dass
+etwas war, nicht dass etwas ist. Nachlesen im Journal:
+
+    journalctl -u devarenu | grep -i tonstrom
+
+Häuft sie sich, liegt es meist am USB-Kabel oder an einem Hub ohne
+eigene Stromversorgung.

@@ -496,12 +496,18 @@ TON_LAGE = {
                    "(--netz oder --datei).",
     "liste_unlesbar": "Die Geraeteliste ist nicht lesbar.",
     "kein_ton": "Das Geraet laeuft nicht, es kommt gerade kein Ton.",
+    "warte_auf_geraet": "Wartet auf \"%s\". Es wird bewusst kein anderes "
+                        "Geraet genommen. Ist das Mikrofon dauerhaft ein "
+                        "anderes, am Pult unter Einrichtung auswaehlen.",
+    "neu_geoeffnet": "Der Tonstrom war tot und wurde gerade neu geoeffnet.",
 }
 if antwort and antwort.get("lage"):
     satz = TON_LAGE.get(antwort["lage"], antwort["lage"])
+    if "%s" in satz:
+        satz = satz % (antwort.get("name") or "?")
     if antwort.get("einzelheit"):
         satz += " (%s)" % str(antwort["einzelheit"])[:80]
-    print("WARN|Server meldet: %s" % satz[:160])
+    print("WARN|Server meldet: %s" % satz[:200])
 
 nimmt_auf = bool(antwort and antwort.get("aktiv") and antwort.get("laeuft"))
 

@@ -1125,6 +1125,14 @@ def mikrofon_thread(lauf, geraet, segmentierer, stoppen, rate, blockgroesse,
     def rueckruf(daten, rahmen, zeit, status):
         if status:
             print(f"  Audio: {status}")
+        # Lebenszeichen. PortAudio ruft hier im festen Takt auf, auch wenn
+        # niemand spricht -- Stille setzt den Zeitstempel genauso wie
+        # Sprache. Deshalb heisst "seit Sekunden kein Block" wirklich toter
+        # Strom und nicht Gebet, Lied oder Pause.
+        #
+        # Stand frueher nur im WebSocket-Zweig. Am Pult konnte "Ton kommt
+        # an" bei lokalem Mikrofon damit ueberhaupt nie aufleuchten.
+        lauf.audio_quelle = time.time()
         # Erster Kanal genuegt; ein Grossmembranmikrofon liefert ohnehin mono.
         block = auf_16k(daten[:, 0].copy(), rate)
         lauf.mitschnitt.schreiben(block)
@@ -1260,6 +1268,30 @@ def geraete_liste():
     return zeilen
 
 
+def geraete_neu_aufzaehlen():
+    """PortAudio die Geraete neu aufzaehlen lassen.
+
+    Noetig, weil PortAudio die Liste beim Initialisieren einmal festhaelt.
+    Ein Mikrofon, das danach eingesteckt wird, taucht in query_devices()
+    NICHT auf -- gemessen: 29 Geraete vorher, 29 nach dem Anstecken, 30
+    erst nach diesem Aufruf.
+
+    NUR aufrufen, wenn kein Datenstrom offen ist. _terminate() reisst
+    einen offenen Strom mit, wirft dabei aber keine Ausnahme: der Rueckruf
+    hoert einfach auf zu feuern. Das ist genau der stille Ausfall, gegen
+    den der Aufseher gebaut ist -- an der falschen Stelle wuerde er ihn
+    selbst erzeugen. Deshalb steht jeder Aufruf hier unter dem Schloss der
+    Tonquelle und hinter der Frage, ob ein Thread laeuft."""
+    import sounddevice as sd
+    try:
+        sd._terminate()
+        sd._initialize()
+        return True
+    except Exception as e:
+        print(f"Geraete neu aufzaehlen fehlgeschlagen: {str(e)[:120]}")
+        return False
+
+
 def geraete_zeigen():
     """Druckt die Geraeteliste ins Terminal.
 
@@ -1305,6 +1337,13 @@ class Tonquelle:
     # teilen; wer laenger braucht, ist belegt oder defekt.
     WARTEN = 5.0
 
+    # Wie oft der Aufseher nachsieht.
+    TAKT = 2.0
+    # Untergrenze der Totfrist und Deckel fuer den Rueckzug nach
+    # gescheitertem Wiederoeffnen.
+    FRIST_MINDESTENS = 5.0
+    RUECKZUG_MAX = 15.0
+
     def __init__(self, lauf, segmentierer, wunschrate=None):
         self.lauf = lauf
         self.segmentierer = segmentierer
@@ -1320,17 +1359,223 @@ class Tonquelle:
         # auf dasselbe Geraet setzen.
         self._schloss = threading.Lock()
 
+        # Auf welches Geraet der Server eingestellt ist -- Nummer und Name,
+        # so wie sie in zustand.json stehen. Der Aufseher sucht danach.
+        self._wunsch = None
+        self.wartet_auf = ""
+        # Seit wann gewartet wird. Steuert, wie oft gesucht wird.
+        self._wartet_seit = None
+        self._naechste_suche = 0.0
+        self.offen_seit = None
+        # Zeitpunkt des letzten selbsttaetigen Wiederoeffnens. Das Pult
+        # zeigt es eine Minute lang an: es ist ein Ereignis, kein Zustand.
+        self.neu_geoeffnet_um = None
+        self._rueckzug = 0.0
+        self._naechster_versuch = 0.0
+        self._aufseher = None
+        self._ende = threading.Event()
+
     @property
     def laeuft(self):
         return self._thread is not None and self._thread.is_alive()
 
+    @property
+    def tot_frist(self):
+        """Ab wann ein Strom ohne Block als tot gilt.
+
+        Aus der Blockgroesse abgeleitet statt fest hingeschrieben: bei
+        48000 Hz und 2048 Samples kommt alle 43 ms ein Block, bei anderer
+        Einstellung anders. Das Zweihundertfache sind rund neun Sekunden
+        -- zweihundert ausgefallene Blocke sind kein Ruckler mehr."""
+        if not self.rate or not self.blockgroesse:
+            return self.FRIST_MINDESTENS
+        return max(self.FRIST_MINDESTENS, 200.0 * self.blockgroesse / self.rate)
+
     def starten(self, geraet, name=""):
+        """Einstellen und oeffnen. Gibt (gelungen, lage, einzelheit).
+
+        Ist das Geraet nicht da, wird NICHTS geoeffnet: der Aufseher
+        wartet darauf und meldet es ans Pult."""
         with self._schloss:
-            return self._starten(self._aufloesen(geraet, name))
+            self._wunsch = (geraet, name)
+            ergebnis = self._versuchen()
+        self._aufseher_anwerfen()
+        return ergebnis
 
     def anhalten(self):
         with self._schloss:
+            self._wunsch = None
+            self.wartet_auf = ""
             self._anhalten()
+
+    def beenden(self):
+        """Beim Herunterfahren: den Aufseher gehen lassen."""
+        self._ende.set()
+
+    # Wie lange "wurde neu geoeffnet" am Pult stehen bleibt. Das ist ein
+    # Ereignis und kein Zustand: eine Minute lang soll es jemand sehen
+    # koennen, danach ist der Ton einfach wieder da. Im Journal bleibt es.
+    EREIGNIS_SICHTBAR = 60.0
+
+    def auffrischen(self):
+        """Die Geraeteliste neu aufzaehlen, wenn das gefahrlos geht.
+
+        Gefahrlos heisst: kein Datenstrom offen. Die Pruefung und das
+        Aufzaehlen muessen unter demselben Schloss liegen -- sonst oeffnet
+        der Aufseher dazwischen einen Strom, und _terminate() nimmt ihn
+        still mit."""
+        with self._schloss:
+            if self._thread is not None:
+                return False
+            return geraete_neu_aufzaehlen()
+
+    def lage(self):
+        """Was das Pult ueber die Tonquelle wissen muss, als Wort.
+
+        Eine Quelle fuer die Einrichtung und fuer die Betriebsansicht.
+        Nichts zu melden gibt None zurueck -- dann zeigt das Pult auch
+        nichts an, statt einer leeren Zeile."""
+        if self.wartet_auf:
+            return {"lage": "warte_auf_geraet", "name": self.wartet_auf,
+                    "einzelheit": ""}
+        if self.fehler:
+            return {"lage": "kein_ton", "name": self.geraet_name or "",
+                    "einzelheit": self.fehler}
+        if (self.neu_geoeffnet_um
+                and time.time() - self.neu_geoeffnet_um < self.EREIGNIS_SICHTBAR):
+            return {"lage": "neu_geoeffnet", "name": self.geraet_name or "",
+                    "einzelheit": ""}
+        return None
+
+    # ---- Aufseher ----------------------------------------------------
+    def _aufseher_anwerfen(self):
+        if self._aufseher is None or not self._aufseher.is_alive():
+            self._aufseher = threading.Thread(target=self._aufseher_schleife,
+                                              daemon=True)
+            self._aufseher.start()
+
+    def _aufseher_schleife(self):
+        """Sieht im Takt nach, ob der Ton noch da ist.
+
+        Eigener Thread und keine asyncio-Aufgabe: das Oeffnen eines
+        Datenstroms blockiert bis zu fuenf Sekunden. In der
+        Ereignisschleife stuenden so lange alle Zuhoerer still -- derselbe
+        Grund, aus dem /api/geraete kein async ist.
+
+        Jeder Durchlauf faengt alles ab. Der Aufseher darf den Prozess
+        nicht beenden: unter systemd startet Restart=always ihn zwar neu,
+        aber ein Neustart mitten im Gottesdienst ist genau das, was hier
+        vermieden werden soll. Ein Fehler steht im Journal, dann wird
+        weitergemacht."""
+        while not self._ende.wait(self.TAKT):
+            try:
+                self._nachsehen()
+            except Exception as e:
+                print(f"Aufseher: {type(e).__name__}: {str(e)[:150]}")
+
+    def _nachsehen(self):
+        with self._schloss:
+            if self._wunsch is None:
+                return
+            if self.wartet_auf:
+                self._warten_pruefen()
+            elif self._thread is not None and self._tot():
+                self._wiederoeffnen()
+
+    def _suchtakt(self):
+        """Wie oft nach dem vermissten Geraet gesehen wird.
+
+        Gestaffelt, weil die beiden Faelle verschieden dringend sind. Beim
+        Hochfahren zaehlt jede Sekunde: das Mikrofon ist gleich da, und
+        bis dahin steht der Gottesdienst. Fehlt es dagegen dauerhaft --
+        Kabel ab, Geraet getauscht --, laeuft der Rechner womoeglich
+        stundenlang weiter, und jede Suche zaehlt PortAudio komplett neu
+        auf. Alle zwei Sekunden waere das den ganzen Tag lang."""
+        gewartet = time.time() - (self._wartet_seit or time.time())
+        if gewartet < 60:
+            return self.TAKT
+        return 10.0 if gewartet < 300 else 30.0
+
+    def _warten_pruefen(self):
+        """Ist das vermisste Geraet inzwischen da?
+
+        Hier ist sicher kein Strom offen -- das Warten beginnt ja gerade
+        deshalb, weil keiner aufgemacht wurde. Nur darum darf an dieser
+        Stelle neu aufgezaehlt werden."""
+        jetzt = time.time()
+        if jetzt < self._naechster_versuch or jetzt < self._naechste_suche:
+            return
+        self._naechste_suche = jetzt + self._suchtakt()
+        geraete_neu_aufzaehlen()
+        nummer, vermisst = self._aufloesen(*self._wunsch)
+        if vermisst:
+            return
+        print(f"Tonquelle \"{self.wartet_auf}\" ist da.")
+        self.wartet_auf = ""
+        self._wartet_seit = None
+        gelungen, _, einzelheit = self._versuchen()
+        if not gelungen:
+            self._zurueckziehen(einzelheit)
+
+    def _tot(self):
+        """Keine Bloecke mehr -- nicht: es ist still.
+
+        Der Rueckruf setzt audio_quelle bei jedem Block, auch bei einem
+        voellig leisen. Ein Gebet oder eine Pause im Lied haelt den
+        Zeitstempel also frisch; nur ein abgerissener Strom laesst ihn
+        altern."""
+        letzter = self.lauf.audio_quelle
+        if letzter is None:
+            # Nie ein Block angekommen. Ein Strom, der aufging und seither
+            # schweigt, ist ebenso tot -- nur merkt man es sonst nie.
+            return (self.offen_seit is not None
+                    and time.time() - self.offen_seit > self.tot_frist)
+        return time.time() - letzter > self.tot_frist
+
+    def _wiederoeffnen(self):
+        if time.time() < self._naechster_versuch:
+            return
+        alt = self.geraet_name or self.geraet
+        print(f"Tonstrom tot (seit ueber {self.tot_frist:.0f} s kein Block), "
+              f"oeffne {alt} neu.")
+        # Erst schliessen, dann neu aufzaehlen: vorher waere der Strom noch
+        # offen, und _terminate() risse ihn mit, ohne etwas zu melden.
+        self._anhalten()
+        geraete_neu_aufzaehlen()
+        gelungen, _, einzelheit = self._versuchen()
+        if gelungen:
+            self._rueckzug = 0.0
+            self._naechster_versuch = 0.0
+            self.neu_geoeffnet_um = time.time()
+            print("Tonstrom wieder offen.")
+        else:
+            self._zurueckziehen(einzelheit)
+
+    def _zurueckziehen(self, grund):
+        """Nach einem gescheiterten Versuch laenger warten.
+
+        Ein abgezogener Stecker wuerde sonst im Zweisekundentakt dieselbe
+        Zeile ins Journal schreiben, bis ihn jemand wieder einsteckt."""
+        self._rueckzug = min(self.RUECKZUG_MAX,
+                             self._rueckzug * 2 if self._rueckzug else 2.0)
+        self._naechster_versuch = time.time() + self._rueckzug
+        print(f"Tonquelle nicht offen ({str(grund)[:100]}), "
+              f"naechster Versuch in {self._rueckzug:.0f} s.")
+
+    def _versuchen(self):
+        """Aufloesen und oeffnen. Immer unter dem Schloss."""
+        nummer, vermisst = self._aufloesen(*self._wunsch)
+        if vermisst:
+            if self.wartet_auf != vermisst:
+                print(f"Tonquelle \"{vermisst}\" ist nicht da. Es wird auf "
+                      f"sie gewartet, kein anderes Geraet genommen.")
+                self._wartet_seit = time.time()
+                self._naechste_suche = 0.0
+            self.wartet_auf = vermisst
+            return False, "warte_auf_geraet", ""
+        self.wartet_auf = ""
+        gelungen, einzelheit = self._starten(nummer)
+        return gelungen, ("" if gelungen else "kein_ton"), einzelheit
 
     def wechseln(self, geraet):
         """Stellt auf ein anderes Aufnahmegeraet um.
@@ -1343,14 +1588,21 @@ class Tonquelle:
         sie ist meist ohnehin englisch, und uebersetzen liesse sie sich
         nicht, ohne sie zu verfaelschen."""
         with self._schloss:
-            vorher = self.geraet
+            vorher, vorher_name = self.geraet, self.geraet_name
             self._anhalten()
             gelungen, grund = self._starten(geraet)
             if gelungen:
+                # Die Wahl am Pult sticht jedes Warten. Ab jetzt sucht der
+                # Aufseher dieses Geraet, nicht mehr das vermisste.
+                self.wartet_auf = ""
+                self._wunsch = (self.geraet, self.geraet_name)
+                self._rueckzug = 0.0
+                self._naechster_versuch = 0.0
                 return True, "", ""
             if vorher is not None and vorher != geraet:
                 zurueck, _ = self._starten(vorher)
                 if zurueck:
+                    self._wunsch = (vorher, vorher_name)
                     return False, "zurueck", grund
             self.fehler = grund
             return False, "kein_ton", grund
@@ -1376,26 +1628,49 @@ class Tonquelle:
         Pulse wegfallen und alles dahinter rutscht. Im Systemdienst haette
         dieselbe Nummer damit ein anderes Geraet bezeichnet als am Pult.
         Beim Umstecken eines USB-Mikrofons verschieben sich auch die
-        vorderen Nummern."""
+        vorderen Nummern.
+
+        Gibt (nummer, vermisst) zurueck. Ist vermisst gesetzt, wurde das
+        Geraet nicht gefunden und es darf KEINES geoeffnet werden -- auch
+        nicht das unter der alten Nummer. Genau dieser Rueckfall hat einen
+        Rechner nach dem Hochfahren still auf den Onboard-Eingang gelegt:
+        der Strom ging auf, der Thread lief, kein Fehler nirgends, und es
+        kam nie Ton. Lieber gar kein Geraet und eine Meldung am Pult."""
         if not name:
-            return nummer
+            return nummer, ""
         try:
             liste = geraete_liste()
         except Exception:
-            return nummer
+            return nummer, ""
         for g in liste:
             if g["name"] == name:
                 if g["nummer"] != nummer:
                     print(f"Tonquelle \"{name}\" hat jetzt Nummer "
                           f"{g['nummer']} statt {nummer}.")
-                return g["nummer"]
-        if any(g["nummer"] == nummer for g in liste):
-            print(f"Tonquelle \"{name}\" ist nicht da. Es bleibt bei "
-                  f"Nummer {nummer}, das ist jetzt ein anderes Geraet.")
-            return nummer
-        print(f"Tonquelle \"{name}\" ist nicht da und Nummer {nummer} "
-              f"auch nicht. Es gilt das Vorgabegeraet.")
-        return None
+                return g["nummer"], ""
+        # Zweiter Versuch ohne den Kartenindex. ALSA schreibt ihn in den
+        # Namen -- "Auna Mic CM900: USB Audio (hw:4,0)" --, und er
+        # verschiebt sich, sobald ein anderes USB-Audiogeraet fehlt oder
+        # dazukommt. Ohne diesen Vergleich wartete der Server auf ein
+        # Mikrofon, das angesteckt danebensteht, nur unter hw:2 statt hw:4.
+        kern = Tonquelle._namenskern(name)
+        for g in liste:
+            if Tonquelle._namenskern(g["name"]) == kern:
+                print(f"Tonquelle \"{kern}\" gefunden als \"{g['name']}\", "
+                      f"Nummer {g['nummer']}.")
+                return g["nummer"], ""
+        return None, name
+
+    @staticmethod
+    def _namenskern(name):
+        """Der Geraetename ohne den ALSA-Kartenindex.
+
+        "Auna Mic CM900: USB Audio (hw:4,0)" -> "Auna Mic CM900: USB Audio".
+        Zwei baugleiche Mikrofone am selben Rechner waeren danach nicht
+        mehr zu unterscheiden; dann gewinnt das erste. Eine Gemeinde hat
+        ein Mikrofon, und ein falsch geratenes ist immer noch besser als
+        eines, auf das ewig gewartet wird, obwohl es angesteckt ist."""
+        return name.split(" (hw:")[0].strip()
 
     @staticmethod
     def _vorgabegeraet():
@@ -1441,6 +1716,11 @@ class Tonquelle:
         self.geraet_name = self._name_zu(geraet)
         self._thread, self._stoppen = thread, stoppen
         self.fehler = ""
+        # Der Zeitstempel des alten Stroms darf den neuen nicht decken:
+        # ungeloescht haette der Aufseher ihn fuer lebendig gehalten, bis
+        # die Frist ein zweites Mal abgelaufen waere.
+        self.lauf.audio_quelle = None
+        self.offen_seit = time.time()
         return True, ""
 
     def _anhalten(self):
@@ -1453,6 +1733,7 @@ class Tonquelle:
             self._thread.join(timeout=3.0)
         self._thread = None
         self._stoppen = None
+        self.offen_seit = None
 
 
 # ================================================================
@@ -1472,6 +1753,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
         aufgabe = asyncio.create_task(lauf.verarbeiten())
         yield
         aufgabe.cancel()
+        # Der Aufseher ist ein Daemon-Thread und wuerde auch so mit dem
+        # Prozess enden. Ihm hier Bescheid zu sagen erspart beim Neustart
+        # des Dienstes den halben Takt, in dem er noch einmal nachsieht.
+        if tonquelle is not None:
+            tonquelle.beenden()
 
     app = FastAPI(title=f"Devarenu {config.VERSION}", lifespan=lebenszyklus)
     client = basis / "client.html"
@@ -1624,17 +1910,24 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
         if tonquelle is None:
             return {"aktiv": False, "aktuell": None, "liste": [],
                     "lage": "nicht_lokal", "einzelheit": ""}
+        # Ist kein Strom offen, vorher neu aufzaehlen: sonst fehlt in der
+        # Liste genau das Mikrofon, das gerade eingesteckt wurde, und der
+        # Techniker kann es nicht waehlen. Bei offenem Strom NICHT --
+        # _terminate() risse ihn mit, ohne etwas zu melden, und aus einem
+        # Blick in die Einrichtung wuerde ein Tonausfall.
+        tonquelle.auffrischen()
         try:
             liste = geraete_liste()
         except Exception as e:
             return {"aktiv": True, "aktuell": tonquelle.geraet, "liste": [],
                     "lage": "liste_unlesbar", "einzelheit": str(e)[:120]}
+        lage = tonquelle.lage() or {}
         return {"aktiv": True, "aktuell": tonquelle.geraet,
-                "name": tonquelle.geraet_name,
+                "name": lage.get("name") or tonquelle.geraet_name,
                 "rate": tonquelle.rate, "laeuft": tonquelle.laeuft,
                 "liste": liste,
-                "lage": "kein_ton" if tonquelle.fehler else "",
-                "einzelheit": tonquelle.fehler}
+                "lage": lage.get("lage", ""),
+                "einzelheit": lage.get("einzelheit", "")}
 
     @app.post("/api/geraet")
     def geraet_waehlen(daten: dict):
@@ -1774,6 +2067,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
                 # des Gottesdienstes an -- und da hat er die Einrichtung
                 # nicht offen. Leer, solange nichts ansteht.
                 "update": update_kurz(),
+                # Gehoert in die Betriebsansicht und nicht nur unter
+                # Einrichtung: ein Rechner, der auf sein Mikrofon wartet,
+                # sieht sonst aus wie einer, der aufnimmt. Genau das hat
+                # einen Gottesdienst gekostet.
+                "ton": tonquelle.lage() if tonquelle is not None else None,
                 "letzte": list(lauf.letzte)[-8:]}
 
     @app.post("/api/steuerung/{was}")
@@ -2306,6 +2604,7 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
 <div id=betrieb>
 <p class="warnung schwer" id=rechenwarnung hidden></p>
 <p class=warnung id=updatehin hidden></p>
+<p class="warnung schwer" id=tonhin hidden></p>
 <button class=briefkasten id=briefkasten onclick=postZeigen() hidden>
   <span class=umschlag>✉</span><span id=postzahl></span>
   <span data-t=post_neu>neue Meldungen aus dem Saal</span></button>
@@ -2471,6 +2770,9 @@ const TEXTE={
    ton_zurueck:"Das Gerät ließ sich nicht öffnen. Es bleibt beim "
      +"vorherigen.",
    ton_keine_nummer:"Keine Gerätenummer.",
+   ton_warte_auf_geraet:"Warte auf {name}. Es wird kein anderes Gerät "
+     +"genommen — wählen Sie eines aus, wenn es nicht mehr kommt.",
+   ton_neu_geoeffnet:"Der Tonstrom war tot und wurde neu geöffnet.",
    ton_weg:"Der Wechsel kam nicht durch.",
    skript_leer:"Datei ist leer oder unlesbar.",
    server_weg:"Server nicht erreichbar",
@@ -2556,6 +2858,9 @@ const TEXTE={
    ton_zurueck:"The device could not be opened. The previous one stays "
      +"in use.",
    ton_keine_nummer:"No device number.",
+   ton_warte_auf_geraet:"Waiting for {name}. No other device will be used "
+     +"— pick one if it is not coming back.",
+   ton_neu_geoeffnet:"The audio stream had died and was reopened.",
    ton_weg:"The change did not go through.",
    skript_leer:"File is empty or unreadable.",
    server_weg:"Server unreachable",
@@ -2886,8 +3191,10 @@ async function wlanSetzen(){
 // bleibt unuebersetzt: sie kommt aus dem Treiber, ist meist ohnehin
 // englisch, und wer damit suchen geht, braucht sie im Wortlaut.
 function tonSatz(d){
-  const s = d.lage ? (TEXTE[UI]["ton_"+d.lage] || "") : "";
+  if(!d || !d.lage) return "";
+  let s = TEXTE[UI]["ton_"+d.lage] || "";
   if(!s) return "";
+  s = s.split("{name}").join(d.name || "?");
   return d.einzelheit ? s+" ("+d.einzelheit+")" : s;
 }
 
@@ -3046,6 +3353,11 @@ async function lies(){
     const uSatz = d.update ? updateSatz(d.update) : "";
     updatehin.hidden = !uSatz;
     if(uSatz) updatehin.textContent = uSatz;
+    // Schwer und nicht gelb: wer auf sein Mikrofon wartet, hat gerade
+    // keinen Ton. Das ist kein Hinweis, das ist der Ausfall selbst.
+    const tSatz = tonSatz(d.ton);
+    tonhin.hidden = !tSatz;
+    if(tSatz) tonhin.textContent = tSatz;
     const quelle = (d.audio_quelle!==undefined && d.audio_quelle!==null)
       ? " · "+t.tonda : "";
     if(zustandLive!==d.live){ zustandLive=d.live; uiZeichnen(); }
@@ -3348,8 +3660,16 @@ def main():
         if a.sofort:
             lauf.laeuft = True
             lauf.begonnen = time.time()
-        gelungen, grund = tonquelle.starten(geraet, geraet_name)
-        if not gelungen:
+        gelungen, lage, grund = tonquelle.starten(geraet, geraet_name)
+        if lage == "warte_auf_geraet":
+            # Kein Fehler, sondern der geordnete Fall: das eingestellte
+            # Mikrofon ist noch nicht aufgezaehlt. Beim Start aus dem
+            # Dienst heraus ist das der Normalfall -- USB braucht laenger
+            # als systemd. Der Aufseher greift zu, sobald es da ist.
+            print(f"\nWarte auf Tonquelle \"{tonquelle.wartet_auf}\".")
+            print("Es wird kein anderes Geraet genommen. Ein anderes waehlen")
+            print("geht am Pult unter Einrichtung.\n")
+        elif not gelungen:
             # Kein Abbruchgrund mehr. Frueher lief der Server an dieser
             # Stelle ohne Ton weiter und ohne Ausweg; jetzt gibt es einen,
             # und dafuer muss er stehen.
