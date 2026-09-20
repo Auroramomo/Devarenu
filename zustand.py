@@ -29,7 +29,12 @@ DATEI = config.BASIS / "zustand.json"
 
 # Steht mit in der Datei, damit ein spaeteres Format erkennbar ist, ohne
 # raten zu muessen, was die Schluessel bedeuten.
-FASSUNG = 1
+#
+# 2 hat geraet_kanal und geraet_kanaele dazubekommen. Eine Datei nach
+# Fassung 1 hat sie nicht, und das ist kein Fehlerfall: die Vorgaben 0
+# und 1 beschreiben genau, was vorher galt -- erster Kanal, mono. Wer
+# von 1 kommt, laeuft deshalb ohne Umschreiben weiter.
+FASSUNG = 2
 
 # Geschrieben wird aus den Request-Threads des Servers, also aus mehreren
 # gleichzeitig. Ohne Schloss koennten sich zwei Schreibvorgaenge
@@ -61,11 +66,27 @@ def vorgabe():
         "fassung": FASSUNG,
         "geraet": None,
         "geraet_name": "",
+        "geraet_kanal": 0,
+        "geraet_kanaele": 1,
         "quelle": config.AUSGANGSSPRACHE,
         "ziele": list(config.ZIELSPRACHEN),
         "wlan": {"ssid": "", "passwort": ""},
         "schwelle": {"wert": None, "gemessen": None},
     }
+
+
+def kanalname(kanal, kanaele):
+    """Wie ein Kanal am Pult heisst.
+
+    Bei zwei Kanaelen L und R -- so steht es auf jedem Mischpult und auf
+    jedem Kabel, und danach sucht der Techniker. Bei mehr als zweien
+    gibt es keine eingebuergerten Buchstaben mehr, dann wird gezaehlt,
+    und zwar ab 1: Kanal 0 steht auf keinem Geraet."""
+    if kanaele <= 1:
+        return "Mono"
+    if kanaele == 2:
+        return "L" if kanal == 0 else "R"
+    return f"Kanal {kanal + 1}"
 
 
 def _sprache_pruefen(wert, ersatz):
@@ -95,6 +116,28 @@ def _uebernehmen(roh, daten):
             daten["geraet_name"] = roh["geraet_name"]
         else:
             fehlerhaft.append("geraet_name")
+
+    # Beide Kanalfelder zusammen, weil sie dieselbe Pruefung brauchen:
+    # eine Zahl, nicht negativ, kein bool. Ein unbrauchbarer Wert kostet
+    # nur ihn selbst und faellt auf die Vorgabe zurueck -- also auf den
+    # ersten Kanal, und damit auf das Verhalten vor Fassung 2.
+    for feld, kleinst in (("geraet_kanal", 0), ("geraet_kanaele", 1)):
+        if feld not in roh:
+            continue
+        wert = roh[feld]
+        if isinstance(wert, int) and not isinstance(wert, bool) \
+                and wert >= kleinst:
+            daten[feld] = wert
+        else:
+            fehlerhaft.append(feld)
+
+    # Ein Kanal, den das gespeicherte Geraet gar nicht hat, ist keine
+    # Auswahl, sondern ein Tippfehler von Hand. Lieber der erste Kanal
+    # als ein Griff ins Leere.
+    if daten["geraet_kanal"] >= daten["geraet_kanaele"]:
+        if "geraet_kanal" in roh and "geraet_kanal" not in fehlerhaft:
+            fehlerhaft.append("geraet_kanal")
+        daten["geraet_kanal"] = 0
 
     if "quelle" in roh:
         gueltig = _sprache_pruefen(roh["quelle"], None)
@@ -204,6 +247,8 @@ def kurzfassung(daten):
         geraet = "Vorgabegeraet"
     else:
         geraet = daten["geraet_name"] or f"Geraet {daten['geraet']}"
+    if daten["geraet_kanaele"] > 1:
+        geraet += f" ({kanalname(daten['geraet_kanal'], daten['geraet_kanaele'])})"
     schwelle = daten["schwelle"]["wert"]
     return (f"{geraet}, {daten['quelle']} -> "
             f"{', '.join(daten['ziele']) or 'nichts'}, "

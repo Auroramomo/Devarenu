@@ -1110,7 +1110,7 @@ def auf_16k(block, rate):
 
 
 def mikrofon_thread(lauf, geraet, segmentierer, stoppen, rate, blockgroesse,
-                    offen=None, melder=None):
+                    offen=None, melder=None, kanal=0, kanaele=1):
     """Nimmt auf, bis stoppen gesetzt wird.
 
     stoppen gehoert diesem einen Thread und ist bewusst nicht das
@@ -1119,8 +1119,21 @@ def mikrofon_thread(lauf, geraet, segmentierer, stoppen, rate, blockgroesse,
 
     offen wird gesetzt, sobald der Datenstrom wirklich steht, melder
     nimmt den Grund auf, wenn nicht. Ohne beides wuesste der Aufrufer nur,
-    dass er einen Thread gestartet hat, nicht ob Ton ankommt."""
+    dass er einen Thread gestartet hat, nicht ob Ton ankommt.
+
+    kanal ist der Kanal innerhalb des Geraets. Bei 0 wird geoeffnet wie
+    bisher: channels=1, erste Spalte. Das ist kein Sparen, sondern
+    Absicht -- die Gemeinden, die heute laufen, laufen auf Kanal 0, und
+    sie sollen nach dem Update durch denselben Code laufen. Mehrkanalig
+    geoeffnet wird ausschliesslich, wenn wirklich ein hinterer Kanal
+    gewaehlt ist: ein Stereogeraet, das man auf zwei Kanaele aufmacht,
+    obwohl man nur den linken will, kann an Geraeten scheitern, die
+    mono problemlos hergeben."""
     import sounddevice as sd
+
+    mehrkanal = kanal > 0
+    offen_kanaele = kanaele if mehrkanal else 1
+    spalte = kanal if mehrkanal else 0
 
     def rueckruf(daten, rahmen, zeit, status):
         if status:
@@ -1133,20 +1146,25 @@ def mikrofon_thread(lauf, geraet, segmentierer, stoppen, rate, blockgroesse,
         # Stand frueher nur im WebSocket-Zweig. Am Pult konnte "Ton kommt
         # an" bei lokalem Mikrofon damit ueberhaupt nie aufleuchten.
         lauf.audio_quelle = time.time()
-        # Erster Kanal genuegt; ein Grossmembranmikrofon liefert ohnehin mono.
-        block = auf_16k(daten[:, 0].copy(), rate)
+        # Bei kanal=0 ist das buchstaeblich daten[:, 0] wie bisher: der
+        # Strom ist dann einkanalig aufgemacht, spalte ist 0. Ein
+        # Grossmembranmikrofon liefert ohnehin mono.
+        block = auf_16k(daten[:, spalte].copy(), rate)
         lauf.mitschnitt.schreiben(block)
         segment = segmentierer.schub(block)
         if segment is not None and lauf.laeuft:
             lauf.warteschlange.put((segment, None))
 
     try:
-        with sd.InputStream(device=geraet, channels=1, samplerate=rate,
+        with sd.InputStream(device=geraet, channels=offen_kanaele,
+                            samplerate=rate,
                             blocksize=blockgroesse, dtype="float32",
                             callback=rueckruf):
             if offen is not None:
                 offen.set()
-            print(f"Mikrofon offen: {rate} Hz -> {MIKRO_RATE} Hz.")
+            wo = (f", Kanal {zustandsdatei.kanalname(kanal, kanaele)}"
+                  if mehrkanal else "")
+            print(f"Mikrofon offen: {rate} Hz -> {MIKRO_RATE} Hz{wo}.")
             while not stoppen.is_set():
                 time.sleep(0.2)
     except Exception as e:
@@ -1208,17 +1226,21 @@ def datei_thread(lauf, pfad, segmentierer, stoppen, tempo=1.0):
     lauf.bericht()
 
 
-def rate_waehlen(geraet, wunsch=None):
+def rate_waehlen(geraet, wunsch=None, kanaele=1):
     """Sucht eine Aufnahmerate, die das Geraet wirklich kann.
 
     Kein handelsuebliches USB-Mikrofon laeuft nativ auf 16000 Hz. 48000 wird
     bevorzugt, weil es genau das Dreifache ist und sich exakt dezimieren
-    laesst. 44100 geht auch, kostet aber eine Interpolation."""
+    laesst. 44100 geht auch, kostet aber eine Interpolation.
+
+    kanaele muss zu dem passen, womit der Strom danach wirklich
+    aufgemacht wird. Geprueft mit 1, geoeffnet mit 2, waere die Pruefung
+    keine: ein Geraet kann mono koennen und stereo nicht."""
     import sounddevice as sd
     kandidaten = [wunsch] if wunsch else [48000, 32000, 16000, 44100]
     for rate in kandidaten:
         try:
-            sd.check_input_settings(device=geraet, channels=1,
+            sd.check_input_settings(device=geraet, channels=kanaele,
                                     samplerate=rate, dtype="float32")
             return rate, int(round(BLOCK * rate / MIKRO_RATE))
         except Exception:
@@ -1350,6 +1372,10 @@ class Tonquelle:
         self.wunschrate = wunschrate
         self.geraet = None
         self.geraet_name = ""
+        # Kanal innerhalb des Geraets und wie viele es hat. 0/1 ist das
+        # Verhalten vor der Kanalwahl und bleibt die Vorgabe.
+        self.kanal = 0
+        self.kanaele = 1
         self.rate = None
         self.blockgroesse = None
         self.fehler = ""
@@ -1363,8 +1389,9 @@ class Tonquelle:
         # auf dasselbe Geraet setzen.
         self._schloss = threading.Lock()
 
-        # Auf welches Geraet der Server eingestellt ist -- Nummer und Name,
-        # so wie sie in zustand.json stehen. Der Aufseher sucht danach.
+        # Auf welches Geraet der Server eingestellt ist -- Nummer, Name,
+        # Kanal und Kanalzahl, so wie sie in zustand.json stehen. Der
+        # Aufseher sucht danach.
         self._wunsch = None
         self.wartet_auf = ""
         # Seit wann gewartet wird. Steuert, wie oft gesucht wird.
@@ -1395,13 +1422,13 @@ class Tonquelle:
             return self.FRIST_MINDESTENS
         return max(self.FRIST_MINDESTENS, 200.0 * self.blockgroesse / self.rate)
 
-    def starten(self, geraet, name=""):
+    def starten(self, geraet, name="", kanal=0, kanaele=1):
         """Einstellen und oeffnen. Gibt (gelungen, lage, einzelheit).
 
         Ist das Geraet nicht da, wird NICHTS geoeffnet: der Aufseher
         wartet darauf und meldet es ans Pult."""
         with self._schloss:
-            self._wunsch = (geraet, name)
+            self._wunsch = (geraet, name, kanal, kanaele)
             ergebnis = self._versuchen()
         self._aufseher_anwerfen()
         return ergebnis
@@ -1574,6 +1601,7 @@ class Tonquelle:
     def _versuchen(self):
         """Aufloesen und oeffnen. Immer unter dem Schloss."""
         nummer, vermisst = self._aufloesen(*self._wunsch)
+        _, _, kanal, kanaele = self._wunsch
         if vermisst:
             if self.wartet_auf != vermisst:
                 print(f"Tonquelle \"{vermisst}\" ist nicht da. Es wird auf "
@@ -1583,10 +1611,10 @@ class Tonquelle:
             self.wartet_auf = vermisst
             return False, "warte_auf_geraet", ""
         self.wartet_auf = ""
-        gelungen, einzelheit = self._starten(nummer)
+        gelungen, einzelheit = self._starten(nummer, kanal, kanaele)
         return gelungen, ("" if gelungen else "kein_ton"), einzelheit
 
-    def wechseln(self, geraet):
+    def wechseln(self, geraet, kanal=0, kanaele=1):
         """Stellt auf ein anderes Aufnahmegeraet um.
 
         Gibt (True, "", "") zurueck oder (False, Lage, Einzelheit).
@@ -1597,21 +1625,26 @@ class Tonquelle:
         sie ist meist ohnehin englisch, und uebersetzen liesse sie sich
         nicht, ohne sie zu verfaelschen."""
         with self._schloss:
-            vorher, vorher_name = self.geraet, self.geraet_name
+            vorher = (self.geraet, self.geraet_name, self.kanal, self.kanaele)
             self._anhalten()
-            gelungen, grund = self._starten(geraet)
+            gelungen, grund = self._starten(geraet, kanal, kanaele)
             if gelungen:
                 # Die Wahl am Pult sticht jedes Warten. Ab jetzt sucht der
                 # Aufseher dieses Geraet, nicht mehr das vermisste.
                 self.wartet_auf = ""
-                self._wunsch = (self.geraet, self.geraet_name)
+                self._wunsch = (self.geraet, self.geraet_name,
+                                self.kanal, self.kanaele)
                 self._rueckzug = 0.0
                 self._naechster_versuch = 0.0
                 return True, "", ""
-            if vorher is not None and vorher != geraet:
-                zurueck, _ = self._starten(vorher)
+            # Zurueck auf das, was vorher lief -- Kanal eingeschlossen.
+            # Ohne ihn landete ein gescheiterter Wechsel auf dem rechten
+            # Kanal still wieder auf dem linken desselben Geraets, und am
+            # Pult stuende weiter R.
+            if vorher[0] is not None and (vorher[0], vorher[2]) != (geraet, kanal):
+                zurueck, _ = self._starten(vorher[0], vorher[2], vorher[3])
                 if zurueck:
-                    self._wunsch = (vorher, vorher_name)
+                    self._wunsch = vorher
                     return False, "zurueck", grund
             self.fehler = grund
             return False, "kein_ton", grund
@@ -1628,7 +1661,7 @@ class Tonquelle:
         return ""
 
     @staticmethod
-    def _aufloesen(nummer, name):
+    def _aufloesen(nummer, name, kanal=0, kanaele=1):
         """Welche Nummer heute zu dieser Auswahl gehoert.
 
         Der Name zuerst, die Nummer nur als Rueckfall. Die Nummern sind
@@ -1644,15 +1677,31 @@ class Tonquelle:
         nicht das unter der alten Nummer. Genau dieser Rueckfall hat einen
         Rechner nach dem Hochfahren still auf den Onboard-Eingang gelegt:
         der Strom ging auf, der Thread lief, kein Fehler nirgends, und es
-        kam nie Ton. Lieber gar kein Geraet und eine Meldung am Pult."""
+        kam nie Ton. Lieber gar kein Geraet und eine Meldung am Pult.
+
+        Der Kanal gehoert zum Schluessel. Ein Geraet, das heute weniger
+        Kanaele aufzaehlt als beim Speichern, traegt den gesuchten Kanal
+        nicht mehr -- dann gilt es als vermisst, statt still auf den
+        linken zurueckzufallen. "Rechter Kanal" waere auf einem
+        Monogeraet eine Auskunft, die nicht stimmt."""
         if not name:
             return nummer, ""
+
+        def passt(g):
+            """Hat dieses Geraet den gesuchten Kanal noch?"""
+            return kanal < g["kanaele"]
+
+        def vermisst_name():
+            """Wie das Geraet in der gelben Zeile am Pult heisst."""
+            if kanaele > 1:
+                return f"{name} ({zustandsdatei.kanalname(kanal, kanaele)})"
+            return name
         try:
             liste = geraete_liste()
         except Exception:
             return nummer, ""
         for g in liste:
-            if g["name"] == name:
+            if g["name"] == name and passt(g):
                 if g["nummer"] != nummer:
                     print(f"Tonquelle \"{name}\" hat jetzt Nummer "
                           f"{g['nummer']} statt {nummer}.")
@@ -1664,11 +1713,19 @@ class Tonquelle:
         # Mikrofon, das angesteckt danebensteht, nur unter hw:2 statt hw:4.
         kern = Tonquelle._namenskern(name)
         for g in liste:
-            if Tonquelle._namenskern(g["name"]) == kern:
+            if Tonquelle._namenskern(g["name"]) == kern and passt(g):
                 print(f"Tonquelle \"{kern}\" gefunden als \"{g['name']}\", "
                       f"Nummer {g['nummer']}.")
                 return g["nummer"], ""
-        return None, name
+        # Der Name ist da, nur der Kanal nicht: das ist der Fall, der
+        # sonst am schwersten zu deuten waere. Er gehoert ins Journal,
+        # sonst sucht jemand nach einem Mikrofon, das angesteckt ist.
+        if kanaele > 1 and any(Tonquelle._namenskern(g["name"]) == kern
+                               for g in liste):
+            print(f"Tonquelle \"{kern}\" ist da, hat aber keinen "
+                  f"{zustandsdatei.kanalname(kanal, kanaele)}-Kanal mehr. "
+                  f"Es wird kein anderer genommen.")
+        return None, vermisst_name()
 
     @staticmethod
     def _namenskern(name):
@@ -1696,10 +1753,14 @@ class Tonquelle:
             return None
 
     # ---- innen, immer unter dem Schloss ----
-    def _starten(self, geraet):
+    def _starten(self, geraet, kanal=0, kanaele=1):
         if geraet is None:
             geraet = self._vorgabegeraet()
-        gewaehlt = rate_waehlen(geraet, self.wunschrate)
+        # Wie bei mikrofon_thread: nur ein hinterer Kanal zwingt zum
+        # mehrkanaligen Oeffnen. Kanal 0 wird mono geprueft und mono
+        # aufgemacht, genau wie vor der Kanalwahl.
+        pruef_kanaele = kanaele if kanal > 0 else 1
+        gewaehlt = rate_waehlen(geraet, self.wunschrate, pruef_kanaele)
         if gewaehlt is None:
             return False, ("Keine der ueblichen Aufnahmeraten funktioniert "
                            "mit diesem Geraet.")
@@ -1711,7 +1772,8 @@ class Tonquelle:
             target=mikrofon_thread,
             args=(self.lauf, geraet, self.segmentierer, stoppen, rate,
                   blockgroesse),
-            kwargs={"offen": offen, "melder": melder},
+            kwargs={"offen": offen, "melder": melder,
+                    "kanal": kanal, "kanaele": kanaele},
             daemon=True)
         thread.start()
         # Auf den offenen Datenstrom warten. Ohne das meldete das Pult
@@ -1722,6 +1784,7 @@ class Tonquelle:
             return False, (melder["fehler"]
                            or "Das Geraet liess sich nicht oeffnen.")
         self.geraet, self.rate, self.blockgroesse = geraet, rate, blockgroesse
+        self.kanal, self.kanaele = kanal, kanaele
         self.geraet_name = self._name_zu(geraet)
         self._thread, self._stoppen = thread, stoppen
         self.fehler = ""
@@ -1966,6 +2029,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
         lage = tonquelle.lage() or {}
         return {"aktiv": True, "aktuell": tonquelle.geraet,
                 "name": lage.get("name") or tonquelle.geraet_name,
+                "kanal": tonquelle.kanal, "kanaele": tonquelle.kanaele,
                 "rate": tonquelle.rate, "laeuft": tonquelle.laeuft,
                 "liste": liste,
                 "lage": lage.get("lage", ""),
@@ -1983,17 +2047,44 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None):
             nummer = int(daten.get("nummer"))
         except (TypeError, ValueError):
             return JSONResponse({"lage": "keine_nummer"}, status_code=400)
-        gelungen, lage, einzelheit = tonquelle.wechseln(nummer)
+        # Ohne Kanalangabe der erste: das ist, was jede Fassung vor der
+        # Kanalwahl gemeint hat, und was ein Monogeraet ohnehin hergibt.
+        try:
+            kanal = int(daten.get("kanal") or 0)
+            kanaele = int(daten.get("kanaele") or 1)
+        except (TypeError, ValueError):
+            return JSONResponse({"lage": "kein_kanal"}, status_code=400)
+        if kanal < 0 or kanal >= kanaele:
+            return JSONResponse({"lage": "kein_kanal"}, status_code=400)
+        gelungen, lage, einzelheit = tonquelle.wechseln(nummer, kanal, kanaele)
         if gelungen:
             lauf.zustand["geraet"] = tonquelle.geraet
             lauf.zustand["geraet_name"] = tonquelle.geraet_name
+            lauf.zustand["geraet_kanal"] = tonquelle.kanal
+            lauf.zustand["geraet_kanaele"] = tonquelle.kanaele
+            # Die eingemessene Schwelle gehoerte zur alten Quelle. Ein
+            # anderes Mikrofon, eine andere Vorverstaerkung, ein anderer
+            # Kanal -- der Wert passt nicht mehr, und stehenbleiben waere
+            # schlimmer als fehlen: er wuerde still zu viel verschlucken
+            # oder zu viel durchlassen. Also mitlaufend, bis neu
+            # eingemessen ist.
+            seg = lauf.segmentierer
+            if (lauf.zustand["schwelle"]["wert"] is not None
+                    or seg.feste_schwelle is not None):
+                seg.feste_schwelle = None
+                lauf.zustand["schwelle"] = {"wert": None, "gemessen": None}
+                print("Schwelle verworfen: sie galt der alten Tonquelle. "
+                      "Nach dem Start einmal neu einmessen.")
             zustandsdatei.speichern(lauf.zustand)
+            wo = (f", {zustandsdatei.kanalname(tonquelle.kanal, tonquelle.kanaele)}"
+                  if tonquelle.kanaele > 1 else "")
             print(f"Tonquelle: {tonquelle.geraet_name or nummer} "
-                  f"(Nr. {tonquelle.geraet}), {tonquelle.rate} Hz")
+                  f"(Nr. {tonquelle.geraet}{wo}), {tonquelle.rate} Hz")
         else:
             print(f"Geraetewechsel gescheitert ({lage}): {einzelheit}")
         return {"gelungen": gelungen, "lage": lage, "einzelheit": einzelheit,
                 "aktuell": tonquelle.geraet, "name": tonquelle.geraet_name,
+                "kanal": tonquelle.kanal, "kanaele": tonquelle.kanaele,
                 "rate": tonquelle.rate, "laeuft": tonquelle.laeuft}
 
     @app.get("/api/sprachen")
@@ -3584,6 +3675,9 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--geraete", action="store_true")
     p.add_argument("--geraet", type=int, default=None)
+    p.add_argument("--kanal", type=int, default=None,
+                   help="Kanal im Geraet: 0 = links/mono, 1 = rechts. "
+                        "Ohne Angabe gilt, was am Pult gewaehlt wurde.")
     p.add_argument("--netz", action="store_true",
                    help="Ton ueber das Netz entgegennehmen statt vom "
                         "Mikrofon (sender.py auf der Gegenseite)")
@@ -3646,6 +3740,18 @@ def main():
     # Der Name gilt nur fuer die Auswahl aus der Datei. Wer auf der
     # Kommandozeile eine Nummer nennt, meint diese Nummer.
     geraet_name = "" if a.geraet is not None else stand["geraet_name"]
+    # --kanal steht fuer sich und haengt nicht an --geraet: man probiert
+    # durchaus den rechten Kanal des eingestellten Mikrofons, ohne die
+    # Geraetenummer anzufassen.
+    if a.kanal is not None:
+        kanal, kanaele = a.kanal, max(1, a.kanal + 1)
+    elif a.geraet is not None:
+        # Nummer von Hand, Kanal nicht: das meint den ersten Kanal. Die
+        # gespeicherte Kanalwahl gehoert zum gespeicherten GERAET und
+        # waere auf einem anderen eine Vermutung.
+        kanal, kanaele = 0, 1
+    else:
+        kanal, kanaele = stand["geraet_kanal"], stand["geraet_kanaele"]
 
     werk = Werk(nur_text=a.nur_text)
     seg = Segmentierer(pause=a.pause, min_dauer=a.min_dauer,
@@ -3702,7 +3808,8 @@ def main():
         if a.sofort:
             lauf.laeuft = True
             lauf.begonnen = time.time()
-        gelungen, lage, grund = tonquelle.starten(geraet, geraet_name)
+        gelungen, lage, grund = tonquelle.starten(geraet, geraet_name,
+                                                  kanal, kanaele)
         if lage == "warte_auf_geraet":
             # Kein Fehler, sondern der geordnete Fall: das eingestellte
             # Mikrofon ist noch nicht aufgezaehlt. Beim Start aus dem
