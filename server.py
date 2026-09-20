@@ -505,6 +505,19 @@ class Werk:
     # ausgewertet, hoeren() wirft die Segmentobjekte weg und behaelt nur
     # den Text.
     #
+    # ---- TOT: KEINE_SPRACHE_AB wird nicht weiterverfolgt -------------
+    #
+    # Die Konstante bleibt stehen und wird weiter geprueft, aber sie
+    # kann bei dem Modell, das die Livepipeline benutzt, niemals
+    # ausloesen. Nicht nachbessern, nicht feiner einstellen, nicht
+    # gegen andere Werte tauschen -- es gibt nichts einzustellen. Wer
+    # hier Zeit hineinsteckt, sucht einen Fehler, der keiner ist.
+    #
+    # Ein anderes Modell koennte den Wert liefern. Das zu pruefen ist
+    # eine Aufgabe fuer NACH der Beta: es ginge um das Modell der
+    # Livepipeline, und daran wird waehrend der Erprobung in Rostock
+    # nichts getauscht.
+    #
     # KEINE_SPRACHE_AB ist bei DIESEM Modell wirkungslos, und zwar aus
     # einem nachgewiesenen Grund, nicht aus Zufall: der Token
     # <|nospeech|> (id 50363) steht in suppress_ids der Konvertierung
@@ -536,7 +549,7 @@ class Werk:
     #
     # Zum Nachziehen stehen die Rohwerte je geprueftem Kanal im
     # Ergebnis, nicht nur das Urteil.
-    KEINE_SPRACHE_AB = 0.6
+    KEINE_SPRACHE_AB = 0.6      # tot bei large-v3-turbo, siehe oben
     LOGPROB_MINDESTENS = -1.0
 
     def sprache_messen(self, audio):
@@ -2196,11 +2209,17 @@ class Testton:
                              f"lesen. Erwartet werden 8, 16 oder 32 Bit PCM.")
         self.spuren = daten.reshape(-1, self.kanaele)
         self.name = f"Testton: {self.pfad.name}"
-        # Wo die naechste Messung ansetzt. Laeuft umlaufend weiter, damit
-        # die Messreihe ueber die Datei wandert statt immer dieselben
-        # 800 ms zu lesen -- sonst zeigte eine Sprechpause am Dateianfang
-        # dauerhaft "still".
-        self._pos = 0
+        # Die Leseposition folgt der Wanduhr, nicht der Zahl der
+        # Lesevorgaenge.
+        #
+        # Das ist der Unterschied zwischen einer Datei und einem Geraet,
+        # und er ist der Grund, warum die Probe sonst luegt: ein
+        # Zaehler, den jede Messung weiterrueckt, laeuft bei vier
+        # Kanaelen vierfach zu schnell durch die Datei, und zwei Kanaele
+        # zeigen nie denselben Augenblick. Am Mischpult liegt auf allen
+        # Kanaelen dieselbe Sekunde an; wer L misst und eine Sekunde
+        # spaeter R, hoert bei R eine Sekunde spaeter -- genau das.
+        self._beginn = time.time()
         self._schloss = threading.Lock()
 
     def zeilen(self):
@@ -2214,19 +2233,19 @@ class Testton:
             "empfohlen": True,
         } for k in range(self.kanaele)]
 
-    def _schneiden(self, kanal, dauer, weiter):
+    def _schneiden(self, kanal, dauer):
         laenge = max(1, int(dauer * self.rate))
-        with self._schloss:
-            anfang = self._pos
-            if weiter:
-                self._pos = (self._pos + laenge) % max(1, len(self.spuren))
-        # Umlaufend lesen, damit auch das Dateiende ein volles Fenster
-        # hergibt und die Reihe nicht kuerzer wird.
+        verstrichen = time.time() - self._beginn
+        anfang = int(verstrichen * self.rate) % len(self.spuren)
+        # Umlaufend lesen: die Datei faengt von vorne an, statt in Stille
+        # auszulaufen. Sonst zeigte eine kurze Probe nach einer Minute
+        # nur noch "still", und die Pruefung haette nichts mehr zu
+        # hoeren.
         i = np.arange(anfang, anfang + laenge) % len(self.spuren)
         return self.spuren[i, kanal]
 
     def messen(self, kanal, fenster):
-        spur = self._schneiden(kanal, fenster, weiter=True).astype(np.float64)
+        spur = self._schneiden(kanal, fenster).astype(np.float64)
         # Das Fenster wird abgewartet, obwohl die Daten schon dastehen.
         # Sonst liefe die Probe um Groessenordnungen schneller als der
         # Ernstfall, und genau das Verhalten, das geprueft werden soll
@@ -2236,9 +2255,7 @@ class Testton:
         return float(np.sqrt(np.mean(spur ** 2))), ""
 
     def aufnehmen(self, kanal, dauer):
-        # Ohne Weiterruecken: die Sprachpruefung soll die Stelle hoeren,
-        # an der eben Pegel gemessen wurde.
-        spur = self._schneiden(kanal, dauer, weiter=False)
+        spur = self._schneiden(kanal, dauer)
         threading.Event().wait(dauer)
         return auf_16k(np.ascontiguousarray(spur, dtype=np.float32),
                        self.rate), ""
@@ -2520,6 +2537,20 @@ class Kanalscan:
     # niemand einen Satz mitlesen will, sondern nur wissen muss, ob
     # ueberhaupt geredet wird.
     PRUEF_DAUER = 1.8
+    # Wie viele Fenster je Kandidat gehoert werden, und zwar alle
+    # nacheinander auf demselben Kanal.
+    #
+    # Eins reichte nicht. Gemessen an Orgel, Chor und Gemeindegesang
+    # bekam ein Fenster von fuenf das Urteil "sprache", mit einem frei
+    # erfundenen frommen Satz darunter, den keine Phrasenliste kennt.
+    # Echte Rede dagegen war in zwei von zwei Fenstern Rede. Ein
+    # Halluzinat wiederholt sich nicht.
+    #
+    # Zwei und nicht drei, weil es Wartezeit am Pult ist: geprueft
+    # werden nur Kanaele mit Pegel aus Stufe 1, in der Praxis zwei bis
+    # vier. Das sind rund neun Sekunden. Drei Fenster wuerden daraus
+    # vierzehn, fuer einen Gewinn, den keine Messung belegt.
+    PRUEF_FENSTER = 2
     # Wieviel Text am Pult stehenbleibt. Genug, um das Gesprochene
     # wiederzuerkennen, zu wenig, um die Zeile zu sprengen.
     TEXT_ZEICHEN = 40
@@ -2610,6 +2641,75 @@ class Kanalscan:
             self._pruef_jetzt = schluessel
 
     def _einen_pruefen(self, z):
+        """Hoert denselben Kanal mehrfach ab und fasst zusammen."""
+        fenster = []
+        for _ in range(self.PRUEF_FENSTER):
+            if self._pruef_ende.is_set() or self._ende.is_set():
+                # Mitten im Kandidaten abgebrochen. Kein halbes Urteil
+                # hinschreiben: "ein Fenster von zwei" ist keine
+                # Auskunft, sondern eine, die man falsch liest.
+                return
+            erg = self._ein_fenster(z)
+            fenster.append(erg)
+            # Weiterhoeren lohnt nur, wenn ueberhaupt etwas ankam. Ein
+            # stummer oder belegter Kanal wird vom zweiten Fenster nicht
+            # gespraechiger.
+            if erg["grund"] in ("kein Pegel", "nicht lesbar",
+                                "kein Modell geladen"):
+                break
+        if fenster:
+            self.sprachurteil_setzen(z["schluessel"],
+                                     self._zusammenfassen(fenster))
+
+    def _zusammenfassen(self, fenster):
+        """Aus mehreren Fenstern ein Urteil.
+
+        Sprache gilt nur, wenn ALLE Fenster sie sehen. Das ist der
+        einzige gemessene Weg, Musik von Rede zu trennen, nachdem der
+        Text es nicht kann: auf Orgel sagte das Modell in einem von
+        fuenf Fenstern "sprache" und erfand dazu einen frommen Satz, auf
+        echter Rede in zwei von zwei. Ein Halluzinat wiederholt sich
+        nicht, ein Prediger hoert nach 1,8 Sekunden nicht auf.
+
+        Der Preis ist ein Fehlurteil in die andere Richtung: wer mitten
+        im zweiten Fenster Luft holt, bekommt "Ton, aber keine Sprache".
+        Das ist der billigere Fehler -- er steht am Pult, man spricht
+        nochmal, und es kostet zehn Sekunden. Der andere Fehler schickt
+        die Gemeinde mit dem Orgelmikrofon in den Gottesdienst."""
+        # Das Fenster, das entscheidet: das erste, das keine Sprache
+        # sah. Sahen alle Sprache, entscheidet das erste. So gehoeren
+        # die angezeigten Rohwerte immer zu dem Grund, der danebensteht.
+        abweichler = next((f for f in fenster if f["urteil"] != "sprache"),
+                          None)
+        einig = abweichler is None and len(fenster) >= self.PRUEF_FENSTER
+        entscheidend = abweichler or fenster[0]
+
+        ergebnis = dict(entscheidend)
+        ergebnis["fenster"] = [
+            {k: f[k] for k in ("urteil", "grund", "rms",
+                               "no_speech_prob", "avg_logprob")}
+            for f in fenster]
+        ergebnis["zeit"] = time.time()
+
+        if einig:
+            ergebnis["urteil"] = "sprache"
+            ergebnis["text"] = fenster[0]["text"]
+            ergebnis["grund"] = ""
+            return ergebnis
+
+        ergebnis["text"] = ""
+        if abweichler is not None and any(f["urteil"] == "sprache"
+                                          for f in fenster):
+            # Genau der Orgelfall. Er gehoert benannt und nicht unter
+            # "keine Sprache" versteckt: beim naechsten Mal will jemand
+            # wissen, warum hier einmal ein Satz stand.
+            ergebnis["urteil"] = "ton_ohne_sprache"
+            ergebnis["grund"] = ("nur in einem Fenster, "
+                                 + (abweichler["grund"] or "im zweiten nicht"))
+        return ergebnis
+
+    def _ein_fenster(self, z):
+        """Ein Abschnitt aufnehmen und beurteilen."""
         # Das Geraeteschloss: der Scan haelt es waehrend seiner Messung,
         # hier wird es fuer die Aufnahme gehalten. Nie zwei Stroeme.
         with self._geraet_schloss:
@@ -2623,12 +2723,11 @@ class Kanalscan:
                 _, audio, fehler = kanal_holen(
                     z["nummer"], z["kanal"], z["kanaele"], self.PRUEF_DAUER,
                     self.wunschrate)
+
+        leer = {"text": "", "rms": None, "no_speech_prob": None,
+                "avg_logprob": None, "zeit": time.time()}
         if fehler or audio is None or not len(audio):
-            self.sprachurteil_setzen(z["schluessel"], {
-                "urteil": "nichts", "text": "", "grund": "nicht lesbar",
-                "rms": None, "no_speech_prob": None, "avg_logprob": None,
-                "zeit": time.time()})
-            return
+            return dict(leer, urteil="nichts", grund="nicht lesbar")
 
         # Der Pegel der Aufnahme selbst, nicht der aus Stufe 1: zwischen
         # Messung und Pruefung koennen Sekunden liegen, und in denen hat
@@ -2638,39 +2737,33 @@ class Kanalscan:
         # Erste Stufe des Gates: der Pegel. Darunter braucht Whisper gar
         # nicht erst zu laufen -- es gibt nichts zu hoeren.
         if rms <= self.RAUSCHGRENZE:
-            self.sprachurteil_setzen(z["schluessel"], {
-                "urteil": "nichts", "text": "", "grund": "kein Pegel",
-                "rms": round(rms, 5), "no_speech_prob": None,
-                "avg_logprob": None, "zeit": time.time()})
-            return
+            return dict(leer, urteil="nichts", grund="kein Pegel",
+                        rms=round(rms, 5))
 
         werk = getattr(self.lauf, "werk", None)
         if werk is None or getattr(werk, "whisper", None) is None:
-            self.sprachurteil_setzen(z["schluessel"], {
-                "urteil": "ton_ohne_sprache", "text": "",
-                "grund": "kein Modell geladen", "rms": round(rms, 5),
-                "no_speech_prob": None, "avg_logprob": None,
-                "zeit": time.time()})
-            return
+            return dict(leer, urteil="ton_ohne_sprache",
+                        grund="kein Modell geladen", rms=round(rms, 5))
 
         mass = werk.sprache_messen(audio)
         urteil, grund = self._urteilen(werk, mass)
-        self.sprachurteil_setzen(z["schluessel"], {
+        return {
             "urteil": urteil,
-            "text": (mass["text"][:self.TEXT_ZEICHEN]
-                     if urteil == "sprache" else ""),
+            "text": mass["text"][:self.TEXT_ZEICHEN],
             "grund": grund,
             "rms": round(rms, 5),
             "no_speech_prob": round(mass["no_speech_prob"], 4),
             "avg_logprob": round(mass["avg_logprob"], 4),
-            "zeit": time.time()})
+            "zeit": time.time(),
+        }
 
     @staticmethod
     def _urteilen(werk, mass):
         """Das Gate, in dieser Reihenfolge.
 
-        Pegel hat der Aufrufer schon geprueft. Hier: no_speech_prob,
-        avg_logprob, dann die Leerlaufphrasen. Ein Treffer der
+        Pegel hat der Aufrufer schon geprueft. Hier: no_speech_prob
+        (bei diesem Modell tot, siehe KEINE_SPRACHE_AB), avg_logprob,
+        dann die Leerlaufphrasen. Ein Treffer der
         Phrasenliste gilt als KEINE Sprache -- das ist dieselbe Liste,
         die im Livebetrieb erfundene Abspaenne abfaengt.
 
@@ -3601,9 +3694,17 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
  .kanal .balken{flex:1 1 6rem;height:14px}
  .kanal .kwort{flex:0 0 5.5rem;text-align:right;font-size:.75rem;
    color:#6b7385}
- .kanal .kurteil{flex:0 0 100%;font-size:.78rem;color:#6b7385;
-   padding-left:.1rem}
- .kanal .kurteil b{color:#141f52}
+ /* Das Ergebnis der Sprachpruefung. Der gehoerte Text steht gross, das
+    Urteil klein daneben -- und zwar in dieser Rangfolge, weil der Text
+    die Frage beantwortet und das Urteil sie nur zusammenfasst. Wer
+    "Liebe Gemeinde, wir lesen heute" liest, weiss Bescheid; wer ein
+    Haekchen mit "Sprache" liest, glaubt einer Maschine, die auf einer
+    Orgel schon ganze Andachtssaetze erfunden hat. */
+ .kanal .kurteil{flex:0 0 100%;padding-left:.1rem;margin-top:.15rem}
+ .kanal .ktext{display:block;font-size:.92rem;color:#141f52;
+   line-height:1.35}
+ .kanal .kmarke{display:block;font-size:.72rem;color:#8b92a1;
+   margin-top:.1rem;font-variant-numeric:tabular-nums}
  /* Die gelbe Zeile fuer eine gespeicherte Quelle, die es nicht mehr
     gibt. Sie steht oben und nicht unten: sie ist der Grund, warum der
     Techniker ueberhaupt hier ist. */
@@ -3774,11 +3875,14 @@ bleibt es so.</p>
           data-t=spr_pruefen>Sprache prüfen</button>
 </div>
 <p class=hin id=sprachstand></p>
+<p class=hin data-t=spr_hin>Was hier steht, ist gehört, nicht bewiesen. Auf
+Musik erfindet die Erkennung ganze Sätze. Im Zweifel den Text lesen: steht
+dort, was gesprochen wurde, ist es der richtige Kanal.</p>
 <p class=hin id=geraetstand></p>
 <p class=hin data-t=tonquelle_hin>Jede Zeile ist ein Kanal. Hineinsprechen und
 zusehen, welche ausschlägt — gemessen wird reihum, eine Zeile nach der
-anderen. „Sprache prüfen“ hört bei jedem Kanal mit Pegel kurz hin und sagt,
-ob wirklich jemand redet oder nur ein Lüfter brummt.</p>
+anderen. „Sprache prüfen“ hört bei jedem Kanal mit Pegel zweimal kurz hin und
+zeigt, was es verstanden hat.</p>
 </div>
 
 <h2 data-t=sprachen>Sprachen</h2>
@@ -3826,8 +3930,12 @@ const TEXTE={
    ton_uebernommen:"Übernommen. Nach dem Start einmal neu einmessen.",
    spr_pruefen:"Sprache prüfen", spr_abbrechen:"Abbrechen",
    spr_laeuft:"Hört hin: {name} …",
-   spr_ja:"Sprache", spr_ton:"Ton, aber keine Sprache", spr_nichts:"nichts",
+   spr_gehoert:"gehört", spr_ton:"kein Sprechen erkannt",
+   spr_nichts:"nichts gehört",
    spr_keine:"Kein Kanal zeigt Pegel. Erst hineinsprechen, dann prüfen.",
+   spr_hin:"Was hier steht, ist gehört, nicht bewiesen. Auf Musik erfindet "
+     +"die Erkennung ganze Sätze. Im Zweifel den Text lesen: steht dort, "
+     +"was gesprochen wurde, ist es der richtige Kanal.",
    tonlaeuft:"Nimmt auf, {hz} Hz.",tonaus:"Kein Gerät offen, es kommt "
      +"kein Ton.",tonwechsel:"Wird umgestellt …",
    ziele:"Übersetzt nach",lautstaerke:"Mindestlautstärke",
@@ -3935,8 +4043,12 @@ const TEXTE={
    ton_uebernommen:"Saved. Calibrate once after starting.",
    spr_pruefen:"Check for speech", spr_abbrechen:"Cancel",
    spr_laeuft:"Listening: {name} …",
-   spr_ja:"speech", spr_ton:"audio, but no speech", spr_nichts:"nothing",
+   spr_gehoert:"heard", spr_ton:"no speech recognised",
+   spr_nichts:"nothing heard",
    spr_keine:"No channel shows any level. Speak first, then check.",
+   spr_hin:"What you see here was heard, not proven. On music the "
+     +"recogniser makes up whole sentences. When in doubt, read the text: "
+     +"if it matches what was said, this is the right channel.",
    tonlaeuft:"Recording, {hz} Hz.",tonaus:"No device open, no audio "
      +"arriving.",tonwechsel:"Switching …",
    ziele:"Translated into",lautstaerke:"Minimum volume",
@@ -4367,24 +4479,29 @@ async function spracheKnopf(){
 function sprachSatz(u){
   const zeit=new Date(u.zeit*1000).toLocaleTimeString(
     UI==="de"?"de-DE":"en-GB",{hour:"2-digit",minute:"2-digit"});
-  let kern;
+  // Der gehoerte Text zuerst und gross. Kein Haekchen, kein "Sprache"
+  // als Urteilsspruch: die Pruefung sagt, was sie gehoert hat, und der
+  // Mensch entscheidet, ob das der Prediger war. Auf einer Orgel hat
+  // dasselbe Modell schon "Vertraue und glaube, es hilft, es heilt die
+  // goettliche Kraft!" gehoert -- zehn Woerter sauberes Deutsch. Ein
+  // Haken davor waere eine Behauptung, die das Programm nicht decken kann.
+  let gross="", klein;
   if(u.urteil==="sprache"){
-    kern="<b>"+TEXTE[UI].spr_ja+"</b>"
-      +(u.text?" · „"+entschaerfen(u.text)+"“":"");
+    gross="„"+entschaerfen(u.text||"")+"“";
+    klein=TEXTE[UI].spr_gehoert;
   }else if(u.urteil==="ton_ohne_sprache"){
-    kern=TEXTE[UI].spr_ton+(u.grund?" ("+entschaerfen(u.grund)+")":"");
+    klein=TEXTE[UI].spr_ton+(u.grund?" ("+entschaerfen(u.grund)+")":"");
   }else{
-    kern=TEXTE[UI].spr_nichts+(u.grund?" ("+entschaerfen(u.grund)+")":"");
+    klein=TEXTE[UI].spr_nichts+(u.grund?" ("+entschaerfen(u.grund)+")":"");
   }
-  // Die Rohwerte stehen mit da. Sie sind fuer den Techniker Rauschen,
-  // aber die Schwellen dahinter sind neu und unerprobt -- ohne Zahlen
-  // liesse sich nach zwei Einsaetzen nicht nachziehen, sondern nur raten.
+  // Die Rohwerte stehen mit da. Fuer den Techniker sind sie Rauschen,
+  // aber die Schwellen dahinter sind neu -- ohne Zahlen liesse sich
+  // nach zwei Einsaetzen nicht nachziehen, sondern nur raten.
   const roh=[u.rms!==null&&u.rms!==undefined ? "RMS "+u.rms : "",
-             u.no_speech_prob!==null&&u.no_speech_prob!==undefined
-               ? "n_sp "+u.no_speech_prob : "",
              u.avg_logprob!==null&&u.avg_logprob!==undefined
                ? "logp "+u.avg_logprob : ""].filter(Boolean).join(" · ");
-  return kern+" · "+zeit+(roh?" · "+roh:"");
+  return (gross?'<span class=ktext>'+gross+'</span>':"")
+    +'<span class=kmarke>'+klein+" · "+zeit+(roh?" · "+roh:"")+'</span>';
 }
 
 async function kanalSetzen(schluessel){
@@ -4807,8 +4924,9 @@ def main():
                         "Mischpult; der Oeffnungspfad wird damit nicht "
                         "geprueft.")
     p.add_argument("--kanal", type=int, default=None,
-                   help="Kanal im Geraet: 0 = links/mono, 1 = rechts. "
-                        "Ohne Angabe gilt, was am Pult gewaehlt wurde.")
+                   help="Kanal im Geraet, gezaehlt ab 1: 1 = links/mono, "
+                        "2 = rechts. Ohne Angabe gilt, was am Pult "
+                        "gewaehlt wurde.")
     p.add_argument("--netz", action="store_true",
                    help="Ton ueber das Netz entgegennehmen statt vom "
                         "Mikrofon (sender.py auf der Gegenseite)")
@@ -4874,8 +4992,18 @@ def main():
     # --kanal steht fuer sich und haengt nicht an --geraet: man probiert
     # durchaus den rechten Kanal des eingestellten Mikrofons, ohne die
     # Geraetenummer anzufassen.
+    #
+    # Gezaehlt wird ab 1, innen ab 0. Das ist keine Schlamperei, sondern
+    # die Zaehlweise, die im Projekt schon gilt: sender.py nimmt
+    # --kanal 1 und 2 und rechnet selbst auf den Index herunter,
+    # pegel.py gibt "--kanal 2" aus. Und auf dem SQ5 steht auf keinem
+    # Weg eine Null. Zwei Zaehlweisen im selben Projekt waeren die
+    # Falle, nicht der Umrechnungsschritt hier.
     if a.kanal is not None:
-        kanal, kanaele = a.kanal, max(1, a.kanal + 1)
+        if a.kanal < 1:
+            sys.exit("--kanal zaehlt ab 1: 1 ist links oder mono, "
+                     "2 ist rechts. Eine 0 gibt es nicht.")
+        kanal, kanaele = a.kanal - 1, max(1, a.kanal)
     elif a.geraet is not None:
         # Nummer von Hand, Kanal nicht: das meint den ersten Kanal. Die
         # gespeicherte Kanalwahl gehoert zum gespeicherten GERAET und
