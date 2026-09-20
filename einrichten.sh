@@ -185,7 +185,7 @@ MANGEL=0
 for datei in server.py config.py zustand.py grafikkarte.py glossar.py \
              bibelstellen.py \
              skript_lesen.py namen_aus_bibel.py laengenfaktor.py \
-             selbsttest.py client.html; do
+             tonhelfer.py selbsttest.py client.html; do
   if [ -f "$datei" ]; then gut "$datei"; else
     warn "$datei FEHLT"; MANGEL=1; fi
 done

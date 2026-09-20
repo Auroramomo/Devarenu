@@ -25,6 +25,7 @@ import io
 import json
 import queue
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -2053,82 +2054,87 @@ def kanaele_aufzaehlen():
     return zeilen
 
 
-def kanal_messen(geraet, kanal, kanaele, fenster=0.8, wunschrate=None):
-    """Macht einen Kanal kurz auf und gibt seinen Pegel zurueck.
+# Aufnahmeraten, die der Reihe nach probiert werden. Dieselbe Liste wie
+# rate_waehlen: 48000 zuerst, weil es genau das Dreifache von 16000 ist
+# und sich exakt dezimieren laesst. Der Helfer bekommt sie uebergeben,
+# statt sie ein zweites Mal hinzuschreiben -- die Entscheidung, was
+# bevorzugt wird, gehoert hierher.
+HELFER_RATEN = (48000, 32000, 16000, 44100)
 
-    Gibt (pegel, fehler). pegel ist None, wenn nichts zu holen war; der
-    Fehler steht dann als Wort da und wandert in die Zeile, damit sie
-    stehenbleiben kann, statt zu verschwinden.
+# Wie lange auf den Helfer gewartet wird, ueber das Messfenster hinaus.
+# Deckt Prozessstart (gemessen rund 220 ms) und ein zaehes Geraet ab.
+# Wer laenger braucht, haengt im Treiber; dann wird er abgeraeumt und
+# die Zeile sagt "nicht lesbar".
+HELFER_ZUSCHLAG = 6.0
 
-    Ein eigener, kurzer Strom und NICHT der Weg ueber mikrofon_thread:
-    der schiebt in den Segmentierer, und eine Messreihe ueber zwoelf
-    Eingaenge wuerde dessen Schwellennachfuehrung mit dem Rauschen
-    fremder Geraete fuellen. Gemessen wird der Spitzenwert im Fenster,
-    nicht der Mittelwert: gesucht ist, ob ueberhaupt etwas anliegt, und
-    ein einzelner Satz in 800 ms verschwindet im Mittel."""
-    import sounddevice as sd
-    mehrkanal = kanal > 0
-    offen_kanaele = kanaele if mehrkanal else 1
-    spalte = kanal if mehrkanal else 0
 
-    gewaehlt = rate_waehlen(geraet, wunschrate, offen_kanaele)
-    if gewaehlt is None:
-        return None, "keine brauchbare Aufnahmerate"
-    rate, blockgroesse = gewaehlt
+def kanal_holen(geraet, kanal, kanaele, dauer, wunschrate=None):
+    """Laesst den Helfer einen Kanal aufmachen und zurueckreichen.
 
-    werte = []
+    Gibt (pegel, audio, fehler). audio ist 16-kHz-Mono, durch auf_16k --
+    dieselbe Funktion wie die Livepipeline. Der Helfer reicht bewusst
+    Rohdaten zurueck und rechnet nicht selbst herunter: zwei
+    Umrechnungen nebeneinander liefen auseinander, und die
+    Sprachpruefung hoerte etwas anderes als der Server nachher.
 
-    def rueckruf(daten, rahmen, zeit, status):
-        spur = daten[:, spalte].astype(np.float64)
-        werte.append(float(np.sqrt(np.mean(spur ** 2))))
+    Der ganze Zweck des eigenen Prozesses ist, dass ein Treiber ihn
+    mitnehmen darf. "upmix" tut das -- Segfault in
+    libasound_module_pcm_upmix.so, reproduzierbar beim ersten Block.
+    Stirbt der Helfer, kommt hier ein Fehler heraus, die Zeile im Pult
+    bleibt mit "nicht lesbar" stehen und der Scan geht weiter. Im
+    Serverprozess waere an derselben Stelle der Gottesdienst zu Ende
+    gewesen.
 
+    Whisper bleibt im Hauptprozess: das Modell liegt dort geladen und
+    darf nicht je Geraet neu geladen werden. Der Helfer liefert Ton,
+    kein Urteil."""
+    helfer = Path(__file__).resolve().parent / "tonhelfer.py"
+    if not helfer.exists():
+        return None, None, "tonhelfer.py fehlt"
+    # --rate gilt auch hier. Wer eine Rate erzwingt, will sie auch beim
+    # Scan erzwungen sehen: eine Karte, die nur bei 44100 laeuft, zeigte
+    # sonst in der Liste einen Pegel, den sie im Betrieb nie liefert.
+    raten = (wunschrate,) if wunschrate else HELFER_RATEN
+    befehl = [sys.executable, str(helfer), str(geraet), str(kanal),
+              str(kanaele), f"{dauer:.3f}",
+              ",".join(str(r) for r in raten)]
     try:
-        with sd.InputStream(device=geraet, channels=offen_kanaele,
-                            samplerate=rate, blocksize=blockgroesse,
-                            dtype="float32", callback=rueckruf):
-            threading.Event().wait(fenster)
+        fertig = subprocess.run(
+            befehl, capture_output=True,
+            timeout=dauer + HELFER_ZUSCHLAG)
+    except subprocess.TimeoutExpired:
+        # subprocess.run raeumt den Prozess bei Zeitueberschreitung selbst
+        # ab. Ein Geraet, das nicht aufgeht und nicht zurueckkommt, darf
+        # die Reihe nicht anhalten.
+        return None, None, "Zeitueberschreitung"
     except Exception as e:
-        return None, str(e).replace("\n", " ")[:120]
+        return None, None, str(e)[:120]
 
-    if not werte:
-        return None, "kein Block angekommen"
-    return max(werte), ""
+    if fertig.returncode != 0:
+        # Negativer Rueckgabewert heisst unter POSIX: durch Signal
+        # beendet. -11 ist SIGSEGV, und genau dafuer steht der Helfer
+        # hier. Das gehoert ins Journal, nicht nur an die Zeile: es ist
+        # ein Treiberfehler auf diesem Rechner und kein Bedienfehler.
+        if fertig.returncode < 0:
+            print(f"Tonhelfer bei Geraet {geraet}, Kanal {kanal} durch "
+                  f"Signal {-fertig.returncode} beendet. Das Geraet wird "
+                  f"uebersprungen, der Scan laeuft weiter.")
+            return None, None, "Treiber abgestuerzt"
+        return None, None, f"Helfer endete mit {fertig.returncode}"
 
-
-def kanal_aufnehmen(geraet, kanal, kanaele, dauer, wunschrate=None):
-    """Nimmt einen Kanal auf und gibt ihn als 16-kHz-Mono zurueck.
-
-    Derselbe Weg wie die Pipeline: auf_16k, also Tiefpass und dann
-    Ratenaenderung. Eine eigene Umrechnung haette geheissen, dass die
-    Sprachpruefung etwas anderes hoert als der Server nachher.
-
-    Gibt (audio, fehler)."""
-    import sounddevice as sd
-    mehrkanal = kanal > 0
-    offen_kanaele = kanaele if mehrkanal else 1
-    spalte = kanal if mehrkanal else 0
-
-    gewaehlt = rate_waehlen(geraet, wunschrate, offen_kanaele)
-    if gewaehlt is None:
-        return None, "keine brauchbare Aufnahmerate"
-    rate, blockgroesse = gewaehlt
-
-    stuecke = []
-
-    def rueckruf(daten, rahmen, zeit, status):
-        stuecke.append(auf_16k(daten[:, spalte].copy(), rate))
-
+    kopf, _, rest = fertig.stdout.partition(b"\n")
     try:
-        with sd.InputStream(device=geraet, channels=offen_kanaele,
-                            samplerate=rate, blocksize=blockgroesse,
-                            dtype="float32", callback=rueckruf):
-            threading.Event().wait(dauer)
-    except Exception as e:
-        return None, str(e).replace("\n", " ")[:120]
+        auskunft = json.loads(kopf.decode("utf-8"))
+    except Exception:
+        return None, None, "Helfer ohne brauchbare Antwort"
+    if not auskunft.get("ok"):
+        return None, None, str(auskunft.get("fehler", "unbekannt"))[:120]
 
-    if not stuecke:
-        return None, "kein Block angekommen"
-    return np.concatenate(stuecke), ""
+    roh = np.frombuffer(rest, dtype=np.float32)
+    if not len(roh):
+        return auskunft["pegel"], None, ""
+    audio = auf_16k(np.ascontiguousarray(roh), auskunft["rate"])
+    return auskunft["pegel"], audio, ""
 
 
 class Testton:
@@ -2465,13 +2471,15 @@ class Kanalscan:
     def _messen(self, z):
         # Unter demselben Schloss wie die Sprachpruefung: nie zwei
         # Stroeme gleichzeitig, auch nicht fuer einen Wimpernschlag.
+        # Das gilt auch ueber Prozessgrenzen hinweg -- zwei Helfer
+        # gleichzeitig waeren zwei offene Geraete.
         with self._geraet_schloss:
             if self.testton is not None:
                 pegel, fehler = self.testton.messen(z["kanal"], self.FENSTER)
             else:
-                pegel, fehler = kanal_messen(z["nummer"], z["kanal"],
-                                             z["kanaele"], self.FENSTER,
-                                             self.wunschrate)
+                pegel, _, fehler = kanal_holen(z["nummer"], z["kanal"],
+                                               z["kanaele"], self.FENSTER,
+                                               self.wunschrate)
         if fehler:
             # Die Zeile bleibt stehen und der Scan laeuft weiter. Ein
             # belegtes Geraet ist die Regel, nicht die Ausnahme: der
@@ -2569,7 +2577,10 @@ class Kanalscan:
                 audio, fehler = self.testton.aufnehmen(z["kanal"],
                                                        self.PRUEF_DAUER)
             else:
-                audio, fehler = kanal_aufnehmen(
+                # Derselbe Helfer wie in Stufe 1, nur laenger. Er gibt
+                # Ton zurueck, kein Urteil -- Whisper liegt im
+                # Hauptprozess geladen und bleibt dort.
+                _, audio, fehler = kanal_holen(
                     z["nummer"], z["kanal"], z["kanaele"], self.PRUEF_DAUER,
                     self.wunschrate)
         if fehler or audio is None or not len(audio):

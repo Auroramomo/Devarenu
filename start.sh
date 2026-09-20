@@ -48,7 +48,7 @@ FEHLEND=""
 for datei in server.py config.py zustand.py grafikkarte.py glossar.py \
              bibelstellen.py \
              skript_lesen.py namen_aus_bibel.py laengenfaktor.py \
-             client.html; do
+             tonhelfer.py client.html; do
   [ -f "$datei" ] || FEHLEND="$FEHLEND $datei"
 done
 # Das Logo ist kein Grund abzubrechen, sein Fehlen faellt aber sofort auf.
