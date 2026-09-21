@@ -919,7 +919,7 @@ const Verbindung = {
 
       if(d.typ === "segment"){
         haeppchenAufnehmen(d);
-        if(d.audio) Ton.einreihen(d.audio);
+        if(d.audio) Ton.einreihen(d.audio, d.id);
       }else if(d.typ === "zustand"){
         zustandZeigen(d.live ? "live" : "pause");
       }
@@ -968,6 +968,74 @@ const Verbindung = {
    Ab einer Grenze werden die ältesten Häppchen verworfen: lieber
    eine Lücke als eine Übersetzung, die eine Minute nachhinkt.
    ============================================================ */
+/* ============================================================
+   Messung der Wiedergabe  --  nur mit ?debug=1
+   ------------------------------------------------------------
+   Ohne den Schalter passiert hier nichts: kein Zeitstempel, kein
+   Puffer, keine Anfrage. Es wird auch nichts angezeigt -- die
+   Zuhoererseite bleibt im Gottesdienst genau so, wie sie ist.
+
+   Die Zeit ist die des Handys (performance.now, monoton, ab dem
+   Laden der Seite) und laesst sich NICHT mit der Serveruhr
+   vergleichen. Das ist Absicht: eine Uhrensynchronisation ueber
+   WLAN waere ungenauer als das, was sie messen soll. Zusammengefuehrt
+   wird ueber die Segmentnummer, und die ist exakt.
+
+   Was hier zaehlt, ist ohnehin ein Abstand innerhalb desselben
+   Geraets: die Luecke zwischen dem Ende eines Haeppchens und dem
+   Beginn des naechsten. Positive Luecke = hoerbares Stocken.
+   ============================================================ */
+const Messung = {
+  an: new URLSearchParams(location.search).get("debug") === "1",
+  hoerer: Math.random().toString(36).slice(2, 10),
+  puffer: [],
+  letztesEnde: null,
+  _uhr: null,
+
+  t(){ return performance.now() / 1000; },
+
+  zeile(ereignis, segment, extra){
+    if(!this.an) return;
+    const z = {hoerer: this.hoerer, sprache: zustand.sprache,
+               ereignis: ereignis, t: +this.t().toFixed(4)};
+    if(segment !== undefined && segment !== null) z.segment = segment;
+    if(extra) Object.assign(z, extra);
+    this.puffer.push(z);
+    if(this.puffer.length >= 40) this.schicken();
+    else if(!this._uhr) this._uhr = setTimeout(() => this.schicken(), 5000);
+  },
+
+  start(segment){
+    if(!this.an) return;
+    const luecke = this.letztesEnde === null ? null
+                 : +(this.t() - this.letztesEnde).toFixed(4);
+    this.zeile("start", segment, luecke === null ? null : {luecke_s: luecke});
+  },
+
+  ende(segment){
+    if(!this.an) return;
+    this.letztesEnde = this.t();
+    this.zeile("ende", segment);
+  },
+
+  schicken(){
+    if(this._uhr){ clearTimeout(this._uhr); this._uhr = null; }
+    if(!this.an || !this.puffer.length) return;
+    const zeilen = this.puffer.splice(0, 500);
+    // keepalive, damit das letzte Buendel auch noch rausgeht, wenn
+    // jemand die Seite zuklappt. Fehler werden geschluckt: eine
+    // misslungene Messung darf die Uebersetzung nicht stoeren.
+    fetch("/api/messung/wiedergabe", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({zeilen: zeilen}),
+      keepalive: true,
+    }).catch(() => {});
+  },
+};
+if(Messung.an) addEventListener("pagehide", () => Messung.schicken());
+
+
 const Ton = {
   spieler: null,
   schlange: [],
@@ -989,17 +1057,26 @@ const Ton = {
     this.spieler = a;
   },
 
-  einreihen(url){
+  einreihen(url, id){
     if(!url || !zustand.tonAn || !this.spieler) return;
-    this.schlange.push(url);
+    this.schlange.push({url: url, id: id});
+    Messung.zeile("empfangen", id);
     while(this.schlange.length > this.hoechstens){
-      this.schlange.shift();
+      const weg = this.schlange.shift();
       this.verworfen++;
+      // Genau hier entsteht das Stocken mitten im Satz: das aelteste
+      // Haeppchen faellt raus, weil die Schlange voll ist. Jeder
+      // einzelne Verwurf wird mit Zeitpunkt festgehalten.
+      Messung.zeile("verworfen", weg && weg.id);
     }
     this._weiter();
   },
 
   leeren(){
+    // Sprachwechsel oder Ton aus. Getrennt vermerkt, damit die
+    // Auswertung das nicht faelschlich als Rueckstau zaehlt.
+    if(Messung.an && this.schlange.length)
+      Messung.zeile("geleert", this.schlange.length);
     this.schlange = [];
     if(this.spieler){ try{ this.spieler.pause(); }catch(e){} }
     this.spielt = false;
@@ -1007,13 +1084,16 @@ const Ton = {
 
   _weiter(){
     if(this.spielt || !this.schlange.length || !zustand.tonAn) return;
-    const url = this.schlange.shift();
+    const h = this.schlange.shift();
     this.spielt = true;
-    this.spieler.src = url;
+    this.laeuftId = h.id;
+    this.spieler.src = h.url;
+    Messung.start(h.id);
     this.spieler.play().catch(() => this._fertig());
   },
 
   _fertig(){
+    Messung.ende(this.laeuftId);
     this.spielt = false;
     this._weiter();
   },

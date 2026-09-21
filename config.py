@@ -208,6 +208,32 @@ LIVE_TEMPO = 1.24
 # alle Sprachen gleich gut zu hoeren sind.
 LIVE_LAUTSTAERKE = 0.85
 
+# --- Messung (Fehlersuche, kein Betrieb) -------------------------------
+# Alles hier ist AUS und muss aus bleiben. Auf dem Gemeinde-PC schreibt
+# sonst jeder Gottesdienst Dateien, die niemand ansieht -- und der Rechner
+# steht in einem Schrank, in dem niemand aufraeumt.
+#
+# Eingeschaltet wird fuer einen Messlauf von Hand, gemessen wird gegen
+# eine Datei (--datei), nicht gegen den Saal. Danach wieder aus.
+
+# Schreibt je Segment und Zielsprache eine Zeile nach
+# ERGEBNIS_ORDNER/messung/<zeitstempel>/segmente.csv.
+MESSUNG = False
+
+# Nimmt zusaetzlich die Wiedergabe auf den Handys entgegen. Nur sinnvoll
+# zusammen mit MESSUNG, und nur mit ?debug=1 auf der Zuhoererseite.
+#
+# Getrennt schaltbar, weil es das einzige Stueck ist, das im Livebetrieb
+# neu schiefgehen kann: ein offener Endpunkt, den jeder ansprechen kann,
+# der die Seite erreicht. Steht er auf False, gibt es ihn nicht -- der
+# Server antwortet 404 und liest den Rumpf gar nicht erst.
+MESSUNG_WIEDERGABE = False
+
+# Obergrenze fuer den Rumpf einer Wiedergabe-Meldung, in Bytes. Ein Handy
+# schickt je Buendel wenige Dutzend Zeilen; alles darueber ist keine
+# Messung mehr. Wird verworfen, bevor irgendetwas geparst wird.
+MESSUNG_RUMPF_MAX = 64 * 1024
+
 # Adresse fuer Rueckmeldungen zum Programm selbst, nicht fuer Meldungen
 # waehrend des Gottesdienstes: die gehen ans Pult. Hier landet, was
 # jemandem an der Uebersetzung auffaellt und was der Technik vor Ort

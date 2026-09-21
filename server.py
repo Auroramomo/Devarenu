@@ -38,6 +38,7 @@ from pathlib import Path
 import numpy as np
 
 import config
+import messprotokoll
 import grafikkarte
 # Unter anderem Namen, weil weiter unten ein Endpunkt /api/zustand mit der
 # Funktion zustand() steht. Die wuerde das Modul im ganzen Namensraum von
@@ -732,9 +733,14 @@ class Werk:
             # nichts gedreht, sonst atmet die Lautstaerke von Abschnitt zu
             # Abschnitt und klingt unruhig.
             self.lautstaerke_angleichen(datei, config.LIVE_LAUTSTAERKE)
+        t2 = time.perf_counter()
+        # mt/tts bleiben als Differenz stehen, die absoluten Stempel kommen
+        # dazu: nur mit ihnen laesst sich spaeter sagen, ob zwei Sprachen
+        # wirklich gleichzeitig liefen oder hintereinander im Pool warteten.
         return {"sprache": sprache, "text": ziel, "datei": datei,
-                "dauer": dauer, "mt": t1 - t0,
-                "tts": time.perf_counter() - t1}
+                "dauer": dauer, "mt": t1 - t0, "tts": t2 - t1,
+                "llm_start": t0, "llm_ende": t1,
+                "piper_start": t1, "piper_ende": t2}
 
 
 # ================================================================
@@ -938,6 +944,16 @@ class Lauf:
         self.mitschnitt = Mitschnitt(config.ERGEBNIS_ORDNER / "predigten")
         self.schleife = None
         self.pool = ThreadPoolExecutor(max_workers=len(SPRACHEN) + 1)
+        # Beim Start aus der damaligen Sprachzahl bestimmt und danach nie
+        # wieder angefasst -- auch nicht, wenn am Pult eine Sprache
+        # dazukommt. Hier festgehalten, damit die Messung beide Zahlen
+        # nebeneinanderstellen kann.
+        self.pool_groesse = len(SPRACHEN) + 1
+        # Fehlersuche, im Normalbetrieb aus. Wird hier angelegt und nicht
+        # erst beim Start, damit die Uhr schon laeuft, bevor das erste
+        # Segment kommt.
+        self.messung = (messprotokoll.Protokoll(time.perf_counter())
+                        if config.MESSUNG else None)
 
     # ---- Zuhoerer ----
     async def anmelden(self, ws, sprache):
@@ -1004,14 +1020,30 @@ class Lauf:
         eis = asyncio.get_running_loop()
         while True:
             try:
-                audio, sprechende = self.warteschlange.get_nowait()
+                audio, sprechende, audio_ende = self.warteschlange.get_nowait()
             except queue.Empty:
                 await asyncio.sleep(0.05)
                 continue
             if not self.laeuft:
                 continue
 
+            if self.messung and not self.messung.zeilen:
+                # Beim ersten Segment, nicht beim Druck aufs Pult:
+                # --datei, --netz und --sofort setzen laeuft direkt und
+                # kaemen sonst ohne Kopfdaten durch -- also genau die
+                # drei Wege, auf denen ueberhaupt gemessen wird.
+                self.messung.kopf(
+                    quelle=self.quelle, ziele=list(self.ziele),
+                    sprachen=list(self.sprachen), betrieb=self.betrieb,
+                    pool_groesse=self.pool_groesse,
+                    sprachzahl=len(self.sprachen),
+                    datei_tempo=self.datei_tempo)
+
             t0 = time.perf_counter()
+            # Vor der Arbeit gemessen: wie viele Abschnitte warten schon.
+            # Rueckstau erkennt man nicht am Einzelwert, sondern daran,
+            # dass diese Zahl ueber den Lauf waechst.
+            schlange_ein = self.warteschlange.qsize()
             audiodauer = len(audio) / MIKRO_RATE
             try:
                 text = await eis.run_in_executor(self.pool, self.werk.hoeren, audio)
@@ -1029,9 +1061,10 @@ class Lauf:
                 else:
                     self.stt_fehler["anzahl"] += 1
                 continue
+            whisper_ende = time.perf_counter()
             if not text or len(text) < 2:
                 continue
-            stt = time.perf_counter() - t0
+            stt = whisper_ende - t0
 
             vorlauf = None
             if self.betrieb == "satz":
@@ -1069,6 +1102,7 @@ class Lauf:
             ergebnisse = await asyncio.gather(*auftraege, return_exceptions=True)
 
             gesamt = time.perf_counter() - t0
+            schlange_aus = self.warteschlange.qsize()
             print(f"[{nummer:4}] {audiodauer:4.1f}s Ton, STT {stt:.2f}s, "
                   f"gesamt {gesamt:.2f}s | {text[:60]}")
             if self.segmentierer:
@@ -1087,6 +1121,26 @@ class Lauf:
                     self.toene[(e["sprache"], nummer)] = e["datei"]
                     nachricht["audio"] = f"/ton/{e['sprache']}/{nummer}"
                 await self._streuen(e["sprache"], nachricht)
+                if self.messung:
+                    m = self.messung
+                    m.segment(
+                        segment=nummer, sprache=e["sprache"],
+                        ist_quelle=1 if e["sprache"] == self.quelle else 0,
+                        audio_ende=m.seit_null(audio_ende),
+                        whisper_start=m.seit_null(t0),
+                        whisper_ende=m.seit_null(whisper_ende),
+                        llm_start=m.seit_null(e["llm_start"]),
+                        llm_ende=m.seit_null(e["llm_ende"]),
+                        piper_start=m.seit_null(e["piper_start"]),
+                        piper_ende=m.seit_null(e["piper_ende"]),
+                        ws_send=round(m.jetzt(), 4),
+                        segment_audio_s=round(audiodauer, 3),
+                        ton_audio_s=round(e["dauer"], 3),
+                        zeichen=len(e["text"] or ""),
+                        schlange_ein=schlange_ein, schlange_aus=schlange_aus,
+                        pool_groesse=self.pool_groesse,
+                        sprachzahl=len(self.sprachen),
+                        quelltext=text, zieltext=e["text"])
 
             self.werk.letzter_satz = text
             eintrag = {"id": nummer, "deutsch": text,
@@ -1107,6 +1161,13 @@ class Lauf:
 
     def bericht(self):
         """Fasst zusammen, was der Dauerlauf ergeben hat."""
+        if self.messung:
+            ordner = self.messung.schliessen()
+            print(f"\nMessung: {self.messung.zeilen} Segmentzeilen, "
+                  f"{self.messung.wiedergabezeilen} Wiedergabezeilen")
+            print(f"  {ordner}")
+            print(f"  Auswertung:  python auswertung.py {ordner}")
+            self.messung = None
         if not self.latenzen:
             print("Keine Latenzen gemessen.")
             return
@@ -1253,7 +1314,7 @@ def mikrofon_thread(lauf, geraet, segmentierer, stoppen, rate, blockgroesse,
         lauf.mitschnitt.schreiben(block)
         segment = segmentierer.schub(block)
         if segment is not None and lauf.laeuft:
-            lauf.warteschlange.put((segment, None))
+            lauf.warteschlange.put((segment, None, time.perf_counter()))
 
     try:
         with sd.InputStream(device=geraet, channels=offen_kanaele,
@@ -1316,13 +1377,34 @@ def datei_thread(lauf, pfad, segmentierer, stoppen, tempo=1.0):
         i += BLOCK
         segment = segmentierer.schub(block)
         if segment is not None and lauf.laeuft:
-            lauf.warteschlange.put((segment, i / MIKRO_RATE))
+            lauf.warteschlange.put((segment, i / MIKRO_RATE, time.perf_counter()))
         soll = beginn + (i / MIKRO_RATE) / tempo
         warte = soll - time.perf_counter()
         if warte > 0:
             time.sleep(warte)
 
     print(f"\nDatei zu Ende nach {(time.perf_counter()-beginn)/60:.1f} Minuten.")
+
+    # Die Datei ist durch, die Schlange muss es nicht sein. Genau im
+    # interessanten Fall -- Rueckstau -- warten hier noch Abschnitte, und
+    # ohne dieses Warten fielen sie aus der Messung heraus: der Bericht
+    # schliesst das Protokoll. Die Messung wuerde sich damit ausgerechnet
+    # dort selbst beschneiden, wo sie etwas zu zeigen haette.
+    #
+    # Nur im Dateimodus. Der Livebetrieb kommt hier nie vorbei.
+    if not stoppen.is_set():
+        frist = time.perf_counter() + 300
+        while (not lauf.warteschlange.empty()
+               and time.perf_counter() < frist):
+            time.sleep(0.5)
+        # Das zuletzt herausgenommene Segment haengt noch in der Kette.
+        # Kurz nachlaufen lassen, statt es abzuschneiden.
+        time.sleep(3.0)
+        rest = lauf.warteschlange.qsize()
+        if rest:
+            print(f"ACHTUNG: {rest} Abschnitte blieben in der Schlange "
+                  f"liegen. Die Messung ist unvollstaendig.")
+
     lauf.bericht()
 
 
@@ -2993,7 +3075,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 lauf.mitschnitt.schreiben(block)
                 segment = lauf.segmentierer.schub(block)
                 if segment is not None and lauf.laeuft:
-                    lauf.warteschlange.put((segment, None))
+                    lauf.warteschlange.put((segment, None, time.perf_counter()))
         except Exception:
             pass
         finally:
@@ -3127,6 +3209,40 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             return {"laeuft": False, "lage": ""}
         gestartet, grund = kanalscan.pruefung_starten()
         return {"laeuft": kanalscan.pruefung_laeuft, "lage": grund}
+
+    # Nur angelegt, wenn der Schalter steht. Das ist der Unterschied
+    # zwischen "antwortet 404" und "prueft erst und lehnt dann ab": ohne
+    # Schalter gibt es die Route nicht, es wird kein Rumpf gelesen und
+    # nichts angefasst. Im Gottesdienst ist das der Normalzustand.
+    if getattr(config, "MESSUNG_WIEDERGABE", False):
+        @app.post("/api/messung/wiedergabe")
+        async def messung_wiedergabe(request: Request):
+            """Nimmt entgegen, was ein Handy ueber seine Wiedergabe weiss.
+
+            Der Weg ueber den Server statt ueber localStorage: die Daten
+            vom Handy zu holen braeuchte sonst USB-Debugging oder einen
+            Mac mit Safari. Im Gemeindesaal ist beides unbrauchbar."""
+            if lauf.messung is None:
+                # Wiedergabe an, Messung aus -- dann gibt es nichts, wo
+                # die Zeilen hinkoennten.
+                return JSONResponse({"lage": "keine_messung"}, status_code=404)
+            hoechstens = getattr(config, "MESSUNG_RUMPF_MAX", 65536)
+            # Erst die Ankuendigung, dann der Rumpf: was zu gross angesagt
+            # ist, wird gar nicht erst eingelesen.
+            angesagt = request.headers.get("content-length")
+            if angesagt and angesagt.isdigit() and int(angesagt) > hoechstens:
+                return JSONResponse({"lage": "zu_gross"}, status_code=413)
+            rumpf = await request.body()
+            if len(rumpf) > hoechstens:
+                return JSONResponse({"lage": "zu_gross"}, status_code=413)
+            try:
+                daten = json.loads(rumpf.decode("utf-8"))
+            except Exception:
+                return JSONResponse({"lage": "unlesbar"}, status_code=400)
+            zeilen = daten.get("zeilen") if isinstance(daten, dict) else None
+            if not isinstance(zeilen, list):
+                return JSONResponse({"lage": "unlesbar"}, status_code=400)
+            return {"genommen": lauf.messung.wiedergabe(zeilen[:500])}
 
     @app.get("/api/sprachen")
     def sprachen():
