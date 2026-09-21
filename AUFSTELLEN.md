@@ -30,6 +30,39 @@ Die damit abgedeckten Punkte sind unten mit (pruefen.sh) gekennzeichnet.
 - [ ] `ollama.service` (pruefen.sh) — heißt sie dort genauso, ist sie
       `enabled`, und ist das Modell da?
 
+## Reparaturvorrat
+
+**Der Rechner braucht beim Installieren eine Internetleitung, und
+einmal wird nach dem Passwort gefragt.** In der Gemeinde gibt es danach
+kein Netz mehr; was jetzt nicht auf die Platte kommt, ist dort nicht
+wiederzubekommen.
+
+```
+bash INSTALLIEREN.sh
+```
+
+**Nicht mit `sudo` davor** — sonst gehören Programm, Modelle und Stimmen
+hinterher `root`, und der Dienst kommt nicht an sie heran. Das Skript
+fragt von sich aus nach dem Passwort, wenn es so weit ist, und legt dann
+rund 13 GB unter `/opt/devarenu-vorrat` ab: die Python-Pakete, Torch,
+alle Piper-Stimmen, die Spracherkennung und das Übersetzungsmodell.
+
+Wer das Passwort nicht hat, kann trotzdem installieren — die Einrichtung
+läuft durch, nur der Vorrat fehlt. Das Skript sagt es und nennt den
+Befehl zum Nachholen.
+
+- [ ] Nach der Einrichtung `./pruefen.sh` laufen lassen. Unter
+      **Reparaturvorrat** muss stehen: *Vorrat vorhanden* und
+      *Prüfsummen stimmen*. Steht dort *Kein Vorrat*, fehlt er — dann
+      nachholen, **solange die Leitung noch steht**:
+
+      ```
+      sudo ./vorrat_bauen.sh
+      ```
+
+- [ ] Der Rechner darf erst ausgeliefert werden, wenn diese beiden
+      Zeilen grün sind. Danach ist der Vorrat nicht mehr zu beschaffen.
+
 ## Selbsttest
 
 - [ ] `.venv/bin/python selbsttest.py` — 0 Fehler.

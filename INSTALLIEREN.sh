@@ -12,6 +12,19 @@ set -u
 ORDNER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ORDNER"
 
+# Der Reparaturvorrat ist der Normalfall: installiert wird beim
+# Systemhaus mit Leitung, der Rechner geht danach in eine Gemeinde ohne
+# Netz. Abschaltbar fuer den Entwicklungsrechner, wo die 17 GB bei jeder
+# Einrichtung nur im Weg liegen.
+VORRAT=ja
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --ohne-vorrat) VORRAT=nein; shift ;;
+    -h|--hilfe)    sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *)             printf '   Unbekannt: %s\n' "$1"; exit 1 ;;
+  esac
+done
+
 printf '\n\033[1;34m'
 cat <<'ENDE'
     ____  _______    _____    ____  _______   ____  __
@@ -27,6 +40,21 @@ printf '  rund zehn Gigabyte geladen werden: Rechenbibliothek, Spracherkennung,\
 printf '  Übersetzungsmodell und die Stimmen.\n\n'
 
 # ---------------------------------------------------------------- Rechte
+# Nicht als root. Sonst gehoeren venv, Modelle und Stimmen hinterher
+# root, und der Dienst -- der unter einem gewoehnlichen Benutzer laeuft
+# -- kommt nicht an sie heran. Der Fehler faellt erst beim ersten Start
+# auf, und dann sieht er aus wie ein Problem mit den Modellen.
+#
+# Fuer den Reparaturvorrat wird spaeter von selbst nach dem Passwort
+# gefragt; dafuer braucht es kein sudo vor diesem Aufruf.
+if [ "$(id -u)" = "0" ]; then
+  printf '\n   \033[31mBitte ohne sudo starten:\033[0m  bash INSTALLIEREN.sh\n\n'
+  printf '   Als root gehoeren Programm, Modelle und Stimmen hinterher\n'
+  printf '   root, und der Dienst kommt nicht an sie heran.\n'
+  printf '   Nach dem Passwort wird spaeter von allein gefragt.\n\n'
+  exit 1
+fi
+
 chmod +x ./*.sh 2>/dev/null
 
 # ---------------------------------------------------------------- Pakete
@@ -150,6 +178,35 @@ if [ -d /run/systemd/system ] && [ -f dienst.sh ]; then
   esac
 fi
 
+# ------------------------------------------------------- Reparaturvorrat
+# Ganz zuletzt: er kopiert, was die Schritte davor geladen haben. Vorher
+# gebaut waere er leer.
+if [ "$VORRAT" = "ja" ] && [ -f vorrat_bauen.sh ]; then
+  printf '\n\033[1;34m== Reparaturvorrat\033[0m\n'
+  printf '   Eine Kopie von allem, was gerade geladen wurde: Pakete,\n'
+  printf '   Stimmen, Spracherkennung, Uebersetzungsmodell. Rund 17 GB.\n'
+  printf '   In der Gemeinde gibt es kein Netz -- ohne diese Kopie laesst\n'
+  printf '   sich dort nichts wiederherstellen.\n\n'
+  if sudo -n true 2>/dev/null || sudo -v; then
+    # Scheitert er, ist die Einrichtung trotzdem gelungen. Der Vorrat
+    # ist Vorsorge, kein Bestandteil des Betriebs.
+    if sudo bash ./vorrat_bauen.sh; then
+      VORRAT_OK=1
+    else
+      VORRAT_OK=0
+      printf '\n   \033[33mDer Vorrat wurde nicht vollstaendig angelegt.\033[0m\n'
+      printf '   Nachholen, solange noch Netz da ist:\n'
+      printf '     sudo ./vorrat_bauen.sh\n'
+    fi
+  else
+    VORRAT_OK=0
+    printf '   Ohne sudo geht das nicht. Nachholen mit:\n'
+    printf '     sudo ./vorrat_bauen.sh\n'
+  fi
+else
+  VORRAT_OK=-1
+fi
+
 printf '\n\033[1;34m== Fertig\033[0m\n'
 if [ "$SYMBOL" = "1" ]; then
   printf '   Auf dem Schreibtisch liegt jetzt "Devarenu starten".\n'
@@ -159,6 +216,12 @@ if [ "$SYMBOL" = "1" ]; then
 else
   printf '   Kein Desktop gefunden, also keine Verknüpfung.\n'
   printf '   Starten mit:  ./start.sh\n\n'
+fi
+
+if [ "${VORRAT_OK:--1}" = "1" ]; then
+  printf '   Der Reparaturvorrat liegt unter /opt/devarenu-vorrat.\n'
+  printf '   Damit laesst sich in der Gemeinde ohne Netz wiederherstellen:\n'
+  printf '     ./wiederherstellen.sh --pruefen\n\n'
 fi
 
 if [ "$ERGEBNIS" != "0" ]; then

@@ -714,6 +714,64 @@ if [ -s update/bereit ]; then
   warn "ist, oder sofort am Pult unter Einrichtung."
 fi
 
+# ------------------------------------------------------ Reparaturvorrat
+# Ein Vorrat, den niemand ansieht, ist an dem Tag kaputt, an dem er
+# gebraucht wird. Deshalb gehoert er in jede Durchsicht -- und nicht
+# nur die Frage, ob er daliegt, sondern ob er noch zu dem passt, was
+# hier laeuft.
+blau "Reparaturvorrat"
+VORRAT="${DEVARENU_VORRAT:-/opt/devarenu-vorrat}"
+if [ -z "$PYJSON" ]; then
+  warn "Ohne Python laesst sich vorrat.json nicht lesen."
+elif [ ! -f "$VORRAT/vorrat.json" ]; then
+  warn "Kein Vorrat unter $VORRAT."
+  warn "Ohne ihn laesst sich hier nichts wiederherstellen -- dieser"
+  warn "Rechner hat kein Netz. Beim naechsten Besuch mit Leitung:"
+  warn "  sudo ./vorrat_bauen.sh"
+else
+  V_FASSUNG="$("$PYJSON" -c "import json;print(json.load(open('$VORRAT/vorrat.json')).get('fassung','?'))" 2>/dev/null)"
+  V_PYTHON="$("$PYJSON" -c "import json;print(json.load(open('$VORRAT/vorrat.json')).get('python','?'))" 2>/dev/null)"
+  V_GEBAUT="$("$PYJSON" -c "import json;print(json.load(open('$VORRAT/vorrat.json')).get('gebaut','?'))" 2>/dev/null)"
+  gut "Vorrat vorhanden, $(du -sh "$VORRAT" 2>/dev/null | cut -f1), gebaut $V_GEBAUT"
+
+  # Passt er noch zur installierten Fassung?
+  HIER_FASSUNG="$(tr -d '\r' < VERSION 2>/dev/null | head -1 | tr -d ' ')"
+  if [ "$V_FASSUNG" = "$HIER_FASSUNG" ]; then
+    info "gehoert zu Fassung $V_FASSUNG, wie installiert"
+  else
+    warn "Der Vorrat gehoert zu Fassung $V_FASSUNG, installiert ist"
+    warn "$HIER_FASSUNG. Die Pakete darin koennen veraltet sein."
+    warn "Beim naechsten Besuch mit Netz neu bauen."
+  fi
+
+  # Passt er noch zum Python der venv? Nur die zaehlt -- dorthin
+  # werden die Wheels installiert. Fehlt die venv, gibt es nichts zu
+  # vergleichen, und ihr Fehlen steht schon weiter oben.
+  if [ -x "$PY" ]; then
+    HIER_PYTHON="$("$PY" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)"
+    if [ -n "$V_PYTHON" ] && [ "$V_PYTHON" != "$HIER_PYTHON" ]; then
+      warn "Pakete im Vorrat sind fuer Python $V_PYTHON, die venv laeuft"
+      warn "auf $HIER_PYTHON. wiederherstellen.sh --pakete bricht ab."
+    fi
+  fi
+
+  # Und ist er heil? Das ist die eigentliche Frage.
+  if [ -f "$VORRAT/pruefsummen.sha256" ]; then
+    if ( cd "$VORRAT" && sha256sum --quiet -c pruefsummen.sha256 >/dev/null 2>&1 ); then
+      gut "Pruefsummen stimmen ($(wc -l < "$VORRAT/pruefsummen.sha256") Dateien)"
+    else
+      KAPUTT="$( cd "$VORRAT" && sha256sum -c pruefsummen.sha256 2>/dev/null \
+                 | grep -cv ': OK$' )"
+      fehl "$KAPUTT Datei(en) im Vorrat stimmen nicht mit ihrer Pruefsumme"
+      fehl "ueberein. Wiederherstellen wuerde abbrechen."
+      info "Nachsehen:  cd $VORRAT && sha256sum -c pruefsummen.sha256 | grep -v OK"
+    fi
+  else
+    warn "pruefsummen.sha256 fehlt. Ob der Vorrat heil ist, laesst sich"
+    warn "nicht sagen."
+  fi
+fi
+
 # ----------------------------------------------------------- Schluss
 blau "Zusammen"
 
