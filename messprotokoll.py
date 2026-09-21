@@ -50,6 +50,11 @@ SEGMENT_SPALTEN = [
     "piper_start",
     "piper_ende",
     "ws_send",          # an den Zuhoerer abgeschickt
+    "quelle_pos",       # Sprechposition in der Datei, als der Abschnitt
+                        # zu Ende gesprochen war. Nur im Dateimodus.
+                        # Damit laesst sich der Versatz zur Quelle
+                        # rechnen, unabhaengig davon, wann die Kette das
+                        # Stueck angefasst hat.
     # --- Mengen ---
     "segment_audio_s",  # Laenge des aufgenommenen Abschnitts
     "ton_audio_s",      # Laenge des erzeugten Haeppchens  <- Zaehler des RTF

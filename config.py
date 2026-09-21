@@ -208,6 +208,38 @@ LIVE_TEMPO = 1.24
 # alle Sprachen gleich gut zu hoeren sind.
 LIVE_LAUTSTAERKE = 0.85
 
+# Notbremse der Betriebsart "satz".
+#
+# "satz" sammelt Abschnitte, bis ein Satzzeichen kommt. Dagegen stehen
+# zwei Bremsen: eine Hoechstzahl an Woertern und MAX_WARTEN Sekunden.
+# Die Wartezeit wurde aber nur geprueft, wenn ein NEUER Abschnitt
+# eintraf -- und genau dann nicht, wenn der Prediger mitten im Satz
+# schweigt. Gemessen am 21.09.2026: nach "Und er fuehrte ihn hinaus und
+# sprach," lagen 17,9 Sekunden Stille, die Bremse sah nie auf die Uhr,
+# und der Zuhoerer bekam 19,3 Sekunden nichts.
+#
+# Mit diesem Schalter laeuft die Frist unabhaengig davon ab, ob etwas
+# ankommt: was dasteht, geht raus. Der Satz bleibt dann unvollstaendig
+# -- aber er kommt, und das ist der Fall, fuer den die Bremse gedacht
+# war.
+#
+# Wirkt nur in "satz". Die Vorgabe ist "kontext", dort sammelt niemand.
+SATZ_NOTBREMSE = True
+
+# Wie lange ein angefangener Satz hoechstens liegen darf, in Sekunden.
+#
+# Hier und nicht nur auf der Kommandozeile, weil es pro Gemeinde
+# verschieden ist: es haengt daran, wie der Prediger spricht. Wer lange
+# rhetorische Pausen macht, braucht eine kurze Frist -- sonst wartet der
+# Zuhoerer sie mit aus, ohne zu wissen, worauf.
+#
+# Gemessen auf ausschnitt.mp3 am 21.09.2026, siehe LIESMICH. Kuerzer
+# heisst: weniger Wartezeit, dafuer mehr Saetze, die doch in zwei
+# Stuecken ankommen. Laenger heisst das Gegenteil.
+#
+# --max-warten auf der Kommandozeile schlaegt diesen Wert.
+SATZ_MAX_WARTEN = 4.0
+
 # --- Messung (Fehlersuche, kein Betrieb) -------------------------------
 # Alles hier ist AUS und muss aus bleiben. Auf dem Gemeinde-PC schreibt
 # sonst jeder Gottesdienst Dateien, die niemand ansieht -- und der Rechner

@@ -362,6 +362,38 @@ class Werk:
         self.tmp = config.ERGEBNIS_ORDNER / "live"
         self.tmp.mkdir(parents=True, exist_ok=True)
 
+    def stimme_nachladen(self, sprache):
+        """Laedt die Stimme einer Sprache, die beim Start nicht dabei war.
+
+        Ohne das waere die Sprachumstellung am Pult eine Falle: die
+        Stimmen werden einmal beim Start geladen, und wer spaeter eine
+        Sprache dazuwaehlt, bekam stumme Untertitel -- auch dann, wenn
+        die Datei laengst auf der Platte lag.
+
+        Laeuft nur am Pult, nie in der Livepipeline: das Laden kostet
+        eine knappe Sekunde. Schlaegt es fehl, bleibt es beim
+        Untertitel, so wie bisher auch."""
+        if self.nur_text or sprache in self.stimmen or self.piper is None:
+            return sprache in self.stimmen
+        gefunden = stimmen_finden([sprache], quelle=None)
+        datei = gefunden.get(sprache)
+        if datei is None:
+            return False
+        try:
+            if self.piper == "modul":
+                from piper import PiperVoice
+                t0 = time.perf_counter()
+                self.stimmen[sprache] = PiperVoice.load(str(datei))
+                print(f"Stimme {sprache} nachgeladen: {datei.name} "
+                      f"({time.perf_counter()-t0:.1f}s)")
+            else:
+                self.stimmen[sprache] = datei
+            return True
+        except Exception as e:
+            print(f"Stimme {sprache} liess sich nicht laden "
+                  f"({str(e)[:70]}). Laeuft als Untertitel.")
+            return False
+
     def _whisper_laden(self, WhisperModel):
         """Laedt Whisper und prueft, ob es wirklich rechnet.
 
@@ -769,6 +801,15 @@ class Satzsammler:
         self.max_warten = max_warten
         self.teile = []
         self.seit = None
+        # Der Ton zu den gesammelten Abschnitten, in derselben
+        # Reihenfolge. Die Ausgangssprache liefert den Prediger selbst,
+        # und der gehoert zum ganzen Satz, nicht zu seinem letzten
+        # Viertel.
+        self.toene = []
+        # Sprechposition des zuletzt gesammelten Abschnitts. Nur im
+        # Dateimodus belegt; sie sagt, wie weit der Prediger war, als
+        # das hier zu Ende gesprochen wurde.
+        self.pos = None
 
     def anfang(self):
         """Der bisher gesammelte Satzanfang, ohne ihn abzuschliessen.
@@ -795,12 +836,18 @@ class Satzsammler:
             if len(" ".join(self.teile).split()) > self.max_woerter:
                 self.teile = self.teile[-2:]
 
-    def schub(self, text):
-        """Nimmt einen erkannten Abschnitt, gibt einen fertigen Satz
-        zurueck oder None, wenn noch gewartet wird."""
+    def schub(self, text, ton=None, pos=None):
+        """Nimmt einen erkannten Abschnitt.
+
+        Zurueck kommt (Text, Ton, Sprechposition), wenn der Satz fertig
+        ist, sonst (None, None, None)."""
         if not text.strip():
-            return None
+            return None, None, None
         self.teile.append(text.strip())
+        if ton is not None:
+            self.toene.append(ton)
+        if pos is not None:
+            self.pos = pos
         if self.seit is None:
             self.seit = time.time()
         gesamt = " ".join(self.teile)
@@ -809,20 +856,45 @@ class Satzsammler:
             or len(gesamt.split()) >= self.max_woerter \
             or (time.time() - self.seit) >= self.max_warten
         if not fertig:
-            return None
+            return None, None, None
+        return self.abholen()
+
+    def ueberfaellig(self):
+        """Liegt etwas da, dessen Frist abgelaufen ist?
+
+        Muss von aussen gefragt werden, und zwar auch dann, wenn nichts
+        ankommt. Genau das war die Luecke: schub() prueft die Uhr, aber
+        schub() wird nur aufgerufen, wenn ein Abschnitt eintrifft.
+        Schweigt der Prediger mitten im Satz, kommt keiner."""
+        return bool(self.teile) and self.seit is not None \
+            and (time.time() - self.seit) >= self.max_warten
+
+    def abholen(self):
+        """Gibt heraus, was dasteht, und macht den Puffer leer.
+
+        Zurueck kommt (Text, Ton, Sprechposition). Der Ton ist der
+        aneinandergehaengte Originalton der gesammelten Abschnitte, oder
+        None, wenn keiner mitgegeben wurde."""
+        if not self.teile:
+            return None, None, None
+        gesamt = " ".join(self.teile)
+        # Nur zusammenhaengen, wenn zu jedem Abschnitt ein Stueck Ton
+        # gehoert. Lieber kein Originalton als der falsche -- ein
+        # verschobener Ton unter dem richtigen Text faellt niemandem auf
+        # und ist doch verkehrt.
+        ton = (np.concatenate(self.toene)
+               if self.toene and len(self.toene) == len(self.teile) else None)
+        pos = self.pos
         self.teile = []
+        self.toene = []
         self.seit = None
-        return gesamt
+        self.pos = None
+        return gesamt, ton, pos
 
     def rest(self):
         """Was am Ende noch im Puffer liegt, damit der letzte Satz einer
         Predigt nicht verlorengeht."""
-        if not self.teile:
-            return None
-        gesamt = " ".join(self.teile)
-        self.teile = []
-        self.seit = None
-        return gesamt
+        return self.abholen()[0]
 
 
 class Mitschnitt:
@@ -986,7 +1058,15 @@ class Lauf:
         if ziele is not None:
             self.ziele = [z for z in ziele if z in config.SPRACHNAMEN]
         self.werk.quelle = self.quelle
+        # Was jetzt neu dazukommt, braucht seine Stimme. Sie wird hier
+        # geholt und nicht beim Start: welche Sprachen laufen, entscheidet
+        # das Pult, und zwar jederzeit.
+        for sp in self.sprachen:
+            if sp != self.quelle:
+                self.werk.stimme_nachladen(sp)
         self.sammler.teile = []
+        self.sammler.toene = []
+        self.sammler.seit = None
         self.werk.letzter_satz = ""
         entfallen = vorher - set(self.sprachen)
         return entfallen
@@ -1022,6 +1102,28 @@ class Lauf:
             try:
                 audio, sprechende, audio_ende = self.warteschlange.get_nowait()
             except queue.Empty:
+                # Nichts zu tun -- und genau das ist der Moment, in dem
+                # ein angefangener Satz liegenbleibt. schub() prueft die
+                # Frist nur beim Eintreffen eines Abschnitts; schweigt
+                # der Prediger mitten im Satz, trifft keiner ein.
+                if (self.laeuft and self.betrieb == "satz"
+                        and getattr(config, "SATZ_NOTBREMSE", True)
+                        and self.sammler.ueberfaellig()):
+                    text, ton, pos = self.sammler.abholen()
+                    if text:
+                        jetzt = time.perf_counter()
+                        dauer = (len(ton) / MIKRO_RATE if ton is not None
+                                 else 0.0)
+                        print(f"[   !] Notbremse nach "
+                              f"{self.sammler.max_warten:.0f}s | {text[:56]}")
+                        # Kein Whisper gelaufen: die Kette faengt hier an
+                        # und hoert hier auf. Die Messung soll das sehen,
+                        # statt eine Erkennungszeit von null zu melden,
+                        # die es nie gab.
+                        await self._ausliefern(
+                            eis, text, ton, dauer, None,
+                            jetzt, jetzt, 0.0, jetzt,
+                            self.warteschlange.qsize(), pos)
                 await asyncio.sleep(0.05)
                 continue
             if not self.laeuft:
@@ -1068,96 +1170,120 @@ class Lauf:
 
             vorlauf = None
             if self.betrieb == "satz":
-                gesammelt = self.sammler.schub(text)
+                gesammelt, sammelton, sammelpos = self.sammler.schub(
+                    text, audio, sprechende)
                 if gesammelt is None:
                     print(f"[   .] {audiodauer:4.1f}s Ton, sammle | {text[:56]}")
                     continue
                 text = gesammelt
+                if sammelpos is not None:
+                    sprechende = sammelpos
+                if sammelton is not None:
+                    # Der Originalton des GANZEN Satzes, nicht nur seines
+                    # letzten Viertels. Vorher bekam die Ausgangssprache
+                    # in "satz" nur den ausloesenden Abschnitt, waehrend
+                    # der Untertitel daneben den vollen Satz zeigte.
+                    audio = sammelton
+                    audiodauer = len(audio) / MIKRO_RATE
             elif self.betrieb == "kontext":
                 vorlauf = self.sammler.anfang()
                 self.sammler.mitlesen(text)
 
-            nummer = self.n
-            self.n += 1
+            await self._ausliefern(eis, text, audio, audiodauer, vorlauf,
+                                   t0, whisper_ende, stt, audio_ende,
+                                   schlange_ein, sprechende)
 
-            # Deutsch braucht keine Uebersetzung, nur Vertonung. Es laeuft
-            # trotzdem im selben Rutsch, damit die Reihenfolge stimmt.
-            # Der zuletzt uebersetzte Satz geht als Kontext mit. Er loest
-            # Bezuege auf, an denen ein isolierter Satz scheitert: Pronomen,
-            # Geschlecht, Zeitform. Fuer flektierende Sprachen wie Russisch
-            # ist das der Unterschied zwischen passender und geratener
-            # Endung.
-            if self.betrieb == "kontext":
-                # Der angefangene Satz zaehlt mehr als der letzte fertige:
-                # er sagt, woran das Bruchstueck grammatisch anschliesst.
-                kontext = vorlauf or self.werk.letzter_satz
-            elif self.betrieb == "satz":
-                kontext = self.werk.letzter_satz
-            else:
-                kontext = None
-            auftraege = [eis.run_in_executor(self.pool, self.werk.eine_sprache,
-                                             text, sp, nummer, kontext,
-                                             audio if sp == self.quelle else None)
-                         for sp in self.sprachen]
-            ergebnisse = await asyncio.gather(*auftraege, return_exceptions=True)
+    async def _ausliefern(self, eis, text, audio, audiodauer, vorlauf,
+                          t0, whisper_ende, stt, audio_ende, schlange_ein,
+                          sprechende=None):
+        """Uebersetzen, vertonen, abschicken, mitschreiben.
 
-            gesamt = time.perf_counter() - t0
-            schlange_aus = self.warteschlange.qsize()
-            print(f"[{nummer:4}] {audiodauer:4.1f}s Ton, STT {stt:.2f}s, "
-                  f"gesamt {gesamt:.2f}s | {text[:60]}")
-            if self.segmentierer:
-                lage = self.segmentierer.lage()
-                if lage["stufe"] == "alarm" and nummer != self._letzte_warnung:
-                    print(f"       ACHTUNG: {lage['text']}")
-                    self._letzte_warnung = nummer
+        Herausgeloest, weil es zwei Wege hierher gibt: der gewoehnliche
+        aus der Warteschlange, und die Notbremse, wenn ein angefangener
+        Satz zu lange liegt. Beide muessen dasselbe tun."""
+        nummer = self.n
+        self.n += 1
 
-            for e in ergebnisse:
-                if isinstance(e, Exception):
-                    print(f"        Fehler: {str(e)[:80]}")
-                    continue
-                nachricht = {"typ": "segment", "id": nummer, "text": e["text"],
-                             "absatz_ende": False, "dauer": round(e["dauer"], 2)}
-                if e["datei"]:
-                    self.toene[(e["sprache"], nummer)] = e["datei"]
-                    nachricht["audio"] = f"/ton/{e['sprache']}/{nummer}"
-                await self._streuen(e["sprache"], nachricht)
-                if self.messung:
-                    m = self.messung
-                    m.segment(
-                        segment=nummer, sprache=e["sprache"],
-                        ist_quelle=1 if e["sprache"] == self.quelle else 0,
-                        audio_ende=m.seit_null(audio_ende),
-                        whisper_start=m.seit_null(t0),
-                        whisper_ende=m.seit_null(whisper_ende),
-                        llm_start=m.seit_null(e["llm_start"]),
-                        llm_ende=m.seit_null(e["llm_ende"]),
-                        piper_start=m.seit_null(e["piper_start"]),
-                        piper_ende=m.seit_null(e["piper_ende"]),
-                        ws_send=round(m.jetzt(), 4),
-                        segment_audio_s=round(audiodauer, 3),
-                        ton_audio_s=round(e["dauer"], 3),
-                        zeichen=len(e["text"] or ""),
-                        schlange_ein=schlange_ein, schlange_aus=schlange_aus,
-                        pool_groesse=self.pool_groesse,
-                        sprachzahl=len(self.sprachen),
-                        quelltext=text, zieltext=e["text"])
+        # Deutsch braucht keine Uebersetzung, nur Vertonung. Es laeuft
+        # trotzdem im selben Rutsch, damit die Reihenfolge stimmt.
+        # Der zuletzt uebersetzte Satz geht als Kontext mit. Er loest
+        # Bezuege auf, an denen ein isolierter Satz scheitert: Pronomen,
+        # Geschlecht, Zeitform. Fuer flektierende Sprachen wie Russisch
+        # ist das der Unterschied zwischen passender und geratener
+        # Endung.
+        if self.betrieb == "kontext":
+            # Der angefangene Satz zaehlt mehr als der letzte fertige:
+            # er sagt, woran das Bruchstueck grammatisch anschliesst.
+            kontext = vorlauf or self.werk.letzter_satz
+        elif self.betrieb == "satz":
+            kontext = self.werk.letzter_satz
+        else:
+            kontext = None
+        auftraege = [eis.run_in_executor(self.pool, self.werk.eine_sprache,
+                                         text, sp, nummer, kontext,
+                                         audio if sp == self.quelle else None)
+                     for sp in self.sprachen]
+        ergebnisse = await asyncio.gather(*auftraege, return_exceptions=True)
 
-            self.werk.letzter_satz = text
-            eintrag = {"id": nummer, "deutsch": text,
-                       "stt": round(stt, 2), "gesamt": round(gesamt, 2)}
-            if sprechende is not None and self.datei_beginn:
-                # Echte Latenz: wie lange nach dem letzten gesprochenen Wort
-                # steht die Uebersetzung bereit. Nur im Dateimodus messbar,
-                # weil dort die Sprechposition bekannt ist.
-                # Wanduhr seit Beginn der Wiedergabe, minus dem Zeitpunkt,
-                # zu dem der Abschnitt zu Ende gesprochen war. Bei
-                # beschleunigter Wiedergabe muss die Sprechposition
-                # entsprechend umgerechnet werden.
-                eintrag["latenz"] = round(
-                    (time.perf_counter() - self.datei_beginn)
-                    - sprechende / self.datei_tempo, 2)
-                self.latenzen.append(eintrag["latenz"])
-            self.letzte.append(eintrag)
+        gesamt = time.perf_counter() - t0
+        schlange_aus = self.warteschlange.qsize()
+        print(f"[{nummer:4}] {audiodauer:4.1f}s Ton, STT {stt:.2f}s, "
+              f"gesamt {gesamt:.2f}s | {text[:60]}")
+        if self.segmentierer:
+            lage = self.segmentierer.lage()
+            if lage["stufe"] == "alarm" and nummer != self._letzte_warnung:
+                print(f"       ACHTUNG: {lage['text']}")
+                self._letzte_warnung = nummer
+
+        for e in ergebnisse:
+            if isinstance(e, Exception):
+                print(f"        Fehler: {str(e)[:80]}")
+                continue
+            nachricht = {"typ": "segment", "id": nummer, "text": e["text"],
+                         "absatz_ende": False, "dauer": round(e["dauer"], 2)}
+            if e["datei"]:
+                self.toene[(e["sprache"], nummer)] = e["datei"]
+                nachricht["audio"] = f"/ton/{e['sprache']}/{nummer}"
+            await self._streuen(e["sprache"], nachricht)
+            if self.messung:
+                m = self.messung
+                m.segment(
+                    segment=nummer, sprache=e["sprache"],
+                    ist_quelle=1 if e["sprache"] == self.quelle else 0,
+                    audio_ende=m.seit_null(audio_ende),
+                    whisper_start=m.seit_null(t0),
+                    whisper_ende=m.seit_null(whisper_ende),
+                    llm_start=m.seit_null(e["llm_start"]),
+                    llm_ende=m.seit_null(e["llm_ende"]),
+                    piper_start=m.seit_null(e["piper_start"]),
+                    piper_ende=m.seit_null(e["piper_ende"]),
+                    ws_send=round(m.jetzt(), 4),
+                    quelle_pos=(round(sprechende, 3)
+                                if sprechende is not None else None),
+                    segment_audio_s=round(audiodauer, 3),
+                    ton_audio_s=round(e["dauer"], 3),
+                    zeichen=len(e["text"] or ""),
+                    schlange_ein=schlange_ein, schlange_aus=schlange_aus,
+                    pool_groesse=self.pool_groesse,
+                    sprachzahl=len(self.sprachen),
+                    quelltext=text, zieltext=e["text"])
+
+        self.werk.letzter_satz = text
+        eintrag = {"id": nummer, "deutsch": text,
+                   "stt": round(stt, 2), "gesamt": round(gesamt, 2)}
+        if sprechende is not None and self.datei_beginn:
+            # Echte Latenz: wie lange nach dem letzten gesprochenen Wort
+            # steht die Uebersetzung bereit. Nur im Dateimodus messbar,
+            # weil dort die Sprechposition bekannt ist.
+            # Wanduhr seit Beginn der Wiedergabe, minus dem Zeitpunkt,
+            # zu dem der Abschnitt zu Ende gesprochen war. Bei
+            # beschleunigter Wiedergabe muss die Sprechposition
+            # entsprechend umgerechnet werden.
+            eintrag["latenz"] = round(
+                (time.perf_counter() - self.datei_beginn)
+                - sprechende / self.datei_tempo, 2)
+            self.latenzen.append(eintrag["latenz"])
+        self.letzte.append(eintrag)
 
     def bericht(self):
         """Fasst zusammen, was der Dauerlauf ergeben hat."""
@@ -1223,17 +1349,17 @@ class Lauf:
 # Mikrofon
 # ================================================================
 
-def stimmen_finden():
-    """Sucht im Ordner voices die Stimmen zu den eingestellten Sprachen.
+def stimmen_finden(sprachen=None, quelle=None):
+    """Sucht im Ordner voices die Stimmen zu den genannten Sprachen.
 
-    Anders als frueher nicht auf vier feste Sprachen begrenzt: welche
-    gebraucht werden, steht in der Konfiguration. Wofuer keine Stimme da
-    ist, laeuft als reiner Untertitel weiter, statt den Start zu
-    verhindern."""
+    Ohne Angabe die eingestellten. Mit Angabe beliebige -- das Pult will
+    wissen, was auf der Platte LIEGT, nicht nur, was gerade geladen ist.
+    Wofuer keine Stimme da ist, laeuft als reiner Untertitel weiter,
+    statt den Start zu verhindern."""
     ordner = config.BASIS / "voices"
     treffer = {}
-    for sprache in SPRACHEN:
-        if sprache == QUELLE:
+    for sprache in (SPRACHEN if sprachen is None else sprachen):
+        if sprache == (QUELLE if quelle is None else quelle):
             continue          # Originalton, keine Stimme noetig
         pfad = config.STIMMEN.get(sprache)
         if not pfad:
@@ -3252,6 +3378,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         haben. Damit genuegt ein Eintrag in der Konfiguration, um eine
         Sprache zu ergaenzen, und niemand muss die Seite anfassen."""
         vorhanden = getattr(lauf.werk, "stimmen", {})
+        # Nicht nur die geladenen: eine Stimme, die daliegt, wird beim
+        # Umstellen nachgeladen und zaehlt deshalb als vorhanden.
+        auf_platte = ({} if getattr(lauf.werk, "nur_text", False)
+                      else stimmen_finden(list(config.SPRACHNAMEN),
+                                          quelle=lauf.quelle))
         spende = getattr(config, "SPENDE", {}) or {}
         return {
             "rueckmeldung": getattr(config, "RUECKMELDUNG_MAIL", ""),
@@ -3274,10 +3405,17 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             } for sp in lauf.sprachen],
             # Sprachen ohne Stimme sind nicht ausgeschlossen: sie laufen
             # als reiner Untertitel.
+            #
+            # Gemeldet wird, was auf der PLATTE liegt, nicht was gerade
+            # geladen ist. Wer hier waehlt, bekommt die Stimme beim
+            # Umstellen nachgeladen -- und soll vorher sehen, ob es eine
+            # gibt. Sonst stuende an einer Sprache "nur Text", obwohl
+            # sie eine Stimme hat.
             "moeglich": [{
                 "code": sp,
                 "name": name,
-                "stimme": sp in vorhanden or sp == lauf.quelle,
+                "stimme": (sp in vorhanden or sp == lauf.quelle
+                           or sp in auf_platte),
                 "geprueft": sp in getattr(config, "GEPRUEFT", set()),
             } for sp, name in sorted(config.SPRACHNAMEN.items(),
                                      key=lambda x: x[1])],
@@ -3870,7 +4008,15 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
    font:.85rem system-ui,sans-serif;color:#141f52}
  .zielliste label.an{background:#141f52;color:#fff;border-color:#141f52}
  .zielliste input{margin:0}
- .zielliste .ohneton{opacity:.75}
+ /* Fehlende Stimme sichtbar machen, nicht nur abschwaechen. Eine
+    Kachel mit 75 Prozent Deckkraft sieht aus wie ein Darstellungsfehler;
+    wer sie anklickt, erfaehrt erst im Gottesdienst, dass kein Ton
+    kommt. */
+ .zielliste .ohneton{border-style:dotted;border-color:#b45309}
+ .zielliste .ohneton .nurtext{font-size:.72rem;color:#b45309;
+   white-space:nowrap}
+ .zielliste .ohneton.an{border-color:#b45309;border-style:solid}
+ .zielliste .ohneton.an .nurtext{color:#fbbf24}
  /* Der ganze Block ist zurueckgenommen, nicht die einzelne Kachel: so
     sieht man auf einen Blick, wo die geprueften aufhoeren. */
  .zielliste.ungeprueft label{border-style:dashed;color:#6b7385}
@@ -4107,6 +4253,13 @@ const TEXTE={
    ungeprueft_ueber:"Noch nicht von einem Muttersprachler geprüft. "
      +"Funktionieren, aber die Fachbegriffe stammen unbesehen aus der "
      +"Maschine.",
+   nurtext:"nur Text",
+   ohnestimme_ueber:"Für diese Sprachen liegt keine Stimme auf dem "
+     +"Rechner: sie werden übersetzt und mitgelesen, aber nicht "
+     +"gesprochen. Wer sie wählt, bekommt Untertitel ohne Ton.",
+   ohnestimme_hilfe:"Stimmen werden bei der Einrichtung geladen und "
+     +"brauchen dafür Internet. Hier hat der Rechner keins. Nachholen "
+     +"lässt es sich beim nächsten Besuch der Technik.",
    einrichtung:"Einrichtung",
    einrichtung_hin:"Einmal je Gemeinde einstellen, danach bleibt es so.",
    // Meldungen zum Update per USB-Stick. Der Server schickt nur die
@@ -4219,6 +4372,13 @@ const TEXTE={
      +"appear as subtitles.",
    ungeprueft_ueber:"Not yet reviewed by a native speaker. They work, but "
      +"their technical terms come straight from the machine.",
+   nurtext:"text only",
+   ohnestimme_ueber:"No voice for these languages is stored on this "
+     +"computer: they are translated and can be read along, but not "
+     +"spoken. Choosing one gives subtitles without audio.",
+   ohnestimme_hilfe:"Voices are downloaded during setup and need an "
+     +"internet connection. This computer has none. They can be added "
+     +"the next time someone from technical support visits.",
    einrichtung:"Setup",
    einrichtung_hin:"Set once per congregation, then leave it alone.",
    ton_nicht_lokal:"The audio does not come from this computer's "
@@ -4392,21 +4552,32 @@ async function sprachenLaden(){
   // Geprüfte oben, ungeprüfte darunter mit eigener Überschrift. Eine
   // gestrichelte Kontur allein geht in einer Liste mit zwanzig Einträgen
   // unter, zumal die aktiven Sprachen gefüllt sind und den Rand verdecken.
+  const t = TEXTE[UI];
+  // "nur Text" ausgeschrieben und in der Sprache des Pults, nicht als
+  // "(Text)": wer die Kachel waehlt, soll vorher wissen, dass daraus
+  // kein Ton kommt -- und nicht erst im Gottesdienst.
   const kachel = (x) => {
     const an = d.ziele.includes(x.code);
     return `<label class="${an?"an":""}${x.stimme?"":" ohneton"}">`
       +`<input type=checkbox value="${x.code}"${an?" checked":""} `
-      +`onchange="sprachenSetzen()">${x.name}${x.stimme?"":" (Text)"}</label>`;
+      +`onchange="sprachenSetzen()">${x.name}`
+      +(x.stimme?"":`<span class=nurtext>${t.nurtext}</span>`)
+      +`</label>`;
   };
   const wahl = d.moeglich.filter(x=>x.code!==d.quelle);
   const geprueft = wahl.filter(x=>x.geprueft);
   const offen    = wahl.filter(x=>!x.geprueft);
-  const t = TEXTE[UI];
   zielwahl.innerHTML =
     `<div class=zielliste>${geprueft.map(kachel).join("")}</div>`
     + (offen.length
        ? `<p class="hin untertitel">${t.ungeprueft_ueber}</p>`
          + `<div class="zielliste ungeprueft">${offen.map(kachel).join("")}</div>`
+       : "")
+    // Die Erklaerung nur, wenn es tatsaechlich eine Sprache ohne Stimme
+    // gibt. Ein Hinweis, der immer dasteht, wird nicht mehr gelesen.
+    + (wahl.some(x=>!x.stimme)
+       ? `<p class="hin untertitel">${t.ohnestimme_ueber}<br>`
+         + `${t.ohnestimme_hilfe}</p>`
        : "");
 }
 // Pegel sind logarithmisch wahrnehmbar. Ein linearer Balken zeigt bei
@@ -5112,8 +5283,10 @@ def main():
     p.add_argument("--max-woerter", type=int, default=40,
                    help="Notbremse: ab so vielen Woertern wird auch ohne "
                         "Satzzeichen uebersetzt")
-    p.add_argument("--max-warten", type=float, default=9.0,
-                   help="Notbremse: nach so vielen Sekunden ebenso")
+    p.add_argument("--max-warten", type=float,
+                   default=getattr(config, "SATZ_MAX_WARTEN", 9.0),
+                   help="Notbremse: nach so vielen Sekunden ebenso. "
+                        "Vorgabe steht in config.py (SATZ_MAX_WARTEN).")
     p.add_argument("--min-sprachdauer", type=float, default=0.9,
                    help="Segmente verwerfen, die weniger echten Schall "
                         "enthalten (Sekunden)")

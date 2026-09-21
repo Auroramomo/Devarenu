@@ -30,20 +30,24 @@ import config
 
 STIMMEN_ORDNER = config.BASIS / "voices"
 
-# Pfade im Repo rhasspy/piper-voices. Je Sprache mehrere Kandidaten, weil
-# nicht jede Stimme in jeder Qualitaetsstufe existiert und Persisch dort
-# ueberhaupt erst spaet dazugekommen ist.
-STIMMEN = {
-    "de": ["de/de_DE/thorsten/medium/de_DE-thorsten-medium",
-           "de/de_DE/karlsson/low/de_DE-karlsson-low"],
-    "en": ["en/en_US/lessac/medium/en_US-lessac-medium",
-           "en/en_US/ryan/medium/en_US-ryan-medium"],
-    "ru": ["ru/ru_RU/irina/medium/ru_RU-irina-medium",
-           "ru/ru_RU/dmitri/medium/ru_RU-dmitri-medium"],
-    "fa": ["fa/fa_IR/amir/medium/fa_IR-amir-medium",
-           "fa/fa_IR/gyro/medium/fa_IR-gyro-medium",
+# Welche Stimme zu welcher Sprache gehoert, steht in config.py -- an
+# einer Stelle, wie ueberall sonst im Projekt. Frueher stand hier eine
+# eigene Liste mit vier Sprachen; sie wich von config.STIMMEN ab, ohne
+# dass es auffiel, und --stimmen-laden konnte die uebrigen siebzehn
+# Sprachen deshalb gar nicht holen.
+#
+# Ausweichpfade bleiben hier: nicht jede Stimme existiert in jeder
+# Qualitaetsstufe, und was config.py nennt, ist die erste Wahl.
+AUSWEICHE = {
+    "de": ["de/de_DE/karlsson/low/de_DE-karlsson-low"],
+    "en": ["en/en_US/ryan/medium/en_US-ryan-medium"],
+    "ru": ["ru/ru_RU/dmitri/medium/ru_RU-dmitri-medium"],
+    "fa": ["fa/fa_IR/gyro/medium/fa_IR-gyro-medium",
            "fa/fa_IR/ganji/medium/fa_IR-ganji-medium"],
 }
+
+STIMMEN = {sp: [pfad] + AUSWEICHE.get(sp, [])
+           for sp, pfad in config.STIMMEN.items() if pfad}
 
 BASIS_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main/"
 
@@ -181,13 +185,16 @@ def pruefen():
 
     print(f"\nStimmenordner: {STIMMEN_ORDNER}")
     da = gefundene_stimmen()
-    for sp in ("de", "en", "ru", "fa"):
+    for sp in sorted(STIMMEN):
         z = da.get(sp)
         print(f"  {sp}: {z.name if z else 'fehlt'}")
 
     fehlend = [s for s in STIMMEN if s not in da]
     if fehlend:
-        print(f"\nFehlen: {', '.join(fehlend)}")
+        print(f"\nFehlen ({len(fehlend)} von {len(STIMMEN)}): "
+              f"{', '.join(sorted(fehlend))}")
+        print("Diese Sprachen sind am Pult waehlbar und liefern dort nur")
+        print("Text. Das Pult sagt es dazu, aber Ton gibt es keinen.")
         print("Holen mit: python laengenfaktor.py --stimmen-laden")
     else:
         print("\nAlles da. Messen mit: python laengenfaktor.py")
@@ -292,7 +299,11 @@ def messen(anzahl, modell, behalten=False):
     if "de" not in stimmen:
         sys.exit("Ohne funktionierende deutsche Stimme gibt es keine "
                  "Vergleichsbasis. Abbruch.")
-    ziele = [sp for sp in ("en", "ru", "fa") if sp in stimmen]
+    # Bewusst nur die geprueften Sprachen: die Messung vergleicht gegen
+    # eine deutsche Referenz, und fuer ungepruefte Sprachen gibt es
+    # keine Uebersetzung, der man die Laenge glauben koennte.
+    ziele = [sp for sp in sorted(config.GEPRUEFT)
+             if sp != "de" and sp in stimmen]
     if not ziele:
         sys.exit("Keine Zielsprache lauffaehig. Abbruch.")
 

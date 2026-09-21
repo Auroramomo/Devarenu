@@ -148,16 +148,24 @@ fi
 # ---------------------------------------------------------------- Stimmen
 blau "Piper-Stimmen"
 mkdir -p voices
-# Welche Stimmen gebraucht werden, steht in config.py. So genuegt dort ein
-# Eintrag, um eine Sprache zu ergaenzen, ohne dieses Skript anzufassen.
+# ALLE Stimmen aus config.py, nicht nur die heute eingestellten.
+#
+# Die Sprachen sind am Pult zur Laufzeit umschaltbar. Wer nur die
+# eingestellten laedt, baut eine Falle: die Gemeinde waehlt spaeter
+# Ukrainisch, bekommt stumme Untertitel und niemand weiss warum -- am
+# wenigsten beim Rollout, wo keiner danebensteht.
+#
+# Einundzwanzig Stimmen sind rund 1,3 GB. Einmalig, bei der Einrichtung,
+# wo ohnehin Internet gebraucht wird. Der Gemeinderechner hat danach
+# keins mehr.
 $PY - <<'PYCODE' > /tmp/stimmenliste 2>/dev/null || echo "" > /tmp/stimmenliste
 import config
-gebraucht = [config.AUSGANGSSPRACHE] + list(config.ZIELSPRACHEN)
-for sp in dict.fromkeys(gebraucht):
-    pfad = config.STIMMEN.get(sp)
+for sp, pfad in config.STIMMEN.items():
     if pfad:
         print(sp, pfad)
 PYCODE
+anzahl=$(wc -l < /tmp/stimmenliste)
+printf '        %s\n' "$anzahl Stimmen laut config.py, rund $((anzahl * 63)) MB"
 
 BASIS="https://huggingface.co/rhasspy/piper-voices/resolve/main"
 while read -r sprache pfad; do
@@ -175,9 +183,16 @@ while read -r sprache pfad; do
     warn "$sprache fehlgeschlagen. Laeuft dann als reiner Untertitel."
     warn "  Pfad pruefen: huggingface.co/rhasspy/piper-voices/tree/main/$sprache"
     rm -f "voices/$name.onnx" "voices/$name.onnx.json"
+    echo "$sprache" >> /tmp/stimmen_fehlen
   fi
 done < /tmp/stimmenliste
 rm -f /tmp/stimmenliste
+if [ -s /tmp/stimmen_fehlen ]; then
+  warn "Ohne Stimme: $(tr '\n' ' ' < /tmp/stimmen_fehlen)"
+  warn "Diese Sprachen sind am Pult waehlbar und liefern dann nur Text."
+  warn "Das Pult zeigt es bei der Sprachwahl an."
+fi
+rm -f /tmp/stimmen_fehlen
 
 # ---------------------------------------------------------------- Daten
 blau "Projektdateien"
