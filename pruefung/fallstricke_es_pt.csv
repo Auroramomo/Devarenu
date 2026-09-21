@@ -1,0 +1,9 @@
+id;kategorie;satz;prueffokus
+F01;fallstricke;Liebe Geschwister, nach dem Gottesdienst treffen wir uns zum Mittagessen.;Geschwister als Gemeindeanrede, nicht als Verwandtschaft. Gottesdienst = culto, nicht servicio oder misa.
+F02;fallstricke;Unser Ältester wird heute das Abendmahl austeilen.;Ältester ist ein Amt, kein alter Mensch. Abendmahl = Santa Cena / Santa Ceia, nicht comunión.
+F03;fallstricke;Wir lesen Johannes 3,16 und danach noch Prediger 3,1.;Kapitel und Vers werden im Spanischen und Portugiesischen mit Doppelpunkt getrennt. Prediger hier das Bibelbuch, nicht die Person.
+F04;fallstricke;Wer den Sabbat hält, hält nicht nur einen Tag frei.;Feste Wendung den Sabbat halten. Sabbat faellt mit dem Wochentag zusammen.
+F05;fallstricke;In Der große Kampf beschreibt Ellen White genau diese Zeit.;Buchtitel, nicht Sachbegriff. Eigenname mitten im Satz.
+F06;fallstricke;Man sagt, die Gemeinde in Rostock sei stark gewachsen.;Unpersoenliches man und indirekte Rede. Gemeinde meint die Ortsgemeinde.
+F07;fallstricke;Ich möchte Sie alle herzlich zur Gebetswoche einladen.;Anrede an die Gemeinde. Entscheidet sich zwischen ustedes und vocês.
+F08;fallstricke;Der Prediger sprach über den Dienst der Diakoninnen.;Prediger hier die Person. Dienst nicht als servicio. Weibliche Form von Diakon.

@@ -1,0 +1,94 @@
+﻿id;block;typ;de;en;es;k_es;pt;k_pt;fr;k_fr;anmerkung
+A005;A;hart;5. Mose;Deuteronomy;Deuteronomio;3;Deuteronômio;3;Deutéronome;3;
+A007;A;weich;Richter;Judges;Jueces;3;Juízes;3;Juges;3;WEICH: Richter ist im Deutschen doppeldeutig. Nur bei Stellenangabe erzwingen.
+A020;A;weich;Sprüche;Proverbs;Proverbios;3;Provérbios;3;Proverbes;3;WEICH: RU Pritchi heisst zugleich Gleichnisse. Siehe C072.
+A021;A;weich;Prediger;Ecclesiastes;Eclesiastés;3;Eclesiastes;3;Ecclésiastes;3;WEICH: Prediger ist im Deutschen doppeldeutig (Buch vs. Person). Siehe D028.
+A022;A;hart;Hohelied;Song of Songs;Cantares;3;Cânticos;3;Cantique des Cantiques;3;
+A025;A;hart;Klagelieder;Lamentations;Lamentaciones;3;Lamentações;3;Lamentations;3;
+A035;A;hart;Habakuk;Habakkuk;Habacuc;3;Habacuque;3;Habacuc;3;
+A037;A;hart;Haggai;Haggai;Hageo;3;Ageu;3;Aggée;3;
+A044;A;hart;Apostelgeschichte;Acts;Hechos;3;Atos;3;Actes;3;
+A058;A;hart;Hebräer;Hebrews;Hebreos;3;Hebreus;3;Hébreux;3;Adventistisch zentral wegen Heiligtumslehre.
+A059;A;hart;Jakobus;James;Santiago;3;Tiago;3;Jacques;3;FALLSTRICK: EN James sieht wie ein anderer Name aus. FA Yaqub = zugleich Jakob im AT.
+A066;A;weich;Offenbarung;Revelation;Apocalipsis;3;Apocalipse;3;Apocalypse;3;WEICH: Offenbarung als Buch vs. Offenbarung als Sachbegriff. Siehe C022.
+C006;C;hart;Rechtfertigung;justification;justificación;3;justificação;3;justification;3;FA: Verbalkonstruktion. Konsistenz mit C Gerechtigkeit pruefen.
+C007;C;hart;Heiligung;sanctification;santificación;3;santificação;3;sanctification;3;
+C008;C;hart;Erlösung;redemption;redención;3;redenção;3;rédemption;3;Loskauf. Abgrenzen von Heil = Rettung.
+C010;C;hart;Erlöser;Redeemer;Redentor;3;Redentor;3;Rédempteur;3;Gleicher FA-Terminus wie Heiland.
+C011;C;hart;Heiland;Savior;Salvador;3;Salvador;3;Sauveur;3;
+C012;C;hart;Sünde;sin;pecado;3;pecado;3;péché;3;
+C014;C;hart;Buße;repentance;arrepentimiento;3;arrependimento;3;repentance;3;
+C016;C;hart;Bekehrung;conversion;conversión;3;conversão;3;conversion;3;
+C017;C;hart;Vergebung;forgiveness;perdón;3;perdão;3;pardon;3;
+C028;C;weich;Bund;covenant;pacto;3;pacto;3;alliance;3;WEICH: RU zavet auch fuer Testament (Vetkhiy Zavet = AT). Kontext.
+C033;C;hart;Evangelium;gospel;evangelio;3;evangelho;3;Évangile;3;
+C034;C;hart;Prophetie;prophecy;profecía;3;profecia;3;prophétie;3;
+C038;C;weich;Gemeinde;congregation;congregación;3;congregação;3;église;3;DE Gemeinde meint die Ortsgemeinde. EN church doppeldeutig, congregation praeziser.
+C040;C;hart;Taufe;baptism;bautismo;3;batismo;3;baptême;3;
+C041;C;hart;Abendmahl;Lord's Supper;Cena del Señor;3;Ceia do Senhor;3;Sainte Cène;3;
+C042;C;hart;Fußwaschung;foot washing;lavado de pies;3;lavagem dos pés;3;lavage des pieds;3;
+C043;C;hart;Gebet;prayer;oración;3;oração;3;prière;3;
+C044;C;hart;Anbetung;worship;adoración;3;adoração;3;adoration;3;
+C046;C;hart;Segen;blessing;bendición;3;bênção;3;bénédiction;3;
+C053;C;hart;Auferstehung;resurrection;resurrección;3;ressurreição;3;résurrection;3;FA: qiyamat ist islamisch als Juengster Tag besetzt, rastakhiz neutraler.
+C055;C;hart;Wiederkunft;Second Coming;Segunda Venida;3;Segunda Vinda;3;Second Retour;3;Zentralbegriff. Muss sitzen.
+C067;C;hart;Heiligtum;sanctuary;santuario;3;santuário;3;sanctuaire;3;
+C068;C;hart;Allerheiligste;Most Holy Place;Lugar Santísimo;3;Lugar Santíssimo;3;Lieu Saint des Saints;3;
+C072;C;hart;Gesetz;law;ley;3;lei;3;loi;3;FA: shariat ist islamisch stark besetzt. Alternative qanun pruefen.
+C073;C;hart;Zehn Gebote;Ten Commandments;Diez Mandamientos;3;Dez Mandamentos;3;Dix Commandements;3;
+C074;C;hart;Gebot;commandment;mandamiento;3;mandamento;3;commandement;3;
+C077;C;weich;Sabbat;Sabbath;Sábado;3;Sábado;3;sabbat;3;WEICH: RU subbota ist zugleich der Wochentag Samstag. Kontext entscheidet.
+C082;C;hart;Seelsorge;pastoral care;pastoral;3;pastoral;3;soins pastoraux;3;RU pruefen, dushepopechenie ist teils orthodox konnotiert.
+C083;C;weich;Gemeinschaft;fellowship;comunión;3;comunhão;3;fraternité;3;
+C110;C;hart;Schöpfung;creation;Creación;3;Criação;3;création;3;RU tvorenie theologisch, sozdanie technisch.
+C111;C;hart;Schöpfer;Creator;Creador;3;Criador;3;Créateur;3;
+C118;C;hart;Erweckung;revival;avivamiento;3;avivamento;3;réveil;3;
+D001;D;hart;Adventgemeinde;Seventh-day Adventist Church;Iglesia Adventista del Séptimo Día;3;Igreja Adventista do Sétimo Dia;3;Église Adventiste du Septième Jour;3;
+D002;D;hart;Siebenten-Tags-Adventist;Seventh-day Adventist;Adventista del Séptimo Día;3;Adventista do Sétimo Dia;3;Adventiste du Septième Jour;3;
+D003;D;hart;Sabbatschule;Sabbath School;Escuela Sabática;3;Escola Sabatina;3;École du Sabbat;3;
+D004;D;hart;Gottesdienst;worship service;servicio de adoración;3;culto;3;culte;3;
+D005;D;hart;Himmlisches Heiligtum;heavenly sanctuary;santuario celestial;3;santuário celestial;3;sanctuaire céleste;3;Kernlehre. FA muss geprueft werden.
+D006;D;hart;Untersuchungsgericht;investigative judgment;juicio investigador;3;julgamento investigativo;3;jugement investigateur;3;Zentrale adventistische Lehre ohne selbstverstaendliche persische Entsprechung.
+D007;D;hart;Vorabschließendes Gericht;pre-advent judgment;juicio previo al adviento;2;julgamento pré-advento;2;jugement pré-advent;3;Neuere Bezeichnung fuer dieselbe Lehre.
+D008;D;hart;Großer Kampf;great controversy;gran conflicto;3;grande conflito;3;La Tragédie des Siècles;3;Auch Buchtitel von E. G. White.
+D009;D;hart;Geist der Prophetie;Spirit of Prophecy;Espíritu de Profecía;3;Espírito de Profecia;3;Esprit de prophétie;3;
+D010;D;hart;Ellen G. White;Ellen G. White;Ellen G. White;3;Ellen G. White;3;Ellen G. White;3;Eigenname. Nicht uebersetzen, nur transliterieren.
+D011;D;hart;Zustand der Toten;state of the dead;estado de los muertos;3;estado dos mortos;3;état des morts;3;
+D012;D;hart;Seelenschlaf;soul sleep;sueño de la muerte;3;sono da morte;3;sommeil de l'âme;3;
+D013;D;hart;Unsterblichkeit der Seele;immortality of the soul;inmortalidad del alma;3;imortalidade da alma;3;immortalité de l'âme;3;Meist in Ablehnung gebraucht.
+D014;D;hart;Dreiengelsbotschaft;three angels' messages;mensaje de los tres ángeles;3;mensagem dos três anjos;3;message des trois anges;3;
+D015;D;hart;Übrige;remnant;el remanente;3;o remanescente;3;le reste;3;DE uneinheitlich. Klaeren, welche Form die Gemeinde nutzt.
+D016;D;hart;Malzeichen des Tieres;mark of the beast;la marca de la bestia;3;a marca da besta;3;la marque de la bête;3;
+D017;D;hart;Siegel Gottes;seal of God;el sello de Dios;3;o selo de Deus;3;le sceau de Dieu;3;
+D018;D;hart;Babylon;Babylon;Babilon;3;Babil;3;Babylone;3;
+D019;D;hart;Sonntagsgesetz;Sunday law;la ley del domingo;3;a lei do domingo;3;la loi du dimanche;3;
+D020;D;hart;Gnadenzeit;probation;tiempo de gracia;2;tempo de graça;2;période de grâce;3;EN Fachterminus ist probation, nicht time of grace.
+D021;D;hart;Große Enttäuschung;Great Disappointment;la Gran Decepción;3;a Grande Decepção;3;la Grande Déception;3;Bezug 1844.
+D022;D;hart;Zehnter;tithe;el diezmo;3;o dízimo;3;la dîme;3;
+D023;D;weich;Gaben;offerings;ofrendas;3;ofertas;3;offrandes;3;WEICH: Gaben auch als Geistesgaben oder Geschenke.
+D024;D;hart;Gesundheitsbotschaft;health message;mensaje de salud;3;mensagem de saúde;3;message de santé;3;
+D025;D;hart;Gesundheitsreform;health reform;reforma de salud;3;reforma de saúde;3;réforme de santé;3;RU pruefen.
+D026;D;hart;Ältester;elder;anciano;3;ancião;3;ancien;3;RU: presviter adventistisch, starets ist orthodox. FA mashayekh ist Plural, Singular pruefen.
+D027;D;hart;Diakon;deacon;diácono;3;diácono;3;diacre;3;
+D028;D;weich;Prediger;pastor;pastor;3;pastor;3;pasteur;3;WEICH: kollidiert mit dem Bibelbuch Prediger (A021).
+D029;D;hart;Gemeindeglied;church member;miembro de la iglesia;3;membro da igreja;3;membre de l'église;3;
+D030;D;hart;Vereinigung;conference;confederación;2;confederação;2;Fédération;3;Kirchenstrukturbegriff, nicht die Alltagsbedeutung. Kritisch fuer MT.
+D031;D;hart;Verband;union;Unión;3;União;3;Union;3;Kirchenstrukturbegriff. WEICH-Kandidat, da Verband auch medizinisch.
+D032;D;hart;Generalkonferenz;General Conference;Asamblea General;3;Associação Geral;3;Conférence Générale;3;
+D033;D;hart;Gemeindehandbuch;Church Manual;Manual de la Iglesia;3;Manual da Igreja;3;Manuel de l'Église;3;
+D034;D;hart;Glaubenspunkte;fundamental beliefs;Creencias Fundamentales;3;Crenças Fundamentais;3;croyances fondamentales;3;
+D035;D;hart;Kindersegnung;child dedication;Dedicación de Niños;3;Dedicação de Crianças;3;présentation d'enfants;3;EN Fachterminus ist dedication, nicht blessing.
+D036;D;hart;Schlachter 2000;Schlachter 2000;Schlachter 2000;3;Schlachter 2000;3;Schlachter 2000;3;Eigenname der Uebersetzung. Nicht uebersetzen, nur transliterieren.
+D037;D;hart;Erweckung und Reformation;revival and reformation;Avivamiento y Reforma;3;Avivamento e Reforma;3;réveil et réformation;3;Feste adventistische Wendung.
+D038;D;hart;Asasel;Azazel;Azazel;3;Azazel;3;Azazel;3;Kern der Heiligtumstypologie.
+D039;D;hart;Adventbewegung;Advent movement;movimiento adventista;3;movimento adventista;3;mouvement adventiste;3;
+D040;D;hart;Milleriten;Millerites;mileritas;3;mileritas;3;millitistes;3;
+D041;D;hart;Bibelstunde;Bible study;estudio bíblico;3;estudo bíblico;3;étude biblique;3;
+D042;D;hart;Hauskreis;small group;grupo pequeño;3;grupo pequeno;3;groupe de maison;3;
+D043;D;hart;Rüsttag;preparation day;día de preparación;3;dia de preparação;3;jour de préparation;3;Der Freitag. Adventistisch gaengig.
+D044;D;hart;Sabbatanfang;beginning of the Sabbath;inicio del sábado;3;início do sábado;3;début du sabbat;3;
+D045;D;hart;Andacht;devotional;devocional;3;devocional;3;dévotion;3;Kein sauberer Standardterminus in RU/FA. Pruefen.
+D046;D;hart;Pfadfinder;Pathfinders;ir y buscar;3;ir e buscar;3;Explorateurs;3;Adventistische Jugendorganisation, nicht Scouts allgemein.
+D047;D;hart;Schriftprinzip;sola scriptura;sola scriptura;3;sola scriptura;3;sola scriptura;3;
+D048;D;hart;Gemeindeaufbau;church growth;crecimiento de la iglesia;3;crescimento da igreja;3;croissance de l'église;3;
+D049;D;hart;Missionsbericht;mission report;informe de misiones;3;relatório de missões;3;rapport de mission;3;

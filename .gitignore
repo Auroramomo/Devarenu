@@ -30,3 +30,11 @@ Thumbs.db
 # Repo -- und muss hier stehen bleiben: ohne diese Zeile meldet
 # pruefen.sh eine schmutzige Arbeitskopie und aktualisieren.sh bricht ab.
 update/
+zustand.json*
+
+# Die erzeugten Pruefpakete. Die Quellen daneben -- Glossar, Satzauswahl,
+# Vorlage -- gehoeren ins Repo, die Pakete nicht: sie sind daraus jederzeit
+# neu zu bauen, und sie sind gross. Ein Paket sind rund 9 MB Ton, und das
+# Repo geht per "git bundle --all" auf jeden Update-Stick. Was hier einmal
+# drin ist, traegt jede Gemeinde fuer immer mit.
+pruefung/paket_*

@@ -50,26 +50,79 @@ class Eintrag:
     anmerkung: str = ""
 
 
+def sprachen_aus_kopf(spalten):
+    """Welche Spalten des Glossars sind Zielsprachen?
+
+    Die, zu denen es eine Konfidenzspalte gibt: "en" ist eine Sprache,
+    weil "k_en" danebensteht. "de" nicht -- Deutsch steht in der
+    Grundspalte und hat keine Konfidenz. "fa_vokal" nicht -- es gibt
+    kein "k_fa_vokal", es ist eine Schreibweise, keine Sprache.
+
+    Aus dem Kopf gelesen und nicht fest verdrahtet: eine neue Sprache
+    soll durch zwei Spalten in der CSV entstehen, nicht durch eine
+    Aenderung hier. Frueher standen ("en", "ru", "fa") im Code, und wer
+    eine Spalte ergaenzte, bekam sie lautlos nicht zu sehen.
+
+    Die Reihenfolge ist die des Kopfes, damit die Ausgabe stabil bleibt.
+    """
+    if not spalten:
+        return ()
+    vorhanden = {s for s in spalten if s}
+    return tuple(s for s in spalten
+                 if s and not s.startswith("k_") and "k_" + s in vorhanden)
+
+
+def _zahl(wert):
+    """Konfidenz als Zahl. Fehlt sie oder steht Unsinn darin, gilt 0.
+
+    Vorher stand hier int() ohne Netz. Fuer die gepflegten Spalten war
+    das folgenlos -- alle Zellen sind gefuellt --, beim Anlegen einer
+    neuen Sprache waeren leere Zellen aber der Normalfall, und das
+    Glossar liesse sich dann gar nicht mehr laden."""
+    try:
+        return int(str(wert).strip())
+    except (TypeError, ValueError):
+        return 0
+
+
+# Die Zielsprachen der zuletzt geladenen Datei, und welche fehlenden
+# schon gemeldet wurden. Modulweit, weil es das Glossar im Prozess genau
+# einmal gibt: server.py laedt es beim Start und haelt es danach.
+_SPRACHEN = ()
+_QUELLE = ""
+_GEMELDET = set()
+
+
 @dataclass
 class Glossar:
     eintraege: list = field(default_factory=list)
+    # Die Zielsprachen laut CSV-Kopf, in dessen Reihenfolge.
+    sprachen: tuple = ()
     _muster: list = field(default_factory=list, repr=False)
 
     @classmethod
     def laden(cls, pfad):
+        global _SPRACHEN, _QUELLE, _GEMELDET
         eintraege = []
         with open(pfad, encoding="utf-8-sig", newline="") as fh:
-            for r in csv.DictReader(fh, delimiter=";"):
+            leser = csv.DictReader(fh, delimiter=";")
+            sprachen = sprachen_aus_kopf(leser.fieldnames)
+            for r in leser:
                 eintraege.append(Eintrag(
                     id=r["id"], block=r["block"], typ=r["typ"],
                     stt=r["stt"] == "1", de=r["de"],
                     varianten=[v.strip() for v in r["suchvarianten"].split("|") if v.strip()],
-                    ziel={k: r[k] for k in ("en", "ru", "fa")},
+                    ziel={k: r[k] for k in sprachen},
                     vokal=r.get("fa_vokal", ""),
-                    konfidenz={k: int(r["k_" + k]) for k in ("en", "ru", "fa")},
+                    konfidenz={k: _zahl(r.get("k_" + k)) for k in sprachen},
                     anmerkung=r["anmerkung"]))
 
-        g = cls(eintraege=eintraege)
+        _SPRACHEN = sprachen
+        _QUELLE = str(pfad)
+        # Nach einem Neuladen darf erneut gemeldet werden: die Spalten
+        # koennen andere sein als vorher.
+        _GEMELDET = set()
+        g = cls(eintraege=eintraege, sprachen=sprachen)
         muster = []
         for e in eintraege:
             for v in e.varianten:
@@ -159,9 +212,44 @@ def prompt_bauen(glossar, rahmen, max_zeichen, bloecke=("D", "C", "A")):
     return rahmen.format(begriffe=", ".join(genommen)), len(genommen), len(alle)
 
 
+def _fehlende_spalte_melden(sprache, quelle):
+    """Sagt einmal je Lauf Bescheid, wenn eine Zielsprache keine Spalte hat.
+
+    Ohne das laeuft sie lautlos ohne Terminologie mit: glossarzeilen
+    liefert dann eine leere Zeichenkette, der Prompt bekommt keinen
+    Wortwahlblock, und niemand sieht es -- weder am Pult noch im Log.
+    Gemessen an einem Predigtteil mit 17 Glossarbegriffen: fuer Englisch
+    428 Zeichen Vorgabe, fuer eine Sprache ohne Spalte nichts.
+
+    Geprueft wird gegen den CSV-Kopf und NICHT gegen die gefundenen
+    Eintraege. Ein Abschnitt ohne Glossartreffer wuerde sonst schweigen,
+    obwohl die Spalte genauso fehlt.
+
+    Deutsch und die Quellsprache sind ausgenommen: Deutsch steht in der
+    Grundspalte, und die Quellsprache ist die Seite, von der uebersetzt
+    wird, nicht die, fuer die ein Begriff nachzuschlagen waere.
+
+    Einmal je Lauf und nicht je Abschnitt: im Gottesdienst kaemen sonst
+    tausend gleiche Zeilen, und was sich endlos wiederholt, liest
+    niemand mehr."""
+    if not _SPRACHEN or sprache in _SPRACHEN:
+        return
+    if sprache == "de" or sprache == quelle or sprache in _GEMELDET:
+        return
+    _GEMELDET.add(sprache)
+    print(f"GLOSSAR: Fuer '{sprache}' gibt es keine Spalte in "
+          f"{_QUELLE or 'der Glossardatei'}.")
+    print(f"  Diese Sprache wird OHNE Fachwortverzeichnis uebersetzt. "
+          f"Vorhanden: {', '.join(_SPRACHEN)}.")
+    print(f"  Zum Ergaenzen: zwei Spalten anlegen, '{sprache}' und "
+          f"'k_{sprache}'.")
+
+
 def glossarzeilen(eintraege, sprache, quelle="de"):
     """Formatiert gefundene Eintraege als Terminologievorgabe fuer ein LLM.
     Harte Eintraege werden als Vorgabe formuliert, weiche als Hinweis."""
+    _fehlende_spalte_melden(sprache, quelle)
+
     def wort(eintrag, sp):
         # Deutsch steht in der Grundspalte, nicht in den Zielspalten. Ohne
         # diese Unterscheidung liefert die Vorgabe nichts, sobald Deutsch
