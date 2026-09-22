@@ -80,7 +80,8 @@ if [ ! -w "$(dirname "$ZIEL")" ] && [ "$(id -u)" != "0" ]; then
   exit 1
 fi
 
-mkdir -p "$ZIEL"/{wheels,wheels-torch,voices,modelle,ollama} || exit 1
+mkdir -p "$ZIEL"/{wheels,wheels-torch,voices,modelle,ollama,systempakete} \
+  || exit 1
 
 # ---------------------------------------------------------------- Pakete
 blau "Pakete"
@@ -100,6 +101,55 @@ if "$PY" -m pip download -r requirements.txt $BEDINGUNG -d "$ZIEL/wheels" \
 else
   fehl "pip konnte nicht alle Pakete holen. Vorrat unvollstaendig."
   exit 1
+fi
+
+# ---------------------------------------------------------- Systempakete
+blau "Systempakete"
+# Bis 0.2.9 nahm dieser Vorrat nur Python-Pakete mit. Das genuegte,
+# solange alles Noetige schon auf dem Rechner lag. Mit dem Netzumbau
+# genuegt es nicht mehr: dnsmasq ist ein Systempaket, und vor Ort gibt
+# es keine Leitung, ueber die es nachkommen koennte. Ein Rechner, auf
+# dem der Umbau an einem fehlenden dnsmasq scheitert, hat kein WLAN --
+# und niemanden, der ihm eines besorgen kann.
+#
+# apt legt die .deb-Dateien in sein Archivverzeichnis; mit
+# -o Dir::Cache::archives zeigt es hierher. --reinstall, weil sonst
+# nichts geholt wird, was schon installiert ist -- und genau das ist
+# hier der Normalfall.
+SYSTEMPAKETE="dnsmasq dnsmasq-base"
+if ! command -v apt-get >/dev/null; then
+  # Auf Arch und CachyOS gibt es kein apt. Dieser Vorrat ist fuer den
+  # Gemeinderechner gedacht, und der laeuft mit Ubuntu; auf dem
+  # Arbeitsrechner ist der Abschnitt gegenstandslos.
+  warn "Kein apt-get -- Systempakete werden uebersprungen."
+  info "Dieser Abschnitt gilt fuer Debian und Ubuntu. Der Vorrat ist"
+  info "damit auf diesem Rechner unvollstaendig, auf dem Gemeinde-"
+  info "rechner waere er es nicht."
+else
+  # apt braucht partial/, sonst bricht es mit einer Meldung ab, die
+  # nach einem Rechtefehler aussieht.
+  rm -rf "$ZIEL/systempakete"
+  mkdir -p "$ZIEL/systempakete/partial"
+  if apt-get install --reinstall --download-only -y \
+       -o Dir::Cache::archives="$ZIEL/systempakete" \
+       $SYSTEMPAKETE 2>&1 | sed 's/^/         /'; then
+    ANZ="$(find "$ZIEL/systempakete" -maxdepth 1 -name '*.deb' | wc -l)"
+    if [ "$ANZ" -gt 0 ]; then
+      gut "$ANZ .deb, $(du -sh "$ZIEL/systempakete" | cut -f1)"
+    else
+      fehl "apt meldete Erfolg, aber es liegt keine .deb-Datei da."
+      info "Ohne dnsmasq scheitert der Netzumbau vor Ort. Nachsehen:"
+      info "  apt-get install --reinstall --download-only -o \\"
+      info "    Dir::Cache::archives=$ZIEL/systempakete $SYSTEMPAKETE"
+      exit 1
+    fi
+  else
+    fehl "apt konnte die Systempakete nicht holen."
+    info "Ohne dnsmasq laesst sich das Saalnetz vor Ort nicht"
+    info "einrichten. Erst die Paketquellen pruefen:"
+    info "  sudo apt-get update"
+    exit 1
+  fi
 fi
 
 # ----------------------------------------------------------------- Torch
@@ -268,6 +318,7 @@ ohne ihn lässt sich vor Ort weder ein Paket noch eine Stimme noch das
 Nichts hiervon wird im Betrieb gelesen. Der Vorrat liegt herum, bis
 etwas kaputt ist.
 
+  systempakete/      dnsmasq als .deb, für den Netzumbau vor Ort
   wheels/            Python-Pakete für Python $PY_FASSUNG
   wheels-torch/      Torch $TORCH_FASSUNG und die NVIDIA-Bibliotheken
   voices/            die Piper-Stimmen
@@ -282,6 +333,7 @@ Wiederherstellen, ohne Netz, im Projektordner:
     ./wiederherstellen.sh --stimmen
     ./wiederherstellen.sh --pakete
     ./wiederherstellen.sh --modell
+    ./wiederherstellen.sh --systempakete
     ./wiederherstellen.sh --alles
 
 Die Wheels passen NUR zu Python $PY_FASSUNG. wiederherstellen.sh bricht

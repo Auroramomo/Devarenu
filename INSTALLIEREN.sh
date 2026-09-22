@@ -63,7 +63,12 @@ chmod +x ./*.sh 2>/dev/null
 if command -v pacman >/dev/null && ! command -v apt-get >/dev/null; then
   printf '\033[1;34m== Systempakete (Arch)\033[0m\n'
   FEHLT=""
-  for paket in python ffmpeg portaudio; do
+  # dnsmasq nur, weil es dieselbe Liste sein soll wie auf dem
+  # Gemeinderechner. pacman startet nichts von selbst, es liegt also
+  # bloss da. Eingeschaltet wird es allein von netz_einrichten.sh --
+  # und das laeuft auf einem Arbeitsrechner ohnehin nicht (NETZ_RECHNER
+  # in config.py).
+  for paket in python ffmpeg portaudio dnsmasq; do
     pacman -Q "$paket" >/dev/null 2>&1 || FEHLT="$FEHLT $paket"
   done
   if [ -n "$FEHLT" ]; then

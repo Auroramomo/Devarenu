@@ -36,13 +36,30 @@ fi
 # und der Versuch zu installieren laeuft ins Leere, samt nutzloser
 # Passwortabfrage. Die Arch-Pakete erledigt INSTALLIEREN.sh.
 if command -v dpkg >/dev/null && command -v apt-get >/dev/null; then
-  for paket in python3-venv python3-pip ffmpeg libportaudio2 git; do
+  # dnsmasq ist hier dabei, obwohl es nur der Gemeinderechner braucht:
+  # vor Ort gibt es kein Netz zum Nachinstallieren. Es wird gleich
+  # wieder stillgelegt, siehe unten -- eingeschaltet wird es allein von
+  # netz_einrichten.sh.
+  for paket in python3-venv python3-pip ffmpeg libportaudio2 git dnsmasq; do
     if dpkg -s "$paket" >/dev/null 2>&1; then gut "$paket"; else
       fehlt "$paket"; NACHINSTALLIEREN="${NACHINSTALLIEREN:-} $paket"; fi
   done
   if [ -n "${NACHINSTALLIEREN:-}" ]; then
     echo "   Installiere:$NACHINSTALLIEREN"
+    FRISCHES_DNSMASQ=nein
+    case " $NACHINSTALLIEREN " in *" dnsmasq "*) FRISCHES_DNSMASQ=ja ;; esac
     sudo apt-get update -qq && sudo apt-get install -y $NACHINSTALLIEREN
+    # Debian startet dnsmasq beim Installieren sofort. Auf einem Rechner
+    # mit systemd-resolved belegt dann jemand anderes Port 53, und die
+    # Namensaufloesung dieses Rechners ist hinueber -- auf einem
+    # Arbeitsrechner ein boeses Erwachen, und auf dem Gemeinderechner
+    # eines zum falschen Zeitpunkt. Also: da, aber aus.
+    if [ "$FRISCHES_DNSMASQ" = ja ]; then
+      sudo systemctl disable --now dnsmasq >/dev/null 2>&1
+      gut "dnsmasq liegt bereit, ist aber aus"
+      echo "        Eingeschaltet wird es nur von ./netz_einrichten.sh,"
+      echo "        von Hand und vor Ort."
+    fi
   fi
 else
   for befehl in python3 ffmpeg git; do

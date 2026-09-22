@@ -5,7 +5,8 @@
 #   ./wiederherstellen.sh --stimmen     Piper-Stimmen zurueckholen
 #   ./wiederherstellen.sh --pakete      Python-Pakete und Torch neu
 #   ./wiederherstellen.sh --modell      Uebersetzungsmodell zurueckspielen
-#   ./wiederherstellen.sh --alles       alles drei
+#   ./wiederherstellen.sh --systempakete dnsmasq nachinstallieren
+#   ./wiederherstellen.sh --alles       alles vier
 #
 #   --vorrat /pfad                      anderer Ort als /opt/devarenu-vorrat
 #
@@ -36,7 +37,8 @@ while [ $# -gt 0 ]; do
     --stimmen)  TUN="$TUN stimmen"; shift ;;
     --pakete)   TUN="$TUN pakete";  shift ;;
     --modell)   TUN="$TUN modell";  shift ;;
-    --alles)    TUN="$TUN stimmen pakete modell"; shift ;;
+    --systempakete) TUN="$TUN systempakete"; shift ;;
+    --alles)    TUN="$TUN stimmen pakete modell systempakete"; shift ;;
     -h|--hilfe) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          fehl "Unbekannt: $1"; exit 1 ;;
   esac
@@ -236,6 +238,45 @@ PYCODE
       info "Ollama muss danach neu starten:  sudo systemctl restart ollama"
     else
       fehl "Das Modell liess sich nicht zurueckspielen."
+      exit 1
+    fi
+  fi
+fi
+
+# ------------------------------------------------------- Systempakete
+# Braucht Wurzelrechte, anders als alles andere hier: dpkg schreibt ins
+# System. Deshalb steht es am Ende -- was ohne sudo geht, ist dann
+# schon getan.
+if hat systempakete; then
+  blau "Systempakete"
+  if [ ! -d "$VORRAT/systempakete" ] || \
+     [ -z "$(find "$VORRAT/systempakete" -maxdepth 1 -name '*.deb' 2>/dev/null)" ]; then
+    fehl "Im Vorrat liegen keine .deb-Dateien."
+    info "Dieser Vorrat wurde vor 0.2.10 gebaut oder auf einem Rechner"
+    info "ohne apt. Ohne dnsmasq laesst sich das Saalnetz nicht"
+    info "einrichten; nachholen geht nur mit Leitung:"
+    info "  sudo ./vorrat_bauen.sh"
+  elif ! command -v dpkg >/dev/null; then
+    fehl "Kein dpkg auf diesem Rechner."
+    info "Die .deb-Dateien passen zu Debian und Ubuntu."
+  elif [ "$(id -u)" != "0" ]; then
+    fehl "Systempakete brauchen Wurzelrechte."
+    info "  sudo ./wiederherstellen.sh --systempakete"
+  else
+    # -i und nicht apt: apt wollte an dieser Stelle ins Netz, und genau
+    # das gibt es hier nicht. dpkg nimmt die Dateien, wie sie daliegen.
+    if dpkg -i "$VORRAT"/systempakete/*.deb 2>&1 | sed 's/^/         /'; then
+      gut "Systempakete eingespielt"
+      # Nicht einschalten. Ein dnsmasq, das von selbst anlaeuft, nimmt
+      # auf einem Rechner ohne Umbau den Port 53 weg -- und damit die
+      # Namensaufloesung.
+      systemctl disable --now dnsmasq >/dev/null 2>&1
+      info "dnsmasq liegt bereit, ist aber aus. Eingeschaltet wird es"
+      info "allein von ./netz_einrichten.sh."
+    else
+      fehl "dpkg konnte nicht alles einspielen."
+      info "Fehlt eine Abhaengigkeit, verraet sie sich mit:"
+      info "  sudo dpkg -i $VORRAT/systempakete/*.deb"
       exit 1
     fi
   fi

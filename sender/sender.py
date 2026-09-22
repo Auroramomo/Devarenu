@@ -13,7 +13,7 @@ Leitung nicht das Dreifache geht.
 Aufruf:
     python sender.py --geraete
     python sender.py --ziel wss://name.trycloudflare.com --geraet 11
-    python sender.py --ziel ws://192.168.178.92:8000 --geraet 11
+    python sender.py --ziel ws://10.0.0.1:8000 --geraet 11
 """
 
 import argparse
@@ -157,7 +157,10 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--geraete", action="store_true")
     p.add_argument("--geraet", type=int, default=None)
-    p.add_argument("--ziel", default="ws://192.168.178.92:8000",
+    # Keine Vorgabe mehr. Frueher stand hier eine Adresse von zu Hause;
+    # wer --ziel vergass, suchte ein Netz, das es vor Ort nicht gibt,
+    # und bekam nur "verbindet nicht" ohne zu erfahren wohin.
+    p.add_argument("--ziel", required=True,
                    help="wss://... fuer den Tunnel, ws://... im selben Netz")
     p.add_argument("--schluessel", default="gemeinde",
                    help="muss zum Server passen")

@@ -169,6 +169,231 @@ nicht auf. Wer das misst, trägt das Ergebnis hier ein.
       sind. Deshalb am Pult auswählen; dabei wird der Name mitgeschrieben,
       und der gilt in beiden Zählungen.
 
+## Der Rechner als Router für das Saalnetz
+
+**Nur von Hand, nur vor Ort, nur an der Tastatur des Rechners.** Nie über
+`stick_update.sh`, nie über `bootstrap.sh`, nie über eine Fernsitzung:
+Der Umbau stellt die Netzwerkkarte um und kappt damit genau die
+Verbindung, über die man zusieht.
+
+### Warum überhaupt
+
+Ein WLAN ohne Internet wird von Handys gemieden. Android zeigt ein
+Ausrufezeichen und wechselt nach ein paar Minuten von selbst zurück auf
+die mobilen Daten — mitten im Gottesdienst, mitten im Satz. iOS öffnet
+den kleinen Anmeldebrowser, und der schließt sich, sobald jemand die App
+wechselt.
+
+Dagegen hilft nur eines: Der Rechner beantwortet die Prüfadressen, mit
+denen die Handys nach Internet fragen. Dafür muss er selbst DHCP und DNS
+stellen — und damit ist er der Router.
+
+**Kein NAT, kein Gateway, kein Weg nach draußen.** Der Saal bekommt kein
+Internet und soll keines bekommen. Auch der Rechner selbst hat danach
+keines mehr; Updates kommen über den Stick.
+
+### Was vorher beim Systemhaus passiert
+
+- [ ] Ein **Zugangspunkt** (Access Point), der am LAN hängt und nur WLAN
+      macht. Kein Router, kein DHCP.
+- [ ] **DHCP am Zugangspunkt ausschalten.** Der häufigste Fehler und der
+      teuerste: Vergeben zwei Server Adressen, entscheidet der Zufall,
+      welcher zuerst antwortet. Die Handys aus dem falschen Topf finden
+      diesen Rechner nicht. `./pruefen.sh` meldet es, und am Pult steht
+      es auch.
+- [ ] Das **Mainboard-WLAN bleibt aus.** Die Intel AX201 macht als
+      Zugangspunkt nur 2,4 GHz und ist bei acht bis zwölf Geräten am
+      Ende. Ein Saal mit dreißig Zuhörern braucht einen richtigen
+      Zugangspunkt.
+- [ ] **Keine Router Advertisements** am Zugangspunkt. Sonst holen sich
+      die Handys über IPv6 einen anderen DNS und fragen an diesem
+      Rechner vorbei.
+- [ ] `NETZ_RECHNER` in `config.py` auf den Namen dieses Rechners
+      setzen. Leer heißt: Der Umbau läuft nirgends. Das ist Absicht —
+      dasselbe Verzeichnis liegt auch auf dem Arbeitsrechner, auf dem
+      Devarenu entsteht.
+- [ ] `sudo ./vorrat_bauen.sh` **nach** dem Einrichten: Der Vorrat nimmt
+      seit 0.2.10 auch `dnsmasq` als `.deb` mit. Vor Ort gibt es keine
+      Leitung, über die es nachkommen könnte.
+
+### Zwei Wege, die nur hier zu prüfen sind
+
+Beides ließ sich auf dem Entwicklungsrechner **nicht** ausführen: dort
+gibt es kein `apt`, und kein `sudo` ohne Passwortabfrage. Geprüft sind
+jeweils nur die Fehlerwege — dass die Sache funktioniert, wenn sie
+funktionieren soll, zeigt sich erst hier. Also beim Systemhaus, solange
+noch eine Leitung steht und jemand danebensteht.
+
+- [ ] **DHCP-Rundruf mit Wurzelrechten.**
+
+      ```
+      sudo ./dhcp_umschau.py <schnittstelle> 4
+      ```
+
+      Erwartet: eine Zeile `SERVER|<adresse>|<option114>` je antwortendem
+      DHCP-Server, danach `ANZAHL|n`. Am Hausanschluss des Systemhauses
+      muss genau einer auftauchen, nämlich dessen Router. Kommt
+      `ANZAHL|0`, sendet oder empfängt der Rundruf nicht — dann meldet
+      auch `netz_einrichten.sh` fälschlich „niemand verteilt Adressen"
+      und `pruefen.sh` findet einen zweiten Server nie.
+
+      Geprüft ist bisher: das Zerlegen einer Antwort, der Abgleich der
+      Vorgangsnummer, OFFER gegen ACK, abgeschnittene Pakete, fehlende
+      Rechte, unbekannte Schnittstelle. **Nicht geprüft: das Senden
+      selbst.**
+
+      Der Rundruf belegt nichts — es geht nur ein DISCOVER hinaus, nie
+      ein REQUEST. Als Hardware-Adresse dient die der Schnittstelle
+      selbst, damit keine Phantomeinträge in fremden Leasetabellen
+      entstehen.
+
+- [ ] **Systempakete in den Vorrat und zurück.**
+
+      ```
+      sudo ./vorrat_bauen.sh
+      ls /opt/devarenu-vorrat/systempakete/*.deb
+      sudo ./wiederherstellen.sh --systempakete
+      systemctl is-enabled dnsmasq        # muss "disabled" sagen
+      ```
+
+      Erwartet: `dnsmasq` und `dnsmasq-base` liegen als `.deb` im
+      Vorrat, `dpkg -i` spielt sie ein, und der Dienst ist danach
+      **aus**. Läuft er, nimmt er auf einem Rechner ohne Umbau den Port
+      53 weg — und damit dessen Namensauflösung.
+
+      Geprüft ist bisher: kein `apt-get` vorhanden, keine `.deb` im
+      Vorrat, kein `dpkg` vorhanden, fehlende Wurzelrechte. **Nicht
+      geprüft: der Weg, auf dem es klappt.**
+
+      Schlägt `apt-get --download-only` fehl, bricht `vorrat_bauen.sh`
+      ab, statt einen unvollständigen Vorrat als fertig auszugeben.
+
+### Der Umbau
+
+```
+sudo ./netz_einrichten.sh --trocken       nur zeigen, nichts schreiben
+sudo ./netz_einrichten.sh                 einrichten
+sudo ./netz_einrichten.sh --zuruecknehmen alles rückgängig
+```
+
+Vorher sieht das Skript nach, ob es überhaupt auf dem richtigen Rechner
+steht: Name in `NETZ_RECHNER`, genau eine Leitung mit Stecker, kein WLAN
+verbunden, keine virtuellen Brücken, NetworkManager führt die Karte, und
+— mit `sudo` — ob hier schon jemand anders Adressen verteilt. Stimmt
+etwas nicht, ändert es nichts und sagt, was. Mit `--trotzdem` lässt sich
+das übergehen; dann aber ausdrücklich und auf eigene Gefahr.
+
+Danach:
+
+- Feste Adresse `10.0.0.1/24` auf der Karte am Zugangspunkt
+- `dnsmasq` verteilt `10.0.0.50` bis `10.0.0.200`, Mietdauer 12 h
+- Kein Gateway (Option 3 leer), DNS zeigt auf `10.0.0.1`
+- DHCP-Option 114 auf `http://10.0.0.1/captive-api` (RFC 8910)
+- Die Prüfadressen der Hersteller zeigen auf diesen Rechner, **alles
+  andere bleibt unauflösbar**
+- `ip_forward=0`, `ufw` lässt 53, 67, 80, 8000 und 22 im lokalen Netz
+- `NETZ_ROUTER = True` in `config.py`
+
+Der Dienst muss danach neu starten:
+
+```
+sudo systemctl restart devarenu
+```
+
+### Port 80
+
+Die Prüfadressen der Hersteller fragen ausschließlich Port 80, und wer
+`10.0.0.1` ins Handy tippt, meint auch Port 80. Der Server bleibt
+trotzdem ein gewöhnlicher Benutzerprozess: Die Unit gibt ihm
+`AmbientCapabilities=CAP_NET_BIND_SERVICE`, also genau das Recht, eine
+Portnummer unter 1024 zu belegen, und sonst keines. Port 8000 bleibt
+daneben bestehen.
+
+Fehlt die Zeile, läuft der Server auf 8000 weiter und sagt es beim
+Start. Ein Ausfall ist das nicht — aber die Handys melden dann „kein
+Internet".
+
+### Was die Handys zu sehen bekommen
+
+| Gerät | Prüfung | Ergebnis |
+|---|---|---|
+| iOS | nur HTTP | gilt als online |
+| Android | HTTP **und** HTTPS | Ausrufezeichen bleibt |
+| Windows | HTTP | gilt als online |
+
+Androids HTTPS-Prüfung ist ohne Zertifikat nicht zu bestehen. Das
+Ausrufezeichen bleibt also, aber das Handy verlässt das Netz nicht mehr
+von selbst. **Die mobilen Daten müssen trotzdem aus** — das steht auf
+der Beamer-Seite und auf der Zuhörerseite, deutsch und englisch.
+
+### Prüfen
+
+```
+./pruefen.sh              Abschnitt „Saalnetz"
+sudo ./pruefen.sh         zusätzlich der DHCP-Rundruf
+```
+
+Geprüft werden: läuft `dnsmasq`, liegt die Adresse auf der Karte, ist
+`ip_forward` aus, steht Option 114 in der Konfiguration, antwortet der
+DNS richtig (Prüfnamen auf uns, alles andere NXDOMAIN), antworten die
+Prüfadressen byte-genau, und — mit `sudo` — verteilt außer uns noch
+jemand Adressen.
+
+Ohne `sudo` bleibt der DHCP-Rundruf aus; stattdessen meldet der
+laufende Server, ob schon ein Gerät mit einer fremden Adresse
+angekommen ist. Das ist ein Hinweis, kein Beweis: Wer eine fremde
+Adresse hat und uns deshalb gar nicht erreicht, fällt dabei nicht auf.
+
+### Abnahme vor Ort, mit echten Handys
+
+Vom Rechner aus sieht alles gut aus, auch wenn nichts geht. Diese Liste
+wird **mit zwei Handys in der Hand** abgearbeitet, im Saal, nicht am
+Schreibtisch. Ein Android (möglichst Samsung — die eigene
+WLAN-Verwaltung ist dort am strengsten) und ein iPhone.
+
+- [ ] `sudo ./pruefen.sh`, Abschnitt „Saalnetz": alles grün, besonders
+      „nur dieser Rechner verteilt Adressen".
+- [ ] **Android, mobile Daten AN.** QR scannen, verbinden. Erwartet:
+      verbindet, Ausrufezeichen am WLAN-Zeichen bleibt. Seite öffnen,
+      Sprache wählen, hören.
+- [ ] **Android, mobile Daten AUS.** Dasselbe noch einmal. Das ist der
+      Zustand, den die Zuhörer haben sollen.
+- [ ] **iPhone, mobile Daten AN und AUS.** Erwartet: kein
+      Anmeldebrowser. Öffnet sich doch einer, antwortet irgendwo eine
+      Umleitung — das gehört gemeldet, nicht weggeklickt.
+- [ ] **Fünf Minuten Bildschirm aus**, bei beiden Handys, mit
+      laufender Wiedergabe. Erwartet: Ton läuft weiter, Verbindung
+      bleibt. Das ist die Prüfung, an der ein WLAN ohne Internet sonst
+      scheitert.
+- [ ] Danach am Pult nachsehen: steht dort eine Warnung über einen
+      zweiten DHCP-Server?
+- [ ] `10.0.0.1/pult` **ohne** `http://` in die Adresszeile tippen.
+      Erwartet: die Seite kommt. Kommt stattdessen eine Suchmaschine
+      oder „Seite nicht gefunden", hat das Handy den Eintrag als
+      Suchbegriff genommen — dann gilt das als Befund und kommt in die
+      Anleitung fürs Pult.
+- [ ] Beamer-Seite `http://10.0.0.1/qr` am Beamer: sind beide Codes aus
+      der letzten Reihe noch scharf, steht „Mobile Daten ausschalten"
+      lesbar da?
+- [ ] Das WLAN-Passwort am Pult mit dem am Zugangspunkt vergleichen.
+      Stimmen sie nicht überein, trägt der QR-Code ein falsches
+      Passwort und niemand kommt ins Netz.
+
+Offen und **nicht** vorher zu beantworten: ob die Captive-Portal-API
+(Option 114) die Anzeige „kein Internet" überhaupt verändert. Der
+Standard regelt Anmeldepflicht, nicht Erreichbarkeit. Was die Geräte
+tatsächlich anzeigen, zeigt erst dieser Termin — in beiden Fällen
+bleiben die Prüfadressen wirksam.
+
+### Wenn dnsmasq fehlt
+
+```
+sudo ./wiederherstellen.sh --systempakete
+```
+
+Holt es aus dem Reparaturvorrat. Danach liegt es bereit, ist aber aus —
+eingeschaltet wird es allein von `netz_einrichten.sh`.
+
 ## Im Gottesdienst
 
 - [ ] Einmessen mit dem echten Prediger am echten Mikrofon.

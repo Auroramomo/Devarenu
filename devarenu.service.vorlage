@@ -91,6 +91,23 @@ ExecStart=@ORDNER@/.venv/bin/python -u @ORDNER@/server.py --port @PORT@
 # wird am Pult gewaehlt. Stuende sie hier, wuerde der Dienst die Auswahl
 # aus der Oberflaeche bei jedem Neustart still ueberstimmen.
 
+# Port 80 ohne Wurzelrechte. Gebraucht nur, wenn dieser Rechner das
+# Saalnetz selbst stellt: die Pruefadressen der Hersteller fragen
+# ausschliesslich Port 80, und ein Handy, das "10.0.0.1" eintippt,
+# meint auch Port 80. Der Dienst bleibt dabei ein gewoehnlicher
+# Benutzerprozess -- er bekommt genau das Recht, eine Portnummer unter
+# 1024 zu belegen, und sonst keines.
+#
+# NoNewPrivileges verhindert, dass aus dieser einen Faehigkeit mehr
+# wird: kein setuid-Programm kann daraus Rechte gewinnen.
+#
+# Steht die Zeile nicht da, faellt der Server auf Port 8000 zurueck und
+# sagt es in der Startausgabe. Ausfall ist das keiner -- aber die
+# Handys melden dann "kein Internet".
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=yes
+
 Restart=always
 RestartSec=10
 

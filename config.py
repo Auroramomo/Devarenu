@@ -240,6 +240,84 @@ SATZ_NOTBREMSE = True
 # --max-warten auf der Kommandozeile schlaegt diesen Wert.
 SATZ_MAX_WARTEN = 4.0
 
+# --- Der Rechner als Router (aus, bis vor Ort umgebaut) ----------------
+# Handys meiden ein WLAN ohne Internet. iOS prueft ueber HTTP, Android
+# ueber HTTP und HTTPS. Wer die HTTP-Pruefung beantwortet, gilt bei iOS
+# als online; bei Android bleibt das Ausrufezeichen, weil die
+# HTTPS-Pruefung ohne Zertifikat nicht zu bestehen ist.
+#
+# Alles hier ist AUS. Ein Rechner ohne den Umbau verhaelt sich wie
+# bisher: er sucht seine Adresse, laeuft auf Port 8000, und keine
+# Pruefadresse wird beantwortet. Eingeschaltet wird das von Hand vor
+# Ort, mit ./netz_einrichten.sh -- nie ueber ein Update.
+NETZ_ROUTER = False
+
+# Auf welchen Rechnern netz_einrichten.sh ueberhaupt scharf laufen darf.
+# Rechnernamen, * und ? erlaubt, Gross- und Kleinschreibung egal.
+#
+# LEER HEISST: NIRGENDWO. Das ist Absicht und kein vergessener Eintrag.
+# Der Umbau stellt die Netzwerkkarte um und nimmt dem Rechner den Weg
+# ins Internet. Auf einem Arbeitsrechner, auf dem dieses Verzeichnis
+# auch liegt, waere das ein teurer Fehlgriff -- ein Tippfehler im
+# Terminal genuegt. Also muss jeder Rechner, der umgebaut werden soll,
+# hier zuerst beim Namen genannt werden.
+#
+# Eintragen beim Einrichten, nicht im Voraus:
+#   NETZ_RECHNER = ["gemeinde-pc", "pc-saal-*"]
+NETZ_RECHNER = []
+
+# Die feste Adresse des Rechners im Gemeindenetz. Gilt nur, wenn
+# NETZ_ROUTER an ist; sonst wird sie wie bisher gesucht.
+NETZ_ADRESSE = "10.0.0.1"
+NETZ_MASKE = 24
+NETZ_BEREICH = ("10.0.0.50", "10.0.0.200")
+NETZ_MIETE = "12h"
+
+# Zusaetzlich auf Port 80 hoeren. Ein Handy tippt "10.0.0.1" ohne Port,
+# und die Pruefadressen der Hersteller fragen ausschliesslich Port 80.
+# Der Server bleibt dabei ein gewoehnlicher Benutzerprozess -- die Unit
+# gibt ihm CAP_NET_BIND_SERVICE. Geht es nicht, laeuft er auf 8000
+# weiter und sagt es.
+NETZ_PORT_80 = True
+
+# Welche Namen auf diesen Rechner zeigen. ALLES ANDERE bleibt
+# unaufloesbar (NXDOMAIN).
+#
+# Bewusst eine Liste und kein Platzhalter fuer alle Namen: ein
+# Platzhalter kapert den ganzen Namensraum fuer jedes Handy im Saal,
+# auch fuer die, die gar nicht mithoeren. Mailprogramme und Messenger
+# bekaemen dann einen Server, der nicht antwortet, und wiederholten
+# ihre Anfragen, bis der Akku leer ist. NXDOMAIN ist die ehrliche
+# Auskunft: hier gibt es kein Internet.
+#
+# www.google.com steht bewusst NICHT hier. Ueber diesen Namen redet ein
+# Handy staendig im Hintergrund; er gehoert nicht auf unseren Server.
+PRUEFDOMAENEN = [
+    # Android
+    "connectivitycheck.gstatic.com",
+    "clients3.google.com",
+    "connectivitycheck.android.com",
+    "play.googleapis.com",
+    # Apple
+    "captive.apple.com",
+    "www.apple.com",
+    # Windows
+    "www.msftconnecttest.com",
+    "www.msftncsi.com",
+    "dns.msftncsi.com",
+    # Firefox
+    "detectportal.firefox.com",
+]
+
+# Captive Portal API, RFC 8910 (DHCP-Option 114) und RFC 8908 (die
+# Antwort). Das Netz sagt den Geraeten damit ausdruecklich, dass keine
+# Anmeldung noetig ist.
+#
+# Unsicher, ob es die Anzeige "Kein Internet" beeinflusst: der Standard
+# regelt Anmeldepflicht, nicht Erreichbarkeit. Er widerspricht den
+# Pruefadressen aber nicht, und iOS ab 14 fragt Option 114 an.
+NETZ_CAPTIVE_API = True
+
 # --- Messung (Fehlersuche, kein Betrieb) -------------------------------
 # Alles hier ist AUS und muss aus bleiben. Auf dem Gemeinde-PC schreibt
 # sonst jeder Gottesdienst Dateien, die niemand ansieht -- und der Rechner

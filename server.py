@@ -39,6 +39,7 @@ import numpy as np
 
 import config
 import messprotokoll
+import netzpruefung
 import ton
 import grafikkarte
 # Unter anderem Namen, weil weiter unten ein Endpunkt /api/zustand mit der
@@ -1537,6 +1538,56 @@ def datei_thread(lauf, pfad, segmentierer, stoppen, tempo=1.0):
                   f"liegen. Die Messung ist unvollstaendig.")
 
     lauf.bericht()
+
+
+def sockel(port):
+    """Ein horchender Socket auf allen Adressen, oder None.
+
+    Getrennt angelegt und nicht uvicorn ueberlassen, weil der Server auf
+    ZWEI Ports hoeren soll: 8000 wie bisher und 80 fuer die Handys. Ein
+    Handy tippt "10.0.0.1" ohne Port, und die Pruefadressen der
+    Hersteller fragen ausschliesslich Port 80."""
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        s.bind(("0.0.0.0", port))
+    except OSError:
+        s.close()
+        return None
+    s.listen(128)
+    s.set_inheritable(True)
+    return s
+
+
+def starten_auf(app, port):
+    """Startet den Server auf Port 8000 und, wenn moeglich, auch auf 80.
+
+    Port 80 braucht unter tausend das Recht dazu. Der Server laeuft
+    trotzdem als gewoehnlicher Benutzer: die Unit gibt ihm
+    CAP_NET_BIND_SERVICE. Wo das fehlt -- auf dem Entwicklungsrechner,
+    beim Start von Hand --, laeuft er auf 8000 weiter und sagt es.
+    Abbrechen waere falsch: Port 80 ist eine Bequemlichkeit fuer die
+    Zuhoerer, keine Bedingung fuer den Gottesdienst."""
+    import uvicorn
+    haupt = sockel(port)
+    if haupt is None:
+        raise OSError(f"Port {port} ist belegt")
+    sockets = [haupt]
+
+    if getattr(config, "NETZ_PORT_80", False) and port != 80:
+        achtzig = sockel(80)
+        if achtzig is not None:
+            sockets.append(achtzig)
+            print(f"  Zusaetzlich auf Port 80 -- http://{config.NETZ_ADRESSE}/")
+        else:
+            print("  Port 80 nicht moeglich, es bleibt bei "
+                  f"{port}. Handys muessen dann die Portnummer mittippen.")
+            print("  Dem Dienst fehlt CAP_NET_BIND_SERVICE, oder der Port")
+            print("  ist belegt. Siehe AUFSTELLEN.md.")
+
+    kfg = uvicorn.Config(app, log_level="warning")
+    uvicorn.Server(kfg).run(sockets=sockets)
 
 
 def rate_waehlen(geraet, wunsch=None, kanaele=1):
@@ -3110,6 +3161,16 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             kanalscan.stoppen(warten=False)
 
     app = FastAPI(title=f"Devarenu {config.VERSION}", lifespan=lebenszyklus)
+
+    # Die Adressen, mit denen Handys fragen, ob sie Internet haben.
+    # Zuerst eingehaengt, damit sie nicht von einer allgemeineren Route
+    # verdeckt werden -- und weil keine davon umleiten darf.
+    #
+    # Sie stoeren nichts: /pult, /qr und die Zuhoererseite haben andere
+    # Pfade. Ohne den Umbau fragt sie ohnehin niemand, dann liegen sie
+    # nur da.
+    app.include_router(netzpruefung.router)
+
     client = basis / "client.html"
 
     def schwelle_sichern():
@@ -3202,6 +3263,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             await ws.close(code=1008)
             return
         await ws.accept()
+        if ws.client is not None:
+            netzpruefung.beobachten(ws.client.host)
         await lauf.anmelden(ws, sprache)
         try:
             while True:
@@ -3435,6 +3498,10 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         spende = getattr(config, "SPENDE", {}) or {}
         return {
             "rueckmeldung": getattr(config, "RUECKMELDUNG_MAIL", ""),
+            # Stellt dieser Rechner das Netz selbst? Dann hat das WLAN
+            # kein Internet, und die Seite sagt, dass die mobilen Daten
+            # aus muessen. Sonst waere der Satz falsch.
+            "saalnetz": bool(getattr(config, "NETZ_ROUTER", False)),
             "spende": ({"name": spende.get("name", ""),
                         "iban": spende.get("iban", ""),
                         "bic": spende.get("bic", ""),
@@ -3549,6 +3616,10 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 # sieht sonst aus wie einer, der aufnimmt. Genau das hat
                 # einen Gottesdienst gekostet.
                 "ton": tonquelle.lage() if tonquelle is not None else None,
+                # Nur gefuellt, wenn dieser Rechner der Router ist. Was
+                # den Betrieb verhindert, gehoert ans Pult und nicht nur
+                # in pruefen.sh -- sonntags liest das niemand.
+                "netz": netzpruefung.lage(),
                 "letzte": list(lauf.letzte)[-8:]}
 
     @app.post("/api/steuerung/{was}")
@@ -3753,7 +3824,15 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         else:
             wlan_qr = None
 
+        # Nur wenn dieser Rechner der Router ist. Sonst haengt das WLAN
+        # am Hausanschluss, hat Internet, und der Satz waere falsch.
+        hinweis = ""
+        if getattr(config, "NETZ_ROUTER", False):
+            hinweis = (
+                '<p class=daten><b>Mobile Daten ausschalten.</b>'
+                '<span>Turn off mobile data.</span></p>')
         return HTMLResponse(QR_SEITE.format(
+            hinweis=hinweis,
             wlan_block=(f'<div class=schritt><span class=nr>1</span>'
                         f'<p class=was>Mit dem WLAN verbinden</p>'
                         f'<img src="{wlan_qr}" alt="WLAN">'
@@ -3889,10 +3968,21 @@ QR_SEITE = """<!doctype html><html lang=de><meta charset=utf-8>
  .klein{{font:1.9vh/1.5 ui-monospace,monospace;color:#6b7385;
    text-align:center;word-break:break-all;max-width:34vw}}
  .fuss{{font:1.9vh system-ui,sans-serif;color:#6b7385;text-align:center}}
+ /* Der eine Satz, an dem im Saal alles haengt. Kein Beiwerk, also
+    auch nicht in Grau: ein Handy mit eingeschalteten mobilen Daten
+    verlaesst ein WLAN ohne Internet wieder, und der Ton bricht mitten
+    im Satz ab. Zweisprachig, weil die Leute, die uebersetzt mithoeren,
+    deutsche Hinweise nicht unbedingt lesen. */
+ .daten{{font:clamp(.95rem,2.6vh,1.6rem)/1.35 system-ui,sans-serif;
+   text-align:center;color:#141f52;border:.25vh solid #141f52;
+   border-radius:.6vh;padding:1vh 2vw;max-width:86vw}}
+ .daten b{{font-weight:600}}
+ .daten span{{display:block;color:#6b7385;font-size:.82em}}
 </style>
 <img class=logo src="/logo.png" alt="" onerror="this.remove()">
 <h1>Übersetzung</h1>
 <div class=streifen></div>
+{hinweis}
 <div class=reihe>
 {wlan_block}
 <div class=schritt>
@@ -4126,6 +4216,7 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
 <p class="warnung schwer" id=rechenwarnung hidden></p>
 <p class=warnung id=updatehin hidden></p>
 <p class="warnung schwer" id=tonhin hidden></p>
+<p class="warnung schwer" id=zweiterdhcp hidden></p>
 <button class=briefkasten id=briefkasten onclick=postZeigen() hidden>
   <span class=umschlag>✉</span><span id=postzahl></span>
   <span data-t=post_neu>neue Meldungen aus dem Saal</span></button>
@@ -4244,6 +4335,8 @@ ausgewählten laufen mit, das spart Rechenzeit. Sprachen ohne Stimme
 erscheinen als Untertitel.</p>
 
 <h2 data-t=wlan>WLAN für die Zuhörer</h2>
+<p class=hin data-t=netz_wlan_hinweis>Netzname und Passwort werden nur für den
+QR-Code gebraucht. Der Zugangspunkt kennt sie selbst.</p>
 <div class=reihe>
   <input type=text id=ssid placeholder="Netzname" style="flex:1"
          onchange=wlanSetzen()>
@@ -4330,6 +4423,14 @@ const TEXTE={
    ton_warte_auf_geraet:"Warte auf {name}. Es wird kein anderes Gerät "
      +"genommen — wählen Sie eines aus, wenn es nicht mehr kommt.",
    ton_neu_geoeffnet:"Der Tonstrom war tot und wurde neu geöffnet.",
+   netz_zweiter_dhcp:"ACHTUNG: Ein zweiter DHCP-Server antwortet im Netz. "
+     +"Am Zugangspunkt ist DHCP noch eingeschaltet. Handys bekommen dann "
+     +"Adressen aus zwei Töpfen und finden diesen Rechner nicht. Am "
+     +"Zugangspunkt DHCP ausschalten. Gesehen von: {was}",
+   netz_wlan_hinweis:"Netzname und Passwort werden nur für den QR-Code "
+     +"gebraucht. Der Zugangspunkt kennt sie selbst. Stimmen sie hier "
+     +"nicht mit dem Zugangspunkt überein, enthält der QR-Code ein "
+     +"falsches Passwort und niemand kommt ins WLAN.",
    ton_weg:"Der Wechsel kam nicht durch.",
    skript_leer:"Datei ist leer oder unlesbar.",
    server_weg:"Server nicht erreichbar",
@@ -4440,6 +4541,14 @@ const TEXTE={
    ton_warte_auf_geraet:"Waiting for {name}. No other device will be used "
      +"— pick one if it is not coming back.",
    ton_neu_geoeffnet:"The audio stream had died and was reopened.",
+   netz_zweiter_dhcp:"WARNING: a second DHCP server is answering on this "
+     +"network. The access point still has DHCP switched on. Phones then "
+     +"get addresses from two pools and cannot find this computer. Switch "
+     +"DHCP off on the access point. Seen from: {was}",
+   netz_wlan_hinweis:"Network name and password are only used for the QR "
+     +"code. The access point knows them itself. If they do not match the "
+     +"access point, the QR code carries a wrong password and nobody gets "
+     +"onto the wifi.",
    ton_weg:"The change did not go through.",
    skript_leer:"File is empty or unreadable.",
    server_weg:"Server unreachable",
@@ -5098,6 +5207,13 @@ async function lies(){
     // unter Einrichtung: waehrend des Gottesdienstes hat niemand die
     // Einrichtung offen. Eingespielt und fehlgeschlagen stehen dort,
     // hier steht nur, was noch bevorsteht -- der Server entscheidet das.
+    // Ein zweiter DHCP-Server ist kein Hinweis, sondern der Grund,
+    // warum die Haelfte der Handys nichts hoert.
+    const fremd = (d.netz && d.netz.fremde_adressen) || [];
+    zweiterdhcp.hidden = !fremd.length;
+    if(fremd.length)
+      zweiterdhcp.textContent =
+        t.netz_zweiter_dhcp.split("{was}").join(fremd.join(", "));
     const uSatz = d.update ? updateSatz(d.update) : "";
     updatehin.hidden = !uSatz;
     if(uSatz) updatehin.textContent = uSatz;
@@ -5488,7 +5604,14 @@ def main():
     # Adresse". Gemessen wurde das Target erreicht, waehrend erst
     # loopback stand und die Netzwerkkarte noch gar nicht angemeldet war.
     adresse_seit = time.time()
-    ip = adresse_suchen(ADRESSE_ANLAUF)
+    # Ist der Rechner selbst der Router, steht die Adresse fest und muss
+    # nicht gesucht werden. Die Suche bleibt fuer alle anderen Faelle --
+    # Entwicklung, Vorfuehrung, ein Rechner ohne den Umbau.
+    if getattr(config, "NETZ_ROUTER", False):
+        ip = config.NETZ_ADRESSE
+        print(f"\n  Netz      dieser Rechner ist Router, feste Adresse {ip}")
+    else:
+        ip = adresse_suchen(ADRESSE_ANLAUF)
     lauf.adresse = ip
     if ip:
         print(f"\n  Zuhörer   http://{ip}:{a.port}/")
@@ -5539,8 +5662,8 @@ def main():
         kanalscan = Kanalscan(lauf, tonquelle, testton, a.rate)
 
     try:
-        uvicorn.run(app_bauen(lauf, basis, a.port, tonquelle, kanalscan),
-                    host="0.0.0.0", port=a.port, log_level="warning")
+        starten_auf(app_bauen(lauf, basis, a.port, tonquelle, kanalscan),
+                    a.port)
     except OSError as e:
         if "10048" in str(e) or "address" in str(e).lower():
             print(f"\nPort {a.port} ist belegt. Laeuft der Dienst schon?")

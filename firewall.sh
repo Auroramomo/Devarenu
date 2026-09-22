@@ -8,7 +8,7 @@
 #
 #   FW_ART     leer = nichts zu tun (keine sperrende Firewall, oder die
 #              Regel gibt es schon). Sonst "ufw" oder "firewalld".
-#   FW_NETZ    das Teilnetz dieses Rechners, z.B. 192.168.178.0/24
+#   FW_NETZ    das Teilnetz dieses Rechners, z.B. 10.0.0.0/24
 #   FW_BEFEHL  der fertige Befehl zum Freigeben, mit genau diesem Netz
 #
 # Eine gemeinsame Datei und nicht zweimal derselbe Code in
@@ -68,3 +68,50 @@ firewall_lage() {
 
   return 0
 }
+
+# ---------------------------------------------------------------- Regeln
+# Direkt aufgerufen statt eingebunden: dann setzt dieses Skript die
+# Regeln fuer den Saalbetrieb. Eingebunden (". firewall.sh") passiert
+# hier nichts -- pruefen.sh und dienst.sh nutzen nur die Funktionen oben.
+firewall_saal() {
+  local netz="${1:-}"
+  [ -n "$netz" ] || netz="$(firewall_netz)" || {
+    echo "   Kein Teilnetz gefunden. Mit --netz 10.0.0.0/24 vorgeben." >&2
+    return 1; }
+
+  if ! command -v ufw >/dev/null; then
+    echo "   ufw ist nicht installiert. Regeln von Hand setzen:" >&2
+    echo "     53/tcp 53/udp 67/udp 80/tcp 8000/tcp 22/tcp aus $netz" >&2
+    return 1
+  fi
+
+  echo "   Regeln fuer $netz"
+  # DNS und DHCP kommen dazu, weil dieser Rechner sie jetzt selbst
+  # anbietet. 80 fuer die Handys, 8000 wie bisher, 22 fuer die Technik.
+  local regel
+  for regel in "53 tcp" "53 udp" "67 udp" "80 tcp" "8000 tcp" "22 tcp"; do
+    set -- $regel
+    sudo ufw allow from "$netz" to any port "$1" proto "$2" \
+         comment "Devarenu Saal" >/dev/null 2>&1 \
+      && echo "      $1/$2" \
+      || echo "      $1/$2 FEHLGESCHLAGEN" >&2
+  done
+
+  # Weiterleitung aus. Der Saal hat kein Internet und soll keines
+  # bekommen -- weder durch NAT noch durch einen zweiten Weg.
+  sudo ufw default deny routed >/dev/null 2>&1 \
+    && echo "      Weiterleitung aus" \
+    || echo "      Weiterleitung liess sich nicht abschalten" >&2
+}
+
+# Nur wenn direkt gestartet, nicht beim Einbinden.
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  NETZ=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --netz) NETZ="${2:-}"; shift 2 ;;
+      *) echo "Unbekannt: $1" >&2; exit 1 ;;
+    esac
+  done
+  firewall_saal "$NETZ"
+fi

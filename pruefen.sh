@@ -220,6 +220,275 @@ if [ -f "$ORDNER/firewall.sh" ]; then
   fi
 fi
 
+# ----------------------------------------------------------- Saalnetz
+# Nur wenn dieser Rechner der Router ist. Ohne den Umbau gibt es hier
+# nichts zu pruefen, und eine Reihe roter Zeilen auf einem Rechner, der
+# gar nicht umgebaut wurde, waere eine falsche Fehlersuche.
+NETZROUTER="$("$PYJSON" -c "
+import sys; sys.path.insert(0, '.')
+import config; print('ja' if getattr(config, 'NETZ_ROUTER', False) else 'nein')
+" 2>/dev/null)"
+
+if [ "${NETZROUTER:-nein}" = "ja" ]; then
+blau "Saalnetz"
+
+# Laeuft dnsmasq? Ohne ihn bekommt kein Handy eine Adresse -- das Netz
+# ist da, aber leer.
+if [ "$SYSTEMD" = ja ] && systemctl is-active --quiet dnsmasq; then
+  gut "dnsmasq laeuft"
+elif pgrep -x dnsmasq >/dev/null 2>&1; then
+  gut "dnsmasq laeuft (ohne systemd)"
+else
+  fehl "dnsmasq laeuft nicht."
+  info "Ohne ihn bekommt kein Handy eine Adresse und keines findet"
+  info "diesen Rechner. Starten mit:"
+  info "  sudo systemctl start dnsmasq"
+  info "Sagt er nichts, verraet der Grund sich mit:"
+  info "  sudo dnsmasq --test"
+fi
+
+# Traegt die Karte die feste Adresse wirklich? Das Profil kann angelegt
+# und trotzdem nicht aktiv sein.
+ADR="$("$PYJSON" -c "
+import sys; sys.path.insert(0, '.')
+import config; print(config.NETZ_ADRESSE)" 2>/dev/null)"
+if ip -4 addr 2>/dev/null | grep -q "inet $ADR/"; then
+  gut "Adresse $ADR liegt auf einer Karte"
+else
+  fehl "Adresse $ADR liegt auf keiner Karte."
+  info "Das Profil ist angelegt, aber nicht aktiv. Nachsehen mit:"
+  info "  nmcli device status ; ip -4 addr"
+fi
+
+# Weiterleitung muss aus sein. Steht sie an, haengt der Saal am
+# Hausnetz -- und das ist genau das, was nicht sein soll.
+WEITER="$(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null)"
+if [ "${WEITER:-0}" = "0" ]; then
+  gut "keine Weiterleitung (ip_forward=0)"
+else
+  fehl "ip_forward=$WEITER -- der Rechner leitet weiter."
+  info "Der Saal soll kein Internet haben und keinen Weg ins Hausnetz."
+  info "  sudo sysctl -w net.ipv4.ip_forward=0"
+fi
+
+# Steht die Option 114 in der erzeugten Konfiguration?
+CONF=/etc/dnsmasq.d/devarenu.conf
+if [ ! -f "$CONF" ]; then
+  fehl "$CONF fehlt."
+  info "Der Umbau ist nicht gelaufen oder wurde zurueckgenommen:"
+  info "  sudo ./netz_einrichten.sh"
+elif grep -q '^dhcp-option=114,' "$CONF"; then
+  gut "DHCP-Option 114 gesetzt ($(grep -m1 '^dhcp-option=114,' "$CONF" | cut -d, -f2-))"
+else
+  warn "Keine DHCP-Option 114 in $CONF."
+  info "Ohne sie fragt kein Geraet die Captive-Portal-API ab. Kein"
+  info "Ausfall -- die Pruefadressen wirken auch ohne. Einschalten mit"
+  info "NETZ_CAPTIVE_API in config.py und erneutem Umbau."
+fi
+
+# Antwortet der DNS so, wie er soll? Zwei Fragen, und beide muessen
+# stimmen: die Pruefnamen der Hersteller auf uns, alles andere
+# unaufloesbar. Ein Platzhalter fuer alles waere hier gruen und im Saal
+# ein leerer Akku.
+mit_python '
+import random, socket, struct, sys
+sys.path.insert(0, ".")
+import config
+
+def frage(name, server, timeout=3.0):
+    """(rcode, [A-Adressen]) oder None bei Zeitueberschreitung."""
+    xid = random.getrandbits(16)
+    p = struct.pack("!HHHHHH", xid, 0x0100, 1, 0, 0, 0)
+    for teil in name.split("."):
+        b = teil.encode("idna") if teil else b""
+        p += bytes([len(b)]) + b
+    p += b"\0" + struct.pack("!HH", 1, 1)          # A, IN
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(timeout)
+    try:
+        s.sendto(p, (server, 53))
+        while True:
+            daten, _ = s.recvfrom(4096)
+            if len(daten) >= 12 and struct.unpack("!H", daten[:2])[0] == xid:
+                break
+    except (socket.timeout, TimeoutError, OSError):
+        return None
+    finally:
+        s.close()
+    flags, qd, an = struct.unpack("!HHH", daten[2:8])
+    i = 12
+    for _ in range(qd):                            # Frageteil ueberspringen
+        while i < len(daten) and daten[i]:
+            if daten[i] & 0xC0:
+                i += 1
+                break
+            i += daten[i] + 1
+        i += 5
+    adressen = []
+    for _ in range(an):
+        while i < len(daten):
+            if daten[i] & 0xC0:
+                i += 2
+                break
+            if daten[i] == 0:
+                i += 1
+                break
+            i += daten[i] + 1
+        if i + 10 > len(daten):
+            break
+        typ, _kl, _ttl, laenge = struct.unpack("!HHIH", daten[i:i + 10])
+        i += 10
+        if typ == 1 and laenge == 4:
+            adressen.append(socket.inet_ntoa(daten[i:i + 4]))
+        i += laenge
+    return flags & 0x0F, adressen
+
+server = config.NETZ_ADRESSE
+pruef = (config.PRUEFDOMAENEN or ["captive.apple.com"])[0]
+
+a = frage(pruef, server)
+if a is None:
+    print("FEHL|DNS auf %s antwortet nicht." % server)
+    print("INFO|Kein Handy kommt damit durch die Internetpruefung.")
+    print("INFO|Laeuft dnsmasq, und hoert er auf dieser Adresse?")
+elif a[1] == [config.NETZ_ADRESSE]:
+    print("OK|DNS: %s -> %s" % (pruef, config.NETZ_ADRESSE))
+else:
+    print("FEHL|DNS: %s -> %s, erwartet %s"
+          % (pruef, a[1] or ("rcode %d" % a[0]), config.NETZ_ADRESSE))
+    print("INFO|Die Pruefadresse zeigt nicht auf diesen Rechner.")
+
+# Ein Name, den es nirgends gibt. Er MUSS unaufloesbar bleiben.
+b = frage("kein-name-devarenu-pruefung.invalid", server)
+if b is None:
+    print("FEHL|DNS antwortet auf unbekannte Namen gar nicht.")
+elif b[0] == 3 and not b[1]:
+    print("OK|Unbekannte Namen bleiben unaufloesbar (NXDOMAIN)")
+else:
+    print("FEHL|Ein unbekannter Name wird beantwortet: %s"
+          % (b[1] or ("rcode %d" % b[0])))
+    print("INFO|Hier steht ein Platzhalter fuer alle Namen. Dann laufen")
+    print("INFO|die Hintergrunddienste JEDES Handys im Saal auf diesen")
+    print("INFO|Rechner -- auch die der Leute, die gar nicht mithoeren.")
+    print("INFO|Sie wiederholen ihre Anfragen bis zum leeren Akku.")
+'
+
+# Die Pruefadressen selbst, ueber Port 80. Dass der Server antwortet,
+# sagt noch nicht, dass er das Richtige antwortet: bei iOS entscheidet
+# ein einzelnes Byte.
+mit_python '
+import sys, urllib.request
+sys.path.insert(0, ".")
+import config
+import netzpruefung as n
+
+basis = "http://127.0.0.1:80"
+faelle = [
+    ("/generate_204",        204, b"",                   "Android"),
+    ("/hotspot-detect.html", 200, n.APPLE_MIT_UMBRUCH,   "Apple"),
+    ("/library/test/success.html", 200, n.APPLE_OHNE_UMBRUCH, "Apple"),
+    ("/connecttest.txt",     200, n.WINDOWS_CONNECTTEST, "Windows"),
+    ("/ncsi.txt",            200, n.WINDOWS_NCSI,        "Windows"),
+    ("/success.txt",         200, n.FIREFOX_SUCCESS,     "Firefox"),
+]
+schlecht = 0
+erreichbar = True
+for pfad, kode, rumpf, wer in faelle:
+    try:
+        with urllib.request.urlopen(basis + pfad, timeout=5) as a:
+            ist = a.read()
+            if a.status != kode or ist != rumpf:
+                schlecht += 1
+                print("FEHL|%s (%s): %d, %d Bytes -- erwartet %d, %d Bytes"
+                      % (pfad, wer, a.status, len(ist), kode, len(rumpf)))
+    except urllib.error.HTTPError as e:
+        schlecht += 1
+        print("FEHL|%s (%s): HTTP %d" % (pfad, wer, e.code))
+    except Exception as e:
+        erreichbar = False
+        print("FEHL|Port 80 antwortet nicht: %s" % type(e).__name__)
+        print("INFO|Die Pruefadressen der Hersteller fragen NUR Port 80.")
+        print("INFO|Ohne ihn meldet jedes Handy \"kein Internet\" und")
+        print("INFO|verlaesst das WLAN wieder. Sieht der Dienst")
+        print("INFO|AmbientCapabilities=CAP_NET_BIND_SERVICE vor?")
+        print("INFO|  systemctl cat devarenu | grep Ambient")
+        break
+if erreichbar and not schlecht:
+    print("OK|Alle %d Pruefadressen antworten byte-genau" % len(faelle))
+
+if erreichbar and getattr(config, "NETZ_CAPTIVE_API", False):
+    try:
+        with urllib.request.urlopen(basis + "/captive-api", timeout=5) as a:
+            typ = a.headers.get("content-type", "")
+            if typ.startswith("application/captive+json"):
+                print("OK|Captive-Portal-API antwortet (%s)" % typ)
+            else:
+                print("FEHL|Captive-Portal-API sendet %s" % (typ or "nichts"))
+                print("INFO|RFC 8908 verlangt application/captive+json.")
+                print("INFO|Mit application/json erkennen manche Geraete")
+                print("INFO|die Antwort nicht als solche.")
+    except Exception as e:
+        print("FEHL|Captive-Portal-API: %s" % type(e).__name__)
+'
+
+# Ein zweiter DHCP-Server. Der Fehler, der sonntags die Haelfte der
+# Handys kostet und von dem man am Rechner nichts merkt.
+if [ "$(id -u)" = "0" ]; then
+  KARTE="$(ip -o -4 addr show 2>/dev/null | awk -v a="$ADR" '$4 ~ "^"a"/" {print $2; exit}')"
+  if [ -z "$KARTE" ]; then
+    warn "Ohne die Karte zu $ADR kein DHCP-Rundruf moeglich."
+  else
+    AUSGABE="$("$PYJSON" "$ORDNER/dhcp_umschau.py" "$KARTE" 4 2>&1)"
+    ALLE="$(printf '%s\n' "$AUSGABE" | awk -F'|' '$1=="SERVER"{print $2}')"
+    ANDERE="$(printf '%s\n' "$ALLE" | grep -v "^$ADR$" | grep -v '^$')"
+    if [ -n "$ANDERE" ]; then
+      fehl "Ein zweiter DHCP-Server antwortet: $(echo $ANDERE)"
+      info "Am Zugangspunkt ist DHCP noch eingeschaltet. Dann vergeben"
+      info "zwei Server Adressen, und welcher zuerst antwortet,"
+      info "entscheidet der Zufall. Die Handys aus dem falschen Topf"
+      info "finden diesen Rechner nicht."
+      info "Am Zugangspunkt DHCP ausschalten. Siehe AUFSTELLEN.md."
+    elif echo "$ALLE" | grep -q "^$ADR$"; then
+      gut "nur dieser Rechner verteilt Adressen"
+    else
+      fehl "Auf $KARTE verteilt niemand Adressen, auch wir nicht."
+      info "Kein Handy bekommt eine Adresse. Laeuft dnsmasq, und steht"
+      info "in $CONF die richtige Schnittstelle?"
+    fi
+  fi
+else
+  info "Ein zweiter DHCP-Server ist ohne Wurzelrechte nicht direkt zu"
+  info "sehen -- der Rundruf braucht Port 68. Mit sudo geprueft:"
+  info "  sudo ./pruefen.sh"
+  # Der laufende Server merkt denselben Fehler indirekt: an Handys, die
+  # mit einer Adresse ankommen, die nicht aus unserem Netz stammt.
+  mit_python '
+import json, os, sys, urllib.request
+sys.path.insert(0, ".")
+try:
+    with urllib.request.urlopen(
+            "http://127.0.0.1:%s/api/zustand" % os.environ.get("PRUEF_PORT", "8000"),
+            timeout=5) as a:
+        netz = (json.load(a).get("netz") or {})
+except Exception:
+    netz = None
+if netz is None:
+    pass
+elif netz.get("fremde_adressen"):
+    print("FEHL|Geraete mit fremden Adressen waren schon da: %s"
+          % ", ".join(netz["fremde_adressen"]))
+    print("INFO|Sie haben ihre Adresse nicht von uns. Am Zugangspunkt")
+    print("INFO|ist DHCP noch eingeschaltet.")
+else:
+    print("OK|Der Server hat bisher kein Geraet mit fremder Adresse gesehen")
+    print("INFO|Das ist ein Hinweis, kein Beweis: wer eine fremde Adresse")
+    print("INFO|hat und uns deshalb gar nicht erreicht, faellt hier nicht")
+    print("INFO|auf. Der sichere Weg ist sudo ./pruefen.sh.")
+'
+fi
+
+fi
+
 # ------------------------------------------------------------- Ollama
 blau "Ollama"
 
