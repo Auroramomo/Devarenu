@@ -39,6 +39,7 @@ import numpy as np
 
 import config
 import messprotokoll
+import ton
 import grafikkarte
 # Unter anderem Namen, weil weiter unten ein Endpunkt /api/zustand mit der
 # Funktion zustand() steht. Die wuerde das Modul im ganzen Namensraum von
@@ -1416,7 +1417,11 @@ def mikrofon_thread(lauf, geraet, segmentierer, stoppen, rate, blockgroesse,
     gewaehlt ist: ein Stereogeraet, das man auf zwei Kanaele aufmacht,
     obwohl man nur den linken will, kann an Geraeten scheitern, die
     mono problemlos hergeben."""
-    import sounddevice as sd
+    sd = ton.holen()
+    if sd is None:
+        if melder is not None:
+            melder["fehler"] = ton.grund()
+        return
 
     mehrkanal = kanal > 0
     offen_kanaele = kanaele if mehrkanal else 1
@@ -1544,7 +1549,13 @@ def rate_waehlen(geraet, wunsch=None, kanaele=1):
     kanaele muss zu dem passen, womit der Strom danach wirklich
     aufgemacht wird. Geprueft mit 1, geoeffnet mit 2, waere die Pruefung
     keine: ein Geraet kann mono koennen und stereo nicht."""
-    import sounddevice as sd
+    sd = ton.holen()
+    if sd is None:
+        # Kein PortAudio. Frueher flog der Fehler aus dem Import hier
+        # vorbei bis aus main() heraus, und systemd startete in einer
+        # Schleife neu. Jetzt ist es dasselbe Ergebnis wie ein Geraet,
+        # das keine Rate hergibt -- und der Aufseher behandelt das.
+        return None
     kandidaten = [wunsch] if wunsch else [48000, 32000, 16000, 44100]
     for rate in kandidaten:
         try:
@@ -1582,10 +1593,16 @@ def geraete_liste():
     Auswahl am Pult. Zwei getrennte Listen liefen sonst irgendwann
     auseinander, und dann zeigt das Pult eine Nummer an, die das Terminal
     anders zaehlt."""
-    import sounddevice as sd
-    apis = {i: a["name"] for i, a in enumerate(sd.query_hostapis())}
+    sd = ton.holen()
+    if sd is None:
+        return []
+    # Zugehalten: die Aufzaehlung ist es, die ALSA hunderte Zeilen
+    # "Expression 'ret' failed" auf stderr schreiben laesst.
+    with ton.stumm():
+        apis = {i: a["name"] for i, a in enumerate(sd.query_hostapis())}
+        geraete = list(enumerate(sd.query_devices()))
     zeilen = []
-    for i, g in enumerate(sd.query_devices()):
+    for i, g in geraete:
         if g["max_input_channels"] > 0:
             api = apis.get(g["hostapi"], "?")
             rang = API_RANG.get(api, 3)
@@ -1612,10 +1629,13 @@ def geraete_neu_aufzaehlen():
     den der Aufseher gebaut ist -- an der falschen Stelle wuerde er ihn
     selbst erzeugen. Deshalb steht jeder Aufruf hier unter dem Schloss der
     Tonquelle und hinter der Frage, ob ein Thread laeuft."""
-    import sounddevice as sd
+    sd = ton.holen()
+    if sd is None:
+        return False
     try:
-        sd._terminate()
-        sd._initialize()
+        with ton.stumm():
+            sd._terminate()
+            sd._initialize()
         return True
     except Exception as e:
         print(f"Geraete neu aufzaehlen fehlgeschlagen: {str(e)[:120]}")
@@ -1976,6 +1996,23 @@ class Tonquelle:
         sie ist meist ohnehin englisch, und uebersetzen liesse sie sich
         nicht, ohne sie zu verfaelschen."""
         with self._schloss:
+            # Erst fragen, dann anfassen. Vorher wurde der laufende Strom
+            # bedingungslos geschlossen und erst danach geprueft, ob das
+            # neue Geraet ueberhaupt taugt. Auf dem Gemeinderechner stand
+            # deshalb im Wechsel
+            #     "Mikrofon offen: 48000 Hz -> 16000 Hz"
+            #     "Geraetewechsel gescheitert (zurueck): Keine der
+            #      ueblichen Aufnahmeraten funktioniert mit diesem Geraet."
+            # -- die erste Zeile war die Rueckkehr, nicht der Wechsel. Ein
+            # gescheiterter Wechsel darf die laufende Quelle nicht
+            # anruehren.
+            pruef_kanaele = kanaele if kanal > 0 else 1
+            if rate_waehlen(geraet, self.wunschrate, pruef_kanaele) is None:
+                grund = ("Keine der ueblichen Aufnahmeraten funktioniert "
+                         "mit diesem Geraet.")
+                self.fehler = grund
+                return False, "kein_ton", grund
+
             vorher = (self.geraet, self.geraet_name, self.kanal, self.kanaele)
             self._anhalten()
             gelungen, grund = self._starten(geraet, kanal, kanaele)
@@ -2101,7 +2138,9 @@ class Tonquelle:
         Aufgeloest statt als None weitergereicht: am Pult soll stehen,
         welches Geraet tatsaechlich aufnimmt. "Vorgabegeraet" ist keine
         Auskunft, wenn die Frage lautet, warum kein Ton kommt."""
-        import sounddevice as sd
+        sd = ton.holen()
+        if sd is None:
+            return None
         try:
             nummer = sd.default.device[0]
             return int(nummer) if nummer is not None and nummer >= 0 else None
@@ -3262,6 +3301,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             return JSONResponse({"lage": "kein_kanal"}, status_code=400)
         if kanal < 0 or kanal >= kanaele:
             return JSONResponse({"lage": "kein_kanal"}, status_code=400)
+        # Vorher merken: ob die Schwelle zu verwerfen ist, haengt daran,
+        # ob sich wirklich etwas geaendert hat.
+        war = (tonquelle.geraet, tonquelle.kanal, tonquelle.kanaele)
         gelungen, lage, einzelheit = tonquelle.wechseln(nummer, kanal, kanaele)
         if gelungen:
             lauf.zustand["geraet"] = tonquelle.geraet
@@ -3274,9 +3316,16 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             # schlimmer als fehlen: er wuerde still zu viel verschlucken
             # oder zu viel durchlassen. Also mitlaufend, bis neu
             # eingemessen ist.
+            #
+            # Nur bei einer echten Aenderung. Wer dieselbe Quelle und
+            # denselben Kanal noch einmal waehlt -- ein Doppelklick am
+            # Pult, ein wiederholter Aufruf -- verliert sonst eine
+            # Einmessung, die weiterhin gilt.
             seg = lauf.segmentierer
-            if (lauf.zustand["schwelle"]["wert"] is not None
-                    or seg.feste_schwelle is not None):
+            anders = war != (tonquelle.geraet, tonquelle.kanal,
+                             tonquelle.kanaele)
+            if anders and (lauf.zustand["schwelle"]["wert"] is not None
+                           or seg.feste_schwelle is not None):
                 seg.feste_schwelle = None
                 lauf.zustand["schwelle"] = {"wert": None, "gemessen": None}
                 print("Schwelle verworfen: sie galt der alten Tonquelle. "

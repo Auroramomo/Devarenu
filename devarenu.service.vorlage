@@ -15,10 +15,30 @@
 #   "loginctl enable-linger". Das geht, ist aber eine Bedingung mehr, und
 #   ihr Fehlen zeigt sich als "Dienst startet nicht", ohne zu sagen warum.
 #
-# PipeWire wird nicht gebraucht: der Server spricht ueber PortAudio
-# direkt ALSA an (hw:X,Y). Ohne Sitzung faellt der Zugriff ueber die
-# uaccess-ACL weg, deshalb SupplementaryGroups=audio -- so haengt es
-# nicht daran, ob jemand usermod ausgefuehrt und sich neu angemeldet hat.
+# Der Server spricht ueber PortAudio direkt ALSA an (hw:X,Y). Ohne
+# Sitzung faellt der Zugriff ueber die uaccess-ACL weg, deshalb
+# SupplementaryGroups=audio -- so haengt es nicht daran, ob jemand
+# usermod ausgefuehrt und sich neu angemeldet hat.
+#
+# ACHTUNG, hier stand frueher "PipeWire wird nicht gebraucht". Das gilt
+# so nicht mehr. Auf Ubuntu 26.04 ist PortAudio MIT Pulse-Backend
+# gebaut, und Pa_Initialize versucht das zuerst. Ohne angemeldete
+# Sitzung gibt es keinen PulseAudio-Server, und der Import von
+# sounddevice bricht ab, bevor ALSA ueberhaupt drankommt:
+#
+#     PulseAudio_Initialize: Can't connect to server
+#
+# Der Server ueberlebt das seit 0.2.9 -- er laeuft ohne Tonquelle
+# weiter, statt den Dienst in eine Neustartschleife zu schicken. Ton
+# gibt es dadurch aber nicht.
+#
+# PULSE_SERVER auf einen leeren Wert bringt PortAudio dazu, das
+# Pulse-Backend zu ueberspringen und ALSA zu nehmen. Gemessen ist das
+# NOCH NICHT -- auf dem Entwicklungsrechner laeuft eine Sitzung, dort
+# faellt der Fall nicht an. Wer den Gemeinderechner aufstellt: erst
+# ./pruefen.sh, Abschnitt Ton. Steht dort "PortAudio laedt nicht",
+# diese Zeile einkommentieren und den Dienst neu starten.
+#Environment=PULSE_SERVER=
 
 [Unit]
 Description=Devarenu, Live-Uebersetzung im Gottesdienst

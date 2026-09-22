@@ -95,6 +95,50 @@ Befehl zum Nachholen.
 - [ ] Stromausfall nachstellen: Stecker ziehen, wieder einschalten,
       nichts tippen. Läuft die Übersetzung?
 
+## Tonquelle ohne Sitzung
+
+**Der häufigste Grund, warum der Dienst keinen Ton bekommt.**
+
+Der Rechner soll headless laufen, also ohne dass sich jemand anmeldet.
+Genau dann gibt es keinen PulseAudio-Server. PortAudio ist auf Ubuntu
+26.04 mit Pulse-Backend gebaut und versucht das als Erstes; schlägt es
+fehl, kommt der Import von `sounddevice` gar nicht bis ALSA:
+
+```
+PulseAudio_Initialize: Can't connect to server
+```
+
+Bis 0.2.8 hat der Dienst daran abgebrochen und ist in eine
+Neustartschleife gelaufen — auf einem Gemeinderechner 42 Mal. **Seit
+0.2.9 läuft der Server weiter**, meldet die fehlende Tonquelle am Pult
+und nimmt nichts auf. Das ist besser, aber immer noch kein Ton.
+
+- [ ] Nach dem Einrichten `./pruefen.sh` laufen lassen. Unter **Ton**
+      muss stehen: *PortAudio lädt*. Steht dort *PortAudio lädt nicht*,
+      ist es dieser Fall.
+
+- [ ] Dann in `/etc/systemd/system/devarenu.service` die vorbereitete
+      Zeile einkommentieren und neu starten:
+
+      ```
+      Environment=PULSE_SERVER=
+      ```
+      ```
+      sudo systemctl daemon-reload && sudo systemctl restart devarenu
+      ./pruefen.sh
+      ```
+
+      Damit überspringt PortAudio das Pulse-Backend und nimmt ALSA.
+
+- [ ] Hilft das nicht, ist der zweite Weg eine Nutzer-Unit mit
+      `loginctl enable-linger <benutzer>`. Dann existiert eine Sitzung
+      ohne Anmeldung, und PulseAudio läuft. Das ist aufwendiger und
+      ordnet nicht gegen `ollama.service` — deshalb erst der Weg oben.
+
+**Ungeprüft:** ob `PULSE_SERVER=` bei diesem PortAudio-Build genügt.
+Auf dem Entwicklungsrechner läuft eine Sitzung, dort tritt der Fall
+nicht auf. Wer das misst, trägt das Ergebnis hier ein.
+
 ## Tonquelle
 
 - [ ] Am Pult unter Einrichtung: ist das Predigermikro in der Liste?

@@ -416,6 +416,27 @@ else
   info "  sudo usermod -aG audio $BENUTZER"
 fi
 
+# Laesst sich PortAudio ueberhaupt laden? Vor dieser Frage ist jede
+# Geraeteliste sinnlos. Auf einem Rechner ohne angemeldete Sitzung gibt
+# es keinen PulseAudio-Server, und ein PortAudio mit Pulse-Backend
+# scheitert dann schon beim Import.
+if [ -n "$PYJSON" ] && [ -f ton.py ]; then
+  TONGRUND="$("$PYJSON" -c "
+import sys; sys.path.insert(0, '.')
+import ton
+print('' if ton.da() else ton.grund())
+" 2>/dev/null | tail -1)"
+  if [ -z "${TONGRUND:-}" ]; then
+    gut "PortAudio laedt"
+  else
+    fehl "PortAudio laedt nicht: ${TONGRUND}"
+    info "Der Server laeuft trotzdem weiter, nimmt aber nichts auf."
+    info "Haeufigste Ursache auf einem Rechner ohne Anmeldung: es gibt"
+    info "keinen PulseAudio-Server. Siehe AUFSTELLEN.md, Abschnitt"
+    info "\"Tonquelle ohne Sitzung\"."
+  fi
+fi
+
 # Der wichtigste Punkt der ganzen Durchsicht -- und der, an dem dieses
 # Skript zuerst falsch lag.
 #
