@@ -82,9 +82,17 @@ if command -v systemctl >/dev/null && systemctl cat devarenu >/dev/null 2>&1; th
        info "ist -- der wahrscheinlichste Grund fuer den Befund." ;;
   esac
 else
-  warn "Kein Dienst devarenu eingerichtet. Geprueft wird der Benutzer,"
-  info "der hier angemeldet ist."
-  DBENUTZER="$(id -un)"
+  warn "Kein Dienst devarenu eingerichtet."
+  # Nicht "id -un": unter sudo ist das root, und dann pruefte dieses
+  # Skript /run/user/0 -- einen Ordner, den es meist gar nicht gibt, und
+  # der mit dem Ton dieses Rechners nichts zu tun hat. Gesucht ist der
+  # Mensch, der das Skript aufgerufen hat, nicht die Rolle, in der es
+  # gerade laeuft.
+  DBENUTZER="${SUDO_USER:-$(id -un)}"
+  info "Geprueft wird stattdessen der Benutzer $DBENUTZER."
+  if [ -n "${SUDO_USER:-}" ]; then
+    info "(Nicht root: unter sudo waere das der falsche Ordner.)"
+  fi
 fi
 
 DUID="$(id -u "$DBENUTZER" 2>/dev/null)"

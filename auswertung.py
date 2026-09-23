@@ -168,10 +168,29 @@ def realtime(zeilen, kopf):
         print("  Keine Tondauern aufgezeichnet.")
         return
 
+    # Bis 0.2.10 stand hier eine einzige Zahl. Aeltere Messungen
+    # tragen sie noch, neuere eine Tabelle -- beide muessen lesbar
+    # bleiben, sonst sind die alten Laeufe stumm.
     tempo = (kopf or {}).get("live_tempo")
     if tempo:
         print(f"  LIVE_TEMPO = {tempo} ist bereits eingerechnet: Piper")
-        print(f"  spricht um diesen Faktor schneller.")
+        print(f"  spricht um diesen Faktor schneller. (Messung vor 0.2.11)")
+    tabelle = (kopf or {}).get("tempo")
+    if tabelle:
+        print(f"  Tempo je Stimme, Aufschlag {tabelle.get('aufschlag')}, "
+              f"global {tabelle.get('global')}.")
+        je = tabelle.get("je_stimme") or {}
+        if je:
+            # Nur die Stimmen, um die es in diesem Lauf ging. Die ganze
+            # Tabelle waeren sechsundzwanzig Eintraege auf einer Zeile,
+            # und davon liest niemand mehr etwas.
+            gefragt = {k: v for k, v in sorted(je.items())
+                       if k.split("_")[0].lower() in ton}
+            if gefragt:
+                print("  Eingerechnet:")
+                for k, v in gefragt.items():
+                    print(f"    {k:32} {v}")
+            print(f"  ({len(je)} Stimmen in der Tabelle insgesamt)")
     print()
     print(f"{'Sprache':9} {'Ton':>9} {'Original':>10} {'RTF':>7}   Urteil")
     for sp in sorted(ton):

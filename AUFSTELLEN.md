@@ -394,6 +394,117 @@ sudo ./wiederherstellen.sh --systempakete
 Holt es aus dem Reparaturvorrat. Danach liegt es bereit, ist aber aus —
 eingeschaltet wird es allein von `netz_einrichten.sh`.
 
+## Sprechtempo je Stimme
+
+### Warum die Übersetzung schneller spricht als der Prediger
+
+Eine Übersetzung braucht gesprochen fast immer länger als das Original.
+Ohne Ausgleich wächst der Rückstand über die Predigt hinweg — unabhängig
+davon, wie schnell die Grafikkarte ist. Piper spricht deshalb schneller.
+
+Bis 0.2.10 stand dafür **eine** Zahl in `config.py`, ausgelegt auf
+Russisch und Persisch. Das war zu grob: gemessen wurde je Sprache, aber
+mit genau einer Stimme je Sprache — der Sprachwert war in Wahrheit der
+Wert dieser Stimme. Bei mehreren Stimmen fällt es auf:
+
+| Sprache | Stimme A | Stimme B | Stimme C | Spannweite |
+|---|---|---|---|---|
+| Portugiesisch | 1,04 | 1,45 | 1,37 | **0,41** |
+| Spanisch | 1,02 | 1,31 | 1,27 | **0,29** |
+| zwischen den Sprachmitteln | | | | **0,01** |
+
+Seit 0.2.11 hängt das Tempo deshalb an der **Stimme**. Französisch
+wurde vorher um volle 24 Prozentpunkte zu stark beschleunigt und klang
+gehetzt, ohne dass etwas gewonnen war.
+
+### Was am Pult davon zu sehen ist
+
+Nichts — und das ist Absicht. Das Tempo stellt sich selbst ein.
+`./pruefen.sh` zeigt im Abschnitt **Sprechtempo**, welcher Wert je
+eingeschalteter Sprache tatsächlich gilt und woher er kommt: gemessene
+Stimme, Sprache als Rückfall, oder Vorgabe.
+
+### Drei Sprachen stoßen an die Obergrenze
+
+Arabisch, Niederländisch und Serbisch bräuchten mehr als Faktor 1,6, um
+den Rückstand vollständig aufzuholen. Über 1,6 fällt die
+Verständlichkeit — gemessen in der Reihe 0.2.5 — deshalb wird dort
+gedeckelt. Diese drei Sprachen hinken im Gottesdienst hinterher. Das ist
+kein Fehler, sondern die bewusste Wahl: lieber etwas später und
+verständlich als pünktlich und unverständlich.
+
+Wer es trotzdem probieren will, hebt `TEMPO_MAX` in `config.py` — und
+hört sich das Ergebnis vorher an.
+
+### Wenn alles hinterherhängt
+
+```
+TEMPO_GLOBAL = 1.05    in config.py
+```
+
+Der Notfallhebel. Er hebt oder senkt alle Sprachen auf einmal, Vorgabe
+1.0. Gedacht für den Sonntag, an dem keine Zeit ist, einzelne Stimmen
+nachzumessen. `./pruefen.sh` meldet, wenn er nicht auf 1,00 steht —
+denn als Dauerzustand ist er der falsche Weg.
+
+### Nachmessen
+
+```
+python laengenfaktor.py --stimmen-laden --ziel-ordner ergebnisse/stimmprobe/voices
+python laengenfaktor.py --je-stimme
+```
+
+Der erste Befehl holt die Stimmen — **nicht** nach `voices/`: dort steht
+nur, was ausgeliefert wird, und was dort liegt, bietet das Pult an. Der
+zweite misst und schreibt nach `messungen/laengenfaktor_stimmen.json` —
+die Datei liegt im Repo, denn sie ist der Beleg für jede Zahl in der
+Tempotabelle. Die Übersetzungen selbst bleiben unter `ergebnisse/`:
+sie enthalten Predigttext, und das Repo ist öffentlich.
+
+Zwei Dinge, die man dabei falsch machen kann:
+
+- **Bezugsgröße.** Die Datei nennt sie ausdrücklich: `gegen_deutsch`,
+  also die Dauer der deutschen Piper-Ausgabe desselben Satzes. Daneben
+  steht `gegen_original`, die echte Sprechdauer des Predigers. Die
+  beiden Reihen dürfen nicht gemischt werden.
+- **Piper würfelt.** Der Dauervorhersager von VITS ist stochastisch:
+  derselbe Satz, dieselbe Stimme, zweimal gesprochen, ergibt bis zu
+  10 % verschiedene Längen. Gemessen wird deshalb mit
+  `--noise-w-scale 0`. Ohne das kam die deutsche Stimme gegen sich
+  selbst auf 1,017 statt 1,000 — ein Versatz, der sonst in jedem
+  abgeleiteten Wert steckt. Im Betrieb bleibt der Zufall an; er ist
+  einer der Gründe für den Aufschlag von sechs Prozent.
+
+## Sprachen ohne geprüftes Fachwortverzeichnis
+
+Eine Sprache hat drei Zustände, und sie sehen am Pult verschieden aus:
+
+| Zustand | Am Pult | Beim Zuhörer |
+|---|---|---|
+| geprüft | normal | normal |
+| Glossar da, ungeprüft | gestrichelt | gestrichelt, Punkt |
+| gar kein Glossar | gepunktet | gepunktet, Kreis |
+
+Von 21 Sprachen haben vier ein Fachwortverzeichnis. Wer Rumänisch
+dazuschaltet, bekommt eine Übersetzung ohne jede Terminologie: Sabbat,
+Gemeinde und Vereinigung werden wörtlich übertragen.
+
+**Beim Einschalten legt der Server einen Hinweis in den Briefkasten des
+Pults** — mit ⚙ und Absender „Devarenu", damit er nicht wie eine
+Zuschrift aus dem Saal aussieht. Kein Fenster springt auf: am Pult darf
+im Gottesdienst nichts aufpoppen.
+
+Der Hinweis bleibt stehen, bis er einmal geöffnet wurde. Danach fragt
+dieselbe Sprache nicht wieder — auch nach einem Neustart nicht, die
+Quittierung steht in `zustand.json`. An der Sprache selbst bleibt die
+Zeile „experimentell, mehr dazu in der Nachricht".
+
+In der Nachricht steht die Bitte um Kontakt. Gesucht wird jemand, der
+die Sprache als Muttersprache spricht und Deutsch oder Englisch
+versteht, rund eine Stunde Zeit für eine Liste mit 93 Begriffen. Das
+ist der einzige Weg, wie aus einer experimentellen Sprache eine
+geprüfte wird.
+
 ## Im Gottesdienst
 
 - [ ] Einmessen mit dem echten Prediger am echten Mikrofon.

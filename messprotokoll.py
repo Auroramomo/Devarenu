@@ -132,7 +132,17 @@ class Protokoll:
         nur, wenn beide Zahlen nebeneinander stehen."""
         felder.setdefault("fassung", config.VERSION)
         felder.setdefault("modell", config.LIVE_MODELL)
-        felder.setdefault("live_tempo", config.LIVE_TEMPO)
+        # Seit 0.2.11 keine einzelne Zahl mehr, sondern eine Tabelle:
+        # das Tempo haengt an der Stimme. Aufgeschrieben wird, was
+        # tatsaechlich galt, sonst ist die Messung spaeter nicht
+        # einzuordnen.
+        felder.setdefault("tempo", {
+            "aufschlag": config.TEMPO_AUFSCHLAG,
+            "global": config.TEMPO_GLOBAL,
+            "vorgabe": config.TEMPO_VORGABE,
+            "je_stimme": dict(config.TEMPO_STIMME),
+            "je_sprache": dict(config.TEMPO_SPRACHE),
+        })
         felder.setdefault("begonnen", datetime.now().isoformat(timespec="seconds"))
         (self.ordner / "lauf.json").write_text(
             json.dumps(felder, ensure_ascii=False, indent=2) + "\n",

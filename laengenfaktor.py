@@ -14,6 +14,42 @@ Ablauf:
     python laengenfaktor.py --pruefen         # was fehlt?
     python laengenfaktor.py --stimmen-laden   # Stimmen holen
     python laengenfaktor.py                   # messen
+    python laengenfaktor.py --je-stimme       # je Stimme statt je Sprache
+
+JE STIMME, NICHT JE SPRACHE
+---------------------------
+Der obere Weg misst eine Sprache mit genau EINER Stimme -- der aus
+config.STIMMEN. Der Sprachwert ist damit in Wahrheit der Wert dieser
+einen Stimme, und das faellt erst auf, wenn man mehrere vergleicht:
+
+    es   1.18 / 1.19 / 1.00      Spannweite 0.19
+    pt   1.19 / 0.92 / 1.22      Spannweite 0.30
+    zwischen den Sprachmitteln   Spannweite 0.01
+
+Gemessen in ergebnisse/stimmprobe/laengen.txt. Die Streuung zwischen
+den Stimmen EINER Sprache ist groesser als die zwischen den Sprachen.
+Der Faktor gehoert also an die Stimme; die Sprache ist nur der
+Rueckfall fuer Stimmen, die niemand gemessen hat.
+
+--je-stimme misst jede Stimme, die auf der Platte liegt, und schreibt
+das Ergebnis nach messungen/laengenfaktor_stimmen.json -- verfolgt,
+weil es der Beleg fuer die Tempotabelle in config.py ist. Die
+Uebersetzungen selbst bleiben unter ergebnisse/: sie enthalten
+Predigttext, und das Repo ist oeffentlich.
+
+ZWEI BEZUGSGROESSEN, DIE MAN NICHT MISCHEN DARF
+-----------------------------------------------
+    gegen_deutsch    Zieldauer geteilt durch die Dauer der DEUTSCHEN
+                     PIPER-Ausgabe desselben Satzes. Misst allein den
+                     Unterschied zwischen den Stimmen.
+    gegen_original   Zieldauer geteilt durch die ECHTE Sprechdauer des
+                     Predigers. Misst zusaetzlich, ob Piper generell
+                     anders schnell spricht als ein Mensch.
+
+Fuer die Tempotabelle gilt gegen_deutsch: gesucht ist, wie viel
+laenger diese Stimme fuer denselben Inhalt braucht. Welche Groesse
+gilt, steht in der JSON-Datei mit dabei -- sonst steht in einem halben
+Jahr wieder jemand davor.
 """
 
 import argparse
@@ -73,7 +109,7 @@ def piper_pfad():
     return None
 
 
-def sprich(befehl, modell, text, ziel, tempo=1.0):
+def sprich(befehl, modell, text, ziel, tempo=1.0, fest=False):
     """Synthetisiert und gibt die Audiodauer in Sekunden zurueck.
 
     Der Text geht ueber eine UTF-8-Datei und den Schalter -i, NICHT ueber
@@ -85,7 +121,24 @@ def sprich(befehl, modell, text, ziel, tempo=1.0):
 
     tempo steuert --length-scale. Piper rechnet dabei umgekehrt: kleinere
     Werte bedeuten kuerzere Phoneme, also schnelleres Sprechen. Ein
-    gewuenschtes Tempo von 1,2 entspricht length-scale 1/1,2."""
+    gewuenschtes Tempo von 1,2 entspricht length-scale 1/1,2.
+
+    fest=True schaltet den Zufall in der Dauervorhersage ab. Piper baut
+    auf VITS, und dessen Dauervorhersager ist stochastisch: derselbe
+    Satz, dieselbe Stimme, zweimal gesprochen, ergibt verschiedene
+    Laengen. Gemessen an einem deutschen Satz, sechs Durchgaenge:
+
+        Vorgabe             4.49  4.68  4.64  4.97  4.67  4.71
+                            Spanne 10,1 %, Streuung 3,0 %
+        --noise-w-scale 0   4.377 sechsmal, Spanne 0,0 %
+
+    Fuer eine Messung ist das entscheidend. Ohne den Schalter kam die
+    deutsche Stimme gegen sich selbst auf 1,017 statt 1,000 -- ein
+    Versatz, der sonst in jedem abgeleiteten Wert gesteckt haette.
+
+    Im Betrieb bleibt der Zufall an: er macht die Stimme lebendiger,
+    und die Schwankung ist zufaellig, nicht systematisch. Sie ist einer
+    der Gruende, warum auf den gemessenen Wert ein Aufschlag kommt."""
     ziel = Path(ziel)
     ziel.unlink(missing_ok=True)
     eingabe = ziel.with_suffix(".txt")
@@ -94,6 +147,8 @@ def sprich(befehl, modell, text, ziel, tempo=1.0):
     argumente = befehl + ["-m", str(modell), "-i", str(eingabe), "-f", str(ziel)]
     if abs(tempo - 1.0) > 1e-6:
         argumente += ["--length-scale", f"{1.0/tempo:.4f}"]
+    if fest:
+        argumente += ["--noise-w-scale", "0"]
 
     try:
         r = subprocess.run(argumente, capture_output=True, timeout=180)
@@ -203,9 +258,19 @@ def pruefen():
     print(f"\nwoerter.json: {'vorhanden' if quelle.exists() else 'FEHLT'}")
 
 
-def stimmen_laden():
+def stimmen_laden(ordner=None):
+    """Holt die Stimmen aus config.STIMMEN.
+
+    Der Zielordner ist wichtig und nicht bloss Geschmack: in voices/
+    steht, was ausgeliefert wird -- was dort liegt, bietet das Pult an.
+    Stimmen, die nur gemessen werden sollen, gehoeren deshalb nach
+    ergebnisse/stimmprobe/voices/. Sonst waechst die Auswahl im
+    Gottesdienst um Stimmen, die niemand gehoert hat."""
     import urllib.request
-    STIMMEN_ORDNER.mkdir(exist_ok=True)
+    global STIMMEN_ORDNER
+    if ordner is not None:
+        STIMMEN_ORDNER = Path(ordner)
+    STIMMEN_ORDNER.mkdir(parents=True, exist_ok=True)
     da = gefundene_stimmen()
 
     for sp, liste in STIMMEN.items():
@@ -437,6 +502,218 @@ def messen(anzahl, modell, behalten=False):
     print(f"Einzelheiten in {ziel.name}")
 
 
+# ------------------------------------------------------- Je Stimme
+
+def saetze_aus_ton(datei, anzahl):
+    """Deutsche Saetze samt ECHTER Sprechdauer, aus einer Tonaufnahme.
+
+    Frueher kam das aus ergebnisse/woerter.json, geschrieben von
+    latenz_simulation.py. Beides gibt es nicht mehr; der Aufruf lief
+    deshalb sofort in einen Abbruch. Hier wird stattdessen direkt
+    transkribiert -- dieselbe Quelle, ein Schritt weniger, und die
+    Wortzeiten kommen aus derselben Erkennung wie im Betrieb.
+    """
+    # Vor faster_whisper: ctranslate2 darunter oeffnet libcublas erst
+    # beim ersten transcribe. Liegt sie nur in der venv, findet der
+    # Lader sie nicht, und es scheitert mit
+    # "Library libcublas.so.12 is not found". grafikkarte.vorladen()
+    # haengt sie vorher ein -- genau wie server.py es tut.
+    import grafikkarte
+    geladen = grafikkarte.vorladen()
+    if geladen:
+        print(f"CUDA-Bibliotheken vorgeladen: {', '.join(geladen)}")
+    from faster_whisper import WhisperModel
+    print(f"Transkribiere {Path(datei).name} ...", flush=True)
+    modell = WhisperModel(config.WHISPER_MODELL,
+                          device=config.WHISPER_DEVICE,
+                          compute_type=config.WHISPER_COMPUTE)
+    segmente, _ = modell.transcribe(str(datei),
+                                    language=config.WHISPER_SPRACHE,
+                                    beam_size=config.WHISPER_BEAM,
+                                    vad_filter=config.WHISPER_VAD,
+                                    word_timestamps=True)
+    saetze = []
+    for seg in segmente:
+        text = seg.text.strip()
+        # Sehr kurze Segmente verzerren: Piper haengt an jede Ausgabe
+        # Ein- und Ausklang an, und bei zwei Woertern faellt das ins
+        # Gewicht. Sehr lange sind meist zwei Saetze ohne Punkt.
+        if not (8 <= len(text.split()) <= 30):
+            continue
+        dauer = seg.end - seg.start
+        if dauer < 1.5:
+            continue
+        saetze.append({"text": text, "dauer": dauer,
+                       "woerter": len(text.split())})
+    if not saetze:
+        sys.exit(f"Aus {datei} liessen sich keine brauchbaren Saetze "
+                 f"gewinnen.")
+    schritt = max(1, len(saetze) // anzahl)
+    return saetze[::schritt][:anzahl]
+
+
+def stimmen_auf_platte():
+    """Alle Stimmen, die hier liegen, nach Sprache sortiert.
+
+    Zwei Orte, und der Unterschied ist Absicht: in voices/ steht, was
+    ausgeliefert wird; in ergebnisse/stimmprobe/voices/ liegen die
+    Kandidaten, die nur zum Vergleich geholt wurden. Gemessen werden
+    beide, aber welche ausgeliefert wird, steht mit im Ergebnis --
+    denn nur deren Wert kommt spaeter in config.py.
+    """
+    orte = [(STIMMEN_ORDNER, True),
+            (config.ERGEBNIS_ORDNER / "stimmprobe" / "voices", False)]
+    ausgeliefert = {pfad.split("/")[-1] for pfad in config.STIMMEN.values()}
+    gefunden = {}
+    for ordner, _ in orte:
+        if not ordner.exists():
+            continue
+        for onnx in sorted(ordner.glob("*.onnx")):
+            name = onnx.stem
+            # Der Sprachcode steckt vorn im Dateinamen: es_ES-davefx-medium
+            sp = name.split("_")[0].lower()
+            if sp not in config.SPRACHNAMEN:
+                continue
+            # Derselbe Name an zwei Orten: der erste gewinnt, und das ist
+            # voices/ -- also die ausgelieferte Datei.
+            if any(st["name"] == name for st in gefunden.get(sp, [])):
+                continue
+            gefunden.setdefault(sp, []).append(
+                {"name": name, "pfad": str(onnx)[:-5],
+                 "ausgeliefert": name in ausgeliefert})
+    return gefunden
+
+
+def je_stimme(anzahl, modell, tondatei, nur=None):
+    """Misst jede Stimme einzeln gegen dieselbe deutsche Referenz."""
+    befehl = piper_pfad()
+    if not befehl:
+        sys.exit("Piper nicht gefunden. pip install piper-tts")
+
+    alle = stimmen_auf_platte()
+    if "de" not in alle:
+        sys.exit("Ohne deutsche Stimme gibt es keine Vergleichsbasis. "
+                 "Abbruch.")
+    if nur:
+        alle = {sp: st for sp, st in alle.items() if sp in nur or sp == "de"}
+
+    # Die deutsche Referenz ist die ausgelieferte Stimme, nicht
+    # irgendeine: alle Zielwerte haengen daran, und sie muss dieselbe
+    # sein wie im Betrieb.
+    deutsch = next((st for st in alle["de"] if st["ausgeliefert"]),
+                   alle["de"][0])
+    print(f"Deutsche Referenz: {deutsch['name']}")
+
+    saetze = saetze_aus_ton(tondatei, anzahl)
+    print(f"{len(saetze)} Saetze, "
+          f"{sum(s['dauer'] for s in saetze):.0f}s Original\n")
+
+    ordner = Path(tempfile.mkdtemp())
+    # Je Sprache einmal uebersetzen, dann mit jeder Stimme dieser
+    # Sprache sprechen. Die Uebersetzung ist der teure Teil und haengt
+    # nicht an der Stimme.
+    #
+    # Aufgehoben wird sie auch: eine zweite Messreihe mit anderen
+    # Piper-Schaltern soll nicht noch einmal das Sprachmodell bemuehen,
+    # und sie soll auf DENSELBEN Texten laufen -- sonst vergliche man
+    # zwei Dinge auf einmal.
+    puffer_datei = config.ERGEBNIS_ORDNER / "laengenfaktor_texte.json"
+    kennung = f"{Path(tondatei).name}|{anzahl}|{modell}"
+    puffer = {}
+    if puffer_datei.exists():
+        try:
+            gespeichert = json.loads(puffer_datei.read_text(encoding="utf-8"))
+            if gespeichert.get("kennung") == kennung:
+                puffer = gespeichert.get("texte", {})
+                print(f"Uebersetzungen aus {puffer_datei.name} uebernommen.")
+        except Exception:
+            puffer = {}
+
+    texte = {"de": [s["text"] for s in saetze]}
+    ziele = [sp for sp in sorted(alle) if sp != "de"]
+    for sp in ziele:
+        if len(puffer.get(sp, [])) == len(saetze):
+            texte[sp] = puffer[sp]
+            continue
+        print(f"  uebersetze nach {config.SPRACHNAMEN.get(sp, sp)} ...",
+              flush=True)
+        texte[sp] = [uebersetzen(s["text"], sp, modell) for s in saetze]
+    puffer_datei.write_text(json.dumps(
+        {"kennung": kennung, "texte": texte}, ensure_ascii=False, indent=2),
+        encoding="utf-8")
+
+    # Zuerst Deutsch: ohne diese Dauern gibt es keinen Bezug.
+    deutsch_dauer = []
+    for i, text in enumerate(texte["de"]):
+        deutsch_dauer.append(
+            sprich(befehl, deutsch["pfad"], text, ordner / f"de_{i}.wav",
+                   fest=True))
+
+    ergebnis = {}
+    for sp in [s for s in sorted(alle)]:
+        for st in alle[sp]:
+            gd, go = [], []
+            for i, text in enumerate(texte[sp]):
+                try:
+                    dauer = sprich(befehl, st["pfad"], text,
+                                   ordner / f"{st['name']}_{i}.wav",
+                                   fest=True)
+                except Exception as e:
+                    print(f"    {st['name']}: {type(e).__name__}")
+                    break
+                if deutsch_dauer[i] > 0:
+                    gd.append(dauer / deutsch_dauer[i])
+                if saetze[i]["dauer"] > 0:
+                    go.append(dauer / saetze[i]["dauer"])
+            if not gd:
+                continue
+            ergebnis[st["name"]] = {
+                "sprache": sp,
+                "ausgeliefert": st["ausgeliefert"],
+                "gegen_deutsch": round(statistics.median(gd), 3),
+                "gegen_original": round(statistics.median(go), 3) if go else None,
+                "streuung": round(statistics.pstdev(gd), 3) if len(gd) > 1 else 0.0,
+                "saetze": len(gd),
+            }
+            marke = " <- ausgeliefert" if st["ausgeliefert"] else ""
+            print(f"  {st['name']:34} {ergebnis[st['name']]['gegen_deutsch']:5.2f}x"
+                  f"  (Streuung {ergebnis[st['name']]['streuung']:.2f}){marke}")
+
+    print("\nJe Sprache, nur die ausgelieferte Stimme:")
+    for sp in sorted(alle):
+        aus = [(n, w) for n, w in ergebnis.items()
+               if w["sprache"] == sp and w["ausgeliefert"]]
+        for n, w in aus:
+            print(f"  {config.SPRACHNAMEN.get(sp, sp):22} "
+                  f"{w['gegen_deutsch']:5.2f}x   {n}")
+
+    # Verfolgt und nicht unter ergebnisse/: diese Datei ist der Beleg
+    # fuer die Tempotabelle in config.py. Der Textpuffer daneben bleibt
+    # draussen -- er enthaelt Predigtsaetze, und das Repo ist oeffentlich.
+    ziel = config.BASIS / "messungen" / "laengenfaktor_stimmen.json"
+    ziel.parent.mkdir(exist_ok=True)
+    ziel.write_text(json.dumps({
+        "bezugsgroesse": "gegen_deutsch",
+        # Ohne diesen Schalter waere jede Zahl hier um wenige Prozent
+        # verwuerfelt: Piper sagt die Dauer stochastisch voraus.
+        "noise_w_scale": 0,
+        "bezugsgroesse_erklaerung":
+            "Zieldauer geteilt durch die Dauer der deutschen "
+            "Piper-Ausgabe desselben Satzes. Fuer die Tempotabelle in "
+            "config.py gilt genau diese Groesse. gegen_original steht "
+            "daneben und bezieht sich auf die echte Sprechdauer des "
+            "Predigers -- die beiden Reihen duerfen NICHT gemischt "
+            "werden.",
+        "deutsche_referenz": deutsch["name"],
+        "tondatei": Path(tondatei).name,
+        "modell": modell,
+        "saetze": len(saetze),
+        "stimmen": ergebnis,
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"\nGeschrieben: {ziel}")
+    return ergebnis
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--pruefen", action="store_true")
@@ -446,13 +723,25 @@ def main():
     p.add_argument("--behalten", action="store_true",
                    help="WAV-Dateien in ergebnisse/tts ablegen statt ins "
                         "Temp-Verzeichnis. Zum Anhoeren, besonders Farsi.")
+    p.add_argument("--je-stimme", action="store_true",
+                   help="Jede Stimme einzeln messen statt eine je Sprache.")
+    p.add_argument("--ton", default="ausschnitt.mp3",
+                   help="Aufnahme, aus der die deutschen Saetze kommen.")
+    p.add_argument("--nur", default="",
+                   help="Nur diese Sprachen, mit Komma getrennt.")
+    p.add_argument("--ziel-ordner", default="",
+                   help="Wohin --stimmen-laden legt. Vorgabe voices/. "
+                        "Zum Messen: ergebnisse/stimmprobe/voices")
     a = p.parse_args()
 
     config.ERGEBNIS_ORDNER.mkdir(exist_ok=True)
     if a.pruefen:
         pruefen()
     elif getattr(a, "stimmen_laden", False):
-        stimmen_laden()
+        stimmen_laden(getattr(a, "ziel_ordner", "") or None)
+    elif getattr(a, "je_stimme", False):
+        nur = [x.strip() for x in a.nur.split(",") if x.strip()]
+        je_stimme(a.anzahl, a.modell, config.BASIS / a.ton, nur or None)
     else:
         messen(a.anzahl, a.modell, a.behalten)
 

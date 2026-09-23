@@ -38,3 +38,7 @@ zustand.json*
 # Repo geht per "git bundle --all" auf jeden Update-Stick. Was hier einmal
 # drin ist, traegt jede Gemeinde fuer immer mit.
 pruefung/paket_*
+
+# Ausgaben von tondiagnose.sh. Sie gehoeren zu genau einem Rechner und
+# genau einem Zeitpunkt -- im Repo waeren sie Ballast, der aelter wird.
+tonbericht*.txt

@@ -358,6 +358,11 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
 /* Gestrichelte Kontur für ungeprüfte Sprachen: fällt auf, ohne zu warnen.
    Sie funktionieren, nur hat ihre Terminologie noch niemand gegengelesen. */
 .sprachen button.ungeprueft{border-style:dashed}
+/* Der dritte Zustand. Gepunktet und mit anderem Zeichen, damit der
+   Unterschied auf den ersten Blick da ist -- sonst haette es keinen
+   Zweck, ihn ueberhaupt zu trennen. */
+.sprachen button.ohneglossar{border-style:dotted}
+.sprachen button.ohneglossar::after{content:"○"}
 .sprachen button.ungeprueft::after{content:"•";position:absolute;top:.35rem;
   right:.45rem;font-size:.7rem;opacity:.5;line-height:1}
 .sprachen button{position:relative}
@@ -612,7 +617,10 @@ async function sprachenHolen(){
         name: eintrag.name, kuerzel: eintrag.code.toUpperCase(), rtl:false};
       neu[eintrag.code] = Object.assign({}, e, {
         original: eintrag.original, ton: eintrag.ton,
-        geprueft: eintrag.geprueft});
+        geprueft: eintrag.geprueft,
+        // Getrennt vom Geprueft-Zustand: ob es ueberhaupt ein
+        // Fachwortverzeichnis gibt. Drei Zustaende, nicht zwei.
+        glossar: eintrag.glossar});
     }
     if(Object.keys(neu).length) SPRACHEN = neu;
     // Nur wenn dieser Rechner selbst das Saalnetz stellt. Haengt das
@@ -642,7 +650,8 @@ const TEXTE = {
       becherKaffee:"Kaffee", becherTee:"Tee",
       ibanKopieren:"IBAN kopieren", ibanKopiert:"Kopiert",
       ibanVonHand:"Bitte von Hand kopieren",
-      neuHinweis:"Diese Sprache ist neu und ihre Fachbegriffe hat noch niemand gegengelesen, der sie spricht. Sie funktioniert, kann aber mehr Fehler enthalten. Rückmeldungen sind sehr willkommen."},
+      neuHinweis:"Diese Sprache ist neu und ihre Fachbegriffe hat noch niemand gegengelesen, der sie spricht. Sie funktioniert, kann aber mehr Fehler enthalten. Rückmeldungen sind sehr willkommen.",
+      keinGlossar:"Für diese Sprache gibt es noch kein Fachwortverzeichnis. Begriffe wie Sabbat, Gemeinde oder Vereinigung werden wörtlich übersetzt und können dadurch schief klingen. Die Übersetzung läuft, ist aber experimentell."},
   en:{titel:"Live translation", waehlen:"Choose a language", zuhoeren:"Listen",
       erst:"Choose a language first.",
       ton:"Sound", tonAus:"Sound off", text:"Text", textAus:"Text off", sprache:"Language",
@@ -661,7 +670,8 @@ const TEXTE = {
       becherKaffee:"Coffee", becherTee:"Tea",
       ibanKopieren:"Copy IBAN", ibanKopiert:"Copied",
       ibanVonHand:"Please copy manually",
-      neuHinweis:"This language is new and its technical terms have not yet been reviewed by a native speaker. It works, but may contain more errors. Feedback is very welcome."},
+      neuHinweis:"This language is new and its technical terms have not yet been reviewed by a native speaker. It works, but may contain more errors. Feedback is very welcome.",
+      keinGlossar:"There is no glossary for this language yet. Terms like Sabbath, church or conference are translated literally and may sound off. The translation works, but it is experimental."},
   ru:{titel:"Синхронный перевод", waehlen:"Выберите язык", zuhoeren:"Слушать",
       erst:"Сначала выберите язык.",
       ton:"Звук", tonAus:"Звук выкл.", text:"Текст", textAus:"Текст выкл.", sprache:"Язык",
@@ -680,7 +690,8 @@ const TEXTE = {
       becherKaffee:"Кофе", becherTee:"Чай",
       ibanKopieren:"Скопировать IBAN", ibanKopiert:"Скопировано",
       ibanVonHand:"Скопируйте вручную",
-      neuHinweis:"Этот язык новый, его терминологию ещё не проверял носитель языка. Перевод работает, но ошибок может быть больше. Отзывы очень приветствуются."},
+      neuHinweis:"Этот язык новый, его терминологию ещё не проверял носитель языка. Перевод работает, но ошибок может быть больше. Отзывы очень приветствуются.",
+      keinGlossar:"Для этого языка пока нет словаря терминов. Такие слова, как суббота, церковь или объединение, переводятся буквально и могут звучать странно. Перевод работает, но он экспериментальный."},
   fa:{titel:"ترجمهٔ همزمان", waehlen:"زبان را انتخاب کنید", zuhoeren:"شنیدن",
       erst:"ابتدا یک زبان انتخاب کنید.",
       ton:"صدا", tonAus:"صدا خاموش", text:"متن", textAus:"متن خاموش", sprache:"زبان",
@@ -699,7 +710,8 @@ const TEXTE = {
       becherKaffee:"قهوه", becherTee:"چای",
       ibanKopieren:"کپی IBAN", ibanKopiert:"کپی شد",
       ibanVonHand:"لطفاً دستی کپی کنید",
-      neuHinweis:"این زبان تازه است و اصطلاحات تخصصی آن را هنوز کسی که به این زبان سخن می‌گوید بازبینی نکرده است. کار می‌کند، اما ممکن است خطای بیشتری داشته باشد. بازخورد شما بسیار ارزشمند است."},
+      neuHinweis:"این زبان تازه است و اصطلاحات تخصصی آن را هنوز کسی که به این زبان سخن می‌گوید بازبینی نکرده است. کار می‌کند، اما ممکن است خطای بیشتری داشته باشد. بازخورد شما بسیار ارزشمند است.",
+      keinGlossar:"برای این زبان هنوز واژه‌نامهٔ تخصصی وجود ندارد. واژه‌هایی مانند سَبَت، کلیسا یا اتحادیه تحت‌اللفظی ترجمه می‌شوند و ممکن است نادرست به نظر برسند. ترجمه کار می‌کند، اما آزمایشی است."},
 };
 
 
@@ -1161,7 +1173,11 @@ function sprachkachelnBauen(behaelter, aufKlick){
     // sichtbarer Unterschied, kein Nebendetail.
     if(!s.original && s.geprueft === false){
       b.classList.add("ungeprueft");
-      b.title = t().neuHinweis;
+      // Ohne Fachwortverzeichnis ist es nicht dasselbe wie ungeprueft:
+      // dort stehen die Begriffe fest und koennten falsch sein, hier
+      // stehen sie gar nicht fest.
+      if(s.glossar === false) b.classList.add("ohneglossar");
+      b.title = (s.glossar === false) ? t().keinGlossar : t().neuHinweis;
     }
     b.addEventListener("click", () => aufKlick(код));
     behaelter.append(b);
@@ -1238,7 +1254,8 @@ function startauswahlBauen(){
     const gewaehlt = SPRACHEN[code] || {};
     if(band){
       band.hidden = gewaehlt.original || gewaehlt.geprueft !== false;
-      band.textContent = x.neuHinweis;
+      band.textContent = (gewaehlt.glossar === false)
+        ? x.keinGlossar : x.neuHinweis;
     }
   });
 }

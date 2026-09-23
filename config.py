@@ -96,6 +96,23 @@ SPRACHNAMEN = {
     "sr": "Serbisch", "el": "Griechisch", "ka": "Georgisch",
 }
 
+# Dieselben Sprachen auf Englisch. Gebraucht fuer die englischen
+# Meldungen am Pult: "Rumänisch is switched on" ist kein englischer
+# Satz, sondern ein halb uebersetzter. Wer am Pult auf Englisch
+# umstellt, hat Gruende dafuer.
+#
+# Nur fuer Meldungen. Die Zuhoererseite nennt jede Sprache in ihrem
+# EIGENEN Namen -- wer Vietnamesisch sucht, sucht "Tiếng Việt".
+SPRACHNAMEN_EN = {
+    "de": "German", "en": "English", "ru": "Russian",
+    "fa": "Persian (Farsi)", "uk": "Ukrainian", "pl": "Polish",
+    "ro": "Romanian", "es": "Spanish", "fr": "French",
+    "pt": "Portuguese", "it": "Italian", "tr": "Turkish",
+    "ar": "Arabic", "sw": "Swahili", "nl": "Dutch",
+    "vi": "Vietnamese", "hu": "Hungarian", "cs": "Czech",
+    "sr": "Serbian", "el": "Greek", "ka": "Georgian",
+}
+
 # Sprachen, deren Fachwortverzeichnis ein Muttersprachler durchgesehen
 # hat. Alle uebrigen laufen technisch genauso, aber ihre Terminologie ist
 # maschinell erzeugt und ungeprueft. Bei Persisch hat die Pruefung acht
@@ -196,11 +213,118 @@ PARALLEL = True
 # ein Prozentpunkt weniger Compliance und mehr Auffaelligkeiten.
 LIVE_MODELL = "gemma4:12b"
 
-# Wiedergabetempo der Sprachausgabe. Gemessener Laengenfaktor ist 1,24:
-# Russisch und Persisch brauchen gesprochen 24 Prozent laenger als das
-# deutsche Original. Ohne diesen Ausgleich waechst der Rueckstand ueber
-# die Predigt hinweg, unabhaengig davon wie schnell die Karte ist.
-LIVE_TEMPO = 1.24
+# --- Wiedergabetempo der Sprachausgabe --------------------------------
+#
+# Bis 0.2.10 stand hier eine einzige Zahl: LIVE_TEMPO = 1.24, ausgelegt
+# auf Russisch und Persisch. Das war zu grob. Gemessen wurde je SPRACHE,
+# aber mit genau EINER Stimme je Sprache -- der Sprachwert war in
+# Wahrheit der Wert dieser einen Stimme. Sobald man mehrere vergleicht,
+# faellt es auf:
+#
+#     Portugiesisch   0,97 / 1,35 / 1,34      Spannweite 0,38
+#     Spanisch        0,96 / 1,22 / 1,20      Spannweite 0,26
+#     zwischen den Sprachmitteln              Spannweite 0,01
+#
+# Die Streuung zwischen den Stimmen EINER Sprache ist groesser als die
+# zwischen den Sprachen. Der Faktor gehoert also an die Stimme.
+#
+# Franzoesisch lag mit dem alten Globalwert um volle 24 Prozentpunkte
+# zu hoch: gemessen 1,00, beschleunigt wurde auf 1,24. Das klang
+# gehetzt, ohne irgendetwas zu gewinnen.
+#
+# Gemessen mit laengenfaktor.py --je-stimme, Einzelheiten und
+# Bezugsgroesse in messungen/laengenfaktor_stimmen.json. Die Datei liegt
+# im Repo, nicht unter ergebnisse/: sie ist der Beleg fuer jede Zahl
+# hier, und in einem frischen Klon wuerde sie sonst fehlen. Bezug ist die
+# deutsche Piper-Ausgabe desselben Satzes, NICHT die Sprechdauer des
+# Predigers -- die beiden Reihen duerfen nicht gemischt werden.
+TEMPO_STIMME = {
+    "ar_JO-kareem-medium": 1.53,  # Arabisch
+    "cs_CZ-jirka-medium": 1.46,  # Tschechisch
+    "de_DE-thorsten-medium": 1.00,  # Deutsch
+    "el_GR-rapunzelina-medium": 1.02,  # Griechisch
+    "en_US-lessac-medium": 1.07,  # Englisch
+    "es_ES-davefx-medium": 1.02,  # Spanisch
+    "es_MX-ald-medium": 1.31,  # Spanisch, nicht ausgeliefert
+    "es_MX-claude-high": 1.27,  # Spanisch, nicht ausgeliefert
+    "fa_IR-amir-medium": 1.16,  # Persisch (Farsi)
+    "fr_FR-siwis-medium": 1.04,  # Französisch
+    "fr_FR-tom-medium": 1.24,  # Französisch, nicht ausgeliefert
+    "hu_HU-anna-medium": 1.09,  # Ungarisch
+    "it_IT-paola-medium": 1.05,  # Italienisch
+    "ka_GE-natia-medium": 1.29,  # Georgisch
+    "nl_NL-mls-medium": 1.63,  # Niederländisch
+    "pl_PL-darkman-medium": 1.25,  # Polnisch
+    "pt_BR-cadu-medium": 1.45,  # Portugiesisch, nicht ausgeliefert
+    "pt_BR-faber-medium": 1.04,  # Portugiesisch
+    "pt_BR-jeff-medium": 1.37,  # Portugiesisch, nicht ausgeliefert
+    "ro_RO-mihai-medium": 1.23,  # Rumänisch
+    "ru_RU-irina-medium": 1.22,  # Russisch
+    "sr_RS-serbski_institut-medium": 1.67,  # Serbisch
+    "sw_CD-lanfrica-medium": 1.09,  # Suaheli
+    "tr_TR-dfki-medium": 1.13,  # Türkisch
+    "uk_UA-ukrainian_tts-medium": 1.05,  # Ukrainisch
+    "vi_VN-vais1000-medium": 0.99,  # Vietnamesisch
+}
+
+# Rueckfall je Sprache, falls eine andere Stimme eingesetzt wird als die
+# gemessene. Grob, aber besser als die Vorgabe.
+TEMPO_SPRACHE = {
+    "ar": 1.53,   # Arabisch
+    "cs": 1.46,   # Tschechisch
+    "de": 1.00,   # Deutsch
+    "el": 1.02,   # Griechisch
+    "en": 1.07,   # Englisch
+    "es": 1.02,   # Spanisch
+    "fa": 1.16,   # Persisch (Farsi)
+    "fr": 1.04,   # Französisch
+    "hu": 1.09,   # Ungarisch
+    "it": 1.05,   # Italienisch
+    "ka": 1.29,   # Georgisch
+    "nl": 1.63,   # Niederländisch
+    "pl": 1.25,   # Polnisch
+    "pt": 1.04,   # Portugiesisch
+    "ro": 1.23,   # Rumänisch
+    "ru": 1.22,   # Russisch
+    "sr": 1.67,   # Serbisch
+    "sw": 1.09,   # Suaheli
+    "tr": 1.13,   # Türkisch
+    "uk": 1.05,   # Ukrainisch
+    "vi": 0.99,   # Vietnamesisch
+}
+
+# Rueckfall des Rueckfalls: eine Stimme, die niemand gemessen hat. Liegt
+# unter dem alten Globalwert und ueber der Mehrheit der gemessenen --
+# falsch also in beide Richtungen nur um wenige Prozentpunkte.
+TEMPO_VORGABE = 1.15
+
+# Puffer fuer schnelle Redner.
+#
+# Der Laengenfaktor misst eine Eigenschaft der STIMME an einem festen
+# Text. Ein schnellerer Prediger aendert nicht diesen Faktor, sondern
+# die verfuegbare Zeit -- dafuer ist der Aufschlag da.
+#
+# Sechs Prozent, und zwar begruendet: die Messreihe 0.2.5 legt den
+# Kipppunkt der Verstaendlichkeit bei Sprechtempo rund 1,6. Die
+# langsamste gemessene Stimme liegt bei 1,20; 1,20 x 1,06 = 1,27 und
+# damit klar darunter. Zehn Prozent brachten sie auf 1,32 und
+# bezahlten Verstaendlichkeit fuer Reserve, die die Messung nicht
+# verlangt. Unter fuenf Prozent waere der Aufschlag kleiner als das
+# Rauschen des Verfahrens und damit keine Reserve, sondern Zufall.
+TEMPO_AUFSCHLAG = 1.06
+
+# Der Notfallhebel: hebt oder senkt alles auf einmal. Vorgabe 1.0,
+# also wirkungslos. Gedacht fuer den Sonntag, an dem die Uebersetzung
+# durchgehend hinterherhaengt und niemand Zeit hat, einzelne Stimmen
+# nachzumessen.
+TEMPO_GLOBAL = 1.0
+
+# Grenzen. Unter 1,0 zu bremsen bringt nichts: eine Stimme, die ohnehin
+# kuerzer ist als das Original, hat keinen Rueckstand aufzuholen, und
+# langsamer gesprochen klingt sie schlaff. Ueber 1,6 faellt die
+# Verstaendlichkeit -- gemessen in 0.2.5.
+TEMPO_MIN = 1.0
+TEMPO_MAX = 1.6
 
 # Zielspitze fuer die Sprachausgabe. Die Piper-Stimmen sind
 # unterschiedlich laut aufgenommen; im Gottesdienst fiel die persische als

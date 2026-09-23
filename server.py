@@ -337,6 +337,11 @@ class Werk:
         # Python-Start, ONNX-Laden und Modell-Einlesen bei jedem Haeppchen.
         # Genau deshalb brachte auch --cuda nichts.
         self.stimmen = {}
+        # Welche Datei hinter einer Sprache steckt, als blosser Name:
+        # "de_DE-thorsten-medium". Das Tempo haengt an der Stimme, nicht
+        # an der Sprache -- zwei portugiesische Stimmen liegen 0,38
+        # auseinander, die Sprachmittel nur 0,01.
+        self.stimmennamen = {}
         self.piper = None
         self.synth_art = None
         if not nur_text:
@@ -345,6 +350,7 @@ class Werk:
                 from piper import PiperVoice
                 for sp, datei in gefunden.items():
                     t0 = time.perf_counter()
+                    self.stimmennamen[sp] = datei.stem
                     self.stimmen[sp] = PiperVoice.load(str(datei))
                     print(f"Stimme {sp}: {datei.name} "
                           f"({time.perf_counter()-t0:.1f}s)")
@@ -358,11 +364,34 @@ class Werk:
                 from laengenfaktor import piper_pfad
                 self.piper = piper_pfad()
                 self.stimmen = gefunden
+                self.stimmennamen = {sp: d.stem for sp, d in gefunden.items()}
             fehlt = [s for s in SPRACHEN if s not in self.stimmen]
             if fehlt:
                 print(f"Ohne Stimme, nur Text: {', '.join(fehlt)}")
         self.tmp = config.ERGEBNIS_ORDNER / "live"
         self.tmp.mkdir(parents=True, exist_ok=True)
+
+    def tempo_fuer(self, sprache):
+        """Wie schnell diese Sprache gesprochen wird.
+
+        Drei Stufen, von genau nach grob: die gemessene Stimme, die
+        Sprache, die Vorgabe. Darauf der Aufschlag fuer schnelle Redner
+        und der globale Hebel, am Ende in die Grenzen gestutzt.
+
+        Warum in dieser Reihenfolge: gemessen wird eine Stimme. Wer eine
+        andere einsetzt als die ausgelieferte, faellt auf den Sprachwert
+        zurueck -- grob, aber naeher dran als eine Zahl fuer alles.
+
+        Die Untergrenze ist kein Schoenheitsfehler, sondern Absicht: eine
+        Stimme mit Faktor 0,96 ist schon kuerzer als das Original und hat
+        keinen Rueckstand aufzuholen. Sie zusaetzlich zu bremsen, waere
+        ein Nachteil ohne Gegenwert."""
+        name = self.stimmennamen.get(sprache, "")
+        wert = (config.TEMPO_STIMME.get(name)
+                or config.TEMPO_SPRACHE.get(sprache)
+                or config.TEMPO_VORGABE)
+        wert *= config.TEMPO_AUFSCHLAG * config.TEMPO_GLOBAL
+        return max(config.TEMPO_MIN, min(config.TEMPO_MAX, wert))
 
     def stimme_nachladen(self, sprache):
         """Laedt die Stimme einer Sprache, die beim Start nicht dabei war.
@@ -382,6 +411,7 @@ class Werk:
         if datei is None:
             return False
         try:
+            self.stimmennamen[sprache] = datei.stem
             if self.piper == "modul":
                 from piper import PiperVoice
                 t0 = time.perf_counter()
@@ -463,7 +493,9 @@ class Werk:
         import io
         stimme = next(iter(self.stimmen.values()))
         probe = "Test."
-        skala = 1.0 / config.LIVE_TEMPO
+        # Hier zaehlt nur, OB Piper einen Tempowert entgegennimmt.
+        # Welcher, entscheidet spaeter tempo_fuer je Sprache.
+        skala = 1.0 / config.TEMPO_VORGABE
 
         try:
             from piper import SynthesisConfig
@@ -488,7 +520,7 @@ class Werk:
         # Ohne Tempoeinstellung: der Laengenueberhang von Russisch und
         # Persisch muss dann anders aufgefangen werden.
         print("  Hinweis: diese Piper-Fassung nimmt kein Tempo entgegen, "
-              "LIVE_TEMPO bleibt wirkungslos.")
+              "die Tempotabelle bleibt wirkungslos.")
         return "schlicht"
 
     # ---- Whisper ----
@@ -693,7 +725,7 @@ class Werk:
         if self.piper == "modul":
             # Piper rechnet umgekehrt: kleinere length_scale bedeutet
             # kuerzere Phoneme, also schnelleres Sprechen.
-            skala = 1.0 / config.LIVE_TEMPO
+            skala = 1.0 / self.tempo_fuer(sprache)
             stimme = self.stimmen[sprache]
             with wave.open(str(datei), "wb") as ziel:
                 if self.synth_art == "syn_config":
@@ -710,7 +742,7 @@ class Werk:
 
         from laengenfaktor import sprich
         dauer = sprich(self.piper, self.stimmen[sprache], text, datei,
-                       config.LIVE_TEMPO)
+                       self.tempo_fuer(sprache))
         return datei, dauer
 
     @staticmethod
@@ -3482,6 +3514,59 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 return JSONResponse({"lage": "unlesbar"}, status_code=400)
             return {"genommen": lauf.messung.wiedergabe(zeilen[:500])}
 
+    def glossar_sprachen():
+        """Fuer welche Sprachen hat das geladene Glossar eine Spalte.
+
+        Die Quellsprache zaehlt mit: fuer sie gibt es die Begriffe im
+        Original, sie steht in der Spalte "de"."""
+        g = getattr(lauf.werk, "glossar", None)
+        return set(getattr(g, "sprachen", ())) | {lauf.quelle}
+
+    def glossar_nachricht(sp: str) -> dict:
+        """Der Briefkasteneintrag fuer eine ungeprueufte Sprache.
+
+        Zwei Texte, weil es zwei verschiedene Zustaende sind. Ein
+        Glossar, das niemand gegengelesen hat, ist etwas anderes als gar
+        keines -- im ersten Fall stehen die Begriffe fest und koennten
+        falsch sein, im zweiten stehen sie gar nicht fest.
+
+        Und beide Male dieselbe Bitte: wer das aendern kann, ist ein
+        Mensch aus der Gemeinde, kein Rechner."""
+        name = config.SPRACHNAMEN.get(sp, sp)
+        name_en = getattr(config, "SPRACHNAMEN_EN", {}).get(sp, name)
+        hat_glossar = sp in glossar_sprachen()
+        if hat_glossar:
+            de = (f"{name} ist eingeschaltet. Die Fachbegriffe für diese "
+                  f"Sprache hat noch kein Muttersprachler gesehen.")
+            en = (f"{name_en} is switched on. The technical terms for this "
+                  f"language have not yet been seen by a native speaker.")
+        else:
+            de = (f"{name} ist eingeschaltet. Für diese Sprache gibt es "
+                  f"noch kein Fachwortverzeichnis. Begriffe wie Sabbat, "
+                  f"Gemeinde oder Vereinigung werden wörtlich übersetzt.")
+            en = (f"{name_en} is switched on. There is no glossary for this "
+                  f"language yet. Terms like Sabbath, church or "
+                  f"conference are translated literally.")
+        bitte_de = (" Gesucht wird jemand, der " + name + " als "
+                    "Muttersprache spricht und Deutsch oder Englisch "
+                    "versteht — rund eine Stunde Zeit für eine Liste mit "
+                    "93 Begriffen. Meldung an " + config.RUECKMELDUNG_MAIL + ". Bis "
+                    "dahin ist die Sprache experimentell.")
+        bitte_en = (" We are looking for someone who speaks " + name_en +
+                    " as a native language and understands German or "
+                    "English — about one hour for a list of 93 terms. "
+                    "Please write to " + config.RUECKMELDUNG_MAIL + ". Until then "
+                    "the language is experimental.")
+        return {"text": de + bitte_de, "text_en": en + bitte_en,
+                "sprache": sp, "zeit": time.strftime("%H:%M"),
+                # Als Systemhinweis erkennbar und nicht als Zuschrift
+                # aus dem Saal: anderes Zeichen, eigener Absender.
+                "art": "system", "absender": "Devarenu",
+                # Anders als eine Zuschrift bleibt sie stehen, bis sie
+                # einmal geoeffnet wurde.
+                "gelesen": False,
+                "glossar": hat_glossar}
+
     @app.get("/api/sprachen")
     def sprachen():
         """Welche Sprachen dieser Server anbietet.
@@ -3518,6 +3603,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 # Geprueft heisst: ein Muttersprachler hat das
                 # Fachwortverzeichnis durchgesehen.
                 "geprueft": sp in getattr(config, "GEPRUEFT", set()),
+                # Davon getrennt: gibt es ueberhaupt eine Spalte im
+                # Glossar? Das sind zwei verschiedene Dinge, und bisher
+                # sahen sie gleich aus. Ohne Spalte laufen Begriffe wie
+                # Sabbat oder Vereinigung woertlich durch die Maschine.
+                "glossar": sp in glossar_sprachen(),
             } for sp in lauf.sprachen],
             # Sprachen ohne Stimme sind nicht ausgeschlossen: sie laufen
             # als reiner Untertitel.
@@ -3533,6 +3623,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 "stimme": (sp in vorhanden or sp == lauf.quelle
                            or sp in auf_platte),
                 "geprueft": sp in getattr(config, "GEPRUEFT", set()),
+                "glossar": sp in glossar_sprachen(),
             } for sp, name in sorted(config.SPRACHNAMEN.items(),
                                      key=lambda x: x[1])],
         }
@@ -3556,6 +3647,28 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                     pass
             lauf.hoerer.pop(sp, None)
         print(f"Sprachen: {lauf.quelle} -> {', '.join(lauf.ziele)}")
+
+        # Wer eine ungeprueufte Sprache einschaltet, soll wissen, worauf
+        # er sich einlaesst -- aber nicht durch ein Fenster, das
+        # aufspringt. Am Pult darf im Gottesdienst nichts aufpoppen.
+        # Also derselbe Briefkasten wie fuer Zuschriften aus dem Saal,
+        # nur als Systemhinweis gekennzeichnet.
+        #
+        # Und nur einmal je Sprache: wer es gelesen hat, bekommt danach
+        # die kleine Zeile an der Sprache. Sonst klickt der Techniker es
+        # beim dritten Mal ungelesen weg, und dann traegt es nichts mehr.
+        quittiert = set(lauf.zustand.get("glossar_quittiert") or [])
+        offen = [sp for sp in lauf.ziele
+                 if sp not in getattr(config, "GEPRUEFT", set())
+                 and sp != lauf.quelle
+                 and sp not in quittiert
+                 and not any(n.get("sprache") == sp and
+                             n.get("art") == "system"
+                             for n in lauf.nachrichten)]
+        for sp in offen:
+            lauf.nachrichten.append(glossar_nachricht(sp))
+            print(f"Hinweis ins Pult gelegt: {sp} ist ungeprueft.")
+
         lauf.zustand["quelle"] = lauf.quelle
         lauf.zustand["ziele"] = list(lauf.ziele)
         zustandsdatei.speichern(lauf.zustand)
@@ -3571,7 +3684,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         # einen Brief, und alles landet ungefiltert vor dem Techniker.
         eintrag = {"text": text[:200],
                    "sprache": (daten.get("sprache") or "")[:5],
-                   "zeit": time.strftime("%H:%M")}
+                   "zeit": time.strftime("%H:%M"),
+                   # Ausdruecklich, nicht durch Abwesenheit: das Pult
+                   # unterscheidet danach, und "kein Feld" waere eine
+                   # Annahme, die beim naechsten Umbau kippt.
+                   "art": "saal"}
         lauf.nachrichten.append(eintrag)
         print(f"Nachricht aus dem Saal ({eintrag['sprache'] or '?'}): "
               f"{eintrag['text']}")
@@ -3579,8 +3696,39 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
 
     @app.post("/api/nachrichten/leeren")
     async def nachrichten_leeren():
+        """Raeumt den Briefkasten -- bis auf Ungelesenes vom System.
+
+        Zuschriften aus dem Saal sind fluechtig: gelesen, erledigt, weg.
+        Ein Systemhinweis ist es nicht. Er soll stehen bleiben, bis ihn
+        jemand einmal geoeffnet hat, sonst verschwindet er beim
+        Aufraeumen genau an dem Tag, an dem er gebraucht wird."""
+        bleibt = [n for n in lauf.nachrichten
+                  if n.get("art") == "system" and not n.get("gelesen")]
         lauf.nachrichten.clear()
-        return {"anzahl": 0}
+        lauf.nachrichten.extend(bleibt)
+        return {"anzahl": len(bleibt)}
+
+    @app.post("/api/nachrichten/gelesen")
+    async def nachrichten_gelesen():
+        """Das Pult meldet, dass der Briefkasten offen war.
+
+        Ab hier gilt der Hinweis als gelesen: er verschwindet beim
+        naechsten Aufraeumen, und dieselbe Sprache fragt nicht wieder
+        nach. An der Sprache selbst bleibt die kleine Zeile stehen."""
+        neu = []
+        for n in lauf.nachrichten:
+            if n.get("art") == "system" and not n.get("gelesen"):
+                n["gelesen"] = True
+                if n.get("sprache"):
+                    neu.append(n["sprache"])
+        if neu:
+            quittiert = list(lauf.zustand.get("glossar_quittiert") or [])
+            for sp in neu:
+                if sp not in quittiert:
+                    quittiert.append(sp)
+            lauf.zustand["glossar_quittiert"] = quittiert
+            zustandsdatei.speichern(lauf.zustand)
+        return {"quittiert": neu}
 
     @app.get("/api/zustand")
     def zustand():
@@ -4159,6 +4307,14 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
  /* Der ganze Block ist zurueckgenommen, nicht die einzelne Kachel: so
     sieht man auf einen Blick, wo die geprueften aufhoeren. */
  .zielliste.ungeprueft label{border-style:dashed;color:#6b7385}
+ /* Gar kein Glossar sieht anders aus als ein ungeprueftes: gepunktet
+    statt gestrichelt. Der Unterschied muss auf den ersten Blick da
+    sein, sonst haette die Trennung keinen Zweck. */
+ .zielliste.ohneglossar label{border-style:dotted}
+ .experiment{display:block;font:.68rem system-ui,sans-serif;
+   opacity:.85;margin-top:.15rem}
+ .post .systempost{border-left:3px solid #1c3a8f;background:#f3f6fd}
+ .post .systempost .wann{color:#1c3a8f;font-weight:600}
  .zielliste.ungeprueft label.an{color:#fff;border-style:solid}
  .untertitel{margin:.5rem 0 .2rem;font-style:italic}
  /* Der Betrieb steht vorn, die Einrichtung dahinter. Was einmal je
@@ -4484,6 +4640,16 @@ const TEXTE={
    zuklappen:"zuklappen",ausklappen:"ausklappen",
    post_ueber:"Aus dem Saal",post_weg:"Erledigt",
    post_neu:"neue Meldungen aus dem Saal",
+   post_system:"Hinweis von Devarenu",
+   // Drei Zustaende, nicht zwei. Ein Glossar, das niemand gegengelesen
+   // hat, ist etwas anderes als gar keines.
+   glossar_offen_ueber:"Fachwortverzeichnis vorhanden, aber noch von "
+     +"keinem Muttersprachler geprüft. Die Begriffe stehen fest und "
+     +"könnten falsch sein.",
+   kein_glossar_ueber:"Für diese Sprachen gibt es noch kein "
+     +"Fachwortverzeichnis. Begriffe wie Sabbat, Gemeinde oder "
+     +"Vereinigung werden wörtlich übersetzt.",
+   experimentell:"experimentell, mehr dazu in der Nachricht",
    post_hin:"Antworten ist nicht vorgesehen. Wer etwas meldet, weiß das "
      +"und erwartet keine Rückmeldung."},
  en:{pult:"Control desk",sprachen:"Languages",quelle:"Spoken language",
@@ -4598,6 +4764,13 @@ const TEXTE={
    zuklappen:"collapse",ausklappen:"expand",
    post_ueber:"From the hall",post_weg:"Done",
    post_neu:"new messages from the hall",
+   post_system:"Notice from Devarenu",
+   glossar_offen_ueber:"A glossary exists, but no native speaker has "
+     +"reviewed it yet. The terms are fixed and could be wrong.",
+   kein_glossar_ueber:"There is no glossary for these languages yet. "
+     +"Terms like Sabbath, church or conference are translated "
+     +"literally.",
+   experimentell:"experimental, see the message",
    post_hin:"Replying is not provided for. Senders know this and expect "
      +"no answer."}};
 let UI=localStorage.getItem("uiSprache")||"de";
@@ -4658,6 +4831,10 @@ function postZeigen(){
   // Wie die Einrichtung eine eigene Ansicht: Meldungen wollen gelesen
   // werden, nicht zwischen Reglern stehen.
   const zeigen = post.hidden;
+  // Beim Oeffnen gilt der Systemhinweis als gelesen. Danach bleibt an
+  // der Sprache nur noch die kleine Zeile -- dieselbe Sprache fragt
+  // nicht wieder nach.
+  if(zeigen) fetch("/api/nachrichten/gelesen",{method:"POST"});
   post.hidden = !zeigen;
   betrieb.hidden = zeigen;
   einrichtung.hidden = true;
@@ -4720,16 +4897,28 @@ async function sprachenLaden(){
       +`<input type=checkbox value="${x.code}"${an?" checked":""} `
       +`onchange="sprachenSetzen()">${x.name}`
       +(x.stimme?"":`<span class=nurtext>${t.nurtext}</span>`)
+      // Nur an der EINGESCHALTETEN ungeprueften Sprache, und nur dort:
+      // an einer Sprache, die niemand gewaehlt hat, waere es Beiwerk.
+      +(an&&!x.geprueft?`<span class=experiment>${t.experimentell}</span>`:"")
       +`</label>`;
   };
   const wahl = d.moeglich.filter(x=>x.code!==d.quelle);
+  // Drei Zustaende. Bisher waren es zwei, und "Glossar da, aber
+  // ungeprueft" sah aus wie "gar kein Glossar". Das sind verschiedene
+  // Dinge: im einen Fall stehen die Begriffe fest und koennten falsch
+  // sein, im anderen stehen sie ueberhaupt nicht fest.
   const geprueft = wahl.filter(x=>x.geprueft);
-  const offen    = wahl.filter(x=>!x.geprueft);
+  const offen    = wahl.filter(x=>!x.geprueft && x.glossar);
+  const ohne     = wahl.filter(x=>!x.geprueft && !x.glossar);
   zielwahl.innerHTML =
     `<div class=zielliste>${geprueft.map(kachel).join("")}</div>`
     + (offen.length
-       ? `<p class="hin untertitel">${t.ungeprueft_ueber}</p>`
+       ? `<p class="hin untertitel">${t.glossar_offen_ueber}</p>`
          + `<div class="zielliste ungeprueft">${offen.map(kachel).join("")}</div>`
+       : "")
+    + (ohne.length
+       ? `<p class="hin untertitel">${t.kein_glossar_ueber}</p>`
+         + `<div class="zielliste ungeprueft ohneglossar">${ohne.map(kachel).join("")}</div>`
        : "")
     // Die Erklaerung nur, wenn es tatsaechlich eine Sprache ohne Stimme
     // gibt. Ein Hinweis, der immer dasteht, wird nicht mehr gelesen.
@@ -5241,11 +5430,26 @@ async function lies(){
     const post_=(d.nachrichten||[]);
     briefkasten.hidden = post_.length===0;
     postzahl.textContent = post_.length;
+    // Steht ein Systemhinweis darin, heisst der Knopf anders: "neue
+    // Meldungen aus dem Saal" waere schlicht falsch.
+    const sys_ = post_.some(x=>x.art==="system");
+    const knopftext = briefkasten.querySelector("[data-t=post_neu]");
+    if(knopftext) knopftext.textContent =
+      sys_ ? TEXTE[UI].post_system : TEXTE[UI].post_neu;
     if(post_.length===0 && !post.hidden){ postZeigen(); }
-    postliste.innerHTML = post_.slice().reverse().map(x=>
-      `<div><span class=wann>${x.zeit}${x.sprache?" · "+x.sprache:""}</span>`
-      +`${x.text.replace(/[<>&]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]))}`
-      +`</div>`).join("");
+    postliste.innerHTML = post_.slice().reverse().map(x=>{
+      const roh = (UI==="en" && x.text_en) ? x.text_en : x.text;
+      const sicher = roh.replace(/[<>&]/g,
+        c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+      // Ein Systemhinweis darf nicht aussehen wie eine Zuschrift aus
+      // dem Saal. Wer die verwechselt, sucht den Absender im Saal.
+      if(x.art==="system"){
+        return `<div class=systempost><span class=wann>⚙ `
+          +`${x.absender||"Devarenu"} · ${x.zeit}</span>${sicher}</div>`;
+      }
+      return `<div><span class=wann>${x.zeit}`
+        +`${x.sprache?" · "+x.sprache:""}</span>${sicher}</div>`;
+    }).join("");
     mit.innerHTML=(d.letzte||[]).slice().reverse().map(x=>
       `<div>${x.gesamt}s &nbsp; ${x.deutsch}</div>`).join("");
     if(d.stellen&&d.stellen.length&&!erkannt.innerHTML)

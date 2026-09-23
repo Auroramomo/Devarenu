@@ -1,0 +1,227 @@
+{
+  "bezugsgroesse": "gegen_deutsch",
+  "noise_w_scale": 0,
+  "bezugsgroesse_erklaerung": "Zieldauer geteilt durch die Dauer der deutschen Piper-Ausgabe desselben Satzes. Fuer die Tempotabelle in config.py gilt genau diese Groesse. gegen_original steht daneben und bezieht sich auf die echte Sprechdauer des Predigers -- die beiden Reihen duerfen NICHT gemischt werden.",
+  "deutsche_referenz": "de_DE-thorsten-medium",
+  "tondatei": "ausschnitt.mp3",
+  "modell": "gemma4:12b",
+  "saetze": 20,
+  "stimmen": {
+    "ar_JO-kareem-medium": {
+      "sprache": "ar",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.535,
+      "gegen_original": 1.4,
+      "streuung": 0.534,
+      "saetze": 20
+    },
+    "cs_CZ-jirka-medium": {
+      "sprache": "cs",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.455,
+      "gegen_original": 1.237,
+      "streuung": 0.224,
+      "saetze": 20
+    },
+    "de_DE-thorsten-medium": {
+      "sprache": "de",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.0,
+      "gegen_original": 0.9,
+      "streuung": 0.0,
+      "saetze": 20
+    },
+    "el_GR-rapunzelina-medium": {
+      "sprache": "el",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.021,
+      "gegen_original": 0.896,
+      "streuung": 0.246,
+      "saetze": 20
+    },
+    "en_US-lessac-medium": {
+      "sprache": "en",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.072,
+      "gegen_original": 0.968,
+      "streuung": 0.205,
+      "saetze": 20
+    },
+    "es_ES-davefx-medium": {
+      "sprache": "es",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.025,
+      "gegen_original": 0.981,
+      "streuung": 0.216,
+      "saetze": 20
+    },
+    "es_MX-ald-medium": {
+      "sprache": "es",
+      "ausgeliefert": false,
+      "gegen_deutsch": 1.306,
+      "gegen_original": 1.186,
+      "streuung": 0.277,
+      "saetze": 20
+    },
+    "es_MX-claude-high": {
+      "sprache": "es",
+      "ausgeliefert": false,
+      "gegen_deutsch": 1.268,
+      "gegen_original": 1.102,
+      "streuung": 0.275,
+      "saetze": 20
+    },
+    "fa_IR-amir-medium": {
+      "sprache": "fa",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.161,
+      "gegen_original": 0.941,
+      "streuung": 0.198,
+      "saetze": 20
+    },
+    "fr_FR-siwis-medium": {
+      "sprache": "fr",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.039,
+      "gegen_original": 0.967,
+      "streuung": 0.225,
+      "saetze": 20
+    },
+    "fr_FR-tom-medium": {
+      "sprache": "fr",
+      "ausgeliefert": false,
+      "gegen_deutsch": 1.243,
+      "gegen_original": 1.098,
+      "streuung": 0.246,
+      "saetze": 20
+    },
+    "fr_FR-upmc-medium": {
+      "sprache": "fr",
+      "ausgeliefert": false,
+      "gegen_deutsch": 0.447,
+      "gegen_original": 0.423,
+      "streuung": 0.117,
+      "saetze": 20
+    },
+    "hu_HU-anna-medium": {
+      "sprache": "hu",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.091,
+      "gegen_original": 0.962,
+      "streuung": 0.447,
+      "saetze": 20
+    },
+    "it_IT-paola-medium": {
+      "sprache": "it",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.046,
+      "gegen_original": 0.888,
+      "streuung": 0.18,
+      "saetze": 20
+    },
+    "ka_GE-natia-medium": {
+      "sprache": "ka",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.289,
+      "gegen_original": 1.089,
+      "streuung": 0.244,
+      "saetze": 20
+    },
+    "nl_NL-mls-medium": {
+      "sprache": "nl",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.628,
+      "gegen_original": 1.474,
+      "streuung": 0.357,
+      "saetze": 20
+    },
+    "pl_PL-darkman-medium": {
+      "sprache": "pl",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.254,
+      "gegen_original": 1.051,
+      "streuung": 0.221,
+      "saetze": 20
+    },
+    "pt_BR-faber-medium": {
+      "sprache": "pt",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.039,
+      "gegen_original": 0.898,
+      "streuung": 0.159,
+      "saetze": 20
+    },
+    "pt_BR-cadu-medium": {
+      "sprache": "pt",
+      "ausgeliefert": false,
+      "gegen_deutsch": 1.454,
+      "gegen_original": 1.288,
+      "streuung": 0.176,
+      "saetze": 20
+    },
+    "pt_BR-jeff-medium": {
+      "sprache": "pt",
+      "ausgeliefert": false,
+      "gegen_deutsch": 1.366,
+      "gegen_original": 1.192,
+      "streuung": 0.235,
+      "saetze": 20
+    },
+    "ro_RO-mihai-medium": {
+      "sprache": "ro",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.226,
+      "gegen_original": 1.115,
+      "streuung": 0.222,
+      "saetze": 20
+    },
+    "ru_RU-irina-medium": {
+      "sprache": "ru",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.215,
+      "gegen_original": 1.084,
+      "streuung": 0.245,
+      "saetze": 20
+    },
+    "sr_RS-serbski_institut-medium": {
+      "sprache": "sr",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.666,
+      "gegen_original": 1.496,
+      "streuung": 0.383,
+      "saetze": 20
+    },
+    "sw_CD-lanfrica-medium": {
+      "sprache": "sw",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.09,
+      "gegen_original": 0.926,
+      "streuung": 0.326,
+      "saetze": 20
+    },
+    "tr_TR-dfki-medium": {
+      "sprache": "tr",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.131,
+      "gegen_original": 0.973,
+      "streuung": 0.229,
+      "saetze": 20
+    },
+    "uk_UA-ukrainian_tts-medium": {
+      "sprache": "uk",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.053,
+      "gegen_original": 0.862,
+      "streuung": 0.219,
+      "saetze": 20
+    },
+    "vi_VN-vais1000-medium": {
+      "sprache": "vi",
+      "ausgeliefert": true,
+      "gegen_deutsch": 0.989,
+      "gegen_original": 0.828,
+      "streuung": 0.183,
+      "saetze": 20
+    }
+  }
+}

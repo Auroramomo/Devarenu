@@ -72,6 +72,11 @@ def vorgabe():
         "ziele": list(config.ZIELSPRACHEN),
         "wlan": {"ssid": "", "passwort": ""},
         "schwelle": {"wert": None, "gemessen": None},
+        # Welche ungeprueften Sprachen der Techniker schon einmal
+        # gelesen hat. Steht hier und nicht nur im Speicher, weil es
+        # sonst nach jedem Neustart wieder im Briefkasten laege -- und
+        # was zum dritten Mal kommt, wird ungelesen weggeklickt.
+        "glossar_quittiert": [],
     }
 
 
@@ -152,6 +157,17 @@ def _uebernehmen(roh, daten):
                               if _sprache_pruefen(s, None)]
         else:
             fehlerhaft.append("ziele")
+
+    # Welche ungeprueften Sprachen der Techniker schon gelesen hat.
+    # Geprueft wird wie bei "ziele": nur bekannte Sprachcodes, alles
+    # andere faellt still weg. Ein Tippfehler von Hand soll hoechstens
+    # dazu fuehren, dass ein Hinweis noch einmal kommt.
+    quittiert = roh.get("glossar_quittiert")
+    if isinstance(quittiert, list):
+        daten["glossar_quittiert"] = [s for s in quittiert
+                                      if _sprache_pruefen(s, None)]
+    elif quittiert is not None:
+        fehlerhaft.append("glossar_quittiert")
 
     wlan = roh.get("wlan")
     if isinstance(wlan, dict):

@@ -248,7 +248,10 @@ def pruefe_piper(ziel):
     t0 = time.perf_counter()
     try:
         stimme = PiperVoice.load(str(datei))
-        art = sprich_probe(stimme, ziel, config.LIVE_TEMPO)
+        # Irgendein gueltiges Tempo: geprueft wird, OB Piper einen
+        # Wert entgegennimmt, nicht welchen. Im Betrieb entscheidet das
+        # tempo_fuer() je Stimme.
+        art = sprich_probe(stimme, ziel, config.TEMPO_VORGABE)
     except Exception as e:
         fehler(f"Sprachausgabe fehlgeschlagen: {kurz(e)}")
         return False

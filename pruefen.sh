@@ -946,6 +946,61 @@ else:
 '
 
 # ------------------------------------------------------------ Fassung
+blau "Sprechtempo"
+# Seit 0.2.11 haengt das Tempo an der Stimme, nicht mehr an einer
+# einzelnen Zahl. Bleibt der alte Name in einer von Hand gepflegten
+# config.py stehen, wirkt er nicht mehr -- und das faellt im
+# Gottesdienst nicht auf, weil nichts abstuerzt. Es klingt nur falsch.
+mit_python '
+import sys
+sys.path.insert(0, ".")
+import config
+
+if hasattr(config, "LIVE_TEMPO"):
+    print("FEHL|In config.py steht noch LIVE_TEMPO = %s." % config.LIVE_TEMPO)
+    print("INFO|Der Wert wirkt seit 0.2.11 NICHT mehr. Das Tempo steht in")
+    print("INFO|TEMPO_STIMME, TEMPO_SPRACHE und TEMPO_VORGABE -- je Stimme,")
+    print("INFO|weil zwei Stimmen derselben Sprache bis zu 0,38 auseinander")
+    print("INFO|liegen. Die Zeile kann weg.")
+else:
+    print("OK|Tempo je Stimme (LIVE_TEMPO ist abgeloest)")
+
+je_stimme = getattr(config, "TEMPO_STIMME", {})
+je_sprache = getattr(config, "TEMPO_SPRACHE", {})
+if je_stimme:
+    print("OK|%d Stimmen gemessen, %d Sprachen als Rueckfall"
+          % (len(je_stimme), len(je_sprache)))
+else:
+    print("WARN|Keine gemessenen Stimmen eingetragen.")
+    print("INFO|Alles laeuft auf TEMPO_VORGABE = %s. Das ist eine Schaetzung"
+          % getattr(config, "TEMPO_VORGABE", "?"))
+    print("INFO|und kein Messwert. Nachmessen mit:")
+    print("INFO|  python laengenfaktor.py --je-stimme")
+
+auf = getattr(config, "TEMPO_AUFSCHLAG", 1.0)
+glob = getattr(config, "TEMPO_GLOBAL", 1.0)
+print("INFO|Aufschlag %.2f, global %.2f, Grenzen %.2f bis %.2f"
+      % (auf, glob, getattr(config, "TEMPO_MIN", 1.0),
+         getattr(config, "TEMPO_MAX", 1.6)))
+if abs(glob - 1.0) > 1e-6:
+    print("WARN|Der globale Hebel steht nicht auf 1,00. Er hebt oder senkt")
+    print("INFO|ALLE Sprachen auf einmal -- gedacht als Notbehelf, nicht als")
+    print("INFO|Dauerzustand.")
+
+# Was tatsaechlich herauskommt, je eingeschalteter Sprache. Eine Tabelle
+# voller Zahlen sagt weniger als das Ergebnis.
+hoch = [s for s in getattr(config, "ZIELSPRACHEN", [])]
+for sp in hoch:
+    name = config.STIMMEN.get(sp, "").split("/")[-1]
+    wert = (je_stimme.get(name) or je_sprache.get(sp)
+            or getattr(config, "TEMPO_VORGABE", 1.15))
+    fertig = max(getattr(config, "TEMPO_MIN", 1.0),
+                 min(getattr(config, "TEMPO_MAX", 1.6), wert * auf * glob))
+    woher = ("Stimme" if name in je_stimme
+             else "Sprache" if sp in je_sprache else "Vorgabe")
+    print("INFO|  %-4s %-30s %.2f  (%s)" % (sp, name[:30], fertig, woher))
+'
+
 blau "Fassung"
 
 if [ -f VERSION ]; then
