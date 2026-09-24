@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Einen Update-Stick fuer die Gemeinderechner bauen. Laeuft zuhause.
 #
-#   ./stick_bauen.sh /run/media/name/STICK
-#   ./stick_bauen.sh /run/media/name/STICK --python 3.12
-#   ./stick_bauen.sh /run/media/name/STICK --ohne-wheels
-#   ./stick_bauen.sh --nur-constraints          nach jeder Aenderung an
+#   bash stick_bauen.sh /run/media/name/STICK
+#   bash stick_bauen.sh /run/media/name/STICK --python 3.12
+#
+# Ohne --python gilt 3.14 -- die Fassung auf dem Gemeinderechner.
+#   bash stick_bauen.sh /run/media/name/STICK --ohne-wheels
+#   bash stick_bauen.sh --nur-constraints          nach jeder Aenderung an
 #                                               requirements.txt
 #
 # Legt auf den Stick:
@@ -33,7 +35,10 @@ fehl() { printf '   \033[31mFEHLT\033[0m %s\n' "$1"; }
 # CachyOS -- mit einer anderen Python-Fassung. Wheels, die hier passen,
 # passen dort nicht. Deshalb wird die Zielfassung gesetzt und nicht
 # geraten.
-ZIEL_PYTHON=3.13
+# Die Fassung des Ziel-Rechners, nicht die dieses hier. Der
+# Gemeinderechner laeuft seit dem 23.09.2026 auf CachyOS mit Python
+# 3.14; Wheels fuer 3.13 passen dort nicht.
+ZIEL_PYTHON=3.14
 # manylinux_2_28 deckt Debian 12 und neuer sowie Ubuntu 22.04 und neuer
 # ab. manylinux2014 steht daneben, weil einige Pakete bis heute nur dafuer
 # bauen; pip nimmt je Paket, was passt.

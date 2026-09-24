@@ -5,7 +5,7 @@
 # sich also gefahrlos mehrfach starten, etwa wenn ein Schritt schiefging.
 #
 #   chmod +x einrichten.sh
-#   ./einrichten.sh
+#   bash einrichten.sh
 
 set -u
 ORDNER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -57,7 +57,7 @@ if command -v dpkg >/dev/null && command -v apt-get >/dev/null; then
     if [ "$FRISCHES_DNSMASQ" = ja ]; then
       sudo systemctl disable --now dnsmasq >/dev/null 2>&1
       gut "dnsmasq liegt bereit, ist aber aus"
-      echo "        Eingeschaltet wird es nur von ./netz_einrichten.sh,"
+      echo "        Eingeschaltet wird es nur von bash netz_einrichten.sh,"
       echo "        von Hand und vor Ort."
     fi
   fi
@@ -117,9 +117,66 @@ fi
 blau "Ollama"
 if command -v ollama >/dev/null; then
   gut "installiert"
+elif command -v pacman >/dev/null; then
+  # Unter Arch aus dem Paketspeicher, NICHT ueber das Installierskript
+  # von ollama.com. Das legt nach /usr/local, richtet eine eigene Unit
+  # ein und weiss nichts von pacman -- beim naechsten Systemwechsel
+  # steht dann zweimal Ollama auf dem Rechner, und welches laeuft,
+  # entscheidet der PATH.
+  fehlt "Ollama, wird ueber pacman installiert"
+  info_ollama() { printf '        %s\n' "$*"; }
+
+  # Das Paket "ollama" ist CPU-ONLY. Geprueft am Paketspeicher:
+  #
+  #   ollama        haengt ab von: libgcc libstdc++ glibc
+  #   ollama-cuda   haengt ab von: libgcc libstdc++ glibc ollama cuda
+  #   ollama-rocm   dasselbe mit rocm
+  #
+  # Die Beschleunigung ist also ein ZUSATZPAKET, kein Ersatz -- beide
+  # werden gebraucht. Ohne das zweite laeuft die Uebersetzung auf der
+  # CPU: sie laeuft, aber zu langsam fuer den Livebetrieb, und es gibt
+  # keine Fehlermeldung. Der Systemcheck meldet es spaeter am Pult.
+  OLLAMA_PAKETE="ollama"
+  if command -v nvidia-smi >/dev/null 2>&1 \
+     || lspci 2>/dev/null | grep -qi "vga.*nvidia"; then
+    OLLAMA_PAKETE="ollama ollama-cuda"
+    info_ollama "NVIDIA erkannt -- mit ollama-cuda"
+  elif lspci 2>/dev/null | grep -qiE "vga.*(amd|ati|radeon)"; then
+    OLLAMA_PAKETE="ollama ollama-rocm"
+    info_ollama "AMD erkannt -- mit ollama-rocm"
+  else
+    warn "Keine Grafikkarte erkannt. Ollama laeuft dann auf der CPU."
+    info_ollama "Fuer den Livebetrieb ist das zu langsam."
+  fi
+
+  if sudo pacman -S --needed --noconfirm $OLLAMA_PAKETE; then
+    gut "$OLLAMA_PAKETE aus dem Paketspeicher"
+    # Das Paket richtet den Dienst ein, schaltet ihn aber nicht an.
+    sudo systemctl enable --now ollama 2>/dev/null \
+      && gut "Dienst ollama eingeschaltet" \
+      || warn "Dienst ollama liess sich nicht starten"
+  else
+    warn "pacman konnte Ollama nicht installieren."
+    info_ollama "Von Hand:  sudo pacman -S $OLLAMA_PAKETE"
+  fi
 else
   fehlt "Ollama, wird installiert"
   curl -fsSL https://ollama.com/install.sh | sh
+fi
+
+# Der Dienst muss ANTWORTEN, nicht nur laufen: ollama pull faellt sonst
+# in einen Verbindungsfehler, und die Einrichtung meldet trotzdem
+# weiter. Genau so fehlte auf dem neu aufgesetzten Gemeinderechner das
+# Sprachmodell, ohne dass irgendwo ein Fehler stand.
+for _versuch in 1 2 3 4 5 6 7 8 9 10; do
+  ollama list >/dev/null 2>&1 && break
+  sleep 2
+done
+if ! ollama list >/dev/null 2>&1; then
+  warn "Ollama antwortet nicht. Das Sprachmodell wird NICHT geladen."
+  warn "Ohne es gibt es keine Uebersetzung."
+  echo "        Nachsehen:  systemctl status ollama"
+  echo "        Danach:     bash einrichten.sh erneut"
 fi
 
 MODELL=$(grep -oP 'LIVE_MODELL\s*=\s*"\K[^"]+' config.py 2>/dev/null || echo "gemma4:12b")
@@ -127,7 +184,16 @@ if ollama list 2>/dev/null | grep -q "^${MODELL%%:*}"; then
   gut "$MODELL"
 else
   fehlt "$MODELL, wird geladen (mehrere GB)"
-  ollama pull "$MODELL"
+  if ollama pull "$MODELL"; then
+    gut "$MODELL geladen"
+  else
+    # Bis 0.2.11 lief es hier stillschweigend weiter. Auf dem frisch
+    # aufgesetzten Gemeinderechner fehlte danach gemma4:12b, und
+    # gemerkt wurde es erst durch pruefen.sh.
+    warn "$MODELL liess sich NICHT laden."
+    warn "Ohne Sprachmodell gibt es keine Uebersetzung."
+    echo "        Von Hand nachholen:  ollama pull $MODELL"
+  fi
 fi
 
 # ---------------------------------------------------------------- Whisper
@@ -304,9 +370,9 @@ if [ -z "${DEVARENU_SAMMELLAUF:-}" ]; then
   blau "Fertig"
   cat <<'ENDE'
    Starten:
-     ./start.sh                 Mikrofon, Geraet aus zustand.json
-     ./start.sh --mikro 1       Aufnahmegeraet erzwingen
-     ./start.sh --datei x.mp3   Dauerlauf mit einer Aufnahme
+     bash start.sh                 Mikrofon, Geraet aus zustand.json
+     bash start.sh --mikro 1       Aufnahmegeraet erzwingen
+     bash start.sh --datei x.mp3   Dauerlauf mit einer Aufnahme
 
    Selbsttest jederzeit erneut:
      .venv/bin/python selbsttest.py

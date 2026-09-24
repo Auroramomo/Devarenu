@@ -40,6 +40,8 @@ import numpy as np
 import config
 import messprotokoll
 import netzpruefung
+import netzzustand
+import systemcheck
 import ton
 import grafikkarte
 # Unter anderem Namen, weil weiter unten ein Endpunkt /api/zustand mit der
@@ -1607,11 +1609,13 @@ def starten_auf(app, port):
         raise OSError(f"Port {port} ist belegt")
     sockets = [haupt]
 
-    if getattr(config, "NETZ_PORT_80", False) and port != 80:
+    lage = netzzustand.laden()[0]
+    if getattr(config, "NETZ_PORT_80", False) and port != 80 and lage["router"]:
         achtzig = sockel(80)
         if achtzig is not None:
             sockets.append(achtzig)
-            print(f"  Zusaetzlich auf Port 80 -- http://{config.NETZ_ADRESSE}/")
+            adresse = lage["adresse"] or config.NETZ_ADRESSE
+            print(f"  Zusaetzlich auf Port 80 -- http://{adresse}/")
         else:
             print("  Port 80 nicht moeglich, es bleibt bei "
                   f"{port}. Handys muessen dann die Portnummer mittippen.")
@@ -3567,6 +3571,44 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 "gelesen": False,
                 "glossar": hat_glossar}
 
+    def systemnachricht():
+        """Was am Rechner nicht stimmt, als eine Nachricht fuers Pult.
+
+        Der Server aendert NICHTS. Er sieht beim Start nach und legt
+        das Ergebnis in den Briefkasten -- wie eine Zuschrift aus dem
+        Saal, nur als Systemhinweis gekennzeichnet.
+
+        Quittiert wird ueber einen Fingerabdruck der Befundmenge, nicht
+        ueber ein blosses Ja: wer einmal gelesen hat, wird nicht jeden
+        Sonntag wieder gefragt -- aber sobald ein Punkt dazukommt oder
+        wegfaellt, ist es eine neue Lage und die Nachricht kommt
+        wieder."""
+        try:
+            befunde = systemcheck.pruefen()
+        except Exception as e:
+            print(f"Systemcheck fehlgeschlagen ({str(e)[:90]}).")
+            return None
+        if not befunde:
+            return None
+        marke = systemcheck.kennung(befunde)
+        if lauf.zustand.get("systemcheck_quittiert") == marke:
+            return None
+
+        schwer = [b for b in befunde if b.schwere == systemcheck.FEHLT]
+        kopf_de = (f"{len(schwer)} Punkt(e) halten den Betrieb auf"
+                   if schwer else "Ein paar Punkte stehen noch offen")
+        kopf_en = (f"{len(schwer)} item(s) block operation"
+                   if schwer else "A few items are still open")
+        zeilen_de = [f"• {b.was} → {b.tun}" for b in befunde]
+        zeilen_en = [f"• {b.was_en} → {b.tun_en}" for b in befunde]
+        return {
+            "text": kopf_de + ":\n" + "\n".join(zeilen_de),
+            "text_en": kopf_en + ":\n" + "\n".join(zeilen_en),
+            "sprache": "", "zeit": time.strftime("%H:%M"),
+            "art": "system", "absender": "Devarenu",
+            "gelesen": False, "systemcheck": marke,
+        }
+
     @app.get("/api/sprachen")
     def sprachen():
         """Welche Sprachen dieser Server anbietet.
@@ -3586,7 +3628,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             # Stellt dieser Rechner das Netz selbst? Dann hat das WLAN
             # kein Internet, und die Seite sagt, dass die mobilen Daten
             # aus muessen. Sonst waere der Satz falsch.
-            "saalnetz": bool(getattr(config, "NETZ_ROUTER", False)),
+            "saalnetz": netzzustand.ist_router(),
             "spende": ({"name": spende.get("name", ""),
                         "iban": spende.get("iban", ""),
                         "bic": spende.get("bic", ""),
@@ -3716,11 +3758,17 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         naechsten Aufraeumen, und dieselbe Sprache fragt nicht wieder
         nach. An der Sprache selbst bleibt die kleine Zeile stehen."""
         neu = []
+        marke = None
         for n in lauf.nachrichten:
             if n.get("art") == "system" and not n.get("gelesen"):
                 n["gelesen"] = True
                 if n.get("sprache"):
                     neu.append(n["sprache"])
+                if n.get("systemcheck"):
+                    marke = n["systemcheck"]
+        if marke:
+            lauf.zustand["systemcheck_quittiert"] = marke
+            zustandsdatei.speichern(lauf.zustand)
         if neu:
             quittiert = list(lauf.zustand.get("glossar_quittiert") or [])
             for sp in neu:
@@ -3941,13 +3989,40 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         # tatsaechlich erreicht hat, und damit die einzige, die auch fuer
         # die Handys im Raum funktioniert.
         if not adresse:
-            weiter = request.headers.get("x-forwarded-host")
-            gastgeber = weiter or request.headers.get("host") or \
-                (f"{lauf.adresse}:{a_port[0]}" if lauf.adresse
-                 else request.url.netloc)
-            schema = (request.headers.get("x-forwarded-proto")
-                      or ("https" if weiter else request.url.scheme))
-            adresse = f"{schema}://{gastgeber}/"
+            # Die Adresse im QR-Code muss die sein, unter der ein HANDY
+            # IM SAAL diesen Rechner erreicht -- nicht die, unter der
+            # gerade jemand das Pult geoeffnet hat. Wer das Pult ueber
+            # http://localhost:8000/pult aufruft, bekam bis 0.2.11
+            # "localhost" in den Code gedruckt. Der Beamer zeigte das
+            # dann dem ganzen Saal, und jedes Handy landete bei sich
+            # selbst.
+            lage = netzzustand.laden()[0]
+            if lage["router"] and lage["adresse"]:
+                # Ist dieser Rechner der Router, steht die Adresse fest.
+                # Port 80, denn darauf hoert er dann auch.
+                adresse = f"http://{lage['adresse']}/"
+            elif lauf.adresse:
+                # Sonst die erkannte LAN-Adresse. Sie ist das, was
+                # adresse_suchen() gefunden hat, und die kennen die
+                # Handys.
+                adresse = f"http://{lauf.adresse}:{a_port[0]}/"
+            else:
+                # Erst als Letztes das, womit der Aufrufer gekommen
+                # ist. Ein Tunnel (x-forwarded-host) gehoert hierher:
+                # wer von aussen zusieht, hat keine LAN-Adresse.
+                weiter = request.headers.get("x-forwarded-host")
+                gastgeber = weiter or request.headers.get("host") \
+                    or request.url.netloc
+                schema = (request.headers.get("x-forwarded-proto")
+                          or ("https" if weiter else request.url.scheme))
+                adresse = f"{schema}://{gastgeber}/"
+
+            # localhost taugt nie: das ist fuer jedes Handy es selbst.
+            if re.search(r"//(localhost|127\.|\[::1\])", adresse):
+                if lauf.adresse:
+                    adresse = f"http://{lauf.adresse}:{a_port[0]}/"
+                else:
+                    adresse = ""
         elif not adresse.startswith("http"):
             adresse = "https://" + adresse
         if not adresse.endswith("/"):
@@ -3975,12 +4050,30 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         # Nur wenn dieser Rechner der Router ist. Sonst haengt das WLAN
         # am Hausanschluss, hat Internet, und der Satz waere falsch.
         hinweis = ""
-        if getattr(config, "NETZ_ROUTER", False):
+        if netzzustand.ist_router():
             hinweis = (
                 '<p class=daten><b>Mobile Daten ausschalten.</b>'
                 '<span>Turn off mobile data.</span></p>')
+        geduld = (
+            '<p class=geduld>'
+            '<b>Beim ersten Verbinden kann es bis zu einer Minute '
+            'dauern.</b>'
+            'Warten, nicht neu verbinden. Die Meldung &bdquo;Kein '
+            'Internet&ldquo; ist normal &ndash; trotzdem verbunden '
+            'bleiben.'
+            '<span>First connection can take up to a minute. Please '
+            'wait, do not reconnect. &bdquo;No internet&ldquo; is '
+            'normal &ndash; stay connected.</span></p>')
+        # Zum Ausdrucken und zum Weitergeben. Die Bilder entstehen erst
+        # beim Abruf -- der WLAN-Code traegt das Passwort der Gemeinde.
+        holen = ('<a href="/qr.png?was=seite" download>Adress-Code als PNG</a>'
+                 + ('<a href="/qr.png?was=wlan" download>WLAN-Code als PNG</a>'
+                    if wlan_qr else "")
+                 + '<a href="javascript:window.print()">Seite drucken</a>')
         return HTMLResponse(QR_SEITE.format(
             hinweis=hinweis,
+            geduld=geduld,
+            holen=holen,
             wlan_block=(f'<div class=schritt><span class=nr>1</span>'
                         f'<p class=was>Mit dem WLAN verbinden</p>'
                         f'<img src="{wlan_qr}" alt="WLAN">'
@@ -3989,6 +4082,94 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             if wlan_qr else "",
             nr_seite="2" if wlan_qr else "1",
             seiten_qr=seiten_qr, adresse=adresse))
+
+    @app.get("/anleitung.pdf")
+    def anleitung(teil: str = "alles", sprache: str = ""):
+        """Die Bedienungsanleitung. Fertig gebaut, liegt im Repo.
+
+        Gebaut wird sie auf dem Arbeitsrechner (bash anleitung_bauen.sh);
+        hier wird nur ausgeliefert. Der Gemeinderechner bekommt dafuer
+        kein zusaetzliches Paket -- und er hat im Betrieb ohnehin kein
+        Netz, ueber das eines nachkommen koennte."""
+        if teil != "zuhoerer":
+            name = "Devarenu-Anleitung.pdf"
+        else:
+            # In der Sprache, die der Zuhoerer gewaehlt hat. Wer
+            # uebersetzt mithoert, spricht ja gerade kein Deutsch --
+            # eine Anleitung nur auf Deutsch waere fuer genau die
+            # Leute unlesbar, fuer die sie gedacht ist.
+            kurz = (sprache or "")[:2].lower()
+            name = ("Devarenu-Zuhoerer.pdf" if kurz == "de"
+                    else f"Devarenu-Zuhoerer-{kurz}.pdf")
+            if kurz and not (basis / "anleitung" / name).exists():
+                # Keine Fassung in dieser Sprache: dann Englisch, nicht
+                # Deutsch. Wer hier eine andere Sprache gewaehlt hat,
+                # versteht mit einiger Wahrscheinlichkeit kein Deutsch
+                # -- das ist ja der Grund, warum er mithoert. Englisch
+                # ist die bessere Wette.
+                name = "Devarenu-Zuhoerer-en.pdf"
+            if not (basis / "anleitung" / name).exists():
+                # Auch die englische fehlt: dann die deutsche, statt
+                # gar nichts.
+                name = "Devarenu-Zuhoerer.pdf"
+        datei = basis / "anleitung" / name
+        if not datei.exists():
+            return JSONResponse(
+                {"fehler": "Die Anleitung ist nicht gebaut.",
+                 "abhilfe": "bash anleitung_bauen.sh (auf dem "
+                            "Arbeitsrechner), dann einchecken"},
+                status_code=404)
+        return FileResponse(datei, media_type="application/pdf",
+                            filename=name)
+
+    @app.get("/qr.png")
+    def qr_png(was: str = "seite"):
+        """Ein QR-Code als PNG, gross genug fuer Beamer und Druck.
+
+        Erzeugt bei jedem Abruf neu und NIE im Repo abgelegt: der
+        WLAN-Code enthaelt das Passwort der Gemeinde, und das Repo ist
+        oeffentlich.
+
+        1200 Pixel Kantenlaenge. Auf einem Beamer mit 1920 Bildpunkten
+        Breite fuellt das gut die halbe Hoehe, und gedruckt auf A4
+        bleibt der Code auch aus zwei Metern lesbar. Kleiner waere die
+        haeufigste Ursache fuer "der Code geht nicht"."""
+        import segno
+        if was == "wlan":
+            ssid = lauf.wlan.get("ssid", "")
+            if not ssid:
+                return JSONResponse({"fehler": "kein WLAN hinterlegt"},
+                                    status_code=404)
+            def maskieren(t):
+                for z in ("\\", ";", ",", ":", '"'):
+                    t = t.replace(z, "\\" + z)
+                return t
+            inhalt = (f"WIFI:T:WPA;S:{maskieren(ssid)};"
+                      f"P:{maskieren(lauf.wlan.get('passwort', ''))};;")
+            name = "devarenu-wlan.png"
+        else:
+            lage = netzzustand.laden()[0]
+            if lage["router"] and lage["adresse"]:
+                inhalt = f"http://{lage['adresse']}/"
+            elif lauf.adresse:
+                inhalt = f"http://{lauf.adresse}:{a_port[0]}/"
+            else:
+                return JSONResponse({"fehler": "keine Adresse bekannt"},
+                                    status_code=404)
+            name = "devarenu-seite.png"
+
+        code = segno.make(inhalt, error="m")
+        puffer = io.BytesIO()
+        # scale so waehlen, dass ungefaehr 1200 Pixel herauskommen --
+        # die Modulzahl haengt vom Inhalt ab, eine feste Skalierung
+        # ergaebe je nach Passwortlaenge ganz verschiedene Groessen.
+        module = code.symbol_size(border=2)[0]
+        code.save(puffer, kind="png", scale=max(4, 1200 // module),
+                  border=2, dark="#141f52", light="#ffffff")
+        return Response(
+            content=puffer.getvalue(), media_type="image/png",
+            headers={"Cache-Control": "no-store",
+                     "Content-Disposition": f'attachment; filename="{name}"'})
 
     @app.get("/api/wlan")
     def wlan_lesen():
@@ -4086,6 +4267,21 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         return HTMLResponse((basis / "pult.html").read_text(encoding="utf-8")
                             if (basis / "pult.html").exists() else PULT)
 
+    # Einmal beim Start nachsehen, wie der Rechner eingestellt ist.
+    # Hier und nicht frueher: der Briefkasten gehoert zu lauf, und die
+    # Nachricht soll dastehen, bevor der erste Mensch das Pult oeffnet.
+    #
+    # Ein Fehler im Systemcheck darf den Server nicht aufhalten -- er
+    # ist eine Auskunft, kein Betriebsteil.
+    try:
+        hinweis = systemnachricht()
+        if hinweis:
+            lauf.nachrichten.append(hinweis)
+            schwer = hinweis["text"].count("•")
+            print(f"Systemcheck: {schwer} Punkt(e) ins Pult gelegt.")
+    except Exception as e:
+        print(f"Systemcheck uebersprungen ({str(e)[:90]}).")
+
     return app
 
 
@@ -4116,6 +4312,19 @@ QR_SEITE = """<!doctype html><html lang=de><meta charset=utf-8>
  .klein{{font:1.9vh/1.5 ui-monospace,monospace;color:#6b7385;
    text-align:center;word-break:break-all;max-width:34vw}}
  .fuss{{font:1.9vh system-ui,sans-serif;color:#6b7385;text-align:center}}
+ .holen{{font:1.7vh system-ui,sans-serif;text-align:center}}
+ .holen a{{color:#1c3a8f;margin:0 .6em}}
+ /* Gedruckt zaehlt nur, was man scannen kann: heller Grund, keine
+    Links, und die Codes so gross wie das Blatt es hergibt. */
+ @media print{{
+   body{{height:auto;display:block;padding:1cm}}
+   .holen,.logo{{display:none}}
+   .reihe{{display:flex;gap:1cm;justify-content:center}}
+   img{{height:auto;width:8cm;max-width:45%}}
+   .geduld{{border-color:#000;background:#fff;font-size:11pt}}
+   .daten{{border-color:#000;font-size:12pt}}
+   h1{{font-size:18pt}}
+ }}
  /* Der eine Satz, an dem im Saal alles haengt. Kein Beiwerk, also
     auch nicht in Grau: ein Handy mit eingeschalteten mobilen Daten
     verlaesst ein WLAN ohne Internet wieder, und der Ton bricht mitten
@@ -4126,11 +4335,23 @@ QR_SEITE = """<!doctype html><html lang=de><meta charset=utf-8>
    border-radius:.6vh;padding:1vh 2vw;max-width:86vw}}
  .daten b{{font-weight:600}}
  .daten span{{display:block;color:#6b7385;font-size:.82em}}
+ /* Der Satz, der die meisten Rueckfragen spart. Neue iPhones pruefen
+    beim ERSTEN Verbinden auf dem alten Weg und brauchen dafuer lange.
+    Wer dann ungeduldig neu verbindet, faengt die Pruefung von vorn an
+    und macht es schlimmer. Also gross genug, dass es aus der letzten
+    Reihe zu lesen ist. */
+ .geduld{{font:clamp(1rem,2.9vh,1.8rem)/1.35 system-ui,sans-serif;
+   text-align:center;max-width:86vw;background:#fff7e6;
+   border:.25vh solid #c8912b;border-radius:.6vh;padding:1.2vh 2vw;
+   color:#5a3f0a}}
+ .geduld b{{display:block;font-size:1.06em;margin-bottom:.3em}}
+ .geduld span{{display:block;color:#7a6234;font-size:.84em;margin-top:.4em}}
 </style>
 <img class=logo src="/logo.png" alt="" onerror="this.remove()">
 <h1>Übersetzung</h1>
 <div class=streifen></div>
 {hinweis}
+{geduld}
 <div class=reihe>
 {wlan_block}
 <div class=schritt>
@@ -4141,6 +4362,7 @@ QR_SEITE = """<!doctype html><html lang=de><meta charset=utf-8>
 </div>
 </div>
 <p class=fuss>Mit der Kamera scannen · Sprache auswählen · Kopfhörer empfohlen</p>
+<p class=holen>{holen}</p>
 </html>"""
 
 
@@ -4454,6 +4676,7 @@ Rechner per USB angeschlossen ist.</p>
 <p class=hin data-t=einrichtung_hin>Einmal je Gemeinde einstellen, danach
 bleibt es so.</p>
 <p class=hin id=fassung></p>
+<p class=hin><a href="/anleitung.pdf" download data-t=anleitung_pult>Bedienungsanleitung als PDF</a></p>
 <p class=hin id=updatestand hidden></p>
 <button class=klein id=updateknopf onclick=updateJetzt() hidden
         data-t=upd_jetzt>Jetzt einspielen</button>
@@ -4641,6 +4864,7 @@ const TEXTE={
    post_ueber:"Aus dem Saal",post_weg:"Erledigt",
    post_neu:"neue Meldungen aus dem Saal",
    post_system:"Hinweis von Devarenu",
+   anleitung_pult:"Bedienungsanleitung als PDF",
    // Drei Zustaende, nicht zwei. Ein Glossar, das niemand gegengelesen
    // hat, ist etwas anderes als gar keines.
    glossar_offen_ueber:"Fachwortverzeichnis vorhanden, aber noch von "
@@ -4765,6 +4989,7 @@ const TEXTE={
    post_ueber:"From the hall",post_weg:"Done",
    post_neu:"new messages from the hall",
    post_system:"Notice from Devarenu",
+   anleitung_pult:"Manual as PDF",
    glossar_offen_ueber:"A glossary exists, but no native speaker has "
      +"reviewed it yet. The terms are fixed and could be wrong.",
    kein_glossar_ueber:"There is no glossary for these languages yet. "
@@ -5677,6 +5902,15 @@ def main():
     # Bauen. Wuerden die Sprachen erst danach gesetzt, liefen genau die
     # wiederhergestellten Sprachen ohne Stimme, als reiner Untertitel.
     global QUELLE, ZIELSPRACHEN, SPRACHEN
+    # Zuerst das Netz: ein Rechner, der von 0.2.11 kommt, ist umgebaut,
+    # hat aber noch keine netz.json -- der Zustand stand bis dahin in
+    # config.py, und die wird beim Update zurueckgesetzt. Ohne diese
+    # Uebernahme stuende der Saal nach dem Update ohne Port 80 und ohne
+    # Pruefadressen da, also mit lauter Handys, die "kein Internet"
+    # melden.
+    netzzustand.uebernehmen_falls_noetig()
+    netz_lage, netz_woher = netzzustand.laden()
+
     stand, woher = zustandsdatei.laden()
     QUELLE = stand["quelle"]
     ZIELSPRACHEN = list(stand["ziele"])
@@ -5811,8 +6045,8 @@ def main():
     # Ist der Rechner selbst der Router, steht die Adresse fest und muss
     # nicht gesucht werden. Die Suche bleibt fuer alle anderen Faelle --
     # Entwicklung, Vorfuehrung, ein Rechner ohne den Umbau.
-    if getattr(config, "NETZ_ROUTER", False):
-        ip = config.NETZ_ADRESSE
+    if netz_lage["router"]:
+        ip = netz_lage["adresse"] or config.NETZ_ADRESSE
         print(f"\n  Netz      dieser Rechner ist Router, feste Adresse {ip}")
     else:
         ip = adresse_suchen(ADRESSE_ANLAUF)

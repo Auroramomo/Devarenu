@@ -38,6 +38,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
 import config
+import netzzustand
 
 # Byte-genau abgerufen am 22.09.2026.
 APPLE_MIT_UMBRUCH = (
@@ -104,7 +105,7 @@ fremde = {}
 
 def _eigenes_netz():
     """Unser Netz als Objekt, oder None, wenn wir nicht Router sind."""
-    if not getattr(config, "NETZ_ROUTER", False):
+    if not netzzustand.ist_router():
         # In einem fremden Netz sagt eine fremde Adresse gar nichts --
         # dort vergibt ohnehin ein anderer die Adressen.
         return None
@@ -217,7 +218,8 @@ def captive_api(request: Request):
     "Kein Internet" beeinflusst, ist offen -- der Standard regelt
     Anmeldepflicht, nicht Erreichbarkeit."""
     _zaehlen(request, "captive-api")
-    adresse = getattr(config, "NETZ_ADRESSE", "10.0.0.1")
+    adresse = (netzzustand.laden()[0]["adresse"]
+               or getattr(config, "NETZ_ADRESSE", "10.0.0.1"))
     antwort = JSONResponse({
         "captive": False,
         "venue-info-url": f"http://{adresse}/",

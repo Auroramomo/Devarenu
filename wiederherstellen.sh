@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Stellt aus dem Reparaturvorrat wieder her. Ohne Netz.
 #
-#   ./wiederherstellen.sh --pruefen     nur nachsehen, nichts anfassen
-#   ./wiederherstellen.sh --stimmen     Piper-Stimmen zurueckholen
-#   ./wiederherstellen.sh --pakete      Python-Pakete und Torch neu
-#   ./wiederherstellen.sh --modell      Uebersetzungsmodell zurueckspielen
-#   ./wiederherstellen.sh --systempakete dnsmasq nachinstallieren
-#   ./wiederherstellen.sh --alles       alles vier
+#   bash wiederherstellen.sh --pruefen     nur nachsehen, nichts anfassen
+#   bash wiederherstellen.sh --stimmen     Piper-Stimmen zurueckholen
+#   bash wiederherstellen.sh --pakete      Python-Pakete und Torch neu
+#   bash wiederherstellen.sh --modell      Uebersetzungsmodell zurueckspielen
+#   bash wiederherstellen.sh --systempakete dnsmasq nachinstallieren
+#   bash wiederherstellen.sh --alles       alles vier
 #
 #   --vorrat /pfad                      anderer Ort als /opt/devarenu-vorrat
 #
@@ -52,7 +52,7 @@ blau "Vorrat"
 if [ ! -f "$VORRAT/vorrat.json" ]; then
   fehl "Unter $VORRAT liegt kein Vorrat."
   info "Dieser Rechner wurde ohne einen aufgesetzt, oder er ist geloescht."
-  info "Neu bauen geht nur mit Netz:  sudo ./vorrat_bauen.sh"
+  info "Neu bauen geht nur mit Netz:  sudo bash vorrat_bauen.sh"
   exit 1
 fi
 
@@ -178,7 +178,7 @@ if hat pakete; then
       warn "Im Vorrat liegt kein Torch. Ohne es erkennt Whisper nichts."
       warn "Nachholen geht nur mit Netz."
     fi
-    info "Danach einmal:  ./pruefen.sh"
+    info "Danach einmal:  bash pruefen.sh"
   fi
 fi
 
@@ -191,16 +191,12 @@ if hat modell; then
     fehl "ollama ist nicht installiert. Ohne das Programm nuetzt das"
     fehl "Modell nichts."
   else
-    OLLAMA_ORT="${OLLAMA_MODELS:-}"
-    if [ -z "$OLLAMA_ORT" ]; then
-      OLLAMA_ORT="$(systemctl cat ollama 2>/dev/null \
-                    | sed -n 's/.*OLLAMA_MODELS=\([^"]*\).*/\1/p' | head -1)"
-    fi
-    for k in /usr/share/ollama/.ollama/models "$HOME/.ollama/models" \
-             /var/lib/ollama/.ollama/models; do
-      [ -n "$OLLAMA_ORT" ] && break
-      [ -d "$k/blobs" ] && OLLAMA_ORT="$k"
-    done
+    # Gefragt, nicht geraten -- und an derselben Stelle wie in
+    # vorrat_bauen.sh und im Systemcheck. Der Pfad ist oft keiner der
+    # ueblichen; siehe systemcheck.ollama_ablage().
+    OLLAMA_ORT="$("$PY" -c "
+import sys; sys.path.insert(0, '$ORDNER')
+import systemcheck; print(systemcheck.ollama_ablage() or '')" 2>/dev/null)"
     if [ -z "$OLLAMA_ORT" ]; then
       fehl "Ollamas Modellablage nicht gefunden."
       info "Mit OLLAMA_MODELS=/pfad davor nochmal starten."
@@ -255,13 +251,13 @@ if hat systempakete; then
     info "Dieser Vorrat wurde vor 0.2.10 gebaut oder auf einem Rechner"
     info "ohne apt. Ohne dnsmasq laesst sich das Saalnetz nicht"
     info "einrichten; nachholen geht nur mit Leitung:"
-    info "  sudo ./vorrat_bauen.sh"
+    info "  sudo bash vorrat_bauen.sh"
   elif ! command -v dpkg >/dev/null; then
     fehl "Kein dpkg auf diesem Rechner."
     info "Die .deb-Dateien passen zu Debian und Ubuntu."
   elif [ "$(id -u)" != "0" ]; then
     fehl "Systempakete brauchen Wurzelrechte."
-    info "  sudo ./wiederherstellen.sh --systempakete"
+    info "  sudo bash wiederherstellen.sh --systempakete"
   else
     # -i und nicht apt: apt wollte an dieser Stelle ins Netz, und genau
     # das gibt es hier nicht. dpkg nimmt die Dateien, wie sie daliegen.
@@ -272,7 +268,7 @@ if hat systempakete; then
       # Namensaufloesung.
       systemctl disable --now dnsmasq >/dev/null 2>&1
       info "dnsmasq liegt bereit, ist aber aus. Eingeschaltet wird es"
-      info "allein von ./netz_einrichten.sh."
+      info "allein von bash netz_einrichten.sh."
     else
       fehl "dpkg konnte nicht alles einspielen."
       info "Fehlt eine Abhaengigkeit, verraet sie sich mit:"

@@ -443,6 +443,11 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
       enthalten. Maßgeblich bleibt das gesprochene Wort.
     </p>
 
+    <p class="fussnote"><a href="/anleitung.pdf?teil=zuhoerer" download
+       id="anleitungslink">Kurzanleitung als PDF</a></p>
+    <!-- Der Verweis traegt die gewaehlte Sprache mit: beschriftungen()
+         haengt sie an, sobald jemand eine Sprache waehlt. -->
+
     <button class="knopf-gross" id="starten" disabled>Zuhören</button>
     <p class="fussnote" id="start-fussnote">Zuerst eine Sprache wählen.</p>
   </div>
@@ -642,6 +647,7 @@ const TEXTE = {
       bildschirm:"Bildschirm anlassen, sonst stoppt die Wiedergabe.",
       kiKurz:"Automatische Übersetzung, Fehler möglich.",
       post:"Melden", postTitel:"Nachricht an die Technik",
+      anleitung:"Kurzanleitung als PDF",
       postHin:"Fehlt eine Sprache? Ist der Ton zu leise? Kurz schreiben, die Technik sieht es sofort. Eine Antwort kommt nicht, dafür ist während des Gottesdienstes keine Zeit.",
       postSenden:"Senden", postDank:"Angekommen. Danke!",
       zurueck:"Zurück", rueckmeldung:"Rückmeldung", schliessen:"Schließen",
@@ -662,6 +668,7 @@ const TEXTE = {
       bildschirm:"Keep the screen on, otherwise playback stops.",
       kiKurz:"Automatic translation, errors possible.",
       post:"Message", postTitel:"Message to the sound desk",
+      anleitung:"Short guide as PDF",
       postHin:"Missing a language? Sound too quiet? Write a line, the technician sees it right away. There will be no reply, there is no time for that during the service.",
       postSenden:"Send", postDank:"Received. Thank you!",
       zurueck:"Back", rueckmeldung:"Feedback", schliessen:"Close",
@@ -681,7 +688,8 @@ const TEXTE = {
       stumm:"Нет звука? Переключите боковой переключатель на iPhone.",
       bildschirm:"Не гасите экран, иначе воспроизведение остановится.",
       kiKurz:"Автоматический перевод, возможны ошибки.",
-      post:"Сообщить", postTitel:"Сообщение технику",
+      post:"Сообщить",
+      anleitung:"Краткое руководство в PDF", postTitel:"Сообщение технику",
       postHin:"Не хватает языка? Слишком тихо? Напишите коротко, техник сразу увидит. Ответа не будет, во время богослужения на это нет времени.",
       postSenden:"Отправить", postDank:"Получено. Спасибо!",
       zurueck:"Назад", rueckmeldung:"Отзыв", schliessen:"Закрыть",
@@ -702,6 +710,7 @@ const TEXTE = {
       bildschirm:"صفحه را روشن نگه دارید، وگرنه پخش متوقف می‌شود.",
       kiKurz:"ترجمهٔ خودکار، احتمال خطا وجود دارد.",
       post:"پیام", postTitel:"پیام به مسئول فنی",
+      anleitung:"راهنمای کوتاه به صورت PDF",
       postHin:"زبانی کم است؟ صدا کم است؟ کوتاه بنویسید، مسئول فنی فوراً می‌بیند. پاسخی داده نمی‌شود؛ در حین مراسم فرصت آن نیست.",
       postSenden:"ارسال", postDank:"دریافت شد. سپاسگزاریم!",
       zurueck:"بازگشت", rueckmeldung:"بازخورد", schliessen:"بستن",
@@ -1250,6 +1259,12 @@ function startauswahlBauen(){
     $("starten").disabled = false;
     $("start-fussnote").textContent = x.kiKurz;
     $("frage-sprache").textContent = x.waehlen;
+    const al = $("anleitungslink");
+    if(al){
+      al.textContent = x.anleitung;
+      al.href = "/anleitung.pdf?teil=zuhoerer&sprache=" + code;
+      al.lang = code;
+    }
     const band = $("neuband");
     const gewaehlt = SPRACHEN[code] || {};
     if(band){

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Devarenu durchsehen: was laeuft, was fehlt, was als naechstes zu tun ist.
 #
-#   ./pruefen.sh              alles durchgehen
-#   ./pruefen.sh > bericht.txt   zum Verschicken
+#   bash pruefen.sh              alles durchgehen
+#   bash pruefen.sh > bericht.txt   zum Verschicken
 #
 # Gedacht fuer den Rechner in der Gemeinde und fuer den Menschen, der
 # davor steht -- nicht unbedingt den, der das hier gebaut hat. Jede
@@ -218,6 +218,39 @@ if [ -f "$ORDNER/firewall.sh" ]; then
     info "Freigeben mit:"
     info "  $FW_BEFEHL"
   fi
+
+  # Ist dieser Rechner der Router, braucht der Saal mehr als 8000:
+  # DNS und DHCP, damit ein Handy ueberhaupt eine Adresse und einen
+  # Namen bekommt, und 80 fuer die Pruefadressen der Hersteller. Bis
+  # 0.2.11 wurde nur 8000 geprueft -- und genau die anderen drei
+  # fehlten auf dem Gemeinderechner.
+  if [ "$("$PYJSON" -c "
+import sys; sys.path.insert(0, '.')
+import netzzustand; print('ja' if netzzustand.ist_router() else 'nein')
+" 2>/dev/null)" = "ja" ] && command -v ufw >/dev/null; then
+    KARTE="$("$PYJSON" -c "
+import sys; sys.path.insert(0, '.')
+import netzzustand; print(netzzustand.laden()[0]['schnittstelle'])
+" 2>/dev/null)"
+    UFWSTAND="$(sudo -n ufw status 2>/dev/null || ufw status 2>/dev/null)"
+    if [ -z "$UFWSTAND" ]; then
+      info "ufw-Regeln nicht einsehbar (braucht Wurzelrechte)."
+      info "  sudo bash pruefen.sh"
+    elif ! printf '%s' "$UFWSTAND" | grep -q "Status: active"; then
+      gut "ufw ist aus -- nichts wird gesperrt"
+    else
+      for PP in "53" "67" "80" "8000"; do
+        if printf '%s' "$UFWSTAND" | grep -qE "^$PP\b.*on ${KARTE}\b|^$PP/.*on ${KARTE}\b"; then
+          gut "Port $PP ist auf $KARTE frei"
+        else
+          fehl "Port $PP ist auf $KARTE NICHT frei."
+          info "Ohne 53 und 67 bekommt kein Handy eine Adresse,"
+          info "ohne 80 meldet jedes \"kein Internet\"."
+          info "  sudo bash firewall.sh --schnittstelle $KARTE"
+        fi
+      done
+    fi
+  fi
 fi
 
 # ----------------------------------------------------------- Saalnetz
@@ -276,7 +309,7 @@ CONF=/etc/dnsmasq.d/devarenu.conf
 if [ ! -f "$CONF" ]; then
   fehl "$CONF fehlt."
   info "Der Umbau ist nicht gelaufen oder wurde zurueckgenommen:"
-  info "  sudo ./netz_einrichten.sh"
+  info "  sudo bash netz_einrichten.sh"
 elif grep -q '^dhcp-option=114,' "$CONF"; then
   gut "DHCP-Option 114 gesetzt ($(grep -m1 '^dhcp-option=114,' "$CONF" | cut -d, -f2-))"
 else
@@ -459,7 +492,7 @@ if [ "$(id -u)" = "0" ]; then
 else
   info "Ein zweiter DHCP-Server ist ohne Wurzelrechte nicht direkt zu"
   info "sehen -- der Rundruf braucht Port 68. Mit sudo geprueft:"
-  info "  sudo ./pruefen.sh"
+  info "  sudo bash pruefen.sh"
   # Der laufende Server merkt denselben Fehler indirekt: an Handys, die
   # mit einer Adresse ankommen, die nicht aus unserem Netz stammt.
   mit_python '
@@ -483,7 +516,7 @@ else:
     print("OK|Der Server hat bisher kein Geraet mit fremder Adresse gesehen")
     print("INFO|Das ist ein Hinweis, kein Beweis: wer eine fremde Adresse")
     print("INFO|hat und uns deshalb gar nicht erreicht, faellt hier nicht")
-    print("INFO|auf. Der sichere Weg ist sudo ./pruefen.sh.")
+    print("INFO|auf. Der sichere Weg ist sudo bash pruefen.sh.")
 '
 fi
 
@@ -539,7 +572,7 @@ treffer = list(mo.glob("**/*%s*" % config.WHISPER_MODELL.replace("large-v3-turbo
 if treffer:
     print("OK|Whisper %s liegt in %s" % (config.WHISPER_MODELL, mo.name))
 else:
-    print("FEHL|Whisper %s nicht in %s. Holen mit: ./einrichten.sh"
+    print("FEHL|Whisper %s nicht in %s. Holen mit: bash einrichten.sh"
           % (config.WHISPER_MODELL, mo))
 
 import zustand as zd
@@ -560,7 +593,7 @@ if stumm:
     print("WARN|Ohne vorgesehene Stimme, laeuft als reiner Untertitel: %s"
           % ", ".join(stumm))
 if fehlend:
-    print("FEHL|Stimme fehlt fuer: %s. Holen mit: ./einrichten.sh"
+    print("FEHL|Stimme fehlt fuer: %s. Holen mit: bash einrichten.sh"
           % ", ".join(fehlend))
 ungeprueft = [s for s in sprachen if s not in config.GEPRUEFT]
 if ungeprueft:
@@ -573,7 +606,7 @@ blau "Dienst"
 
 DIENST_LAEUFT=nein
 if [ "$SYSTEMD" = nein ]; then
-  warn "Kein systemd. Dann wird von Hand gestartet: ./start.sh"
+  warn "Kein systemd. Dann wird von Hand gestartet: bash start.sh"
 elif [ "$SYSTEMD" = unerreichbar ]; then
   warn "Nicht abfragbar, siehe oben. Von Hand nachsehen mit:"
   warn "  systemctl status $NAME"
@@ -607,8 +640,8 @@ elif [ -f "/etc/systemd/system/$NAME.service" ]; then
   fi
 else
   warn "Nicht als Dienst eingerichtet. Nach dem Einschalten kommt der"
-  warn "Server dann nicht von allein hoch. Einrichten mit: ./dienst.sh"
-  warn "Wer nur entwickelt, braucht das nicht und nimmt ./start.sh"
+  warn "Server dann nicht von allein hoch. Einrichten mit: bash dienst.sh"
+  warn "Wer nur entwickelt, braucht das nicht und nimmt bash start.sh"
 fi
 
 # ------------------------------------------------------------ Server
@@ -760,9 +793,28 @@ def eigene_nummern_warnen():
     Wer eine Nummer von hier am Pult eintraegt, trifft womoeglich ein
     anderes Geraet -- und merkt es erst im Gottesdienst."""
     print("WARN|ACHTUNG: Diese Nummern stammen aus dieser Sitzung.")
-    print("WARN|Der Dienst zaehlt anders. Auf diesem Rechner gemessen:")
-    print("WARN|13 Geraete beim Dienst gegen 7 hier, mit unterschiedlichen")
-    print("WARN|Plugin-Eintraegen -- also auch andere Nummern.")
+    print("WARN|Der Dienst zaehlt womoeglich anders.")
+    # Bis 0.2.11 stand hier "13 Geraete beim Dienst gegen 7 hier" --
+    # ein Messwert vom alten Ubuntu, fest eingeschrieben. Auf CachyOS
+    # waren es 13 gegen 13, und dann sagte die Zeile etwas Falsches
+    # ueber genau den Rechner, vor dem jemand steht. Gemessen wird
+    # jetzt, wenn ein Server laeuft; sonst wird gar keine Zahl genannt.
+    if eigene is not None and vom_dienst is not None:
+        if eigene == vom_dienst:
+            print("INFO|Hier und beim Dienst je %d Geraete -- auf diesem"
+                  % eigene)
+            print("INFO|Rechner also gleich viele. Dass die NUMMERN"
+                  " dieselben sind,")
+            print("INFO|folgt daraus nicht: die Reihenfolge haengt an der"
+                  " Aufzaehlung.")
+        else:
+            print("WARN|%d Geraete beim Dienst gegen %d hier -- also auch"
+                  % (vom_dienst, eigene))
+            print("WARN|andere Nummern.")
+    else:
+        print("INFO|Zum Vergleichen muss der Dienst laufen. Ohne ihn"
+              " steht hier")
+        print("INFO|nur die Zaehlung dieser Sitzung.")
     print("WARN|Wer eine Nummer von hier am Pult eintraegt, trifft")
     print("WARN|womoeglich ein anderes Geraet.")
     print("WARN|Am Pult AUSWAEHLEN, keine Nummern abtippen.")
@@ -862,6 +914,13 @@ if not liste:
     raise SystemExit
 
 liste_zeigen(liste, "aus dieser Sitzung")
+# Gezaehlt wird beides: was dieser Lauf sieht und was der Dienst sieht.
+# Ohne laufenden Dienst bleibt vom_dienst None, und dann wird gar keine
+# Zahl behauptet.
+eigene = len(liste) if liste else None
+vom_dienst = None
+if antwort and isinstance(antwort.get("liste"), list):
+    vom_dienst = len(antwort["liste"])
 eigene_nummern_warnen()
 print("INFO|")
 hinterlegt()
@@ -946,6 +1005,33 @@ else:
 '
 
 # ------------------------------------------------------------ Fassung
+# ------------------------------------------------------- Systemcheck
+# Dieselbe Pruefung, die der Server beim Start macht und als Nachricht
+# ins Pult legt. Eine Stelle, zwei Anzeigen -- sonst laufen die beiden
+# Listen frueher oder spaeter auseinander, und dann glaubt man der
+# falschen.
+blau "Rechner-Einstellungen"
+mit_python '
+import sys
+sys.path.insert(0, ".")
+import systemcheck
+
+try:
+    befunde = systemcheck.pruefen()
+except Exception as e:
+    print("WARN|Systemcheck fehlgeschlagen: %s" % str(e)[:90])
+    befunde = None
+
+if befunde is not None:
+    if not befunde:
+        print("OK|Alles eingestellt, wie es sein soll")
+    for b in befunde:
+        art = "FEHL" if b.schwere == systemcheck.FEHLT else "WARN"
+        print("%s|%s" % (art, b.was))
+        if b.tun:
+            print("INFO|  %s" % b.tun)
+'
+
 blau "Sprechtempo"
 # Seit 0.2.11 haengt das Tempo an der Stimme, nicht mehr an einer
 # einzelnen Zahl. Bleibt der alte Name in einer von Hand gepflegten
@@ -1012,13 +1098,13 @@ fi
 if command -v git >/dev/null 2>&1 && [ -d .git ]; then
   info "Stand     $(git log -1 --format='%h %ad %s' --date=short 2>/dev/null | cut -c1-70)"
   if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-    warn "Lokale Aenderungen im Ordner. ./aktualisieren.sh bricht deshalb"
+    warn "Lokale Aenderungen im Ordner. bash aktualisieren.sh bricht deshalb"
     warn "ab, statt sie zu ueberschreiben. Ansehen mit: git status"
   else
-    gut "keine lokalen Aenderungen, ./aktualisieren.sh laeuft durch"
+    gut "keine lokalen Aenderungen, bash aktualisieren.sh laeuft durch"
   fi
 else
-  warn "Kein Git-Ordner. ./aktualisieren.sh braucht einen."
+  warn "Kein Git-Ordner. bash aktualisieren.sh braucht einen."
 fi
 
 # ------------------------------------------------------- Update per Stick
@@ -1042,7 +1128,7 @@ if [ "$SYSTEMD" = ja ]; then
     fi
   else
     warn "Update per Stick nicht eingerichtet. Ein eingesteckter Stick"
-    warn "loest nichts aus. Nachholen mit: sudo ./dienst.sh --stick"
+    warn "loest nichts aus. Nachholen mit: sudo bash dienst.sh --stick"
   fi
 fi
 
@@ -1072,7 +1158,7 @@ elif [ ! -f "$VORRAT/vorrat.json" ]; then
   warn "Kein Vorrat unter $VORRAT."
   warn "Ohne ihn laesst sich hier nichts wiederherstellen -- dieser"
   warn "Rechner hat kein Netz. Beim naechsten Besuch mit Leitung:"
-  warn "  sudo ./vorrat_bauen.sh"
+  warn "  sudo bash vorrat_bauen.sh"
 else
   V_FASSUNG="$("$PYJSON" -c "import json;print(json.load(open('$VORRAT/vorrat.json')).get('fassung','?'))" 2>/dev/null)"
   V_PYTHON="$("$PYJSON" -c "import json;print(json.load(open('$VORRAT/vorrat.json')).get('python','?'))" 2>/dev/null)"
@@ -1137,7 +1223,7 @@ fi
 cat <<'ENDE'
 
    Diese Ausgabe laesst sich abfotografieren oder festhalten mit:
-     ./pruefen.sh > bericht.txt 2>&1
+     bash pruefen.sh > bericht.txt 2>&1
 
 ENDE
 

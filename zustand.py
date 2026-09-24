@@ -32,9 +32,56 @@ DATEI = config.BASIS / "zustand.json"
 #
 # 2 hat geraet_kanal und geraet_kanaele dazubekommen. Eine Datei nach
 # Fassung 1 hat sie nicht, und das ist kein Fehlerfall: die Vorgaben 0
-# und 1 beschreiben genau, was vorher galt -- erster Kanal, mono. Wer
-# von 1 kommt, laeuft deshalb ohne Umschreiben weiter.
-FASSUNG = 2
+# und 1 beschreiben genau, was vorher galt -- erster Kanal, mono.
+#
+# 3 hat glossar_quittiert. Das kam schon mit 0.2.11, ohne die Fassung
+# hochzusetzen -- ein Versehen, das hier nachgeholt wird.
+FASSUNG = 3
+
+# Bis 0.2.11 wurde die Fassung GESCHRIEBEN, aber nie gelesen. Es gab
+# keine Umzugsschritte, keine Sicherung, und _uebernehmen kopierte Feld
+# fuer Feld in die Vorgabe -- ein Schluessel, den diese Fassung nicht
+# kennt, war nach dem naechsten Speichern weg. Gemessen an einer Datei
+# mit einem zusaetzlichen Schluessel: nach dem Laden nicht mehr da,
+# nach dem Speichern aus der Datei verschwunden.
+#
+# Das ist der Grund, warum Einstellungen ein Update ueberleben muessen,
+# ohne dass jemand daran denkt. Was hier steht, laeuft beim Start
+# einmal der Reihe nach durch.
+
+
+def _von_1_nach_2(daten):
+    """geraet_kanal und geraet_kanaele kamen mit Fassung 2 dazu.
+
+    Inhaltlich ist nichts umzuschreiben: die Vorgaben 0 und 1
+    beschreiben genau, was vorher galt -- erster Kanal, mono. Der
+    Schritt steht trotzdem hier, und zwar ausdruecklich. Ohne ihn
+    bliebe die Kette bei 1 stehen, und eine Datei ohne Fassungsnummer
+    wuerde als Fassung 1 zurueckgeschrieben, obwohl sie laengst den
+    Inhalt von 3 hat. Ein leerer Schritt ist kein ueberfluessiger."""
+    daten.setdefault("geraet_kanal", 0)
+    daten.setdefault("geraet_kanaele", 1)
+    return ""
+
+
+def _von_2_nach_3(daten):
+    """glossar_quittiert kam mit 0.2.11 dazu, ohne Fassungswechsel.
+
+    Eine Datei aus 0.2.10 oder frueher hat den Schluessel nicht. Die
+    leere Liste ist dabei die richtige Auskunft: es wurde noch nichts
+    quittiert, also erscheint der Hinweis zu einer ungeprueften Sprache
+    beim naechsten Einschalten einmal. Lieber einmal zu viel als ein
+    Techniker, der nie erfaehrt, dass eine Sprache ungeprueft ist."""
+    daten.setdefault("glossar_quittiert", [])
+    return "glossar_quittiert ergaenzt"
+
+
+# Von welcher Fassung nach der naechsten. Der Schluessel ist die
+# Fassung, die IN DER DATEI steht.
+UMZUEGE = {
+    1: _von_1_nach_2,
+    2: _von_2_nach_3,
+}
 
 # Geschrieben wird aus den Request-Threads des Servers, also aus mehreren
 # gleichzeitig. Ohne Schloss koennten sich zwei Schreibvorgaenge
@@ -77,6 +124,10 @@ def vorgabe():
         # sonst nach jedem Neustart wieder im Briefkasten laege -- und
         # was zum dritten Mal kommt, wird ungelesen weggeklickt.
         "glossar_quittiert": [],
+        # Fingerabdruck der zuletzt gelesenen Systemcheck-Befunde.
+        # Aendert sich die Lage, aendert sich der Abdruck, und die
+        # Nachricht kommt wieder.
+        "systemcheck_quittiert": "",
     }
 
 
@@ -162,6 +213,9 @@ def _uebernehmen(roh, daten):
     # Geprueft wird wie bei "ziele": nur bekannte Sprachcodes, alles
     # andere faellt still weg. Ein Tippfehler von Hand soll hoechstens
     # dazu fuehren, dass ein Hinweis noch einmal kommt.
+    if isinstance(roh.get("systemcheck_quittiert"), str):
+        daten["systemcheck_quittiert"] = roh["systemcheck_quittiert"]
+
     quittiert = roh.get("glossar_quittiert")
     if isinstance(quittiert, list):
         daten["glossar_quittiert"] = [s for s in quittiert
@@ -217,11 +271,100 @@ def laden():
         return daten, f"Vorgaben aus config.py ({DATEI.name} unbrauchbar)"
 
     fehlerhaft = _uebernehmen(roh, daten)
+
+    # Was diese Fassung nicht kennt, bleibt trotzdem stehen. Sonst
+    # verliert ein Rueckfall auf die aeltere Fassung genau die
+    # Einstellungen, die die neuere angelegt hat -- still, und erst im
+    # Gottesdienst zu merken.
+    for schluessel, wert in roh.items():
+        if schluessel not in daten:
+            daten[schluessel] = wert
+
+    hinweis = _umziehen(roh, daten)
+
     if fehlerhaft:
         print(f"{DATEI.name}: unbrauchbare Eintraege "
               f"({', '.join(fehlerhaft)}), dafuer gilt config.py.")
         return daten, f"{DATEI.name}, teilweise (siehe oben)"
+    if hinweis:
+        return daten, f"{DATEI.name}, {hinweis}"
     return daten, DATEI.name
+
+
+# Eine Datei aus einer neueren Fassung wird gelesen, aber nicht
+# zurueckgeschrieben. Der Fall tritt nach einem misslungenen Update auf:
+# die neue Fassung hat schon geschrieben, dann faellt der Rechner auf
+# die alte zurueck. Wuerde die alte darueberschreiben, waeren die
+# Einstellungen der neuen endgueltig weg.
+NUR_LESEN = False
+NUR_LESEN_GRUND = ""
+
+
+def _umziehen(roh, daten):
+    """Fuehrt die Umzugsschritte aus. Gibt einen Hinweis zurueck oder ''."""
+    global NUR_LESEN, NUR_LESEN_GRUND
+    NUR_LESEN = False
+    NUR_LESEN_GRUND = ""
+
+    war = roh.get("fassung")
+    if not isinstance(war, int) or isinstance(war, bool):
+        # Keine oder eine unbrauchbare Angabe: dann ist es eine Datei
+        # aus der Zeit vor der Fassungsnummer. Die aelteste, die es
+        # gibt, ist 1.
+        war = 1
+
+    if war > FASSUNG:
+        NUR_LESEN = True
+        NUR_LESEN_GRUND = (
+            f"{DATEI.name} ist in Fassung {war} geschrieben, dieses "
+            f"Programm kennt {FASSUNG}. Die Datei wird gelesen, aber "
+            f"NICHT ueberschrieben -- sonst waeren die Einstellungen "
+            f"der neueren Fassung weg. Wahrscheinlich ist ein Update "
+            f"zurueckgefallen.")
+        print(NUR_LESEN_GRUND)
+        return f"Fassung {war}, nur gelesen"
+
+    if war == FASSUNG:
+        return ""
+
+    # Vor dem ersten Schritt eine Sicherung. Sie enthaelt das
+    # WLAN-Passwort, gehoert also niemandem ausser dem Dienstbenutzer
+    # und nie ins Repo (.gitignore deckt zustand.json* ab).
+    sicherung = DATEI.with_name(f"{DATEI.name}.vor-{war}")
+    try:
+        if not sicherung.exists():
+            sicherung.write_text(DATEI.read_text(encoding="utf-8"),
+                                 encoding="utf-8")
+            os.chmod(sicherung, 0o600)
+    except Exception as e:
+        print(f"Sicherung {sicherung.name} misslang ({str(e)[:70]}). "
+              f"Der Umzug laeuft trotzdem -- die Datei im Speicher ist "
+              f"vollstaendig.")
+
+    schritte = []
+    stand = war
+    while stand < FASSUNG:
+        schritt = UMZUEGE.get(stand)
+        if schritt is None:
+            print(f"Kein Umzugsschritt von Fassung {stand} nach "
+                  f"{stand + 1}. Es bleibt bei dem, was gelesen wurde.")
+            break
+        try:
+            was = schritt(daten)
+        except Exception as e:
+            print(f"Umzug {stand} -> {stand + 1} misslang "
+                  f"({str(e)[:70]}). Die Sicherung liegt als "
+                  f"{sicherung.name} daneben.")
+            break
+        schritte.append(f"{stand}->{stand + 1}" + (f" ({was})" if was else ""))
+        stand += 1
+
+    daten["fassung"] = stand
+    if schritte:
+        print(f"{DATEI.name} umgezogen: {', '.join(schritte)}")
+        print(f"  Vorher liegt als {sicherung.name} daneben.")
+        return "umgezogen von Fassung %d" % war
+    return ""
 
 
 def speichern(daten):
@@ -236,6 +379,11 @@ def speichern(daten):
     Wirft nicht: aufgerufen wird das aus Request-Handlern, und eine
     volle Platte soll die Einstellung am Pult nicht mit einem Fehler
     quittieren, wenn sie im laufenden Betrieb doch greift."""
+    if NUR_LESEN:
+        # Nicht schreiben und auch nicht so tun, als waere geschrieben
+        # worden: der Aufrufer soll es am Rueckgabewert merken.
+        print(f"{DATEI.name} wird nicht ueberschrieben: {NUR_LESEN_GRUND}")
+        return False
     daten["fassung"] = FASSUNG
     neben = DATEI.with_name(DATEI.name + ".neu")
     try:

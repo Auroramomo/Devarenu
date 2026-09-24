@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 # Legt den Reparaturvorrat an.
 #
-#   sudo ./vorrat_bauen.sh              alles
-#   sudo ./vorrat_bauen.sh --ziel /pfad an eine andere Stelle (zum Pruefen)
-#   ./vorrat_bauen.sh --pruefen         nur nachsehen, nichts schreiben
+#   sudo bash vorrat_bauen.sh              alles
+#   sudo bash vorrat_bauen.sh --ziel /pfad an eine andere Stelle (zum Pruefen)
+#   bash vorrat_bauen.sh --pruefen         nur nachsehen, nichts schreiben
+#   sudo bash vorrat_bauen.sh --nur-systempakete
+#                                          nur die Systempakete ergaenzen
+#
+# --nur-systempakete ist fuer den Fall, dass ein Vorrat schon daliegt
+# und bloss dnsmasq fehlt. Es laedt ein paar Megabyte statt vierzehn
+# Gigabyte -- wichtig, wenn die Leitung ein Handy-Hotspot ist.
 #
 # Warum das noetig ist: installiert wird beim Systemhaus mit Leitung,
 # danach geht der Rechner in die Gemeinde, und dort gibt es kein Netz.
@@ -24,6 +30,7 @@ cd "$ORDNER"
 
 ZIEL=/opt/devarenu-vorrat
 NUR_PRUEFEN=nein
+NUR_SYSTEM=nein
 
 blau() { printf '\n\033[1;34m== %s\033[0m\n' "$*"; }
 gut()  { printf '   \033[32mok\033[0m    %s\n' "$*"; }
@@ -35,6 +42,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --ziel)     ZIEL="${2:-}"; shift 2 ;;
     --pruefen)  NUR_PRUEFEN=ja; shift ;;
+    --nur-systempakete) NUR_SYSTEM=ja; shift ;;
     -h|--hilfe) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          fehl "Unbekannt: $1"; exit 1 ;;
   esac
@@ -67,16 +75,51 @@ d = json.load(open('$ZIEL/vorrat.json'))
 for k in ('fassung', 'python', 'modell', 'gebaut'):
     print('         %-9s %s' % (k, d.get(k, '?')))
 "
+    # Bis 0.2.11 war hier Schluss: "Vorrat vorhanden" stand da, ohne
+    # dass eine einzige Datei angefasst wurde. Ein Vorrat, von dem die
+    # Haelfte verdorben ist, sah genauso aus wie ein guter -- und
+    # auffallen wuerde es an dem Tag, an dem man ihn braucht.
+    if [ -f "$ZIEL/pruefsummen.sha256" ]; then
+      ANZ="$(wc -l < "$ZIEL/pruefsummen.sha256")"
+      info "Rechne $ANZ Pruefsummen nach, das dauert einen Moment ..."
+      SCHLECHT="$( cd "$ZIEL" && sha256sum -c pruefsummen.sha256 2>/dev/null \
+                   | grep -v ': OK$' || true )"
+      if [ -z "$SCHLECHT" ]; then
+        gut "$ANZ Dateien unveraendert"
+      else
+        fehl "$(printf '%s\n' "$SCHLECHT" | wc -l) Dateien stimmen nicht:"
+        printf '%s\n' "$SCHLECHT" | head -10 | sed 's/^/         /'
+        info "Neu bauen geht nur mit Netz:  sudo bash vorrat_bauen.sh"
+        exit 1
+      fi
+    else
+      fehl "pruefsummen.sha256 fehlt. Der Vorrat ist unvollstaendig."
+      exit 1
+    fi
   else
     fehl "Unter $ZIEL liegt keiner."
   fi
   exit 0
 fi
 
+# --nur-systempakete: der Kurzweg. Geprueft wird VOR dem ersten
+# Ladevorgang -- sonst haengen schon 175 MB Wheels an der Leitung, ehe
+# auffaellt, dass es gar keinen Vorrat zu ergaenzen gibt. Genau das ist
+# beim ersten Versuch passiert.
+if [ "$NUR_SYSTEM" = ja ]; then
+  if [ ! -f "$ZIEL/vorrat.json" ]; then
+    fehl "Unter $ZIEL liegt kein Vorrat, der sich ergaenzen liesse."
+    info "Einen ganzen bauen:  sudo bash vorrat_bauen.sh"
+    exit 1
+  fi
+  gut "Vorhandener Vorrat wird nur ergaenzt"
+  info "Stimmen, Modelle und Wheels bleiben, wie sie sind."
+fi
+
 # Ab hier wird geschrieben.
 if [ ! -w "$(dirname "$ZIEL")" ] && [ "$(id -u)" != "0" ]; then
   fehl "Keine Schreibrechte auf $(dirname "$ZIEL")."
-  info "Mit sudo starten:  sudo ./vorrat_bauen.sh"
+  info "Mit sudo starten:  sudo bash vorrat_bauen.sh"
   exit 1
 fi
 
@@ -84,6 +127,7 @@ mkdir -p "$ZIEL"/{wheels,wheels-torch,voices,modelle,ollama,systempakete} \
   || exit 1
 
 # ---------------------------------------------------------------- Pakete
+if [ "$NUR_SYSTEM" != ja ]; then
 blau "Pakete"
 # Ohne --platform und ohne --python-version, anders als in
 # stick_bauen.sh: der Stick zielt auf einen FREMDEN Rechner, dieser
@@ -103,6 +147,8 @@ else
   exit 1
 fi
 
+fi   # Ende von --nur-systempakete uebersprungen
+
 # ---------------------------------------------------------- Systempakete
 blau "Systempakete"
 # Bis 0.2.9 nahm dieser Vorrat nur Python-Pakete mit. Das genuegte,
@@ -116,16 +162,46 @@ blau "Systempakete"
 # -o Dir::Cache::archives zeigt es hierher. --reinstall, weil sonst
 # nichts geholt wird, was schon installiert ist -- und genau das ist
 # hier der Normalfall.
-SYSTEMPAKETE="dnsmasq dnsmasq-base"
-if ! command -v apt-get >/dev/null; then
-  # Auf Arch und CachyOS gibt es kein apt. Dieser Vorrat ist fuer den
-  # Gemeinderechner gedacht, und der laeuft mit Ubuntu; auf dem
-  # Arbeitsrechner ist der Abschnitt gegenstandslos.
-  warn "Kein apt-get -- Systempakete werden uebersprungen."
-  info "Dieser Abschnitt gilt fuer Debian und Ubuntu. Der Vorrat ist"
-  info "damit auf diesem Rechner unvollstaendig, auf dem Gemeinde-"
-  info "rechner waere er es nicht."
+# Zwei Paketverwaltungen, weil es zwei Systeme gibt. Der
+# Gemeinderechner lief bis zum 23.09.2026 auf Ubuntu und laeuft seither
+# auf CachyOS -- und in der Zwischenzeit stand im Vorrat "Kein apt-get,
+# Systempakete werden uebersprungen". Damit fehlte dnsmasq, also genau
+# das Paket, ohne das sich das Saalnetz vor Ort nicht einrichten laesst.
+SYSTEMPAKETE_APT="dnsmasq dnsmasq-base"
+SYSTEMPAKETE_PACMAN="dnsmasq"
+if command -v pacman >/dev/null && ! command -v apt-get >/dev/null; then
+  # pacman -Sw laedt in einen Zwischenspeicher, ohne zu installieren.
+  # --cachedir zeigt in den Vorrat; ohne das landet es unter
+  # /var/cache/pacman/pkg und waere beim naechsten Aufraeumen weg.
+  rm -rf "$ZIEL/systempakete"
+  mkdir -p "$ZIEL/systempakete"
+  # Ohne PIPESTATUS gilt der Rueckgabewert von sed, nicht der von
+  # pacman -- und dann meldet das Skript "Erfolg, aber keine Datei da",
+  # wo in Wahrheit "Sie benoetigen Root-Rechte" stand.
+  pacman -Sw --noconfirm --cachedir "$ZIEL/systempakete" \
+    $SYSTEMPAKETE_PACMAN 2>&1 | sed 's/^/         /'
+  if [ "${PIPESTATUS[0]}" = "0" ]; then
+    ANZ="$(find "$ZIEL/systempakete" -maxdepth 1 -name '*.pkg.tar.*' \
+           ! -name '*.sig' | wc -l)"
+    if [ "$ANZ" -gt 0 ]; then
+      gut "$ANZ Pakete, $(du -sh "$ZIEL/systempakete" | cut -f1)"
+      # Die Signaturen kommen mit und bleiben liegen: pacman -U prueft
+      # sie, und ohne sie muesste man vor Ort --nosignature nehmen.
+      info "Signaturen liegen daneben, pacman -U prueft sie."
+    else
+      fehl "pacman meldete Erfolg, aber es liegt kein Paket da."
+      exit 1
+    fi
+  else
+    fehl "pacman konnte die Systempakete nicht holen."
+    info "Erst die Paketlisten auffrischen:  sudo pacman -Sy"
+    exit 1
+  fi
+elif ! command -v apt-get >/dev/null; then
+  warn "Weder pacman noch apt-get -- Systempakete werden uebersprungen."
+  info "Der Vorrat ist auf diesem Rechner unvollstaendig."
 else
+  SYSTEMPAKETE="$SYSTEMPAKETE_APT"
   # apt braucht partial/, sonst bricht es mit einer Meldung ab, die
   # nach einem Rechtefehler aussieht.
   rm -rf "$ZIEL/systempakete"
@@ -152,6 +228,42 @@ else
   fi
 fi
 
+if [ "$NUR_SYSTEM" = ja ]; then
+  # Pruefsummen und Etikett muessen mit, sonst meldet --pruefen
+  # hinterher die neuen Dateien als unbekannt und den Vorrat als
+  # verdorben.
+  blau "Pruefsummen"
+  ( cd "$ZIEL" && find . -type f ! -name pruefsummen.sha256 -print0 \
+      | sort -z | xargs -0 sha256sum > pruefsummen.sha256 )
+  gut "$(wc -l < "$ZIEL/pruefsummen.sha256") Dateien"
+
+  blau "Beschriftung"
+  "$PY" - "$ZIEL" "$VERSION" <<'PYCODE'
+import json, sys
+from datetime import datetime
+from pathlib import Path
+ziel, version = Path(sys.argv[1]), sys.argv[2]
+datei = ziel / "vorrat.json"
+d = json.loads(datei.read_text(encoding="utf-8"))
+# Die Fassung NICHT hochsetzen: geladen wurden nur Systempakete, die
+# Wheels gehoeren weiter zur alten. Wer das verwechselt, haelt einen
+# halben Vorrat fuer einen ganzen.
+d["systempakete_ergaenzt"] = datetime.now().isoformat(timespec="seconds")
+d["systempakete_fassung"] = version
+datei.write_text(json.dumps(d, indent=2, ensure_ascii=False) + "\n",
+                 encoding="utf-8")
+print("   ok    vorrat.json ergaenzt (Fassung bleibt %s)"
+      % d.get("fassung", "?"))
+PYCODE
+
+  blau "Fertig"
+  info "Nur die Systempakete wurden ergaenzt. Der uebrige Vorrat"
+  info "gehoert weiter zu Fassung $("$PY" -c "
+import json; print(json.load(open('$ZIEL/vorrat.json')).get('fassung','?'))")."
+  info "Nachsehen:  bash vorrat_bauen.sh --pruefen"
+  exit 0
+fi
+
 # ----------------------------------------------------------------- Torch
 blau "Torch"
 # Torch steht absichtlich nicht in requirements.txt: es kommt aus einem
@@ -175,7 +287,7 @@ info "Index     $TORCH_INDEX"
 TORCH_FASSUNG="$("$PY" -c 'import torch; print(torch.__version__)' 2>/dev/null)"
 if [ -z "$TORCH_FASSUNG" ]; then
   warn "torch ist hier nicht installiert. Es wird nichts gesichert."
-  warn "Erst ./einrichten.sh laufen lassen, dann diesen Vorrat neu bauen."
+  warn "Erst bash einrichten.sh laufen lassen, dann diesen Vorrat neu bauen."
 else
   info "Fassung   $TORCH_FASSUNG"
   rm -rf "$ZIEL/wheels-torch"; mkdir -p "$ZIEL/wheels-torch"
@@ -202,10 +314,10 @@ if [ -d voices ] && [ -n "$(ls -A voices 2>/dev/null)" ]; then
   DA="$(find "$ZIEL/voices" -name '*.onnx' | wc -l)"
   if [ "$DA" -lt "$ERWARTET" ]; then
     warn "config.py nennt $ERWARTET Stimmen, gesichert sind $DA."
-    warn "Erst ./einrichten.sh laufen lassen, dann diesen Vorrat neu bauen."
+    warn "Erst bash einrichten.sh laufen lassen, dann diesen Vorrat neu bauen."
   fi
 else
-  fehl "voices/ ist leer. Erst ./einrichten.sh laufen lassen."
+  fehl "voices/ ist leer. Erst bash einrichten.sh laufen lassen."
   exit 1
 fi
 
@@ -218,7 +330,7 @@ if [ -d models ] && [ -n "$(ls -A models 2>/dev/null)" ]; then
   cp -a models/. "$ZIEL/modelle/whisper/"
   gut "Whisper gesichert, $(du -sh "$ZIEL/modelle/whisper" | cut -f1)"
 else
-  fehl "models/ ist leer. Erst ./einrichten.sh laufen lassen."
+  fehl "models/ ist leer. Erst bash einrichten.sh laufen lassen."
   exit 1
 fi
 
@@ -227,16 +339,19 @@ blau "Uebersetzungsmodell"
 # Wo Ollama seine Modelle ablegt: erst die Umgebung, dann die Unit, dann
 # die ueblichen Orte. Geraten wird nicht -- wer hier danebengreift,
 # sichert nichts und merkt es erst vor Ort.
-OLLAMA_ORT="${OLLAMA_MODELS:-}"
-if [ -z "$OLLAMA_ORT" ]; then
-  OLLAMA_ORT="$(systemctl cat ollama 2>/dev/null \
-                | sed -n 's/.*OLLAMA_MODELS=\([^"]*\).*/\1/p' | head -1)"
-fi
-for k in /usr/share/ollama/.ollama/models "$HOME/.ollama/models" \
-         /var/lib/ollama/.ollama/models; do
-  [ -n "$OLLAMA_ORT" ] && break
-  [ -d "$k/blobs" ] && OLLAMA_ORT="$k"
-done
+# Wo Ollama seine Modelle wirklich hinlegt -- gefragt, nicht geraten.
+# Ermittelt wird das an EINER Stelle, in systemcheck.ollama_ablage():
+# vorrat_bauen.sh, wiederherstellen.sh und der Systemcheck brauchen
+# dieselbe Antwort, und zwei Ermittlungen laufen frueher oder spaeter
+# auseinander.
+#
+# Dass Raten nicht genuegt: auf einem Entwicklungsrechner zeigt
+# OLLAMA_MODELS auf ein eigenes Laufwerk, auf dem Gemeinderechner liegt
+# es unter /usr/share/ollama (Installierskript von ollama.com), und das
+# Arch-Paket nimmt /var/lib/ollama. Drei Rechner, drei Orte.
+OLLAMA_ORT="$("$PY" -c "
+import sys; sys.path.insert(0, '$ORDNER')
+import systemcheck; print(systemcheck.ollama_ablage() or '')" 2>/dev/null)"
 
 if [ -z "$OLLAMA_ORT" ] || [ ! -d "$OLLAMA_ORT/blobs" ]; then
   fehl "Ollamas Modellablage nicht gefunden."
@@ -329,12 +444,12 @@ etwas kaputt ist.
 
 Wiederherstellen, ohne Netz, im Projektordner:
 
-    ./wiederherstellen.sh --pruefen     nur nachsehen
-    ./wiederherstellen.sh --stimmen
-    ./wiederherstellen.sh --pakete
-    ./wiederherstellen.sh --modell
-    ./wiederherstellen.sh --systempakete
-    ./wiederherstellen.sh --alles
+    bash wiederherstellen.sh --pruefen     nur nachsehen
+    bash wiederherstellen.sh --stimmen
+    bash wiederherstellen.sh --pakete
+    bash wiederherstellen.sh --modell
+    bash wiederherstellen.sh --systempakete
+    bash wiederherstellen.sh --alles
 
 Die Wheels passen NUR zu Python $PY_FASSUNG. wiederherstellen.sh bricht
 ab, wenn vor Ort eine andere Fassung läuft -- sonst installiert man
@@ -366,4 +481,4 @@ fi
 
 blau "Fertig"
 info "$ZIEL  --  $(du -sh "$ZIEL" | cut -f1)"
-info "Nachsehen mit:  ./vorrat_bauen.sh --pruefen"
+info "Nachsehen mit:  bash vorrat_bauen.sh --pruefen"
