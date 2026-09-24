@@ -48,13 +48,37 @@ Zum Verschicken:
 ## Update per USB-Stick
 
 1. Stick einstecken. Der Rechner erkennt ihn selbst.
-2. Warten. Eingespielt wird erst, wenn die Übersetzung angehalten ist.
+2. Warten. Eingespielt wird erst, wenn die Übersetzung angehalten ist
+   und zwanzig Minuten niemand mehr zugehört hat.
 3. Am Pult steht unter *Einrichtung*, was zuletzt passiert ist. Wartet
    ein Update, steht dort auch der Knopf **Jetzt einspielen** — damit
    muss man nicht bis zum nächsten Durchlauf warten.
+4. Stick wieder abziehen.
 
 Ein Update wird **nur** eingespielt, wenn die Signatur stimmt und die
-Fassung neuer ist. Beides prüft der Rechner selbst.
+Fassung neuer ist. Beides prüft der Rechner selbst, und zwar mit der
+Schlüsselliste, die auf **ihm** liegt — nicht mit einer vom Stick.
+
+### Wenn etwas schiefgeht
+
+Der Rechner stellt den vorigen Stand selbst wieder her: Code, Dienste,
+und die Einstellungen, falls das Update sie angefasst hat. Danach steht
+am Pult, was passiert ist und welche Fassung wieder läuft. Es ist kein
+Handgriff nötig.
+
+### Wenn der Rechner den Stick nicht bemerkt
+
+Am Pult steht unter *Einrichtung*, was zuletzt mit einem Stick passiert
+ist. Steht dort gar nichts, hat er ihn nicht gelesen. Fast immer liegen
+die Dateien dann zu tief: sie gehören **ganz oben** auf den Stick, nicht
+in einen Unterordner. Einen Ordner tief findet er sie auch noch, zwei
+nicht mehr.
+
+### Lokale Änderungen
+
+Hat jemand am Rechner eine Datei des Projekts geändert, gewinnt beim
+Update der signierte Stand. Die Änderung geht aber nicht verloren — sie
+wird vorher als Patch gesichert, und das Pult nennt den Ablageort.
 
 ## Was die Technik nicht anfassen muss
 

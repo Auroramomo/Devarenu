@@ -695,6 +695,232 @@ Den Modellpfad nimmt keines der Skripte mehr an. Ermittelt wird er in
 `systemcheck.ollama_ablage()` — erst `OLLAMA_MODELS`, dann die
 Umgebung des Dienstes, erst zuletzt die üblichen Orte.
 
+## Der Updater, zweigeteilt
+
+Seit 0.2.13 besteht das Update aus zwei Hälften.
+
+**Der Kern** (`stick_update.sh`) trifft nur zwei Arten von
+Entscheidungen: **Vertrauen** — ist das Bundle heil, ist der Tag mit
+einem Schlüssel aus dem *installierten* `schluessel.erlaubt` signiert,
+ist die Fassung neuer — und **Rettung**, also wie der Rechner
+zurückkommt, wenn etwas schiefgeht. Beides darf nicht von Code
+abhängen, den ein Stick mitbringt. Der Kern soll sich praktisch nie
+ändern.
+
+**Die Logik** (`aktualisierung.sh`) macht alles andere: vorspulen,
+große Teile, Pakete, Dienste, Gesundheitscheck, Aufräumen. Sie liegt im
+Repo und wird **aus dem geprüften Tag** ausgeführt — nie aus Dateien
+vom Stick. Ein Fehler darin lässt sich mit dem nächsten Update beheben.
+Stünde er im Kern, müsste jemand hinfahren.
+
+Ausgepackt wird über die geprüfte Objekt-SHA aus `refs/stick/vX`,
+**nie über den Tagnamen**. Ein gleichnamiger lokaler Tag würde sonst
+etwas Ungeprüftes unterschieben — nachgewiesen:
+
+```
+refs/stick/v9.9.9 -> aa3876ef   (geprüft)
+Tag v9.9.9        -> 7d0a1fbe   (lokal überschrieben)
+
+git archive v9.9.9            nimmt: 7d0a1fbe   ← das Gefälschte
+git archive refs/stick/v9.9.9 nimmt: aa3876ef   ← das Geprüfte
+```
+
+### Was der Rückfall zurückholt
+
+| | wie |
+|---|---|
+| Code | `git reset --hard` auf den alten Stand |
+| venv | Symlink zurück aufs alte (`.venv-a` / `.venv-b`) |
+| Dienste | aus der Sicherung, dann `daemon-reload` |
+| `zustand.json`, `netz.json` | aus der Sicherung, **nur wenn geändert** |
+| große Teile | das Beiseitegelegte zurück |
+
+**venvs werden nie verschoben.** In einem venv stehen die Pfade in den
+Skripten; ein verschobenes startet nicht. Deshalb liegen beide im
+Projektordner als `.venv-a` und `.venv-b`, und `.venv` ist nur der
+Verweis aufs aktive. Das alte fällt erst weg, wenn der Gesundheitscheck
+steht.
+
+### Zwei Ablagen
+
+```
+<projekt>/update/              was das Pult liest: bereit, stand, jetzt
+/var/lib/devarenu/updates/     Nutzlast und Sicherungen, 700 / 600
+```
+
+Die zweite gehört der Wurzel allein: darin liegt eine Kopie von
+`zustand.json`, und die enthält das WLAN-Passwort der Gemeinde.
+
+### Große Teile
+
+`teile.json` nennt für jede Datei Pfad, Größe und Prüfsumme —
+Sprachmodell, Spracherkennung, Stimmen. Die Dateien selbst liegen nicht
+im Repo; zusammen sind es rund vierzehn Gigabyte.
+
+```
+python teile.py --erfassen     teile.json aus dieser Platte bauen
+python teile.py --pruefen      liegt alles da, und stimmt es?
+```
+
+Vor dem Einspielen wird geprüft, ob alles Nötige auf dem Stick liegt
+und ob der Platz reicht. Fehlt etwas, wird **gar nichts** geändert.
+Alte Teile bleiben liegen, bis der Gesundheitscheck steht.
+
+Der Ollama-Ort wird nicht angenommen, sondern über
+`systemcheck.ollama_ablage()` erfragt.
+
+### Einen Stick bauen
+
+```
+bash stick_bauen.sh /run/media/<name>/STICK               nur Code
+bash stick_bauen.sh /run/media/<name>/STICK --von v0.2.12  was sich änderte
+bash stick_bauen.sh /run/media/<name>/STICK --voll         alles
+```
+
+Ohne `--von` oder `--voll` sind **keine** großen Teile dabei. Das ist
+der Normalfall — die meisten Updates ändern nur Code.
+
+### Prüfen, ohne acht Gigabyte anzufassen
+
+```
+bash pruefstand/updater_test.sh
+python pruefstand/teile_test.py
+```
+
+Beides läuft mit Attrappen, ohne Wurzelrechte, ohne systemd, ohne
+Modell. `systemctl`, `sudo` und `curl` kommen aus
+`pruefstand/attrappen/` und schreiben nur mit.
+
+### Von 0.2.12 auf 0.2.13
+
+**Nur Stick einstecken.** Eingespielt wird mit der *alten* Logik aus
+0.2.12 — der neue Kern greift erst ab dem Update danach. Deshalb bringt
+0.2.13 keine großen Teile mit und lässt `requirements.txt` unangetastet.
+
+### Von 0.2.11 direkt auf 0.2.13
+
+Geht genauso, mit **denselben** Übergangsschritten. Geprüft:
+
+- `requirements.txt` ist seit `v0.2.11` unverändert — der Stick braucht
+  keine Wheels.
+- 0.2.11 schrieb dieselben zwei Werte in `config.py`
+  (`NETZ_ROUTER`, `NETZ_RECHNER`), also derselbe
+  `git checkout -- config.py firewall.sh`.
+- `zustand.json` steht dort in Fassung 2; die Umzugskette bringt sie
+  beim ersten Start auf 3.
+- Die dnsmasq-Konfiguration von 0.2.11 liegt noch unter
+  `/etc/dnsmasq.d/devarenu.conf`. `netzzustand` kennt diesen alten Ort
+  und übernimmt den Zustand daraus.
+
+0.2.12 wird dabei übersprungen. Das ist ohne Folgen — sie bringt keine
+Datenänderung mit, die 0.2.13 nicht selbst nachholt.
+
+## Neuen Kern vor Ort prüfen
+
+Der neue Kern greift erst beim Update **nach** 0.2.13 — bis dahin ist er
+ungetestet auf diesem Rechner. Deshalb einmal eine Testfassung
+einspielen, während jemand danebensteht.
+
+### Vorbereiten (zuhause)
+
+Eine Fassung 0.2.14 bauen, in der sich **eine einzige Textzeile**
+ändert — zum Beispiel ein Kommentar in `LIESMICH.md`. Nichts
+Funktionales, damit ein Fehlschlag eindeutig am Updater liegt und nicht
+an der Änderung.
+
+```
+# eine Zeile ändern, dann:
+echo 0.2.14 > VERSION
+git commit -am "Probefassung fuer den Kerntest"
+git tag -s v0.2.14 -m "Probefassung"
+bash stick_bauen.sh /run/media/<name>/STICK
+```
+
+Ohne `--von` und ohne `--voll` — es sollen **keine** großen Teile dabei
+sein.
+
+### Einspielen und zusehen
+
+Stick einstecken. Dann im Journal mitlesen:
+
+```fish
+journalctl -f -u 'devarenu-stick@*' -u devarenu-update.service
+```
+
+### Woran du erkennst, dass der neue Kern gearbeitet hat
+
+Diese vier Zeilen gibt es **nur** im neuen Kern. Stehen sie da, hat
+nicht mehr die alte Logik gearbeitet:
+
+```
+ok    Stand gesichert: Units, zustand.json, netz.json
+ok    Logik aus <7 Zeichen> ausgepackt
+== Einspielen
+ok    requirements.txt unveraendert, keine Pakete noetig
+```
+
+Die zweite ist die wichtigste: sie nennt die **Objekt-SHA**, aus der die
+Update-Logik kam — nicht den Tagnamen.
+
+**Am Pult**, unter *Einrichtung*: „Update auf Fassung 0.2.14 ist
+eingespielt und läuft."
+
+**Auf der Platte** — hier liegt der Rückweg:
+
+```fish
+sudo ls -la /var/lib/devarenu/updates/
+```
+
+Erwartet: `vorher-0.2.14/` mit `units/`, `zustand.json`, `netz.json`,
+und der Ordner selbst mit Rechten `700`. Das Auspackverzeichnis
+`logik-0.2.14/` ist danach wieder weg — es wird nach dem Lauf gelöscht.
+
+### Woran du erkennst, dass der Rückfall greifen würde
+
+Ohne etwas kaputtzumachen: die Sicherung **ist** der Beweis. Steht sie
+da und ist vollständig, kann der Kern zurück.
+
+Wer es wirklich auslösen will, baut eine Fassung 0.2.15, deren
+`aktualisierung.sh` am Ende `exit 1` hat. Dann muss im Journal stehen:
+
+```
+FEHLT Die Update-Logik ist gescheitert (Rueckgabe 1).
+!     zurueck auf <7 Zeichen>
+```
+
+und am Pult: „Fassung 0.2.13 wurde wiederhergestellt und läuft."
+Danach muss `bash pruefen.sh` wieder still sein.
+
+**Das gehört nicht an einen Sonntag.** Eingespielt wird ohnehin erst,
+wenn zwanzig Minuten niemand zugehört hat — aber für diesen Versuch
+sollte Zeit sein.
+
+### Woran du erkennst, dass der Gesundheitscheck greift
+
+Er läuft bei jedem Update und meldet sich im Journal:
+
+```
+== Gesundheitscheck
+ok    Dienst laeuft
+ok    antwortet
+ok    meldet Fassung 0.2.14
+ok    keine neuen Fehler
+```
+
+„Keine neuen Fehler" heißt: **neue** gegenüber dem Stand vor dem Update.
+Ein Rechner, bei dem vorher schon etwas im Argen lag, rollt deshalb
+kein Update zurück. Was vorher gemerkt wurde, steht in
+`/var/lib/devarenu/updates/vorher-0.2.14/befunde-vorher`.
+
+Ändern sich venv oder große Teile, läuft zusätzlich der Selbsttest —
+dann dauert es einige Minuten länger, und im Journal steht
+„Selbsttest bestanden".
+
+### Danach
+
+Die Probefassung bleibt liegen; sie unterscheidet sich ja nur in einer
+Zeile. Beim nächsten echten Update wird sie überschrieben.
+
 ## Release-Checkliste
 
 Bei jeder Fassung:
@@ -726,6 +952,30 @@ Bei jeder Fassung:
       Uhr — sonst wäre jeder Neubau eine Änderung im Repo. Also bei
       einer neuen Fassung auch `anleitung/DATUM` setzen.
 - [ ] `bash pruefen.sh` und `python selbsttest.py` müssen grün sein.
+- [ ] **Den Prüfstand laufen lassen:**
+      ```
+      bash pruefstand/updater_test.sh
+      python pruefstand/teile_test.py
+      ```
+- [ ] **Ist das öffentlich zumutbar?**
+      ```
+      bash oeffentlich_pruefen.sh
+      ```
+      Prüft den ganzen Baum auf Benutzernamen, fremde Rechnernamen und
+      Pfade, private Netzadressen, Personennamen und Zugangsdaten.
+      Was dort auftaucht und trotzdem hingehört, kommt mit einer
+      Begründung in die Ausnahmeliste im Skript.
+
+      **Ein Fund, der schon gepusht ist, lässt sich nicht zurückholen.**
+      Entfernen hilft für die Zukunft, nicht für die Vergangenheit.
+- [ ] Ändern sich große Teile (Modell, Stimmen, Spracherkennung):
+      ```
+      python teile.py --erfassen
+      ```
+      und `teile.json` mit einchecken. Sonst **nicht** — eine
+      `teile.json` im Tag bedeutet für die Windows-Batch-Datei, dass
+      der Stick auf diesem Weg nicht vollständig gebaut werden kann.
+      Sie bricht dann ab und verweist auf einen fertigen Stick.
 - [ ] `git status` muss schweigen, bevor getaggt wird.
 - [ ] Signierter Tag, dann Stick bauen:
       ```
