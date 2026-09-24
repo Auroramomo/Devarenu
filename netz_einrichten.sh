@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Macht den Gemeinderechner zum Router fuer das Saalnetz.
 #
-#   sudo ./netz_einrichten.sh --trocken       nur zeigen, nichts schreiben
-#   sudo ./netz_einrichten.sh                 einrichten
-#   sudo ./netz_einrichten.sh --zuruecknehmen alles rueckgaengig
-#   sudo ./netz_einrichten.sh --trotzdem      Pruefung des Rechners uebergehen
+#   sudo bash netz_einrichten.sh --trocken       nur zeigen, nichts schreiben
+#   sudo bash netz_einrichten.sh                 einrichten
+#   sudo bash netz_einrichten.sh --zuruecknehmen alles rueckgaengig
+#   sudo bash netz_einrichten.sh --trotzdem      Pruefung des Rechners uebergehen
 #
 # NUR VON HAND, NUR VOR ORT, NUR AN DER TASTATUR DES RECHNERS.
 #
@@ -43,6 +43,7 @@ cd "$ORDNER"
 TROCKEN=nein
 ZURUECK=nein
 TROTZDEM=nein
+EINTRAGEN=nein
 SCHNITTSTELLE=""
 
 blau() { printf '\n\033[1;34m== %s\033[0m\n' "$*"; }
@@ -56,8 +57,10 @@ while [ $# -gt 0 ]; do
     --trocken)        TROCKEN=ja; shift ;;
     --zuruecknehmen)  ZURUECK=ja; shift ;;
     --trotzdem)       TROTZDEM=ja; shift ;;
+    --rechner-eintragen) EINTRAGEN=ja; shift ;;
     --schnittstelle)  SCHNITTSTELLE="${2:-}"; shift 2 ;;
-    -h|--hilfe)       sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--hilfe|--help|-\?)
+                      sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)                fehl "Unbekannt: $1"; exit 1 ;;
   esac
 done
@@ -77,7 +80,15 @@ import ipaddress, config
 print(ipaddress.ip_network(f'{config.NETZ_ADRESSE}/{config.NETZ_MASKE}',
                            strict=False))")"
 
-CONF=/etc/dnsmasq.d/devarenu.conf
+# Eigene Datei unter /etc/devarenu/, eingebunden ueber --conf-file im
+# systemd-Zusatz. Der Weg ueber /etc/dnsmasq.d/ ist unter Arch eine
+# Falle: dort sind ALLE conf-dir-Zeilen in /etc/dnsmasq.conf
+# auskommentiert (geprueft am Paket dnsmasq 2.93-1.1, Zeilen 678, 681,
+# 684). Eine Datei in /etc/dnsmasq.d/ liegt dann da und wird nie
+# gelesen -- ohne jede Fehlermeldung.
+CONF=/etc/devarenu/dnsmasq.conf
+CONF_ALT=/etc/dnsmasq.d/devarenu.conf
+ZUSATZ=/etc/systemd/system/dnsmasq.service.d/devarenu.conf
 NMPROFIL=devarenu-lan
 
 # ------------------------------------------------------- Fernsitzung?
@@ -86,9 +97,26 @@ NMPROFIL=devarenu-lan
 # Tastatur. Deshalb mehrere Wege, und einer genuegt.
 fernsitzung() {
   [ -n "${SSH_CONNECTION:-}${SSH_CLIENT:-}${SSH_TTY:-}" ] && return 0
-  [ -n "${SUDO_USER:-}" ] && [ -n "$(who am i 2>/dev/null | grep -oE '\([^)]+\)')" ] \
-    && return 0
-  who am i 2>/dev/null | grep -qE '\(([0-9]{1,3}\.){3}[0-9]{1,3}\)' && return 0
+
+  # Die Klammer hinter "who am i" ist NICHT gleichbedeutend mit
+  # "aus der Ferne". Bei einer oertlichen Plasma-Sitzung steht dort die
+  # Anzeige:
+  #
+  #     devarenu pts/1  2026-09-23 10:14 (:0)
+  #
+  # Bis 0.2.11 genuegte hier eine gefuellte Klammer, und damit galt
+  # jede Konsole auf dem Rechner selbst als Fernsitzung. Genau das ist
+  # beim Umbau des Gemeinderechners passiert -- er brauchte
+  # --trotzdem, obwohl jemand davorsass.
+  #
+  # Gesucht ist ein Rechnername oder eine Adresse. Eine Anzeige
+  # beginnt mit einem Doppelpunkt, eine Adresse nicht.
+  local wer
+  wer="$(who am i 2>/dev/null | grep -oE '\([^)]+\)' | tr -d '()')"
+  case "${wer:-}" in
+    "" | :*) ;;                       # keine Klammer oder :0, :0.0 -- oertlich
+    *) return 0 ;;                    # Rechnername oder Adresse -- Ferne
+  esac
   # Der Elternbaum: sudo haengt unter dem Login-Prozess der Sitzung.
   local pid=$PPID n=0
   while [ "$pid" -gt 1 ] && [ $n -lt 12 ]; do
@@ -102,6 +130,57 @@ fernsitzung() {
   return 1
 }
 
+# ------------------------------------------- Rechnernamen eintragen
+# Ein eigener Schalter, weil er als einziger hier nichts am Netz macht:
+# er traegt diesen Rechner in die Erlaubnisliste ein. Getrennt vom
+# Umbau, damit das Eintragen nicht nebenbei passiert -- es ist die
+# Zusage "auf diesem Rechner darf umgebaut werden".
+if [ "$EINTRAGEN" = "ja" ]; then
+  blau "Rechnernamen eintragen"
+  RECHNER="$(hostname 2>/dev/null || cat /etc/hostname 2>/dev/null)"
+  "$PY" - "$RECHNER" <<'PYCODE'
+import sys
+import netzzustand
+name = (sys.argv[1] or "").strip()
+if not name:
+    raise SystemExit("   FEHLT Kein Rechnername zu ermitteln.")
+daten = netzzustand.laden()[0]
+if name in daten["rechner"]:
+    print("   ok    %s steht schon in netz.json" % name)
+else:
+    daten["rechner"].append(name)
+    netzzustand.speichern(daten)
+    print("   ok    %s in netz.json eingetragen" % name)
+print("         Eingetragen: %s" % ", ".join(daten["rechner"]))
+PYCODE
+  if [ -n "${SUDO_USER:-}" ]; then
+    chown "$SUDO_USER" netz.json 2>/dev/null || true
+  fi
+  info "Es wurde sonst nichts geaendert. Der Umbau selbst:"
+  info "  sudo bash netz_einrichten.sh --trocken"
+  exit 0
+fi
+
+# ------------------------------------------- Altlast: conf-dir-Zeile
+# Auf dem Gemeinderechner wurde von Hand
+#   conf-dir=/etc/dnsmasq.d/,*.conf
+# an /etc/dnsmasq.conf angehaengt, damit unsere Datei ueberhaupt
+# gelesen wird. Mit --conf-file braucht es das nicht mehr, und zwei
+# Wege zur selben Einstellung sind einer zu viel. Entfernt wird GENAU
+# diese eine Zeile, sonst nichts an der Paketdatei.
+conf_dir_zeile_entfernen() {
+  local datei=/etc/dnsmasq.conf
+  [ -f "$datei" ] || return 0
+  grep -qE '^[[:space:]]*conf-dir=/etc/dnsmasq\.d/?,\*\.conf[[:space:]]*$' \
+    "$datei" || return 0
+  local sicherung="$datei.devarenu-vorher"
+  cp -a "$datei" "$sicherung"
+  sed -i -E '/^[[:space:]]*conf-dir=\/etc\/dnsmasq\.d\/?,\*\.conf[[:space:]]*$/d' \
+    "$datei"
+  gut "conf-dir-Zeile aus $datei entfernt"
+  info "Vorher liegt als $sicherung daneben."
+}
+
 blau "Netzumbau"
 if fernsitzung; then
   printf '\n   \033[31mDu sitzt an einer Fernverbindung.\033[0m\n\n'
@@ -111,7 +190,10 @@ if fernsitzung; then
   info ""
   info "Geh an die Tastatur des Rechners. Wenn du sicher bist, dass du"
   info "trotzdem weitermachen willst:"
-  info "  DEVARENU_TROTZDEM=ja sudo ./netz_einrichten.sh"
+  info "  sudo env DEVARENU_TROTZDEM=ja bash netz_einrichten.sh"
+  info ""
+  info "Die Variable MUSS hinter sudo stehen: sudo raeumt die Umgebung"
+  info "auf, und davorgesetzt kommt sie hier nie an."
   if [ "${DEVARENU_TROTZDEM:-}" != "ja" ]; then
     exit 1
   fi
@@ -157,10 +239,10 @@ blau "Gehoert dieser Rechner hierher?"
 RECHNER="$(hostname 2>/dev/null || cat /etc/hostname 2>/dev/null)"
 NAMEPASST="$("$PY" - "$RECHNER" <<'PYCODE'
 import fnmatch, sys
-import config
+import netzzustand
 name = (sys.argv[1] or "").strip().lower()
 muster = [str(m).strip().lower()
-          for m in getattr(config, "NETZ_RECHNER", []) if str(m).strip()]
+          for m in netzzustand.laden()[0]["rechner"] if str(m).strip()]
 if not muster:
     print("leer")
 elif any(fnmatch.fnmatch(name, m) for m in muster):
@@ -173,14 +255,16 @@ case "$NAMEPASST" in
   ja)
     gut "Rechnername $RECHNER steht in NETZ_RECHNER" ;;
   leer)
-    passt_nicht "NETZ_RECHNER in config.py ist leer."
+    passt_nicht "In netz.json steht kein erlaubter Rechnername."
     info "Leer heisst absichtlich: nirgendwo. Der Umbau stellt die"
     info "Netzwerkkarte um; welcher Rechner das sein darf, muss dastehen."
-    info "Auf DIESEM Rechner waere das:"
-    info "  NETZ_RECHNER = [\"$RECHNER\"]" ;;
+    info "Die Datei liegt NICHT im Repo -- sie beschreibt diesen einen"
+    info "Rechner. Anlegen mit:"
+    info "  bash netz_einrichten.sh --rechner-eintragen"
+    info "Das traegt \"$RECHNER\" ein und aendert sonst nichts." ;;
   *)
-    passt_nicht "Rechnername $RECHNER steht nicht in NETZ_RECHNER."
-    info "In config.py stehen: $("$PY" -c 'import config; print(", ".join(config.NETZ_RECHNER) or "--")')"
+    passt_nicht "Rechnername $RECHNER steht nicht in netz.json."
+    info "Eingetragen sind: $("$PY" -c 'import netzzustand; print(", ".join(netzzustand.laden()[0]["rechner"]) or "--")')"
     info "Ist das hier wirklich der Gemeinderechner?" ;;
 esac
 
@@ -210,15 +294,27 @@ else
   info "Mit --schnittstelle <name> vorgeben."
 fi
 
-# WLAN verbunden: der Gemeinderechner haengt am Kabel. Das Mainboard-WLAN
-# wird bewusst nicht benutzt (2,4 GHz, acht bis zwoelf Geraete). Ein
-# verbundenes WLAN ist deshalb das Kennzeichen eines anderen Rechners.
+# WLAN verbunden: bis 0.2.11 galt das als Fehler und verhinderte den
+# Umbau. Das war zu streng.
+#
+# Im BETRIEB hat der Gemeinderechner kein Netz nach draussen. Fuer die
+# WARTUNG schaltet jemand vor Ort einen Handy-Hotspot ein -- dann geht
+# RustDesk, und Pakete lassen sich laden. Genau in dieser Lage wird
+# auch umgebaut, also darf ein verbundenes WLAN den Umbau nicht
+# aufhalten.
+#
+# Zwischen WLAN und Saalnetz wird trotzdem nie geleitet: ip_forward
+# bleibt aus, und die Freigaben haengen an der LAN-Schnittstelle. Auf
+# dem WLAN wird nichts geoeffnet -- RustDesk baut seine Verbindung
+# selbst nach draussen auf und braucht keinen offenen Port.
 WLANDRAN="$(nmcli -t -f TYPE,STATE device 2>/dev/null \
             | awk -F: '$1=="wifi" && $2=="connected"' | wc -l)"
 if [ "${WLANDRAN:-0}" -gt 0 ]; then
-  passt_nicht "Dieser Rechner haengt im WLAN."
-  info "Der Gemeinderechner haengt am Kabel; sein eigenes WLAN bleibt"
-  info "aus. Siehe AUFSTELLEN.md."
+  gut "WLAN verbunden -- Wartungszugang, kein Hindernis"
+  info "Im Gottesdienst braucht der Rechner das nicht; nach der"
+  info "Wartung gehoert der Hotspot getrennt."
+  info "Auf dem WLAN wird nichts geoeffnet, und zwischen WLAN und"
+  info "Saalnetz wird nie geleitet."
 else
   gut "kein WLAN verbunden"
 fi
@@ -295,7 +391,7 @@ if [ "$ABWEICHUNG" -gt 0 ]; then
     info "Dieser Rechner sieht nicht aus wie der, fuer den das gedacht"
     info "ist. Erst nachsehen, dann entscheiden. Wenn es wirklich der"
     info "richtige ist:"
-    info "  sudo ./netz_einrichten.sh --trotzdem"
+    info "  sudo bash netz_einrichten.sh --trotzdem"
     exit 1
   fi
 fi
@@ -304,18 +400,29 @@ fi
 if [ "$ZURUECK" = "ja" ]; then
   blau "Zuruecknehmen"
   [ "$TROCKEN" = "ja" ] && { info "Wuerde $CONF loeschen, das NM-Profil"
-                             info "$NMPROFIL entfernen und NETZ_ROUTER"
-                             info "ausschalten."; exit 0; }
+                             info "$NMPROFIL entfernen und in netz.json"
+                             info "Router = nein setzen."; exit 0; }
   rm -f "$CONF" && gut "$CONF geloescht"
+  rmdir /etc/devarenu 2>/dev/null || true
+  [ -f "$CONF_ALT" ] && rm -f "$CONF_ALT" && gut "$CONF_ALT (alt) geloescht"
+  [ -f "$ZUSATZ" ] && rm -f "$ZUSATZ" && gut "$ZUSATZ entfernt"
+  rmdir /etc/systemd/system/dnsmasq.service.d 2>/dev/null || true
+  conf_dir_zeile_entfernen
+  systemctl daemon-reload 2>/dev/null || true
   systemctl restart dnsmasq 2>/dev/null || systemctl stop dnsmasq 2>/dev/null
   nmcli con delete "$NMPROFIL" >/dev/null 2>&1 && gut "NM-Profil entfernt"
   "$PY" - <<'PYCODE'
-import io, re
-p = "config.py"
-s = io.open(p, encoding="utf-8").read()
-s = re.sub(r"^NETZ_ROUTER = True$", "NETZ_ROUTER = False", s, flags=re.M)
-io.open(p, "w", encoding="utf-8").write(s)
-print("   ok    NETZ_ROUTER = False")
+import netzzustand
+daten = netzzustand.laden()[0]
+daten["router"] = False
+daten["adresse"] = ""
+daten["schnittstelle"] = ""
+daten["eingerichtet_am"] = ""
+# Die Erlaubnisliste bleibt: sie sagt, WELCHER Rechner umgebaut werden
+# darf, nicht ob er es gerade ist. Wer zuruecknimmt, will meistens
+# gleich wieder einrichten.
+netzzustand.speichern(daten)
+print("   ok    netz.json: kein Router mehr")
 PYCODE
   info "Der Dienst muss neu starten:  sudo systemctl restart devarenu"
   exit 0
@@ -341,9 +448,22 @@ trap 'rm -f "$ENTWURF"' EXIT
   echo "#"
   echo "# Der Rechner ist Router fuer das Saalnetz: DHCP und DNS. Kein"
   echo "# NAT, kein Gateway, kein Weg nach draussen."
+  echo "#"
+  echo "# Gelesen wird diese Datei ueber --conf-file aus dem"
+  echo "# systemd-Zusatz, NICHT ueber conf-dir: unter Arch sind alle"
+  echo "# conf-dir-Zeilen in /etc/dnsmasq.conf auskommentiert, und eine"
+  echo "# Datei in /etc/dnsmasq.d/ wird dort schlicht nie gelesen."
   echo
   echo "interface=$SCHNITTSTELLE"
-  echo "bind-interfaces"
+  echo "# bind-dynamic statt bind-interfaces, und das ist kein Detail:"
+  echo "# mit bind-interfaces bricht dnsmasq ab, wenn die Schnittstelle"
+  echo "# beim Start noch nicht da ist -- gemessen als"
+  echo "#   dnsmasq: unbekannte Schnittstelle enp5s0 / Start FEHLGESCHLAGEN"
+  echo "# fuenfmal in derselben Sekunde, danach start-limit-hit, und"
+  echo "# kein Handy bekam eine Adresse. Mit bind-dynamic ist dasselbe"
+  echo "# eine Warnung, dnsmasq laeuft und nimmt die Karte, sobald sie"
+  echo "# da ist."
+  echo "bind-dynamic"
   echo "except-interface=lo"
   echo
   echo "# DHCP. Ohne Gateway (Option 3 leer) und ohne fremden DNS:"
@@ -363,20 +483,48 @@ trap 'rm -f "$ENTWURF"' EXIT
   echo "no-resolv"
   echo "no-poll"
   echo
+  echo "# Ohne diese Zeile antwortet dnsmasq auf alles, was es nicht"
+  echo "# kennt, mit REFUSED -- auch auf AAAA und HTTPS zu Namen, die"
+  echo "# es kennt. Gemessen:"
+  echo "#"
+  echo "#                        ohne local=/#/   mit local=/#/"
+  echo "#   captive.apple.com A   NOERROR          NOERROR"
+  echo "#   captive.apple.com AAAA  REFUSED        NOERROR, leer"
+  echo "#   unbekannter Name      REFUSED          NXDOMAIN"
+  echo "#"
+  echo "# REFUSED ist die schlechteste der drei Antworten: manche"
+  echo "# Geraete werten sie als Stoerung und fragen weiter, statt die"
+  echo "# Auskunft zu glauben. NXDOMAIN ist die ehrliche und die"
+  echo "# schnelle."
+  echo "local=/#/"
+  echo
   echo "# Die Pruefnamen der Hersteller zeigen auf uns. ALLES ANDERE"
   echo "# bleibt unaufloesbar. Ein Platzhalter fuer alle Namen wuerde"
   echo "# jedes Handy im Saal betreffen, auch die, die gar nicht"
   echo "# mithoeren: ihre Hintergrunddienste bekaemen einen Server, der"
   echo "# nicht antwortet, und wiederholten ihre Anfragen bis zum"
   echo "# leeren Akku. NXDOMAIN ist die ehrliche Auskunft."
+  echo "#"
+  echo "# host-record und nicht address, und das ist der Unterschied"
+  echo "# zwischen einer schnellen und einer langsamen Verbindung."
+  echo "# Gemessen an captive.apple.com:"
+  echo "#"
+  echo "#              address=/../   host-record="
+  echo "#   A          NOERROR, 1     NOERROR, 1"
+  echo "#   AAAA       NXDOMAIN       NOERROR, leer"
+  echo "#   HTTPS (65) NXDOMAIN       NOERROR, leer"
+  echo "#"
+  echo "# NXDOMAIN auf AAAA zu einem Namen, der ein A hat, ist falsch:"
+  echo "# der Name EXISTIERT. Ein iPhone darf daraus schliessen, dass"
+  echo "# es den Namen gar nicht gibt, und die A-Abfrage sparen."
   "$PY" -c "
 import config
 for d in config.PRUEFDOMAENEN:
-    print(f'address=/{d}/{config.NETZ_ADRESSE}')"
+    print(f'host-record={d},{config.NETZ_ADRESSE}')"
   echo
   echo "# Der eigene Name, damit 'devarenu' im Browser reicht."
-  echo "address=/devarenu/$ADRESSE"
-  echo "address=/devarenu.lan/$ADRESSE"
+  echo "host-record=devarenu,$ADRESSE"
+  echo "host-record=devarenu.lan,$ADRESSE"
 } > "$ENTWURF"
 
 blau "dnsmasq-Konfiguration"
@@ -399,18 +547,73 @@ if [ "$TROCKEN" = "ja" ]; then
   info "  $CONF angelegt"
   info "  NM-Profil \"$NMPROFIL\" auf $SCHNITTSTELLE gesetzt"
   info "  dnsmasq neu gestartet"
-  info "  NETZ_ROUTER = True in config.py"
-  info "  ./firewall.sh aufgerufen"
+  info "  netz.json: Router = ja"
+  info "  bash firewall.sh aufgerufen"
   exit 0
 fi
 
 # --------------------------------------------------------------- Schreiben
-printf '\n   Jetzt wirklich umbauen? Die Verbindung dieses Rechners aendert sich. [j/N] '
-read -r antwort
+# Von /dev/tty und nicht von der Standardeingabe: wer den Aufruf samt
+# Folgezeile in die Konsole einfuegt, dessen naechste Zeile landete
+# bisher hier als Antwort -- und das war dann meistens ein "n". Vorher
+# wird verworfen, was schon anliegt.
+if [ -r /dev/tty ]; then
+  while read -r -t 0 _muell < /dev/tty 2>/dev/null; do :; done
+  printf '\n   Jetzt wirklich umbauen? Die Verbindung dieses Rechners aendert sich. [j/N] '
+  read -r antwort < /dev/tty
+else
+  # Kein Terminal: dann fragt niemand, und dann wird auch nichts
+  # umgebaut. Ein stiller Umbau ohne Rueckfrage ist genau das, was
+  # dieses Skript nie tun soll.
+  fehl "Keine Konsole (/dev/tty) -- die Rueckfrage ist nicht moeglich."
+  info "Dieses Skript laeuft nur von Hand, an der Tastatur des Rechners."
+  exit 1
+fi
 case "${antwort:-n}" in [jJyY]*) ;; *) info "Abgebrochen."; exit 0 ;; esac
 
-mkdir -p /etc/dnsmasq.d
+mkdir -p /etc/devarenu
 install -m 644 "$ENTWURF" "$CONF" && gut "$CONF geschrieben"
+
+# Keine zwei Konfigurationen. Lag die alte noch da, wuerde sie ueber
+# conf-dir mitgelesen, sobald jemand die Zeile wieder anhaengt -- und
+# dann gaelten zwei dhcp-range-Zeilen.
+if [ -f "$CONF_ALT" ]; then
+  rm -f "$CONF_ALT" && gut "$CONF_ALT (aus 0.2.10) entfernt"
+fi
+conf_dir_zeile_entfernen
+
+# Der systemd-Zusatz. Er tut zweierlei:
+#
+#   --conf-file   sagt dnsmasq, welche Datei gilt. Ohne das liest es
+#                 /etc/dnsmasq.conf und findet uns nie.
+#   StartLimit    der Arch-Unit hat Restart=on-failure, aber kein
+#                 StartLimitIntervalSec. Fuenf schnelle Fehlstarts, und
+#                 systemd gibt endgueltig auf -- genau so stand der
+#                 Gemeinderechner sonntags da.
+#
+# Was hier NICHT steht: After=network-online.target. Der Arch-Unit sagt
+# ausdruecklich "Before=network-online.target"; beides zusammen waere
+# ein Ordnungszyklus, den systemd willkuerlich aufloest. Gebraucht wird
+# es auch nicht mehr, seit bind-dynamic in der Konfiguration steht.
+mkdir -p "$(dirname "$ZUSATZ")"
+cat > "$ZUSATZ" <<ZUSATZENDE
+# Von netz_einrichten.sh erzeugt. Nicht von Hand aendern.
+[Unit]
+# Kein After=network-online.target: der Unit des Pakets sagt
+# Before=network-online.target, das gaebe einen Ordnungszyklus.
+# Die Schnittstelle holt sich dnsmasq ueber bind-dynamic selbst.
+StartLimitIntervalSec=0
+
+[Service]
+ExecStartPre=
+ExecStartPre=/usr/bin/dnsmasq --test --conf-file=$CONF
+ExecStart=
+ExecStart=/usr/bin/dnsmasq -k --enable-dbus --user=dnsmasq --pid-file --conf-file=$CONF
+Restart=on-failure
+RestartSec=5
+ZUSATZENDE
+gut "$ZUSATZ geschrieben"
+systemctl daemon-reload 2>/dev/null || true
 
 # Feste Adresse ueber NetworkManager, ohne shared-Modus: der schaltet
 # NAT und ip_forward ein, und beides wollen wir ausdruecklich nicht.
@@ -445,22 +648,32 @@ else
   info "  sudo systemctl disable --now systemd-resolved"
 fi
 
-"$PY" - <<'PYCODE'
-import io, re
-p = "config.py"
-s = io.open(p, encoding="utf-8").read()
-neu = re.sub(r"^NETZ_ROUTER = False$", "NETZ_ROUTER = True", s, flags=re.M)
-if neu == s and "NETZ_ROUTER = True" not in s:
-    raise SystemExit("   FEHLT NETZ_ROUTER nicht gefunden")
-io.open(p, "w", encoding="utf-8").write(neu)
-print("   ok    NETZ_ROUTER = True")
+# In netz.json, NICHT in config.py: eine versionierte Datei zu aendern
+# liess bis 0.2.11 jedes Update abbrechen.
+"$PY" - "$SCHNITTSTELLE" "$ADRESSE" "$MASKE" <<'PYCODE'
+import sys
+from datetime import datetime
+import netzzustand
+daten = netzzustand.laden()[0]
+daten["router"] = True
+daten["schnittstelle"] = sys.argv[1]
+daten["adresse"] = sys.argv[2]
+daten["maske"] = int(sys.argv[3])
+daten["eingerichtet_am"] = datetime.now().isoformat(timespec="seconds")
+netzzustand.speichern(daten)
+print("   ok    netz.json: Router auf %s (%s)" % (sys.argv[2], sys.argv[1]))
 PYCODE
+# Sie gehoert dem Dienstbenutzer, nicht der Wurzel -- sonst kann der
+# Server sie spaeter nicht ueberschreiben.
+if [ -n "${SUDO_USER:-}" ]; then
+  chown "$SUDO_USER" netz.json 2>/dev/null || true
+fi
 
-[ -f firewall.sh ] && bash ./firewall.sh --netz "$NETZ" 2>/dev/null
+[ -f firewall.sh ] && bash firewall.sh --schnittstelle "$SCHNITTSTELLE"
 
 blau "Fertig"
 info "Der Dienst muss neu starten:"
 info "  sudo systemctl restart devarenu"
 info "Danach nachsehen:"
-info "  ./pruefen.sh          Abschnitt Netz"
+info "  bash pruefen.sh          Abschnitt Netz"
 info "  http://$ADRESSE/pult"
