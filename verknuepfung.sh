@@ -5,7 +5,7 @@
 # Fenster bleibt offen, denn dort stehen die Adressen und der fertige
 # Befehl fuer den Gemeindelaptop.
 #
-#   ./verknuepfung.sh
+#   bash verknuepfung.sh
 
 set -u
 ORDNER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -43,11 +43,11 @@ ENDE
 }
 
 anlegen "Devarenu starten.desktop" "Devarenu starten" \
-        "./start.sh" \
+        "bash start.sh" \
         "Server starten und die Adressen anzeigen"
 
 anlegen "Devarenu Mikrofon.desktop" "Devarenu am Mikrofon" \
-        "./start.sh --mikro 1" \
+        "bash start.sh --mikro 1" \
         "Ton vom Aufnahmegerät Nummer 1"
 
 echo

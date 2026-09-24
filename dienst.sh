@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Devarenu als Systemdienst einrichten.
 #
-#   ./dienst.sh              installieren und starten
-#   ./dienst.sh --entfernen  wieder abschalten
-#   ./dienst.sh --status     nachsehen, was er macht
-#   ./dienst.sh --stick      nur das Update per USB-Stick einrichten
+#   bash dienst.sh              installieren und starten
+#   bash dienst.sh --entfernen  wieder abschalten
+#   bash dienst.sh --status     nachsehen, was er macht
+#   bash dienst.sh --stick      nur das Update per USB-Stick einrichten
 #
 # Gedacht fuer den Rechner in der Gemeinde: headless, niemand meldet sich
 # an, nach dem Einschalten muss der Server von allein hochkommen. Wer
-# entwickelt, braucht das nicht und startet weiter mit ./start.sh.
+# entwickelt, braucht das nicht und startet weiter mit bash start.sh.
 
 set -u
 ORDNER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -62,7 +62,10 @@ stick_einrichten() {
     return 1
   fi
 
-  chmod +x "$ORDNER/stick_update.sh"
+  # KEIN chmod mehr: stick_update.sh ist versioniert, und ein
+  # geaendertes Ausfuehrungsrecht laesst git den Ordner als veraendert
+  # sehen -- woran dann das naechste Update abbricht. Die Unit ruft das
+  # Skript ueber /bin/bash auf, das Recht wird also nicht gebraucht.
 
   # Ohne Schluesselliste wird nie ein Stick angenommen. Einrichten laesst
   # sich das Verfahren trotzdem -- besser eine Unit, die wartet, als eine
@@ -126,7 +129,7 @@ if [ "${1:-}" = "--entfernen" ]; then
 
   sudo systemctl daemon-reload
   gut "entfernt, samt Update per Stick"
-  gut "Starten wieder von Hand mit ./start.sh"
+  gut "Starten wieder von Hand mit bash start.sh"
   # Was auf der Platte liegt, bleibt liegen: ein vorgemerktes Update ist
   # Arbeit, die jemand hineingesteckt hat, und wegzuwerfen ist es hier
   # nicht.
@@ -186,7 +189,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now $NAME || { fehl "Start fehlgeschlagen"; exit 1; }
 
 # Gleich mit: dann braucht ein neu aufgesetzter Rechner bootstrap.sh nie.
-stick_einrichten || warn "Ohne Stick-Update. Nachholen mit: ./dienst.sh --stick"
+stick_einrichten || warn "Ohne Stick-Update. Nachholen mit: bash dienst.sh --stick"
 
 # ---------------------------------------------------------------- nachsehen
 blau "Laeuft er?"
@@ -244,7 +247,7 @@ else
 
      Noch keine Netzwerkadresse. Der Dienst laeuft und antwortet auf
      Port $PORT; sobald der Rechner im Netz ist, steht die Adresse im
-     Journal und unter ./pruefen.sh.
+     Journal und unter bash pruefen.sh.
 ENDE
 fi
 
@@ -253,7 +256,7 @@ cat <<ENDE
    Nachsehen     systemctl status $NAME
    Mitlesen      journalctl -u $NAME -f
    Neu starten   sudo systemctl restart $NAME
-   Abschalten    ./dienst.sh --entfernen
+   Abschalten    bash dienst.sh --entfernen
 
    Die Tonquelle steht nicht in der Unit, sondern in zustand.json und
    wird am Pult unter Einrichtung gewaehlt.

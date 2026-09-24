@@ -12,7 +12,11 @@ Documentation=https://github.com/Auroramomo/Devarenu
 
 [Service]
 Type=oneshot
-ExecStart=@ORDNER@/stick_update.sh --einspielen
+# Ueber /bin/bash und nicht direkt: das Ausfuehrungsrecht geht
+# verloren, sobald der Ordner ueber einen FAT-Stick oder als ZIP
+# kopiert wird. Ein Dienst, der daran scheitert, meldet nur
+# "Permission denied" -- und niemand sucht dann beim chmod.
+ExecStart=/bin/bash @ORDNER@/stick_update.sh --einspielen
 
 # Grosszuegig: im schlimmsten Fall stecken hier ein pip-Lauf aus wheels/,
 # ein Dienstneustart mit 120 Sekunden Gesundheitspruefung und, wenn der

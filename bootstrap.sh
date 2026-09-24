@@ -188,11 +188,11 @@ fi
 
 # Ab hier liegt dienst.sh in der neuen Fassung vor und kennt --stick.
 blau "Verfahren einrichten"
-if bash ./dienst.sh --stick; then
+if bash dienst.sh --stick; then
   gut "udev-Regel, Units und Timer stehen"
 else
   fehl "Einrichten fehlgeschlagen. Der Code ist eingespielt, aber ein"
-  fehl "Stick loest noch nichts aus. Nachholen mit: sudo ./dienst.sh --stick"
+  fehl "Stick loest noch nichts aus. Nachholen mit: sudo bash dienst.sh --stick"
 fi
 
 blau "Dienst neu starten"
@@ -200,7 +200,7 @@ if systemctl list-unit-files 2>/dev/null | grep -q '^devarenu\.service'; then
   systemctl restart devarenu && gut "devarenu neu gestartet" \
     || fehl "Neustart fehlgeschlagen. Nachsehen: journalctl -u devarenu -n 30"
 else
-  warn "Kein Dienst eingerichtet. Von Hand starten mit ./start.sh"
+  warn "Kein Dienst eingerichtet. Von Hand starten mit bash start.sh"
 fi
 
 blau "Fertig"

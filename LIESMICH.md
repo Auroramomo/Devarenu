@@ -31,9 +31,9 @@ läuft alles auf der CPU und ist für den Livebetrieb zu langsam.
 ## Starten
 
 ```
-./start.sh                        Voreinstellung
-./start.sh --datei predigt.mp3    Dauerlauf mit einer Aufnahme
-./start.sh --mikro 1              Aufnahmegerät erzwingen, zur Fehlersuche
+bash start.sh                        Voreinstellung
+bash start.sh --datei predigt.mp3    Dauerlauf mit einer Aufnahme
+bash start.sh --mikro 1              Aufnahmegerät erzwingen, zur Fehlersuche
 ```
 
 Im Fenster stehen drei Adressen: für die Zuhörer, für die QR-Codes am
@@ -80,7 +80,7 @@ AUSGANGSSPRACHE = "de"
 ZIELSPRACHEN = ["en", "ru", "fa"]
 ```
 
-Danach einmal `./einrichten.sh`, das lädt die fehlenden Stimmen. Umschalten
+Danach einmal `bash einrichten.sh`, das lädt die fehlenden Stimmen. Umschalten
 geht auch am Pult; das bleibt dann so, bis es jemand wieder ändert.
 Sprachen ohne Stimme laufen als reiner Untertitel.
 
@@ -124,13 +124,13 @@ einen Systemdienst, der mit dem Rechner startet und sich nach einem
 Absturz selbst wieder fängt:
 
 ```
-./dienst.sh              einrichten und starten
-./dienst.sh --status     nachsehen
-./dienst.sh --entfernen  wieder abschalten
+bash dienst.sh              einrichten und starten
+bash dienst.sh --status     nachsehen
+bash dienst.sh --entfernen  wieder abschalten
 ```
 
 `INSTALLIEREN.sh` fragt am Ende danach. Wer nur entwickelt, sagt nein und
-startet weiter mit `./start.sh`.
+startet weiter mit `bash start.sh`.
 
 Die Tonquelle steht bewusst **nicht** im Dienst, sondern in
 `zustand.json`, und wird am Pult gewählt. Neben der Gerätenummer steht
@@ -142,26 +142,26 @@ vornherein verschieden. Der Dienst hält das benutzte Mikrofon exklusiv
 offen, es fehlt einer zweiten Aufzählung deshalb ganz, und ohne
 angemeldete Sitzung zeigt ALSA andere Plugin-Einträge. Am selben Rechner
 zur selben Sekunde gemessen: 13 Geräte beim Dienst, 7 im Terminal, mit
-verschiedener Nummer 0. Was `server.py --geraete` oder `./einrichten.sh`
+verschiedener Nummer 0. Was `server.py --geraete` oder `bash einrichten.sh`
 auflisten, gilt nur für einen Start aus demselben Terminal. Am Pult
 auswählen schreibt den Namen mit, und der gilt überall.
 
 Nachsehen, ob alles steht:
 
 ```
-./pruefen.sh
+bash pruefen.sh
 ```
 
 Das geht Grafikkarte, Ollama, Modelle, Dienst, Netz, Tonquelle und
 Zustand durch und sagt bei jedem Fund, was zu tun ist. Es läuft auch,
 wenn der Dienst gar nicht steht — dann zeigt es zusätzlich die letzten
 Zeilen aus dem Journal. Gedacht für den Fall, dass jemand anderes vor dem
-Rechner steht: `./pruefen.sh > bericht.txt 2>&1` und verschicken.
+Rechner steht: `bash pruefen.sh > bericht.txt 2>&1` und verschicken.
 
 Aktualisieren:
 
 ```
-./aktualisieren.sh
+bash aktualisieren.sh
 ```
 
 Das holt den neuen Stand, ergänzt fehlende Abhängigkeiten, startet den

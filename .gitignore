@@ -42,3 +42,19 @@ pruefung/paket_*
 # Ausgaben von tondiagnose.sh. Sie gehoeren zu genau einem Rechner und
 # genau einem Zeitpunkt -- im Repo waeren sie Ballast, der aelter wird.
 tonbericht*.txt
+
+# Der Netzzustand dieses einen Rechners: Router ja/nein, Adresse,
+# Schnittstelle, und welche Rechnernamen ueberhaupt umgebaut werden
+# duerfen. Gehoert nicht ins Repo -- und darf auch nicht hinein: eine
+# Erlaubnisliste, die mitgeliefert wird, waere auf jedem Klon gueltig.
+netz.json
+netz.json.*
+
+# Bau-venv fuer die Anleitung (Punkt 16). Nur auf dem Arbeitsrechner,
+# nie auf dem Gemeinderechner: dort wird das fertige PDF ausgeliefert.
+.bau-venv/
+
+# Zwischendateien: Vorschaubilder, Probelaeufe, alles Fluechtige.
+# Liegt im Repo, damit es ohne Umweg lesbar ist -- und wird nie
+# mitgeliefert.
+.tmp/

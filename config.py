@@ -374,21 +374,23 @@ SATZ_MAX_WARTEN = 4.0
 # bisher: er sucht seine Adresse, laeuft auf Port 8000, und keine
 # Pruefadresse wird beantwortet. Eingeschaltet wird das von Hand vor
 # Ort, mit ./netz_einrichten.sh -- nie ueber ein Update.
-NETZ_ROUTER = False
-
-# Auf welchen Rechnern netz_einrichten.sh ueberhaupt scharf laufen darf.
-# Rechnernamen, * und ? erlaubt, Gross- und Kleinschreibung egal.
+# Ob dieser Rechner der Router ist, steht NICHT hier, sondern in
+# netz.json -- einer Datei, die nicht im Repo liegt.
 #
-# LEER HEISST: NIRGENDWO. Das ist Absicht und kein vergessener Eintrag.
-# Der Umbau stellt die Netzwerkkarte um und nimmt dem Rechner den Weg
-# ins Internet. Auf einem Arbeitsrechner, auf dem dieses Verzeichnis
-# auch liegt, waere das ein teurer Fehlgriff -- ein Tippfehler im
-# Terminal genuegt. Also muss jeder Rechner, der umgebaut werden soll,
-# hier zuerst beim Namen genannt werden.
+# Bis 0.2.11 schrieb netz_einrichten.sh "NETZ_ROUTER = True" in genau
+# diese Datei. Damit galt der Ordner als veraendert, und jedes Update
+# brach ab: stick_update.sh und aktualisieren.sh schreiben nicht ueber
+# lokale Aenderungen hinweg. Der Gemeinderechner stand daran fest.
 #
-# Eintragen beim Einrichten, nicht im Voraus:
-#   NETZ_RECHNER = ["gemeinde-pc", "pc-saal-*"]
-NETZ_RECHNER = []
+# Kein Skript schreibt mehr in eine versionierte Datei. config.py
+# enthaelt Vorgaben; was diesen einen Rechner ausmacht, steht daneben:
+#
+#   netz.json     Router ja/nein, Adresse, Schnittstelle, Erlaubnisliste
+#   zustand.json  was am Pult eingestellt wurde
+#
+# Gelesen wird beides ueber netzzustand.py beziehungsweise zustand.py.
+# Fehlt netz.json, sieht netzzustand.py am System nach, ob der Umbau
+# laeuft, und legt sie an.
 
 # Die feste Adresse des Rechners im Gemeindenetz. Gilt nur, wenn
 # NETZ_ROUTER an ist; sonst wird sie wie bisher gesucht.
@@ -422,9 +424,17 @@ PRUEFDOMAENEN = [
     "clients3.google.com",
     "connectivitycheck.android.com",
     "play.googleapis.com",
-    # Apple
+    # Apple. Die unteren fuenf sind die alten Namen, die iOS beim
+    # ERSTEN Verbinden mit einem unbekannten Netz noch abfragt. Fehlen
+    # sie, laeuft das iPhone dort in Zeitueberschreitungen -- und genau
+    # das war im Saal als "das neue iPhone braucht ewig" zu sehen.
     "captive.apple.com",
     "www.apple.com",
+    "www.appleiphonecell.com",
+    "www.itools.info",
+    "www.ibook.info",
+    "www.airport.us",
+    "www.thinkdifferent.us",
     # Windows
     "www.msftconnecttest.com",
     "www.msftncsi.com",

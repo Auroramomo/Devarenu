@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Devarenu per USB-Stick aktualisieren. Laeuft auf dem Gemeinderechner.
 #
-#   ./stick_update.sh --lesen /dev/sdb1   Stick auswerten und ablegen
-#   ./stick_update.sh --einspielen        Abgelegtes einspielen, wenn Ruhe ist
-#   ./stick_update.sh --stand             nachsehen, was ansteht
+#   bash stick_update.sh --lesen /dev/sdb1   Stick auswerten und ablegen
+#   bash stick_update.sh --einspielen        Abgelegtes einspielen, wenn Ruhe ist
+#   bash stick_update.sh --stand             nachsehen, was ansteht
 #
 # Von Hand ruft das normalerweise niemand auf. --lesen stoesst eine
 # udev-Regel an, sobald ein Stick steckt; --einspielen ein Timer, jede

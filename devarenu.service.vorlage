@@ -36,7 +36,7 @@
 # Pulse-Backend zu ueberspringen und ALSA zu nehmen. Gemessen ist das
 # NOCH NICHT -- auf dem Entwicklungsrechner laeuft eine Sitzung, dort
 # faellt der Fall nicht an. Wer den Gemeinderechner aufstellt: erst
-# ./pruefen.sh, Abschnitt Ton. Steht dort "PortAudio laedt nicht",
+# bash pruefen.sh, Abschnitt Ton. Steht dort "PortAudio laedt nicht",
 # diese Zeile einkommentieren und den Dienst neu starten.
 #Environment=PULSE_SERVER=
 

@@ -20,7 +20,8 @@ Documentation=https://github.com/Auroramomo/Devarenu
 
 [Service]
 Type=oneshot
-ExecStart=@ORDNER@/stick_update.sh --lesen /dev/%i
+# Ueber /bin/bash, siehe devarenu-update.service.vorlage.
+ExecStart=/bin/bash @ORDNER@/stick_update.sh --lesen /dev/%i
 
 # Reicht fuer Kopieren und Signaturpruefung mit weitem Abstand. Bleibt
 # etwas haengen -- ein Stick, der beim Lesen abgezogen wurde --, soll es

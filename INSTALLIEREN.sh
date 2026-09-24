@@ -55,7 +55,27 @@ if [ "$(id -u)" = "0" ]; then
   exit 1
 fi
 
-chmod +x ./*.sh 2>/dev/null
+# KEIN "chmod +x ./*.sh" mehr. Es sah harmlos aus und war der Grund,
+# warum auf dem frisch aufgesetzten Gemeinderechner jedes Update
+# abbrach: firewall.sh lag im Repo als 100644, das chmod machte 100755
+# daraus, git sah eine Aenderung an einer versionierten Datei, und
+# stick_update.sh weigerte sich, darueber hinwegzuschreiben.
+#
+# Gebraucht wird es auch nicht: git fuehrt das Ausfuehrungsrecht selbst
+# mit, und ausgeliefert wird ueber git-Bundles, nicht ueber kopierte
+# Dateien. Alle .sh sind jetzt als 100755 eingecheckt.
+#
+# Nur melden, nicht aendern -- kein Skript fasst eine versionierte
+# Datei an.
+if command -v git >/dev/null && [ -d .git ]; then
+  SCHIEF="$(git diff --name-only 2>/dev/null)"
+  if [ -n "$SCHIEF" ]; then
+    printf '   \033[33m!\033[0m    Diese versionierten Dateien weichen ab:\n'
+    printf '%s\n' "$SCHIEF" | sed 's/^/        /'
+    printf '        Updates brechen daran ab. Ansehen mit: git diff\n'
+    printf '        Verwerfen mit: git checkout -- <datei>\n\n'
+  fi
+fi
 
 # ---------------------------------------------------------------- Pakete
 # einrichten.sh kennt nur Debian und Ubuntu. Auf Arch und CachyOS heisst
@@ -106,7 +126,7 @@ fi
 # unterschieden.
 # Sagt einrichten.sh, dass es aus einem groesseren Lauf kommt: sonst
 # steht sein Abschluss direkt ueber dem hiesigen, zweimal "Fertig".
-DEVARENU_SAMMELLAUF=1 bash ./einrichten.sh
+DEVARENU_SAMMELLAUF=1 bash einrichten.sh
 ERGEBNIS=$?
 if [ "$ERGEBNIS" -gt 1 ]; then
   echo; echo "Einrichtung abgebrochen."; exit 1
@@ -121,7 +141,7 @@ SCHREIBTISCH="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
 if [ -n "${SCHREIBTISCH:-}" ] && [ "$SCHREIBTISCH" != "$HOME" ] \
    && [ -d "$SCHREIBTISCH" ]; then
   printf '\n\033[1;34m== Verknüpfung\033[0m\n'
-  bash ./verknuepfung.sh
+  bash verknuepfung.sh
   SYMBOL=1
 else
   SYMBOL=0
@@ -145,15 +165,35 @@ if [ -f firewall.sh ]; then
     printf '\n\033[1;34m== Netzfreigabe\033[0m\n'
     printf '   Die Firewall (%s) sperrt eingehende Verbindungen. Ohne\n' "$FW_ART"
     printf '   Freigabe erreicht kein Handy im Saal den Server.\n\n'
-    if [ "$FW_ART" = "ufw" ]; then
-      read -rp "   Port ${DEVARENU_PORT:-8000} für $FW_NETZ freigeben? [J/n] " fwantwort
+    # An die Kabelkarte, nicht an das Netz, in dem der Rechner gerade
+    # haengt. Wird waehrend der Einrichtung ein WLAN-Hotspot benutzt,
+    # oeffnete die alte Fassung den Port GENAU DORT -- fuer ein Netz
+    # also, das es im Betrieb gar nicht mehr gibt, waehrend der Saal
+    # ausgesperrt blieb.
+    #
+    # Auf einem WLAN wird nie etwas geoeffnet.
+    FW_KARTE=""
+    for k in /sys/class/net/*; do
+      n="$(basename "$k")"
+      [ "$n" = "lo" ] && continue
+      [ -d "$k/wireless" ] && continue
+      [ -e "$k/device" ] || continue
+      [ "$(cat "$k/carrier" 2>/dev/null)" = "1" ] && { FW_KARTE="$n"; break; }
+    done
+    if [ "$FW_ART" = "ufw" ] && [ -z "$FW_KARTE" ]; then
+      printf '   Keine Kabelkarte mit Stecker gefunden. Auf einem WLAN\n'
+      printf '   wird nichts geoeffnet. Spaeter, wenn das Kabel steckt:\n'
+      printf '     sudo bash firewall.sh --schnittstelle <karte>\n'
+    elif [ "$FW_ART" = "ufw" ]; then
+      FW_NEU="sudo ufw allow in on $FW_KARTE to any port ${DEVARENU_PORT:-8000} proto tcp comment \"Devarenu\""
+      read -rp "   Port ${DEVARENU_PORT:-8000} auf $FW_KARTE freigeben? [J/n] " fwantwort
       case "${fwantwort:-j}" in
-        [nN]*) printf '   Gut. Nachholen mit:\n     %s\n' "$FW_BEFEHL" ;;
-        *)     if eval "$FW_BEFEHL" >/dev/null 2>&1; then
-                 printf '   Freigegeben für %s.\n' "$FW_NETZ"
+        [nN]*) printf '   Gut. Nachholen mit:\n     %s\n' "$FW_NEU" ;;
+        *)     if eval "$FW_NEU" >/dev/null 2>&1; then
+                 printf '   Freigegeben auf %s.\n' "$FW_KARTE"
                else
                  printf '   \033[33mHat nicht geklappt.\033[0m Von Hand:\n     %s\n' \
-                        "$FW_BEFEHL"
+                        "$FW_NEU"
                fi ;;
       esac
     else
@@ -169,7 +209,7 @@ fi
 # Nur auf Nachfrage und mit "nein" als Vorgabe: wer entwickelt, will
 # keinen Dienst, der beim naechsten Einschalten den Port belegt. Fuer den
 # Rechner in der Gemeinde ist es dagegen der Normalfall -- dort meldet
-# sich niemand an und tippt ./start.sh.
+# sich niemand an und tippt bash start.sh.
 DIENST=0
 if [ -d /run/systemd/system ] && [ -f dienst.sh ]; then
   printf '\n\033[1;34m== Systemdienst\033[0m\n'
@@ -178,8 +218,8 @@ if [ -d /run/systemd/system ] && [ -f dienst.sh ]; then
   printf '   Fuer den Rechner in der Gemeinde: ja. Zum Entwickeln: nein.\n\n'
   read -rp "   Als Systemdienst einrichten? [j/N] " dienstantwort
   case "${dienstantwort:-n}" in
-    [jJyY]*) bash ./dienst.sh && DIENST=1 ;;
-    *)       printf '   Gut. Nachholen jederzeit mit: ./dienst.sh\n' ;;
+    [jJyY]*) bash dienst.sh && DIENST=1 ;;
+    *)       printf '   Gut. Nachholen jederzeit mit: bash dienst.sh\n' ;;
   esac
 fi
 
@@ -195,21 +235,43 @@ if [ "$VORRAT" = "ja" ] && [ -f vorrat_bauen.sh ]; then
   if sudo -n true 2>/dev/null || sudo -v; then
     # Scheitert er, ist die Einrichtung trotzdem gelungen. Der Vorrat
     # ist Vorsorge, kein Bestandteil des Betriebs.
-    if sudo bash ./vorrat_bauen.sh; then
+    if sudo bash vorrat_bauen.sh; then
       VORRAT_OK=1
     else
       VORRAT_OK=0
       printf '\n   \033[33mDer Vorrat wurde nicht vollstaendig angelegt.\033[0m\n'
       printf '   Nachholen, solange noch Netz da ist:\n'
-      printf '     sudo ./vorrat_bauen.sh\n'
+      printf '     sudo bash vorrat_bauen.sh\n'
     fi
   else
     VORRAT_OK=0
     printf '   Ohne sudo geht das nicht. Nachholen mit:\n'
-    printf '     sudo ./vorrat_bauen.sh\n'
+    printf '     sudo bash vorrat_bauen.sh\n'
   fi
 else
   VORRAT_OK=-1
+fi
+
+# ------------------------------------------- Rechner-Einstellungen
+# Gefragt und nicht einfach getan: die Einstellungen gelten fuer den
+# ganzen Rechner, nicht nur fuer Devarenu. Wer das hier auf seinem
+# Arbeitsrechner ausprobiert, soll nicht hinterher ohne
+# Bildschirmsperre dastehen.
+if [ -f rechner_einrichten.sh ] && command -v kwriteconfig6 >/dev/null; then
+  printf '\n\033[1;34m== Rechner-Einstellungen\033[0m\n'
+  printf '   Der Gemeinderechner steht ohne Tastatur im Saal. Damit er\n'
+  printf '   sonntags allein hochkommt, braucht er: automatische\n'
+  printf '   Anmeldung, keinen Standby, keine Bildschirmsperre, und\n'
+  printf '   einen Netzschalter, der herunterfaehrt.\n\n'
+  printf '   Was fehlt:\n'
+  bash rechner_einrichten.sh --trocken 2>/dev/null \
+    | sed -n '/^   neu/p' | sed 's/^/  /'
+  printf '\n'
+  read -rp "   Jetzt setzen? Gilt fuer den ganzen Rechner. [j/N] " reantwort
+  case "${reantwort:-n}" in
+    [jJyY]*) sudo bash rechner_einrichten.sh ;;
+    *) printf '   Uebersprungen. Spaeter:  sudo bash rechner_einrichten.sh\n' ;;
+  esac
 fi
 
 printf '\n\033[1;34m== Fertig\033[0m\n'
@@ -220,13 +282,13 @@ if [ "$SYMBOL" = "1" ]; then
   printf '   Verknüpfung ausgeführt werden darf.\n\n'
 else
   printf '   Kein Desktop gefunden, also keine Verknüpfung.\n'
-  printf '   Starten mit:  ./start.sh\n\n'
+  printf '   Starten mit:  bash start.sh\n\n'
 fi
 
 if [ "${VORRAT_OK:--1}" = "1" ]; then
   printf '   Der Reparaturvorrat liegt unter /opt/devarenu-vorrat.\n'
   printf '   Damit laesst sich in der Gemeinde ohne Netz wiederherstellen:\n'
-  printf '     ./wiederherstellen.sh --pruefen\n\n'
+  printf '     bash wiederherstellen.sh --pruefen\n\n'
 fi
 
 if [ "$ERGEBNIS" != "0" ]; then
@@ -243,6 +305,6 @@ fi
 
 read -rp "   Jetzt gleich starten? [J/n] " antwort
 case "${antwort:-j}" in
-  [nN]*) echo "   Gut. Später mit ./start.sh" ;;
-  *)     echo; exec bash ./start.sh ;;
+  [nN]*) echo "   Gut. Später mit bash start.sh" ;;
+  *)     echo; exec bash start.sh ;;
 esac

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Devarenu auf den neuesten Stand bringen.
 #
-#     ./aktualisieren.sh
+#     bash aktualisieren.sh
 #
 # Holt die Aenderungen, ergaenzt fehlende Abhaengigkeiten, startet den
 # Dienst neu und prueft am Ende mit dem Selbsttest, ob die Kette noch
@@ -86,7 +86,7 @@ else gut "Fassung $ALT -> $NEU"; fi
 # ---------------------------------------------------------------- Pakete
 blau "Abhaengigkeiten"
 echo "   einrichten.sh ergaenzt nur, was fehlt."
-bash ./einrichten.sh
+bash einrichten.sh
 EINRICHTEN=$?
 
 # ---------------------------------------------------------------- Dienst
@@ -98,8 +98,8 @@ if systemctl list-unit-files 2>/dev/null | grep -q "^$NAME\.service"; then
     fehl "Neustart fehlgeschlagen. Nachsehen: journalctl -u $NAME -n 30"
   fi
 else
-  warn "Kein Dienst installiert. Von Hand starten mit ./start.sh"
-  warn "Einrichten mit: ./dienst.sh"
+  warn "Kein Dienst installiert. Von Hand starten mit bash start.sh"
+  warn "Einrichten mit: bash dienst.sh"
 fi
 
 # ---------------------------------------------------------------- Zustand

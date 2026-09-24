@@ -4,10 +4,10 @@
 # Startet Server und Tunnel zusammen und zeigt am Ende die drei Adressen,
 # die man am Sonntag braucht. Strg+C beendet beides.
 #
-#   ./start.sh              Mikrofon, Geraet aus zustand.json
-#   ./start.sh --mikro 1    Aufnahmegeraet erzwingen, zur Fehlersuche
-#   ./start.sh --datei predigt.mp3   Dauerlauf mit einer Aufnahme
-#   ./start.sh --netz       Ton ueber das Netz von einem zweiten Rechner
+#   bash start.sh              Mikrofon, Geraet aus zustand.json
+#   bash start.sh --mikro 1    Aufnahmegeraet erzwingen, zur Fehlersuche
+#   bash start.sh --datei predigt.mp3   Dauerlauf mit einer Aufnahme
+#   bash start.sh --netz       Ton ueber das Netz von einem zweiten Rechner
 #
 # Ohne Argument wird nichts vorgegeben: server.py nimmt dann die Nummer
 # aus zustand.json, und steht dort keine, das Vorgabegeraet des Systems.

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Warum bekommt der Dienst keinen Ton, die Sitzung aber schon?
 #
-#   ./tondiagnose.sh                      alles, was ohne Rechte geht
-#   sudo ./tondiagnose.sh                 zusaetzlich der echte Dienstlauf
-#   ./tondiagnose.sh --geraet UMC202HD    nach diesem Namen suchen
-#   ./tondiagnose.sh > tonbericht.txt 2>&1   zum Verschicken
+#   bash tondiagnose.sh                      alles, was ohne Rechte geht
+#   sudo bash tondiagnose.sh                 zusaetzlich der echte Dienstlauf
+#   bash tondiagnose.sh --geraet UMC202HD    nach diesem Namen suchen
+#   bash tondiagnose.sh > tonbericht.txt 2>&1   zum Verschicken
 #
 # Es AENDERT NICHTS: kein Dienst wird gestartet oder gestoppt, keine
 # Einstellung gesetzt, nichts im Projektordner angefasst. Es liest,
@@ -293,7 +293,7 @@ blau "Als Dienstbenutzer, ohne Sitzung"
 if [ "$(id -u)" != "0" ]; then
   info "Ohne Wurzelrechte nicht moeglich. Der Lauf oben ist nachgebaut,"
   info "dieser hier waere der echte. Mit:"
-  info "  sudo ./tondiagnose.sh${GERAET:+ --geraet $GERAET}"
+  info "  sudo bash tondiagnose.sh${GERAET:+ --geraet $GERAET}"
 elif ! command -v systemd-run >/dev/null; then
   warn "systemd-run fehlt."
 else
@@ -337,4 +337,4 @@ info "Lauf 2 gegen Lauf 3: kommt allein mit XDG_RUNTIME_DIR Ton zustande,"
 info "ist die Ursache gefunden und die Loesung eine Zeile in der Unit."
 info ""
 info "Diese Ausgabe bitte vollstaendig schicken:"
-info "  ./tondiagnose.sh${GERAET:+ --geraet $GERAET} > tonbericht.txt 2>&1"
+info "  bash tondiagnose.sh${GERAET:+ --geraet $GERAET} > tonbericht.txt 2>&1"
