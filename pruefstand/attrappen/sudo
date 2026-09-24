@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Attrappe: -u <benutzer> -H <befehl> wird einfach durchgereicht.
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -u) shift 2 ;;
+    -H|-n) shift ;;
+    *) break ;;
+  esac
+done
+exec "$@"

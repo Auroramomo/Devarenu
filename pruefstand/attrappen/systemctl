@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Attrappe. Schreibt mit, statt etwas zu tun.
+echo "systemctl $*" >> "${STUB_LOG:-/dev/null}"
+case "$1" in
+  is-active) [ "${STUB_DIENST_LAEUFT:-ja}" = ja ] && exit 0 || exit 3 ;;
+  restart)   [ "${STUB_RESTART_OK:-ja}" = ja ] && exit 0 || exit 1 ;;
+esac
+exit 0

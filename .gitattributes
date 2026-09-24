@@ -1,0 +1,2 @@
+# Batch-Dateien brauchen CRLF. git soll daran nichts drehen.
+*.bat text eol=crlf

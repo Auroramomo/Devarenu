@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Attrappe fuer den Gesundheitscheck.
+printf '{"live": false, "fassung": "%s", "gesamt": 0}' "${STUB_FASSUNG:-0.0.0}"

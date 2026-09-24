@@ -9,10 +9,17 @@
 #   bash stick_bauen.sh --nur-constraints          nach jeder Aenderung an
 #                                               requirements.txt
 #
+# GROSSE TEILE (Sprachmodell, Spracherkennung, Stimmen)
+#   --von v0.2.12   nur das, was sich seit v0.2.12 geaendert hat
+#   --voll          alles, rund vierzehn Gigabyte
+#   ohne Angabe     gar keine. Das ist der Normalfall: die meisten
+#                   Updates aendern nur Code.
+#
 # Legt auf den Stick:
 #   upd-dev.txt        die Zeile, an der der Gemeinderechner das Update erkennt
 #   devarenu.bundle    das Repo als eine Datei
 #   wheels/            die Python-Pakete, falls gebraucht
+#   teile/             grosse Teile, nur mit --von oder --voll
 #   bootstrap.sh       Erstinstallation fuer Rechner, die das Verfahren
 #                      noch nicht kennen
 #
@@ -47,13 +54,18 @@ WHEELS=ja
 STICK=""
 
 NUR_BEDINGUNGEN=nein
+VON=""
+VOLL=nein
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --python)           ZIEL_PYTHON="${2:-}"; shift 2 ;;
     --ohne-wheels)      WHEELS=nein; shift ;;
     --nur-constraints)  NUR_BEDINGUNGEN=ja; shift ;;
-    -h|--hilfe)     sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --von)              VON="${2:-}"; shift 2 ;;
+    --voll)             VOLL=ja; shift ;;
+    -h|--hilfe|--help|-\?)
+                    sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*)             fehl "Unbekannt: $1"; exit 1 ;;
     *)              STICK="$1"; shift ;;
   esac
@@ -259,6 +271,32 @@ if [ -f bootstrap.sh ]; then
 else
   warn "bootstrap.sh fehlt im Repo. Bestandsrechner koennen den Stick dann"
   warn "nicht selbst einrichten."
+fi
+
+# ------------------------------------------------------- grosse Teile
+# Nur auf Verlangen. Vierzehn Gigabyte gehoeren nicht auf jeden Stick,
+# und die meisten Updates aendern ohnehin nur Code.
+if [ "$VOLL" = ja ] || [ -n "$VON" ]; then
+  blau "Grosse Teile"
+  if [ ! -f "$ORDNER/teile.json" ]; then
+    fehl "teile.json fehlt. Erst erfassen:"
+    info "  python teile.py --erfassen"
+    exit 1
+  fi
+  rm -rf "$STICK/teile"
+  # Die venv des Projekts, weil teile.py config importiert.
+  TPY="$ORDNER/.venv/bin/python"
+  [ -x "$TPY" ] || TPY="$(command -v python3)"
+  if ! "$TPY" "$ORDNER/teile.py" --auf-stick "$STICK/teile" \
+       ${VON:+--von "$VON"} ${VOLL:+--voll}; then
+    fehl "Die grossen Teile liessen sich nicht zusammenstellen."
+    exit 1
+  fi
+  gut "teile/ ($(du -sh "$STICK/teile" 2>/dev/null | cut -f1))"
+else
+  info "Ohne --von oder --voll sind KEINE grossen Teile dabei."
+  info "Braucht die neue Fassung ein anderes Sprachmodell oder neue"
+  info "Stimmen, reicht dieser Stick nicht."
 fi
 
 sync

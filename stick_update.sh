@@ -28,7 +28,23 @@ NAME=devarenu
 PORT="${DEVARENU_PORT:-8000}"
 PY="$ORDNER/.venv/bin/python"
 
+# Zwei Ablagen, und die Trennung hat einen Grund.
+#
+# ABLAGE ist die Verstaendigung mit dem Pult: was bereitliegt, was
+# zuletzt passiert ist, der Knopf "Jetzt einspielen". Der Server liest
+# das und laeuft als gewoehnlicher Benutzer -- also bleibt es im
+# Projektordner und ihm lesbar.
+#
+# DATEN ist die Nutzlast: Bundle, Wheels, grosse Teile, gesicherte
+# Patches und der Stand vor dem Update. Darin liegt unter anderem eine
+# Kopie von zustand.json, und die enthaelt das WLAN-Passwort der
+# Gemeinde. Deshalb ausserhalb des Projektordners und nur fuer die
+# Wurzel lesbar: 700 auf dem Ordner, 600 auf den Dateien.
+#
+# Nicht im Reparaturvorrat: der ist eine geprueufte Offline-Kopie und
+# soll nicht mit Halbfertigem aus laufenden Updates vermischt werden.
 ABLAGE="$ORDNER/update"
+DATEN=/var/lib/devarenu/updates
 STAND="$ABLAGE/stand.json"
 BEREIT="$ABLAGE/bereit"
 RUHIG="$ABLAGE/ruhig"
@@ -181,7 +197,12 @@ stick_lesen() {
   # egal, und wer die Datei unter Windows anlegt, bekommt leicht
   # UPD-DEV.TXT.
   local ausloeser
-  ausloeser="$(find "$EINHAENGEPUNKT" -maxdepth 1 -iname 'upd-dev.txt' \
+  # maxdepth 2 statt 1, und das ist Absicht: der haeufigste Fehler beim
+  # Kopieren wird sein, dass jemand den ganzen Ordner "Devarenu-Stick"
+  # auf den Stick zieht, statt seinen Inhalt. Dann laegen die Dateien
+  # eine Ebene tiefer -- und der Rechner haette schweigend gar nichts
+  # gemerkt. Sonntagmorgen ist das die falsche Art von Raetsel.
+  ausloeser="$(find "$EINHAENGEPUNKT" -maxdepth 2 -iname 'upd-dev.txt' \
                -type f 2>/dev/null | head -1)"
   if [ -z "$ausloeser" ]; then
     # Der Normalfall: irgendein Stick, kein Update. Nichts melden, nichts
@@ -206,7 +227,15 @@ stick_lesen() {
   fi
   gut "upd-dev.txt nennt Fassung $version"
 
-  local bundle="$EINHAENGEPUNKT/devarenu.bundle"
+  # Ab hier gilt der Ordner, in dem upd-dev.txt wirklich lag -- oben
+  # oder eine Ebene tiefer. Alles andere wird relativ dazu gesucht.
+  QUELLORDNER="$(dirname "$ausloeser")"
+  if [ "$QUELLORDNER" != "$EINHAENGEPUNKT" ]; then
+    info "Die Dateien liegen in $(basename "$QUELLORDNER")/ statt oben."
+    info "Das geht auch, ist aber nicht noetig."
+  fi
+
+  local bundle="$QUELLORDNER/devarenu.bundle"
   if [ ! -f "$bundle" ]; then
     fehl "devarenu.bundle fehlt auf dem Stick"
     stand_schreiben unvollstaendig "$version" \
@@ -218,25 +247,44 @@ stick_lesen() {
   # laeuft ohne Stick -- wer ihn nach dem Aufleuchten abzieht, soll nichts
   # kaputt machen koennen.
   blau "Kopieren"
-  rm -rf "$ABLAGE/wheels" "$ABLAGE/devarenu.bundle"
-  cp "$bundle" "$ABLAGE/devarenu.bundle" || {
+  mkdir -p "$DATEN"
+  chmod 700 "$DATEN"
+  rm -rf "$DATEN/wheels" "$DATEN/devarenu.bundle" "$DATEN/teile"
+  cp "$bundle" "$DATEN/devarenu.bundle" || {
     fehl "Kopieren fehlgeschlagen. Platte voll?"
     stand_schreiben fehlgeschlagen "$version" \
       "Das Bundle liess sich nicht auf die Platte kopieren. Platte voll?"
     exit 1; }
-  gut "devarenu.bundle ($(du -h "$ABLAGE/devarenu.bundle" | cut -f1))"
+  gut "devarenu.bundle ($(du -h "$DATEN/devarenu.bundle" | cut -f1))"
 
-  if [ -d "$EINHAENGEPUNKT/wheels" ]; then
-    cp -r "$EINHAENGEPUNKT/wheels" "$ABLAGE/wheels" || {
+  if [ -d "$QUELLORDNER/wheels" ]; then
+    cp -r "$QUELLORDNER/wheels" "$DATEN/wheels" || {
       fehl "Wheels liessen sich nicht kopieren"
       stand_schreiben fehlgeschlagen "$version" \
         "Die Pakete vom Stick liessen sich nicht auf die Platte kopieren."
       exit 1; }
-    gut "wheels/ ($(find "$ABLAGE/wheels" -name '*.whl' | wc -l) Pakete)"
+    gut "wheels/ ($(find "$DATEN/wheels" -name '*.whl' | wc -l) Pakete)"
   else
     gut "keine wheels/ dabei (nur noetig, wenn sich requirements.txt aendert)"
   fi
 
+  # Grosse Teile, falls der Stick welche mitbringt. Ein Stick ohne sie
+  # ist der Normalfall und bleibt es -- das Format von 0.2.12 muss
+  # weiter funktionieren.
+  if [ -d "$QUELLORDNER/teile" ]; then
+    cp -r "$QUELLORDNER/teile" "$DATEN/teile" || {
+      fehl "Grosse Teile liessen sich nicht kopieren"
+      stand_schreiben fehlgeschlagen "$version" \
+        "Die grossen Teile vom Stick liessen sich nicht kopieren. Platte voll?"
+      exit 1; }
+    gut "teile/ ($(du -sh "$DATEN/teile" | cut -f1))"
+  else
+    gut "keine teile/ dabei"
+  fi
+
+  # Nutzlast gehoert der Wurzel und niemandem sonst: in den Sicherungen
+  # liegt spaeter eine Kopie von zustand.json samt WLAN-Passwort.
+  chmod -R go-rwx "$DATEN" 2>/dev/null || true
   chown -R "$BENUTZER" "$ABLAGE" 2>/dev/null || true
 
   umount "$EINHAENGEPUNKT" 2>/dev/null
@@ -256,7 +304,7 @@ pruefen_und_vormerken() {
   command -v git >/dev/null || { fehl "git fehlt"; exit 1; }
   [ -d .git ] || { fehl "Kein git-Arbeitsverzeichnis"; exit 1; }
 
-  if ! als_benutzer git bundle verify "$ABLAGE/devarenu.bundle" >/dev/null 2>&1; then
+  if ! als_benutzer git bundle verify "$DATEN/devarenu.bundle" >/dev/null 2>&1; then
     fehl "git bundle verify schlaegt fehl"
     stand_schreiben fehlgeschlagen "$version" \
       "Das Bundle auf dem Stick ist beschaedigt oder passt nicht zu diesem Rechner."
@@ -270,7 +318,7 @@ pruefen_und_vormerken() {
   # kann er nichts ueberschreiben.
   local ref="refs/stick/v$version"
   als_benutzer git update-ref -d "$ref" 2>/dev/null
-  if ! als_benutzer git fetch --quiet "$ABLAGE/devarenu.bundle" \
+  if ! als_benutzer git fetch --quiet "$DATEN/devarenu.bundle" \
        "refs/tags/v$version:$ref" 2>/dev/null; then
     fehl "Im Bundle steckt kein Tag v$version"
     stand_schreiben unvollstaendig "$version" \
@@ -422,12 +470,32 @@ einspielen() {
   als_benutzer git update-ref refs/devarenu/vorher "$alt_sha"
   gut "Rueckweg gemerkt: $hier ($(printf '%.7s' "$alt_sha"))"
 
-  # Vorspulen statt Auschecken. Ein ausgecheckter Tag laesst HEAD
-  # abgeloest zurueck, und aktualisieren.sh findet danach kein
-  # Gegenstueck mehr -- es meldete fuer immer "kein origin", auch wenn
-  # der Rechner wieder ans Netz kaeme. So bleibt der Zweig samt
-  # Gegenstueck heil, und ein Update, das nicht darauf aufbaut, wird
-  # abgelehnt statt zusammengefuehrt.
+  # ------------------------------------------------- Stand sichern
+  # Alles, was das Update anfassen koennte und was sich nicht aus git
+  # zurueckholen laesst. Ohne diese Sicherung ist "zurueck" nur ein
+  # halber Rueckweg.
+  local sicherung="$DATEN/vorher-$version"
+  rm -rf "$sicherung"; mkdir -p "$sicherung/units"
+  chmod 700 "$sicherung"
+  for u in devarenu.service devarenu-stick@.service \
+           devarenu-update.service devarenu-update.timer; do
+    [ -f "/etc/systemd/system/$u" ] \
+      && cp -a "/etc/systemd/system/$u" "$sicherung/units/$u"
+  done
+  for d in zustand.json netz.json; do
+    [ -f "$ORDNER/$d" ] && cp -a "$ORDNER/$d" "$sicherung/$d"
+  done
+  chmod -R go-rwx "$sicherung" 2>/dev/null || true
+  gut "Stand gesichert: Units, zustand.json, netz.json"
+
+  # Welche Fehler gab es SCHON? Ein Rechner, bei dem vorher etwas im
+  # Argen lag, soll deshalb kein Update zurueckrollen.
+  DEV_SICHERUNG="$sicherung" als_benutzer bash "$ORDNER/gesundheit.sh" --vorher \
+    >/dev/null 2>&1 || true
+
+  # Vorspulen statt Auschecken -- aber nicht hier. Ein ausgecheckter Tag
+  # laesst HEAD abgeloest zurueck, und aktualisieren.sh findet danach
+  # kein Gegenstueck mehr. Das Vorspulen macht die neue Logik.
   local zweig; zweig="$(als_benutzer git rev-parse --abbrev-ref HEAD)"
   if [ "$zweig" = "HEAD" ]; then
     fehl "HEAD ist abgeloest. Erst wieder auf einen Zweig stellen."
@@ -435,104 +503,91 @@ einspielen() {
       "Der Ordner steht nicht auf einem Zweig. Das Update wurde nicht eingespielt."
     exit 1
   fi
-  # ^{commit} und nicht das Tag selbst: git prueft beim Zusammenfuehren
-  # eines signierten Tags die Signatur noch einmal, findet die
-  # Schluesselliste in der Konfiguration nicht -- sie wird oben bewusst
-  # nur mit -c gesetzt -- und schreibt eine Fehlermeldung ins Journal,
-  # obwohl alles gelingt. Geprueft ist zu diesem Zeitpunkt laengst.
-  if ! als_benutzer git merge --ff-only --quiet "$ref^{commit}" 2>/dev/null; then
-    fehl "Vorspulen auf v$version nicht moeglich"
+
+  # ------------------------------------------- die neue Logik holen
+  # Ausgepackt wird ueber die GEPRUEFTE Objekt-SHA aus refs/stick/vX,
+  # niemals ueber den Tagnamen. Ein gleichnamiger lokaler Tag wuerde
+  # sonst etwas Ungeprueftes unterschieben -- nachgewiesen: mit einem
+  # ueberschriebenen Tag nimmt "git archive vX" das Gefaelschte,
+  # "git archive refs/stick/vX" das Echte.
+  local geprueft_sha
+  geprueft_sha="$(als_benutzer git rev-parse --verify "$ref^{commit}" 2>/dev/null)"
+  if [ -z "$geprueft_sha" ]; then
+    fehl "Die geprueufte Referenz $ref ist nicht aufzuloesen."
     stand_schreiben fehlgeschlagen "$version" \
-      "Das Update baut nicht auf dem Stand dieses Rechners auf. Es wurde nicht eingespielt." \
-      "$hier"
+      "Der geprueufte Stand liess sich nicht finden. Nichts geaendert."
     exit 1
   fi
-  gut "auf v$version vorgespult"
 
-  # ------------------------------------------- was der Stick nicht mitbringt
-  # models/ und voices/ stehen in .gitignore, das Bundle kennt sie also
-  # nicht. Traegt das neue config.py ein anderes Sprachmodell oder eine
-  # neue Stimme ein, fehlt beides hier, und ohne Netz laedt nichts nach.
-  # Der Dienst startet dann, antwortet auf /api/zustand -- und uebersetzt
-  # nicht. Das faellt sonst erst am Sabbat auf.
-  #
-  # Geprueft wird nach dem Vorspulen, aber vor dem Neustart: der laufende
-  # Dienst hat seine Fassung im Speicher, ausgetauschte Dateien auf der
-  # Platte stoeren ihn nicht.
-  local mangel; mangel="$(vorpruefung)"
-  if [ -n "$mangel" ]; then
-    fehl "$mangel"
-    zurueck "$alt_sha" ""
+  # Ausgepackt wird unter /var/lib/devarenu/updates -- NICHT unter
+  # /tmp. Dort darf jeder Benutzer Dateien anlegen, und zwischen
+  # Auspacken und Ausfuehren laege ein Fenster, in dem jemand die
+  # Skriptdatei austauschen koennte. Hier gehoert alles der Wurzel und
+  # ist fuer sonst niemanden zugaenglich.
+  local auszug="$DATEN/logik-$version"
+  rm -rf "$auszug"
+  mkdir -p "$auszug"
+  chown root:root "$DATEN" "$auszug" 2>/dev/null || true
+  chmod 700 "$DATEN" "$auszug"
+
+  # Nachsehen statt hoffen: waere hier etwas fuer Gruppe oder andere
+  # beschreibbar, duerfte darin nichts ausgefuehrt werden.
+  local rechte; rechte="$(stat -c %a "$auszug" 2>/dev/null)"
+  if [ "$rechte" != "700" ]; then
+    fehl "$auszug hat Rechte $rechte statt 700. Es wird nichts ausgefuehrt."
+    rm -rf "$auszug"
     stand_schreiben fehlgeschlagen "$version" \
-      "$mangel Zurueck auf $hier, nichts neu gestartet." "$hier"
+      "Das Auspackverzeichnis liess sich nicht absichern. Nichts geaendert."
     exit 1
   fi
-  gut "Sprachmodell ist da"
 
-  # Als eigenes Feld und nicht als angehaengter Satz: das Pult baut seine
-  # Meldung selbst und braucht die Sprachen, nicht deutsche Prosa.
-  local ohne_stimme
-  ohne_stimme="$(stimmen_fehlen)"
-  if [ -n "$ohne_stimme" ]; then
-    warn "Ohne Stimme, laeuft als Untertitel: $ohne_stimme"
-  else
-    gut "alle eingestellten Sprachen haben eine Stimme"
+  # git archive laeuft als der Benutzer (ihm gehoert das Repo), tar als
+  # Wurzel -- die ausgepackten Dateien gehoeren damit der Wurzel.
+  if ! als_benutzer git archive "$geprueft_sha" | tar -x -C "$auszug"; then
+    fehl "Der geprueufte Stand liess sich nicht auspacken."
+    rm -rf "$auszug"
+    stand_schreiben fehlgeschlagen "$version" \
+      "Der geprueufte Stand liess sich nicht auspacken. Nichts geaendert."
+    exit 1
+  fi
+  gut "Logik aus $(printf '%.7s' "$geprueft_sha") ausgepackt"
+
+  # Faellt sie aus, gilt der alte Weg. So laeuft ein Update von einer
+  # Fassung ohne aktualisierung.sh weiter -- und der Kern muss nicht
+  # wissen, ab wann es sie gibt.
+  if [ ! -x "$auszug/aktualisierung.sh" ] && [ ! -f "$auszug/aktualisierung.sh" ]; then
+    fehl "Die neue Fassung bringt keine aktualisierung.sh mit."
+    rm -rf "$auszug"
+    stand_schreiben fehlgeschlagen "$version" \
+      "Dieses Update laesst sich mit dem hiesigen Updater nicht einspielen."
+    exit 1
   fi
 
-  # ------------------------------------------------------------ Pakete
-  # Nur wenn sich wirklich etwas geaendert hat. Ein pip-Lauf ohne Not
-  # kostet Zeit und kann kaputtgehen, wo vorher nichts kaputt war.
-  if ! als_benutzer git diff --quiet "$alt_sha" HEAD -- requirements.txt; then
-    blau "Pakete"
-    if [ ! -d "$ABLAGE/wheels" ]; then
-      fehl "requirements.txt hat sich geaendert, aber der Stick brachte keine wheels/"
-      zurueck "$alt_sha" ""
-      stand_schreiben kein_wheel "$version" \
-        "Das Update braucht neue Pakete, der Stick brachte aber keine mit. Zurueck auf $hier." \
-        "$hier"
-      exit 1
-    fi
-    # --no-index: kein Wort nach draussen. Was nicht auf dem Stick liegt,
-    # gibt es nicht, und das soll hier scheitern und nicht in einer
-    # Zeitueberschreitung haengen.
-    if ! als_benutzer "$PY" -m pip install --quiet --no-index \
-         --find-links "$ABLAGE/wheels" -r requirements.txt; then
-      fehl "pip konnte nicht alles aus wheels/ installieren"
-      zurueck "$alt_sha" ""
-      stand_schreiben kein_wheel "$version" \
-        "Die Pakete auf dem Stick reichen nicht aus. Zurueck auf $hier, nichts neu gestartet." \
-        "$hier"
-      exit 1
-    fi
-    gut "Pakete aus wheels/ installiert"
-  else
-    gut "requirements.txt unveraendert, keine Pakete noetig"
-  fi
+  # ------------------------------------------------------ uebergeben
+  blau "Einspielen"
+  local ausgabe rc=0
+  ausgabe="$(DEV_ORDNER="$ORDNER" DEV_BENUTZER="$BENUTZER" \
+             DEV_ABLAGE="$DATEN" DEV_ALT_SHA="$alt_sha" DEV_REF="$ref" \
+             DEV_VERSION="$version" DEV_HIER="$hier" \
+             DEV_SICHERUNG="$sicherung" \
+             bash "$auszug/aktualisierung.sh" 2>&1)" || rc=$?
+  printf '%s\n' "$ausgabe" | grep -v '^MELDUNG|' | sed 's/^/   /'
+  local meldung
+  meldung="$(printf '%s\n' "$ausgabe" | sed -n 's/^MELDUNG|//p' | tail -3 \
+             | tr '\n' ' ')"
+  rm -rf "$auszug"
 
-  # ------------------------------------------------------------ Dienst
-  blau "Dienst"
-  systemctl restart "$NAME" || {
-    fehl "Neustart fehlgeschlagen"
-    zurueck "$alt_sha" ja
+  if [ "$rc" != 0 ]; then
+    fehl "Die Update-Logik ist gescheitert (Rueckgabe $rc)."
+    zurueck "$alt_sha" ja "$sicherung"
     stand_schreiben fehlgeschlagen "$version" \
-      "Der Dienst liess sich mit $version nicht starten. Zurueck auf $hier." "$hier"
-    exit 1; }
-
-  if gesund "$version"; then
-    gut "antwortet und meldet Fassung $version"
-  else
-    fehl "Der Dienst meldet sich nicht mit $version"
-    zurueck "$alt_sha" ja
-    stand_schreiben fehlgeschlagen "$version" \
-      "Update $version ist fehlgeschlagen. Fassung $hier wurde wiederhergestellt und laeuft." \
+      "${meldung:-Update $version ist fehlgeschlagen.} Fassung $hier wurde wiederhergestellt und laeuft." \
       "$hier"
     exit 1
   fi
 
   # ---------------------------------------------------------- Zustand
-  # Dieselbe Pruefung wie in aktualisieren.sh: ein Update darf die
-  # Einstellungen der Gemeinde nicht anfassen, und das WLAN-Passwort
-  # darin soll 0600 bleiben.
+  # Ein Update darf die Einstellungen der Gemeinde nicht anfassen.
   local nachher_summe; nachher_summe="$(zustand_pruefsumme)"
   if [ "$vorher_summe" = "$nachher_summe" ]; then
     gut "zustand.json unveraendert"
@@ -545,8 +600,8 @@ einspielen() {
   rm -f "$BEREIT" "$RUHIG" "$JETZT"
   als_benutzer git update-ref -d "$ref" 2>/dev/null
   local satz="Update auf Fassung $version ist eingespielt und laeuft."
-  [ -n "$ohne_stimme" ] && satz="$satz Ohne Stimme, laufen als Untertitel: $ohne_stimme."
-  stand_schreiben eingespielt "$version" "$satz" "$hier" "$ohne_stimme"
+  [ -n "$meldung" ] && satz="$satz $meldung"
+  stand_schreiben eingespielt "$version" "$satz" "$hier"
   blau "Fertig"
 }
 
@@ -597,10 +652,59 @@ PYCODE
 
 # Zweites Argument gesetzt heisst: auch wieder starten. Ohne wurde noch
 # nicht neu gestartet, dann laeuft der alte Dienst unberuehrt weiter.
+# Der Rueckweg gehoert in den Kern, nicht in die Update-Logik: wenn die
+# gescheitert ist, kann man ihr nichts mehr anvertrauen.
+#
+# Zurueckgeholt wird alles, was das Update angefasst haben koennte und
+# was git nicht selbst wiederherstellt:
+#
+#   Code            git reset --hard auf den alten Stand
+#   venv            der Symlink zurueck auf das alte (das neue bleibt
+#                   liegen; loeschen kann man spaeter, beim naechsten
+#                   Versuch wird es ohnehin neu gebaut)
+#   Units           aus der Sicherung, dann daemon-reload
+#   zustand.json    aus der Sicherung, ABER nur wenn sie sich geaendert
+#   netz.json       hat -- eine unveraenderte Datei anzufassen waere ein
+#                   zweiter Eingriff ohne Grund
 zurueck() {
-  local sha="$1" starten="${2:-}"
+  local sha="$1" starten="${2:-}" sicherung="${3:-}"
   warn "zurueck auf $(printf '%.7s' "$sha")"
   als_benutzer git reset --hard --quiet "$sha" || fehl "git reset fehlgeschlagen"
+
+  if [ -n "$sicherung" ] && [ -d "$sicherung" ]; then
+    # venv: der Symlink zurueck. Verschoben wird nichts -- in einem venv
+    # stehen die Pfade in den Skripten, ein verschobenes startet nicht.
+    if [ -f "$sicherung/venv-vorher" ]; then
+      local altes; altes="$(cat "$sicherung/venv-vorher")"
+      if [ -n "$altes" ] && [ -d "$ORDNER/$altes" ]; then
+        als_benutzer ln -sfn "$altes" "$ORDNER/.venv"
+        warn "venv zurueck auf $altes"
+      fi
+    fi
+
+    local u geaendert=nein
+    for u in devarenu.service devarenu-stick@.service \
+             devarenu-update.service devarenu-update.timer; do
+      [ -f "$sicherung/units/$u" ] || continue
+      if ! cmp -s "$sicherung/units/$u" "/etc/systemd/system/$u"; then
+        cp -a "$sicherung/units/$u" "/etc/systemd/system/$u"
+        warn "$u zurueckgeholt"
+        geaendert=ja
+      fi
+    done
+    [ "$geaendert" = ja ] && systemctl daemon-reload 2>/dev/null
+
+    local d
+    for d in zustand.json netz.json; do
+      [ -f "$sicherung/$d" ] || continue
+      if ! cmp -s "$sicherung/$d" "$ORDNER/$d"; then
+        cp -a "$sicherung/$d" "$ORDNER/$d"
+        chown "$BENUTZER" "$ORDNER/$d" 2>/dev/null || true
+        warn "$d zurueckgeholt (das Update hatte sie veraendert)"
+      fi
+    done
+  fi
+
   if [ -n "$starten" ]; then
     systemctl restart "$NAME" || fehl "Neustart nach dem Zurueckgehen fehlgeschlagen"
   fi

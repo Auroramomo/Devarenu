@@ -6,6 +6,8 @@
 #   bash vorrat_bauen.sh --pruefen         nur nachsehen, nichts schreiben
 #   sudo bash vorrat_bauen.sh --nur-systempakete
 #                                          nur die Systempakete ergaenzen
+#   sudo bash vorrat_bauen.sh --nur-etikett
+#                                          nur die Fassung nachziehen
 #
 # --nur-systempakete ist fuer den Fall, dass ein Vorrat schon daliegt
 # und bloss dnsmasq fehlt. Es laedt ein paar Megabyte statt vierzehn
@@ -31,6 +33,7 @@ cd "$ORDNER"
 ZIEL=/opt/devarenu-vorrat
 NUR_PRUEFEN=nein
 NUR_SYSTEM=nein
+NUR_ETIKETT=nein
 
 blau() { printf '\n\033[1;34m== %s\033[0m\n' "$*"; }
 gut()  { printf '   \033[32mok\033[0m    %s\n' "$*"; }
@@ -43,6 +46,7 @@ while [ $# -gt 0 ]; do
     --ziel)     ZIEL="${2:-}"; shift 2 ;;
     --pruefen)  NUR_PRUEFEN=ja; shift ;;
     --nur-systempakete) NUR_SYSTEM=ja; shift ;;
+    --nur-etikett)      NUR_ETIKETT=ja; shift ;;
     -h|--hilfe) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          fehl "Unbekannt: $1"; exit 1 ;;
   esac
@@ -99,6 +103,39 @@ for k in ('fassung', 'python', 'modell', 'gebaut'):
   else
     fehl "Unter $ZIEL liegt keiner."
   fi
+  exit 0
+fi
+
+# --nur-etikett: nach einem Update steht im Vorrat noch die alte
+# Fassung. Am Inhalt aendert das nichts -- Stimmen und Modelle sind
+# dieselben -- aber die Nummer soll stimmen, sonst meldet pruefen.sh
+# einen veralteten Vorrat, der gar keiner ist. Der Updater ruft das.
+if [ "$NUR_ETIKETT" = ja ]; then
+  if [ ! -f "$ZIEL/vorrat.json" ]; then
+    fehl "Unter $ZIEL liegt kein Vorrat."
+    exit 1
+  fi
+  "$PY" - "$ZIEL" "$VERSION" <<'PYCODE'
+import json, sys
+from datetime import datetime
+from pathlib import Path
+ziel, version = Path(sys.argv[1]), sys.argv[2]
+datei = ziel / "vorrat.json"
+d = json.loads(datei.read_text(encoding="utf-8"))
+alt = d.get("fassung")
+d["fassung"] = version
+d["etikett_nachgezogen"] = datetime.now().isoformat(timespec="seconds")
+# Ausdruecklich vermerkt: der INHALT stammt weiter vom Bau. Wer das
+# verwechselt, haelt einen alten Vorrat fuer einen frischen.
+d.setdefault("inhalt_von", alt)
+datei.write_text(json.dumps(d, indent=2, ensure_ascii=False) + "\n",
+                 encoding="utf-8")
+print("   ok    vorrat.json: %s -> %s (Inhalt weiter von %s)"
+      % (alt, version, d["inhalt_von"]))
+PYCODE
+  ( cd "$ZIEL" && find . -type f ! -name pruefsummen.sha256 -print0 \
+      | sort -z | xargs -0 sha256sum > pruefsummen.sha256 )
+  gut "Pruefsummen nachgezogen"
   exit 0
 fi
 
