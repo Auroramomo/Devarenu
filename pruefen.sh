@@ -835,7 +835,7 @@ except Exception:
 # Satz in dieser Datei.
 TON_LAGE = {
     "nicht_lokal": "Der Ton kommt nicht vom Mikrofon dieses Rechners "
-                   "(--netz oder --datei).",
+                   "(--datei).",
     "liste_unlesbar": "Die Geraeteliste ist nicht lesbar.",
     "kein_ton": "Das Geraet laeuft nicht, es kommt gerade kein Ton.",
     "warte_auf_geraet": "Wartet auf \"%s\". Es wird bewusst kein anderes "
@@ -899,7 +899,7 @@ if antwort and antwort.get("aktiv"):
     print("INFO|Am Pult unter Einrichtung eines auswaehlen.")
 elif antwort is not None:
     print("INFO|Der Ton kommt nicht vom Mikrofon dieses Rechners")
-    print("INFO|(--netz oder --datei).")
+    print("INFO|(--datei).")
     raise SystemExit
 
 # ---- Fall B und C: jetzt ist die eigene Aufzaehlung die beste Quelle

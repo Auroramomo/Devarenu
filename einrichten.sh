@@ -334,7 +334,7 @@ for i, g in enumerate(sd.query_devices()):
               f"{int(g['default_samplerate']):6}  {g['name']}")
         n += 1
 if not n:
-    print("   Keine Aufnahmegeraete. Fuer den Netzbetrieb (--netz) egal.")
+    print("   Keine Aufnahmegeraete. Ohne Mikrofon gibt es keinen Ton.")
 else:
     # Ohne diesen Hinweis wandert eine Nummer von hier in die Einstellung
     # und trifft dort ein anderes Geraet: der Systemdienst haelt das

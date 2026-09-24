@@ -1043,7 +1043,6 @@ class Lauf:
         # stand dieselbe Zeile bei jedem Segment neu im Log, und was sich
         # endlos wiederholt, liest niemand mehr.
         self.stt_fehler = {"text": "", "anzahl": 0, "seit": None}
-        self.audio_schluessel = "gemeinde"
         self.audio_quelle = None
         # Die zuletzt gefundene Netzwerkadresse, None solange es keine
         # gibt. Steht hier, damit sie nicht an drei Stellen neu geraten
@@ -1167,7 +1166,7 @@ class Lauf:
 
             if self.messung and not self.messung.zeilen:
                 # Beim ersten Segment, nicht beim Druck aufs Pult:
-                # --datei, --netz und --sofort setzen laeuft direkt und
+                # --datei und --sofort setzen laeuft direkt und
                 # kaemen sonst ohne Kopfdaten durch -- also genau die
                 # drei Wege, auf denen ueberhaupt gemessen wird.
                 self.messung.kopf(
@@ -3310,42 +3309,6 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         finally:
             lauf.abmelden(ws, sprache)
 
-    @app.websocket("/audio")
-    async def audio(ws: WebSocket):
-        """Nimmt Ton von einem entfernten Rechner entgegen.
-
-        Damit kann der Ton in der Gemeinde aufgenommen und hier verarbeitet
-        werden. Erwartet 16 kHz Mono als 16-Bit-Ganzzahlen, umgerechnet
-        wird schon auf der Gegenseite: ueber die Leitung soll nicht das
-        Dreifache gehen.
-
-        Der Schluessel ist kein ernsthafter Schutz, sondern verhindert,
-        dass jemand mit der Tunneladresse versehentlich oder mutwillig Ton
-        einspeist und die Karte auslastet."""
-        if ws.query_params.get("schluessel") != lauf.audio_schluessel:
-            await ws.close(code=1008)
-            return
-        await ws.accept()
-        lauf.audio_quelle = time.time()
-        print("Audioquelle verbunden.")
-        empfangen = 0
-        try:
-            while True:
-                roh = await ws.receive_bytes()
-                lauf.audio_quelle = time.time()
-                empfangen += 1
-                block = (np.frombuffer(roh, dtype=np.int16)
-                         .astype(np.float32) / 32768.0)
-                lauf.mitschnitt.schreiben(block)
-                segment = lauf.segmentierer.schub(block)
-                if segment is not None and lauf.laeuft:
-                    lauf.warteschlange.put((segment, None, time.perf_counter()))
-        except Exception:
-            pass
-        finally:
-            lauf.audio_quelle = None
-            print(f"Audioquelle getrennt nach {empfangen} Bloecken.")
-
     @app.get("/api/geraete")
     def geraete():
         """Die Aufnahmegeraete, dieselbe Liste wie server.py --geraete.
@@ -4793,7 +4756,7 @@ const TEXTE={
    // deutscher. Die Einzelheit aus dem Treiber haengt unuebersetzt hinten
    // dran, sie ist meist ohnehin englisch.
    ton_nicht_lokal:"Der Ton kommt nicht vom Mikrofon dieses Rechners "
-     +"(--netz oder --datei).",
+     +"(--datei).",
    ton_liste_unlesbar:"Die Geräteliste ist nicht lesbar.",
    ton_kein_ton:"Das Gerät läuft nicht, es kommt gerade kein Ton.",
    ton_zurueck:"Das Gerät ließ sich nicht öffnen. Es bleibt beim "
@@ -4922,7 +4885,7 @@ const TEXTE={
    einrichtung:"Setup",
    einrichtung_hin:"Set once per congregation, then leave it alone.",
    ton_nicht_lokal:"The audio does not come from this computer's "
-     +"microphone (--netz or --datei).",
+     +"microphone (--datei).",
    ton_liste_unlesbar:"The device list cannot be read.",
    ton_kein_ton:"The device is not running, no audio is coming in.",
    ton_zurueck:"The device could not be opened. The previous one stays "
@@ -5850,11 +5813,6 @@ def main():
                    help="Kanal im Geraet, gezaehlt ab 1: 1 = links/mono, "
                         "2 = rechts. Ohne Angabe gilt, was am Pult "
                         "gewaehlt wurde.")
-    p.add_argument("--netz", action="store_true",
-                   help="Ton ueber das Netz entgegennehmen statt vom "
-                        "Mikrofon (sender.py auf der Gegenseite)")
-    p.add_argument("--schluessel", default="gemeinde",
-                   help="muss zum Sender passen")
     p.add_argument("--datei", default=None,
                    help="statt Mikrofon eine Aufnahme einspeisen, fuer den "
                         "Dauerlauf")
@@ -5928,11 +5886,10 @@ def main():
     # Geraetenummer anzufassen.
     #
     # Gezaehlt wird ab 1, innen ab 0. Das ist keine Schlamperei, sondern
-    # die Zaehlweise, die im Projekt schon gilt: sender.py nimmt
-    # --kanal 1 und 2 und rechnet selbst auf den Index herunter,
-    # pegel.py gibt "--kanal 2" aus. Und auf dem SQ5 steht auf keinem
-    # Weg eine Null. Zwei Zaehlweisen im selben Projekt waeren die
-    # Falle, nicht der Umrechnungsschritt hier.
+    # die Zaehlweise, die im Projekt schon gilt: werkzeuge/pegel.py gibt
+    # "--kanal 2" aus, und auf dem SQ5 steht auf keinem Weg eine Null.
+    # Zwei Zaehlweisen im selben Projekt waeren die Falle, nicht der
+    # Umrechnungsschritt hier.
     if a.kanal is not None:
         if a.kanal < 1:
             sys.exit("--kanal zaehlt ab 1: 1 ist links oder mono, "
@@ -5980,21 +5937,7 @@ def main():
               f"{testton.kanaele} Kanaele, {testton.rate} Hz. "
               f"Es wird kein Geraet aufgemacht.")
 
-    lauf.audio_schluessel = a.schluessel
-
-    if a.netz:
-        # Kein eigener Thread: der Ton kommt ueber den WebSocket herein und
-        # wird dort direkt an denselben Segmentierer gegeben.
-        #
-        # Bewusst NICHT von selbst starten. Vorher lief die Uebersetzung ab
-        # dem Serverstart, waehrend das Pult "Übersetzung starten" anzeigte:
-        # zwei Wahrheiten gleichzeitig. Der Techniker drueckt jetzt bewusst
-        # auf Start, so wie er es auch mit dem Mikrofon tun wuerde.
-        if a.sofort:
-            lauf.laeuft = True
-            lauf.begonnen = time.time()
-        rate = MIKRO_RATE
-    elif a.datei:
+    if a.datei:
         if not Path(a.datei).exists():
             sys.exit(f"Nicht gefunden: {a.datei}")
         # Eine Aufnahme hat keinen wandernden Raumklang, dem die Schwelle
@@ -6078,13 +6021,7 @@ def main():
                             f"{a.max_woerter} Wörtern oder {a.max_warten}s",
                     "roh": "sofort, ohne Einordnung"}
     print(f"  Übersetzt {beschriftung[a.betrieb]}")
-    if a.netz:
-        print(f"  Quelle    über das Netz, Schlüssel \"{a.schluessel}\"")
-        # Auch hier keine erfundene Adresse: die Zeile wird abgetippt.
-        ziel = f"ws://{ip}:{a.port}" if ip else "ws://<Adresse>:%d" % a.port
-        print(f"  Sender    python sender.py --ziel {ziel} "
-              f"--geraet <Nr>\n")
-    elif a.datei:
+    if a.datei:
         print(f"  Quelle    {Path(a.datei).name} (Dauerlauf)\n")
     elif tonquelle is not None and tonquelle.laeuft:
         print(f"  Aufnahme  Geraet {tonquelle.geraet}, {tonquelle.rate} Hz "

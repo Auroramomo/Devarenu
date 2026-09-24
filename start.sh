@@ -7,16 +7,15 @@
 #   bash start.sh              Mikrofon, Geraet aus zustand.json
 #   bash start.sh --mikro 1    Aufnahmegeraet erzwingen, zur Fehlersuche
 #   bash start.sh --datei predigt.mp3   Dauerlauf mit einer Aufnahme
-#   bash start.sh --netz       Ton ueber das Netz von einem zweiten Rechner
 #
 # Ohne Argument wird nichts vorgegeben: server.py nimmt dann die Nummer
 # aus zustand.json, und steht dort keine, das Vorgabegeraet des Systems.
 # Ausgewaehlt wird das Geraet am Pult unter Einrichtung.
 #
-# Frueher stand hier --netz als Voreinstellung, aus der Zeit mit dem
-# Gemeindelaptop. Der ist weg, der Ton kommt per Klinke direkt in den
-# Rechner -- und im Netzbetrieb legt server.py keine Tonquelle an, sodass
-# die Auswahl am Pult leer blieb.
+# Den Netzbetrieb (--netz, sender.py auf einem zweiten Rechner) gab es
+# bis 0.2.12. Er stammte aus der Zeit mit dem Gemeindelaptop; der ist
+# weg, der Ton kommt per Klinke direkt in den Rechner. Er legte
+# ausserdem keine Tonquelle an, sodass die Auswahl am Pult leer blieb.
 #
 # Alles bleibt im eigenen Netz. Es gibt keine Verbindung nach aussen: kein
 # Tunnel, kein Anbieter, keine Verarbeitung ausserhalb der Gemeinde. Fuer
