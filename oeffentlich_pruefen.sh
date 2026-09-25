@@ -37,15 +37,12 @@ AUSNAHMEN=(
   # Lizenz nichts wert.
   "LICENSE:Maurice Wessel"
 
-  # Ansprechpartner in einer Betriebsanweisung: wer sonntags vor einem
-  # abgelehnten Stick steht, muss wissen, bei wem er sich meldet. Der
-  # volle Name steht ohnehin in LICENSE.
-  "bootstrap.sh:Maurice"
-
-  # Die Rueckmeldeadresse. Sie steht absichtlich da -- ohne sie kann
-  # niemand melden, dass eine Sprache fehlt.
-  "config.py:maurice.wessel@adventisten.de"
-  "server.py:maurice.wessel@adventisten.de"
+  # DIE eine Stelle fuer Name und Adresse des Betreuers. Alles andere
+  # -- bootstrap.sh, die Batchdatei, der Fehler-Dialog, die
+  # Glossar-Nachricht -- liest von dort. Steht der Name woanders im
+  # Repo, schlaegt diese Pruefung an, und das ist richtig so.
+  "betreuer.txt:Momo"
+  "betreuer.txt:maurice.wessel@adventisten.de"
 
   # Der oeffentliche Teil des Signaturschluessels, mit der Adresse als
   # Kennung. Genau dafuer ist die Datei da: ohne sie wird kein Stick

@@ -58,6 +58,23 @@ if exist "%QUELLE%\.git" (
 )
 echo   [ok]  Projekt ist aktuell.
 
+REM ------------------------------------------------- Betreuer einlesen
+REM  Name und Adresse stehen an EINER Stelle im Projekt: betreuer.txt.
+REM  "delims==" trennt am Gleichheitszeichen, "eol=#" laesst Kommentare
+REM  aus. betreuer.txt hat LF-Zeilenenden, weil sie aus git kommt --
+REM  je nach Einstellung kann git unter Windows daraus CRLF machen.
+REM  for /f kommt mit beidem zurecht: es trennt an der Zeile und
+REM  nimmt ein CR nicht in den Wert auf. Nachgestellt geprueft mit
+REM  beiden Varianten.
+set "BETREUER_NAME=dem Betreuer"
+set "BETREUER_MAIL="
+if exist "%QUELLE%\betreuer.txt" (
+  for /f "usebackq eol=# tokens=1,* delims==" %%a in ("%QUELLE%\betreuer.txt") do (
+    if /i "%%a"=="name" set "BETREUER_NAME=%%b"
+    if /i "%%a"=="mail" set "BETREUER_MAIL=%%b"
+  )
+)
+
 REM ------------------------------------------- neuester Tag nach NUMMER
 REM  Nicht nach Datum: v0.2.9 wurde spaeter getaggt als v0.2.13 haette
 REM  werden koennen, und dann waere der Stick eine Fassung zu alt.
@@ -69,7 +86,7 @@ for /f "delims=" %%t in ('git -C "%QUELLE%" tag --list "v*" --sort^=-v:refname')
 if not defined TAG (
   echo.
   echo   Im Projekt ist keine Fassung markiert. Das sollte nicht sein.
-  echo   Bitte beim Betreuer von Devarenu melden.
+  echo   Bitte bei !BETREUER_NAME! melden: !BETREUER_MAIL!
   echo.
   pause
   exit /b 1
@@ -95,7 +112,7 @@ if not errorlevel 1 (
   echo   gebaut mit:  stick_bauen.sh --voll
   echo.
   echo   Es wurde NICHTS gebaut.
-  echo   Bitte beim Betreuer von Devarenu melden.
+  echo   Bitte bei !BETREUER_NAME! melden: !BETREUER_MAIL!
   echo.
   pause
   exit /b 1
@@ -111,7 +128,7 @@ git -C "%QUELLE%" bundle create "%ZIEL%\devarenu.bundle" --all --quiet
 if errorlevel 1 (
   echo.
   echo   Das Zusammenpacken ist fehlgeschlagen.
-  echo   Bitte beim Betreuer von Devarenu melden.
+  echo   Bitte bei !BETREUER_NAME! melden: !BETREUER_MAIL!
   echo.
   pause
   exit /b 1
@@ -181,7 +198,7 @@ echo   Das Projekt liess sich nicht herunterladen.
 echo.
 echo   Meistens liegt es an der Internetverbindung.
 echo   Noch einmal versuchen; geht es wieder nicht,
-echo   bitte beim Betreuer von Devarenu melden.
+echo   bitte bei !BETREUER_NAME! melden: !BETREUER_MAIL!
 echo.
 pause
 exit /b 1

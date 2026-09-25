@@ -19,6 +19,19 @@
 set -u
 STICK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Name und Adresse des Betreuers stehen an EINER Stelle im Repo.
+# Hier wird nur gelesen. Faellt die Datei aus, bleibt ein Platzhalter --
+# lieber "beim Betreuer" als ein leerer Satz.
+betreuer() {   # $1 = name | mail
+  local datei="$ORDNER/betreuer.txt" wert=""
+  [ -f "$datei" ] || datei="$(dirname "$0")/betreuer.txt"
+  if [ -f "$datei" ]; then
+    wert="$(sed -n "s/^$1[[:space:]]*=[[:space:]]*//p" "$datei" \
+            | tr -d '\r' | head -1)"
+  fi
+  printf '%s' "${wert:-dem Betreuer}"
+}
+
 blau() { printf '\n\033[1;34m== %s\033[0m\n' "$1"; }
 gut()  { printf '   \033[32mok\033[0m   %s\n' "$1"; }
 warn() { printf '   \033[33m!\033[0m    %s\n' "$1"; }
@@ -95,8 +108,8 @@ cat <<'ENDE'
    Update gegen sie geprueft -- deshalb muss genau hier einmal jemand
    hinsehen.
 
-   Der Fingerabdruck unten muss mit dem uebereinstimmen, den Sie von
-   Maurice bekommen haben. NICHT ueber den Stick vergleichen und nicht
+   Der Fingerabdruck unten muss mit dem uebereinstimmen, den Sie vom
+   Betreuer bekommen haben. NICHT ueber den Stick vergleichen und nicht
    ueber eine Datei darauf: fragen Sie nach, am Telefon oder persoenlich.
    Stimmt er nicht, brechen Sie ab.
 
@@ -148,7 +161,8 @@ install -m 644 "$STICK/schluessel.erlaubt" /run/devarenu-bootstrap.erlaubt
 if ! als_benutzer git -c gpg.ssh.allowedSignersFile=/run/devarenu-bootstrap.erlaubt \
      verify-tag "$REF" >/dev/null 2>&1; then
   fehl "Die Signatur von v$VERSION stimmt nicht."
-  echo "   Der Stick wird nicht eingespielt. Bitte bei Maurice melden."
+  echo "   Der Stick wird nicht eingespielt."
+  echo "   Bitte bei $(betreuer name) melden: $(betreuer mail)"
   rm -f /run/devarenu-bootstrap.erlaubt
   als_benutzer git update-ref -d "$REF"
   exit 1

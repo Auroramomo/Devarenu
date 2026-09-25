@@ -23,6 +23,7 @@ import argparse
 import asyncio
 import io
 import json
+import os
 import queue
 import re
 import subprocess
@@ -59,6 +60,67 @@ QUELLE = config.AUSGANGSSPRACHE
 ZIELSPRACHEN = list(config.ZIELSPRACHEN)
 SPRACHEN = [QUELLE] + [s for s in ZIELSPRACHEN if s != QUELLE]
 MIKRO_RATE = 16000          # was Whisper erwartet
+
+# ------------------------------------------------- Was ins Protokoll darf
+#
+# Bis 0.2.13 stand bei JEDEM Abschnitt der gesprochene Satz im Journal,
+# sechzig Zeichen lang. Dazu die Zuschriften aus dem Saal im Wortlaut
+# und die Personennamen aus dem Predigtmanuskript. Das Journal einer
+# Gemeinde enthielt damit ueber Monate hinweg Predigtinhalte, Namen und
+# das, was Zuhoerer gemeldet haben.
+#
+# Fuer das Tonband gilt in dieser Gemeinde: es wird nicht aufgehoben.
+# Fuer das Transkript gilt dasselbe.
+#
+# Der Schalter steht in zustand.json, NICHT in config.py: eine
+# Aenderung an einer versionierten Datei laesst jedes Update abbrechen.
+# Vorgabe ist aus. Am Pult unter Einrichtung laesst er sich zur
+# Fehlersuche einschalten; der Systemcheck meldet das, solange er an
+# ist.
+PROTOKOLL_MITSCHRIFT = False
+
+
+def schutz(text, laenge=60):
+    """Der Text -- oder nur seine Laenge, wenn er nicht ins Protokoll darf.
+
+    Nie ein leeres Feld: eine Zeile ohne jede Angabe waere schlechter
+    zu lesen als eine mit "42 Z.". Die Laenge verraet nichts und hilft
+    beim Einordnen ("kam da ueberhaupt etwas an?")."""
+    if PROTOKOLL_MITSCHRIFT:
+        return str(text)[:laenge]
+    return f"{len(str(text))} Z."
+
+
+# systemd legt ALLES, was auf stdout und stderr geht, auf Stufe 6
+# (info) -- gemessen mit einer eigenen Unit, stdout und stderr
+# gleichermassen. "journalctl -p warning" liefert damit von diesem
+# Dienst gar nichts.
+#
+# Ein vorangestelltes <4> bzw. <3> liest systemd als Stufe. Damit wird
+# aus "alles ist info" eine brauchbare Unterscheidung -- und der
+# Fehlerbericht, der nur ab Warnstufe sammelt, kann Mitschrift
+# konstruktiv nicht enthalten: die Segmentzeilen bleiben info.
+#
+# Nur, wenn die Ausgabe wirklich ins Journal geht. JOURNAL_STREAM
+# allein genuegt nicht: die Variable wird VERERBT. Ein Terminal, das
+# unter einer systemd-Sitzung gestartet wurde, traegt sie mit, und
+# "bash start.sh" schriebe dann "<4>" in die Konsole -- gemessen, genau
+# das passierte.
+#
+# Haengt die Ausgabe an einem Terminal, liest sie ein Mensch und kein
+# Journal.
+_UNTER_SYSTEMD = bool(os.environ.get("JOURNAL_STREAM")) and \
+    not sys.stdout.isatty()
+
+
+def warnung(text):
+    """Eine Warnung -- im Journal als solche erkennbar."""
+    return f"<4>{text}" if _UNTER_SYSTEMD else text
+
+
+def fehler(text):
+    """Ein Fehler -- im Journal als solcher erkennbar."""
+    return f"<3>{text}" if _UNTER_SYSTEMD else text
 BLOCK = 512                 # Aufnahmeblock, gut 30 ms
 
 # Wie lange auf die Netzwerkadresse gewartet wird. ANLAUF haelt die
@@ -1149,8 +1211,10 @@ class Lauf:
                         jetzt = time.perf_counter()
                         dauer = (len(ton) / MIKRO_RATE if ton is not None
                                  else 0.0)
-                        print(f"[   !] Notbremse nach "
-                              f"{self.sammler.max_warten:.0f}s | {text[:56]}")
+                        print(warnung(
+                            f"[   !] Notbremse nach "
+                            f"{self.sammler.max_warten:.0f}s | "
+                            f"{schutz(text, 56)}"))
                         # Kein Whisper gelaufen: die Kette faengt hier an
                         # und hoert hier auf. Die Messung soll das sehen,
                         # statt eine Erkennungszeit von null zu melden,
@@ -1208,7 +1272,8 @@ class Lauf:
                 gesammelt, sammelton, sammelpos = self.sammler.schub(
                     text, audio, sprechende)
                 if gesammelt is None:
-                    print(f"[   .] {audiodauer:4.1f}s Ton, sammle | {text[:56]}")
+                    print(f"[   .] {audiodauer:4.1f}s Ton, sammle | "
+                          f"{schutz(text, 56)}")
                     continue
                 text = gesammelt
                 if sammelpos is not None:
@@ -1263,7 +1328,7 @@ class Lauf:
         gesamt = time.perf_counter() - t0
         schlange_aus = self.warteschlange.qsize()
         print(f"[{nummer:4}] {audiodauer:4.1f}s Ton, STT {stt:.2f}s, "
-              f"gesamt {gesamt:.2f}s | {text[:60]}")
+              f"gesamt {gesamt:.2f}s | {schutz(text, 60)}")
         if self.segmentierer:
             lage = self.segmentierer.lage()
             if lage["stufe"] == "alarm" and nummer != self._letzte_warnung:
@@ -1349,9 +1414,10 @@ class Lauf:
                   "(--tempo) ist die\n  Latenzmessung nicht aussagekraeftig, "
                   "dafuer braucht es Echtzeit.")
         elif ende - anfang > 5:
-            print("\n  Laeuft davon. Uebersetzung muss schneller werden, "
-                  "oder feiner\n  geschnitten, oder die Wiedergabe staerker "
-                  "beschleunigt.")
+            print(warnung(
+                "\n  Laeuft davon. Uebersetzung muss schneller werden, "
+                "oder feiner\n  geschnitten, oder die Wiedergabe staerker "
+                "beschleunigt."))
         elif ende - anfang > 2:
             print("\n  Leichter Anstieg. Ueber eine laengere Predigt "
                   "beobachten.")
@@ -3696,7 +3762,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                    "art": "saal"}
         lauf.nachrichten.append(eintrag)
         print(f"Nachricht aus dem Saal ({eintrag['sprache'] or '?'}): "
-              f"{eintrag['text']}")
+              f"{schutz(eintrag['text'], 200)}")
         return {"angekommen": True}
 
     @app.post("/api/nachrichten/leeren")
@@ -3764,6 +3830,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 "audio_quelle": (round(time.time() - lauf.audio_quelle, 1)
                                  if lauf.audio_quelle else None),
                 "mitschnitt": lauf.mitschnitt.lage(),
+                "protokoll_mitschrift": PROTOKOLL_MITSCHRIFT,
                 "nachrichten": list(lauf.nachrichten),
                 # Steht hier und nicht nur unter Einrichtung: ein Update,
                 # das aufs Anhalten wartet, geht den Techniker waehrend
@@ -3908,9 +3975,13 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         lauf.werk.skript_info = {
             "quelle": quelle, "woerter": erg["woerter"],
             "stellen": erg["stellen"], "namen": erg["namen"]}
+        # Bibelstellen duerfen dastehen -- sie sind oeffentlich. Die
+        # Namen nicht: das sind Menschen aus der Predigt.
         print(f"Manuskript: {quelle}, {erg['woerter']} Woerter, "
-              f"{len(erg['namen'])} Namen, Stellen: "
-              f"{', '.join(erg['stellen']) or 'keine'}")
+              f"{len(erg['namen'])} Namen"
+              + (f" ({schutz(', '.join(erg['namen']), 120)})"
+                 if erg['namen'] else "")
+              + f", Stellen: {', '.join(erg['stellen']) or 'keine'}")
 
         # Falls im Manuskript Stellen stehen und das Kontextfeld leer war,
         # gleich den Prompt setzen. Ein Handgriff weniger am Pult.
@@ -4137,6 +4208,21 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
     @app.get("/api/wlan")
     def wlan_lesen():
         return lauf.wlan
+
+    @app.post("/api/protokoll")
+    async def protokoll(daten: dict):
+        """Schaltet die Mitschrift im Protokoll an oder aus.
+
+        Sofort wirksam, ohne Neustart: wer zur Fehlersuche einschaltet,
+        will die naechste Zeile sehen und nicht den naechsten Dienst."""
+        global PROTOKOLL_MITSCHRIFT
+        an = bool(daten.get("an"))
+        PROTOKOLL_MITSCHRIFT = an
+        lauf.zustand["protokoll_mitschrift"] = an
+        zustandsdatei.speichern(lauf.zustand)
+        print(warnung("Mitschrift im Protokoll EINGESCHALTET.") if an
+              else "Mitschrift im Protokoll ausgeschaltet.")
+        return {"an": an}
 
     @app.post("/api/wlan")
     async def wlan(daten: dict):
@@ -4643,6 +4729,11 @@ bleibt es so.</p>
 <p class=hin id=updatestand hidden></p>
 <button class=klein id=updateknopf onclick=updateJetzt() hidden
         data-t=upd_jetzt>Jetzt einspielen</button>
+<p class=hin><label><input type=checkbox id=protokollschalter
+  onchange=protokollSetzen()> <span data-t=protokoll_an>Mitschrift im
+  Protokoll (nur zur Fehlersuche)</span></label></p>
+<p class="hin" id=protokollhin data-t=protokoll_hin>Aus. Der gesprochene
+Satz steht dann nicht im Protokoll -- nur seine Länge.</p>
 <h2 class=klapp id=tonquelleKopf onclick=tonquelleKlappen()>
   <span data-t=tonquelle>Tonquelle</span>
   <span class=klapptext><span id=tonquelleWort>Zuklappen</span>
@@ -4827,6 +4918,11 @@ const TEXTE={
    post_ueber:"Aus dem Saal",post_weg:"Erledigt",
    post_neu:"neue Meldungen aus dem Saal",
    post_system:"Hinweis von Devarenu",
+   protokoll_an:"Mitschrift im Protokoll (nur zur Fehlersuche)",
+   protokoll_hin:"Aus. Der gesprochene Satz steht dann nicht im "
+     +"Protokoll – nur seine Länge.",
+   protokoll_warn:"EIN. Der gesprochene Satz steht jetzt im Protokoll. "
+     +"Nach der Fehlersuche wieder ausschalten.",
    anleitung_pult:"Bedienungsanleitung als PDF",
    // Drei Zustaende, nicht zwei. Ein Glossar, das niemand gegengelesen
    // hat, ist etwas anderes als gar keines.
@@ -4952,6 +5048,11 @@ const TEXTE={
    post_ueber:"From the hall",post_weg:"Done",
    post_neu:"new messages from the hall",
    post_system:"Notice from Devarenu",
+   protokoll_an:"Transcript in the log (for troubleshooting only)",
+   protokoll_hin:"Off. The spoken sentence does not go into the log – "
+     +"only its length.",
+   protokoll_warn:"ON. The spoken sentence now goes into the log. "
+     +"Switch it off again after troubleshooting.",
    anleitung_pult:"Manual as PDF",
    glossar_offen_ueber:"A glossary exists, but no native speaker has "
      +"reviewed it yet. The terms are fixed and could be wrong.",
@@ -5462,6 +5563,20 @@ async function updateLaden(){
   }catch(e){}
 }
 
+async function protokollSetzen(){
+  const an = protokollschalter.checked;
+  await fetch("/api/protokoll",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({an:an})});
+  protokollAnzeigen(an);
+}
+function protokollAnzeigen(an){
+  const t = TEXTE[UI];
+  protokollschalter.checked = an;
+  protokollhin.textContent = an ? t.protokoll_warn : t.protokoll_hin;
+  protokollhin.classList.toggle("warnung", an);
+}
+
 async function updateJetzt(){
   updateknopf.disabled=true;
   try{
@@ -5615,6 +5730,8 @@ async function lies(){
       schnittLaeuft=false;
       bSchnitt.textContent=t.schnittstart;
     }
+    if(d.protokoll_mitschrift!==undefined)
+      protokollAnzeigen(d.protokoll_mitschrift);
     const post_=(d.nachrichten||[]);
     briefkasten.hidden = post_.length===0;
     postzahl.textContent = post_.length;
@@ -5911,6 +6028,15 @@ def main():
     lauf.betrieb = a.betrieb
     lauf.sammler = Satzsammler(a.max_woerter, a.max_warten)
     lauf.zustand = stand
+    # Der Schalter gilt ab dem Start. Er steht in zustand.json, damit
+    # der Ordner unveraendert bleibt und Updates nicht daran abbrechen.
+    global PROTOKOLL_MITSCHRIFT
+    PROTOKOLL_MITSCHRIFT = bool(stand.get("protokoll_mitschrift"))
+    if PROTOKOLL_MITSCHRIFT:
+        print(warnung(
+            "ACHTUNG: Mitschrift im Protokoll ist EINGESCHALTET. Der "
+            "gesprochene Satz steht dann im Journal. Nur zur "
+            "Fehlersuche; danach am Pult wieder ausschalten."))
     lauf.wlan = dict(stand["wlan"])
     if stand["schwelle"]["wert"] is not None:
         # Die eingemessene Schwelle gilt weiter. Im Dateibetrieb wird sie

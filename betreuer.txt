@@ -1,0 +1,18 @@
+# Wer Devarenu betreut. DIE Stelle im Repo, an der Name und Adresse
+# stehen -- alles andere liest von hier.
+#
+# Warum eine eigene Datei und nicht config.py: die Batch-Datei fuer
+# Windows laeuft ohne Python, kann aber eine Textdatei lesen. Bash und
+# Python koennen es ohnehin. Ein Format, das keine Bibliothek braucht.
+#
+# Gelesen von: config.py, bootstrap.sh, Devarenu-Stick-bauen.bat,
+# fehlerbericht.py, dem Fehler-Dialog am Pult und der Glossar-Nachricht.
+#
+# oeffentlich_pruefen.sh laesst Name und Adresse GENAU HIER durchgehen.
+# Stehen sie woanders im Repo, schlaegt die Pruefung an -- und das ist
+# richtig so.
+#
+# Zeilen der Form schluessel=wert. Kommentare mit # am Zeilenanfang.
+
+name=Momo
+mail=maurice.wessel@adventisten.de

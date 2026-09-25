@@ -128,6 +128,16 @@ def vorgabe():
         # Aendert sich die Lage, aendert sich der Abdruck, und die
         # Nachricht kommt wieder.
         "systemcheck_quittiert": "",
+        # Darf der gesprochene Satz ins Protokoll?
+        #
+        # Vorgabe AUS. Bis 0.2.13 stand bei jedem Abschnitt Predigttext
+        # im Journal, dazu Zuschriften aus dem Saal und die
+        # Personennamen aus dem Manuskript. Ueber Monate ergibt das eine
+        # Sammlung, die niemand angelegt hat und niemand loescht.
+        #
+        # Hier und nicht in config.py: ein geaenderter Wert in einer
+        # versionierten Datei laesst jedes Update abbrechen.
+        "protokoll_mitschrift": False,
     }
 
 
@@ -215,6 +225,11 @@ def _uebernehmen(roh, daten):
     # dazu fuehren, dass ein Hinweis noch einmal kommt.
     if isinstance(roh.get("systemcheck_quittiert"), str):
         daten["systemcheck_quittiert"] = roh["systemcheck_quittiert"]
+
+    if isinstance(roh.get("protokoll_mitschrift"), bool):
+        daten["protokoll_mitschrift"] = roh["protokoll_mitschrift"]
+    elif roh.get("protokoll_mitschrift") is not None:
+        fehlerhaft.append("protokoll_mitschrift")
 
     quittiert = roh.get("glossar_quittiert")
     if isinstance(quittiert, list):

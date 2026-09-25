@@ -483,7 +483,33 @@ MESSUNG_RUMPF_MAX = 64 * 1024
 # jemandem an der Uebersetzung auffaellt und was der Technik vor Ort
 # nicht hilft, etwa ein wiederkehrender Uebersetzungsfehler.
 # Leer lassen, dann erscheint der Knopf nicht.
-RUECKMELDUNG_MAIL = "maurice.wessel@adventisten.de"
+def _betreuer():
+    """Name und Adresse des Betreuers, aus betreuer.txt.
+
+    An EINER Stelle im Repo, damit sie nicht an fuenf Orten
+    auseinanderlaufen -- und damit oeffentlich_pruefen.sh genau eine
+    erlaubte Fundstelle hat."""
+    werte = {"name": "", "mail": ""}
+    try:
+        for zeile in (BASIS / "betreuer.txt").read_text(
+                encoding="utf-8").splitlines():
+            zeile = zeile.strip()
+            if not zeile or zeile.startswith("#") or "=" not in zeile:
+                continue
+            k, v = zeile.split("=", 1)
+            if k.strip() in werte:
+                werte[k.strip()] = v.strip()
+    except OSError:
+        pass
+    return werte
+
+
+BETREUER = _betreuer()
+BETREUER_NAME = BETREUER["name"]
+
+# Der alte Name bleibt: er wird an mehreren Stellen gelesen, und eine
+# Umbenennung waere Arbeit ohne Gewinn.
+RUECKMELDUNG_MAIL = BETREUER["mail"]
 
 # Freiwillige Unterstuetzung. Sie geht an die Freikirche, nicht an eine
 # Person: der Pastor wird ueber den Zehnten getragen, das Programm selbst

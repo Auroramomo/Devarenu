@@ -469,6 +469,31 @@ def _ollama_gpu(befunde):
             return
 
 
+def _protokoll(befunde):
+    """Steht die Mitschrift im Protokoll?
+
+    Ein Schalter fuer die Fehlersuche, der vergessen wird, sammelt ueber
+    Monate Predigtinhalte im Journal. Solange er an ist, steht es am
+    Pult -- nicht als Fehler, aber sichtbar."""
+    try:
+        import zustand as zustandsdatei
+        an = bool(zustandsdatei.laden()[0].get("protokoll_mitschrift"))
+    except Exception:
+        return
+    if not an:
+        return
+    befunde.append(Befund(
+        "protokoll_mitschrift", HINWEIS,
+        "Die Mitschrift steht im Protokoll. Der gesprochene Satz landet "
+        "damit bei jedem Abschnitt im Journal -- ueber Wochen ergibt "
+        "das eine Sammlung von Predigtinhalten, die niemand angelegt "
+        "hat.",
+        "Am Pult unter Einrichtung wieder ausschalten.",
+        was_en="Transcripts are being written to the log. The spoken "
+               "sentence ends up in the journal for every segment.",
+        tun_en="Switch it off again under Setup on the control desk."))
+
+
 def _vorrat(befunde):
     """Liegt der Reparaturvorrat da, und passt er zu dieser Fassung?"""
     import json
@@ -598,6 +623,7 @@ def pruefen():
     _sitzung(befunde)
     _wlan(befunde)
     _ollama_gpu(befunde)
+    _protokoll(befunde)
     _vorrat(befunde)
     _units_veraltet(befunde)
     _stick(befunde)
