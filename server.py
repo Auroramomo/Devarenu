@@ -50,6 +50,7 @@ import grafikkarte
 # app_bauen verdecken, und zwar still: der Zugriff schluege erst zur
 # Laufzeit fehl, beim ersten Speichern am Pult.
 import pultschutz
+import qr_texte
 import zustand as zustandsdatei
 from glossar import Glossar, glossarzeilen, vokalisieren
 
@@ -4082,7 +4083,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
 
     @app.get("/qr")
     def qr(request: Request, ssid: str = "", passwort: str = "",
-           adresse: str = ""):
+           adresse: str = "", herunterladen: int = 0):
         """Projektionsseite mit zwei QR-Codes.
 
         Zwei Schritte, weil sie zwei verschiedene Dinge tun: der erste
@@ -4162,41 +4163,134 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         else:
             wlan_qr = None
 
-        # Nur wenn dieser Rechner der Router ist. Sonst haengt das WLAN
-        # am Hausanschluss, hat Internet, und der Satz waere falsch.
-        hinweis = ""
-        if netzzustand.ist_router():
-            hinweis = (
-                '<p class=daten><b>Mobile Daten ausschalten.</b>'
-                '<span>Turn off mobile data.</span></p>')
-        geduld = (
-            '<p class=geduld>'
-            '<b>Beim ersten Verbinden kann es bis zu einer Minute '
-            'dauern.</b>'
-            'Warten, nicht neu verbinden. Die Meldung &bdquo;Kein '
-            'Internet&ldquo; ist normal &ndash; trotzdem verbunden '
-            'bleiben.'
-            '<span>First connection can take up to a minute. Please '
-            'wait, do not reconnect. &bdquo;No internet&ldquo; is '
-            'normal &ndash; stay connected.</span></p>')
-        # Zum Ausdrucken und zum Weitergeben. Die Bilder entstehen erst
-        # beim Abruf -- der WLAN-Code traegt das Passwort der Gemeinde.
-        holen = ('<a href="/qr.png?was=seite" download>Adress-Code als PNG</a>'
-                 + ('<a href="/qr.png?was=wlan" download>WLAN-Code als PNG</a>'
-                    if wlan_qr else "")
-                 + '<a href="javascript:window.print()">Seite drucken</a>')
-        return HTMLResponse(QR_SEITE.format(
-            hinweis=hinweis,
-            geduld=geduld,
-            holen=holen,
-            wlan_block=(f'<div class=schritt><span class=nr>1</span>'
-                        f'<p class=was>Mit dem WLAN verbinden</p>'
-                        f'<img src="{wlan_qr}" alt="WLAN">'
-                        f'<p class=klein>{html_escape(ssid)}<br>'
-                        f'{html_escape(passwort)}</p></div>')
-            if wlan_qr else "",
-            nr_seite="2" if wlan_qr else "1",
-            seiten_qr=seiten_qr, adresse=adresse))
+        # ------------------------------------------- Sprachen
+        # Durchlaufen werden die Sprachen, die am Pult EINGESCHALTET
+        # sind, dazu Englisch -- aber NICHT die Ausgangssprache. Wer
+        # die Predigt direkt hoert, braucht keine Anleitung zum
+        # Mithoeren; und der Platz im Durchlauf ist knapp genug, dass
+        # jede ueberfluessige Sprache die anderen seltener zeigt.
+        # Aus dem LAUFENDEN Dienst, nicht aus zustand.json. Die Datei
+        # waere die zweite Quelle fuer dieselbe Frage -- und die
+        # Zugangsdaten daneben kommen ohnehin aus dem Speicher. Zwei
+        # Quellen laufen irgendwann auseinander, und dann zeigt die
+        # Wand etwas anderes als das Pult.
+        #
+        # lauf.sprachen fuehrt die Ausgangssprache mit; sie faellt hier
+        # heraus. Wer die Predigt direkt hoert, braucht keine Anleitung
+        # zum Mithoeren, und jede ueberfluessige Sprache zeigt die
+        # anderen seltener.
+        quelle = lauf.quelle
+        folge = [sp for sp in lauf.sprachen if sp != quelle]
+        if "en" != quelle and "en" not in folge:
+            folge.append("en")
+        if not folge:
+            # Nur denkbar, wenn auf Englisch gepredigt wird und keine
+            # Zielsprache eingeschaltet ist. Dann ist die Seite ohnehin
+            # gegenstandslos -- aber leer soll sie nicht sein.
+            folge = ["en"]
+
+        sprachdaten = [{
+            "code": sp,
+            "name": qr_texte.name(sp),
+            "rtl": qr_texte.rtl(sp),
+            "titel1": qr_texte.fuer(sp)["schritt1"],
+            "titel2": qr_texte.fuer(sp)["schritt2"],
+            "geduld": qr_texte.fuer(sp)["geduld"],
+            "internet": qr_texte.fuer(sp)["internet"],
+            "hoeren": qr_texte.fuer(sp)["hoeren"],
+        } for sp in folge]
+
+        # ------------------------------------------- Bausteine
+        nr_seite = "2" if wlan_qr else "1"
+        if wlan_qr:
+            # Netzname UND Passwort im Klartext darunter. Der QR ist
+            # der bequeme Weg, nicht der einzige: aeltere Handys,
+            # Laptops und schlechtes Licht gibt es. Verborgen waere das
+            # Passwort ohnehin nicht -- es steckt im Code.
+            wlan_block = (
+                '<div class=schritt>'
+                '<span class=nr>1</span>'
+                '<div class=kopf>' + ZEICHEN["wlan"] +
+                '<p class=was id=titel1></p></div>'
+                '<div class=codefeld>'
+                f'<img src="{wlan_qr}" alt="">'
+                '<p class=zugang>'
+                f'<b>Netz</b><span>{html_escape(ssid)}</span>'
+                f'<b>Passwort</b><span>{html_escape(passwort)}</span>'
+                '</p></div></div>')
+        else:
+            wlan_block = ""
+
+        def drucksatz():
+            """Eine Seite je Sprache, fertig im Server gebaut."""
+            teile = []
+            for d in sprachdaten:
+                richtung = "rtl" if d["rtl"] else "ltr"
+                zugang = ""
+                if wlan_qr:
+                    zugang = (f'<div><img src="{wlan_qr}" alt="">'
+                              f'<p><b>Netz</b>{html_escape(ssid)}<br>'
+                              f'<b>Passwort</b>{html_escape(passwort)}</p>'
+                              f'</div>')
+                teile.append(
+                    f'<section class=druckseite lang="{d["code"]}">'
+                    f'<h2 dir="{richtung}">{html_escape(d["name"])}</h2>'
+                    f'<div class=druckcodes>{zugang}'
+                    f'<div><img src="{seiten_qr}" alt="">'
+                    f'<p><b>{html_escape(d["titel2"])}</b>'
+                    f'{html_escape(adresse)}</p></div></div>'
+                    + "".join(
+                        f'<div class="kasten {farbe}">'
+                        f'<span class=zeichen>{zeichen}</span>'
+                        f'<p class=satz dir="{richtung}">'
+                        f'{html_escape(d[feld])}</p></div>'
+                        for farbe, feld, zeichen in KAESTEN)
+                    + '</section>')
+            return "".join(teile)
+
+        if herunterladen:
+            # Eigenstaendig: keine Adresse dieses Servers darin, sonst
+            # bliebe die Seite auf einem Laptop ausserhalb des
+            # Saalnetzes leer. Das Logo wandert als Datenadresse
+            # hinein, die Verweise auf PNG-Dateien fallen weg.
+            logo = logo_datenadresse(basis)
+            holen = ('<a href="javascript:window.print()">'
+                     'Diese Seite drucken</a>')
+        else:
+            logo = "/logo.png"
+            holen = (
+                '<a href="/qr.png?was=seite" download>Adress-Code als PNG</a>'
+                + ('<a href="/qr.png?was=wlan" download>WLAN-Code als PNG</a>'
+                   if wlan_qr else "")
+                + '<a href="/qr?herunterladen=1" download="Devarenu-QR.html">'
+                  'Als Datei herunterladen</a>'
+                + '<a href="javascript:window.print()">Seite drucken</a>')
+
+        seite = QR_SEITE
+        for marke, wert in (
+                ("<!--LOGO-->", logo),
+                ("<!--WLANSCHRITT-->", wlan_block),
+                ("<!--NRSEITE-->", nr_seite),
+                ("<!--SEITENQR-->", seiten_qr),
+                ("<!--ADRESSE-->", html_escape(adresse)),
+                ("<!--HOLEN-->", holen),
+                ("<!--ZEICHENSEITE-->", ZEICHEN["kopfhoerer"]),
+                ("<!--KAESTEN-->", "".join(
+                    f'<div class="kasten {farbe}">'
+                    f'<span class=zeichen>{zeichen}</span>'
+                    f'<p class=satz id={feld}></p></div>'
+                    for farbe, feld, zeichen in KAESTEN)),
+                ("<!--DRUCKSATZ-->", drucksatz()),
+                ("<!--SPRACHDATEN-->",
+                 json.dumps(sprachdaten, ensure_ascii=False)),
+        ):
+            seite = seite.replace(marke, wert)
+
+        if herunterladen:
+            return HTMLResponse(seite, headers={
+                "Content-Disposition":
+                    'attachment; filename="Devarenu-QR.html"'})
+        return HTMLResponse(seite)
 
     @app.get("/fehlerbericht.txt")
     def fehlerbericht_txt(schnell: int = 0):
@@ -4558,84 +4652,285 @@ ANMELDUNG = """<!doctype html><html lang=de><meta charset=utf-8>
 
 ANMELDUNG_FEHLER = '<p class=fehler>Das war nicht das richtige Passwort.</p>'
 
+# Die Symbole. Einmal definiert, damit Bildschirm und Druck dieselben
+# zeigen -- zwei Saetze waeren zwei Baustellen, und gedruckt faellt es
+# erst auf, wenn das Blatt am Eingang liegt.
+#
+# Eigene SVGs und kein Symbolsatz von aussen: die Seite muss ohne Netz
+# laufen, auf dem Gemeinderechner UND auf einem fremden Laptop, der die
+# heruntergeladene Datei oeffnet.
+ZEICHEN = {
+    "wlan": '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="M2.5 8.5a15 15 0 0 1 19 0"/>'
+            '<path d="M6 12a10 10 0 0 1 12 0"/>'
+            '<path d="M9.5 15.5a5 5 0 0 1 5 0"/>'
+            '<circle class=voll cx="12" cy="19" r="1.5"/></svg>',
+    "kopfhoerer": '<svg viewBox="0 0 24 24" aria-hidden="true">'
+                  '<path d="M4 14v-3a8 8 0 0 1 16 0v3"/>'
+                  '<rect x="2" y="13" width="4" height="7" rx="1.6"/>'
+                  '<rect x="18" y="13" width="4" height="7" rx="1.6"/></svg>',
+    # Sanduhr
+    "sanduhr": '<svg viewBox="0 0 24 24" aria-hidden="true">'
+               '<path d="M7 3h10M7 21h10"/>'
+               '<path d="M8 3v3.5L12 11l4-4.5V3"/>'
+               '<path d="M8 21v-3.5L12 13l4 4.5V21"/></svg>',
+    # Zwei Pfeile im Kreis, durchgestrichen: NICHT neu verbinden.
+    "nichtneu": '<svg viewBox="0 0 24 24" aria-hidden="true">'
+                '<path d="M20 10a8 8 0 0 0-14-4M4 14a8 8 0 0 0 14 4"/>'
+                '<path d="M20 5v5h-5M4 19v-5h5"/>'
+                '<path class=weg d="M4 4l16 16"/></svg>',
+    "haken": '<svg viewBox="0 0 24 24" aria-hidden="true">'
+             '<path d="M5 12l5 5L19 8"/></svg>',
+    # Eine durchgestrichene WELTKUGEL -- ausdruecklich NICHT ein
+    # durchgestrichenes WLAN-Zeichen. Das liest sich als "WLAN
+    # ausschalten", und genau das soll niemand tun.
+    #
+    # Und getrennt vom WLAN-Zeichen, nicht darueber gelegt: uebereinander
+    # ergaben beide zusammen einen Klecks, an dem aus zwoelf Metern
+    # nichts mehr zu erkennen war. Nebeneinander lesen sie sich als
+    # "WLAN ja, Internet nein" -- genau die Aussage.
+    "keinglobus": '<svg viewBox="0 0 24 24" aria-hidden="true">'
+                  '<circle cx="12" cy="12" r="8.5"/>'
+                  '<path d="M3.5 12h17"/>'
+                  '<path d="M12 3.5c2.2 2.3 3.4 5.3 3.4 8.5s-1.2 6.2-3.4 8.5'
+                  'c-2.2-2.3-3.4-5.3-3.4-8.5s1.2-6.2 3.4-8.5z"/>'
+                  '<path class=weg d="M5.5 18.5l13-13"/></svg>',
+    "handy": '<svg viewBox="0 0 24 24" aria-hidden="true">'
+             '<rect x="6.5" y="2.5" width="11" height="19" rx="2"/>'
+             '<path d="M10.5 5.5h3"/>'
+             '<circle class=voll cx="12" cy="18.5" r="1"/></svg>',
+}
+
+# Was in welchem Kasten steht: Farbe, Textfeld, Symbolfeld.
+KAESTEN = (
+    ("gelb", "geduld",
+     ZEICHEN["sanduhr"] + '<span class=wort>1 min</span>'
+     + ZEICHEN["nichtneu"]),
+    ("blau", "internet",
+     '<span class=wort>5G</span>' + ZEICHEN["haken"]
+     + ZEICHEN["wlan"] + ZEICHEN["keinglobus"]),
+    ("lila", "hoeren", ZEICHEN["kopfhoerer"] + ZEICHEN["handy"]),
+)
+
+
+def logo_datenadresse(basis):
+    """Das Logo als Datenadresse -- fuer die eigenstaendige Datei.
+
+    Sie soll auf einem Laptop ausserhalb des Saalnetzes laufen. Ein
+    Verweis auf /logo.png liefe dort ins Leere, und die Seite zeigte
+    ein kaputtes Bild."""
+    import base64
+    datei = Path(basis) / "logo.png"
+    try:
+        roh = base64.b64encode(datei.read_bytes()).decode("ascii")
+    except OSError:
+        return ""
+    return "data:image/png;base64," + roh
+
+
 QR_SEITE = """<!doctype html><html lang=de><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
 <title>Übersetzung</title>
 <style>
- /* Fuer den Beamer gebaut: heller Grund, kaum Text, die Codes bekommen
-    fast die ganze Flaeche. Aus fuenfzehn Metern zaehlt nur die Groesse
-    des Codes, alles andere ist Beiwerk. */
- *{{box-sizing:border-box;margin:0}}
- body{{font:16px/1.4 Georgia,serif;color:#141f52;background:#fff;
-      height:100vh;display:flex;flex-direction:column;
-      align-items:center;justify-content:center;padding:2vh 2vw;gap:2vh}}
- h1{{font-size:clamp(1.4rem,3.4vh,2.6rem);font-weight:400;
-    letter-spacing:.1em;text-transform:uppercase}}
- .logo{{height:6vh;width:auto;opacity:.9}}
- .streifen{{height:.5vh;width:38vw;
-   background:linear-gradient(90deg,#3b1e73,#1c3a8f 52%,#1fa5d8)}}
- .reihe{{display:flex;gap:5vw;align-items:flex-start;justify-content:center;
-   flex:1;min-height:0}}
- .schritt{{display:flex;flex-direction:column;align-items:center;gap:1vh;
-   min-height:0}}
- .nr{{display:grid;place-items:center;width:4.4vh;height:4.4vh;
-   border-radius:50%;background:#141f52;color:#fff;
-   font-size:2.2vh;font-family:system-ui,sans-serif}}
- .was{{font-size:clamp(.9rem,2.4vh,1.5rem)}}
- img{{height:min(58vh,42vw);width:auto;image-rendering:pixelated}}
- .klein{{font:1.9vh/1.5 ui-monospace,monospace;color:#6b7385;
-   text-align:center;word-break:break-all;max-width:34vw}}
- .fuss{{font:1.9vh system-ui,sans-serif;color:#6b7385;text-align:center}}
- .holen{{font:1.7vh system-ui,sans-serif;text-align:center}}
- .holen a{{color:#1c3a8f;margin:0 .6em}}
- /* Gedruckt zaehlt nur, was man scannen kann: heller Grund, keine
-    Links, und die Codes so gross wie das Blatt es hergibt. */
- @media print{{
-   body{{height:auto;display:block;padding:1cm}}
-   .holen,.logo{{display:none}}
-   .reihe{{display:flex;gap:1cm;justify-content:center}}
-   img{{height:auto;width:8cm;max-width:45%}}
-   .geduld{{border-color:#000;background:#fff;font-size:11pt}}
-   .daten{{border-color:#000;font-size:12pt}}
-   h1{{font-size:18pt}}
- }}
- /* Der eine Satz, an dem im Saal alles haengt. Kein Beiwerk, also
-    auch nicht in Grau: ein Handy mit eingeschalteten mobilen Daten
-    verlaesst ein WLAN ohne Internet wieder, und der Ton bricht mitten
-    im Satz ab. Zweisprachig, weil die Leute, die uebersetzt mithoeren,
-    deutsche Hinweise nicht unbedingt lesen. */
- .daten{{font:clamp(.95rem,2.6vh,1.6rem)/1.35 system-ui,sans-serif;
-   text-align:center;color:#141f52;border:.25vh solid #141f52;
-   border-radius:.6vh;padding:1vh 2vw;max-width:86vw}}
- .daten b{{font-weight:600}}
- .daten span{{display:block;color:#6b7385;font-size:.82em}}
- /* Der Satz, der die meisten Rueckfragen spart. Neue iPhones pruefen
-    beim ERSTEN Verbinden auf dem alten Weg und brauchen dafuer lange.
-    Wer dann ungeduldig neu verbindet, faengt die Pruefung von vorn an
-    und macht es schlimmer. Also gross genug, dass es aus der letzten
-    Reihe zu lesen ist. */
- .geduld{{font:clamp(1rem,2.9vh,1.8rem)/1.35 system-ui,sans-serif;
-   text-align:center;max-width:86vw;background:#fff7e6;
-   border:.25vh solid #c8912b;border-radius:.6vh;padding:1.2vh 2vw;
-   color:#5a3f0a}}
- .geduld b{{display:block;font-size:1.06em;margin-bottom:.3em}}
- .geduld span{{display:block;color:#7a6234;font-size:.84em;margin-top:.4em}}
+ /* Fuer den Beamer gebaut, 16:9. Links die zwei Schritte mit den
+    Codes, rechts die drei Saetze, die sonst als Rueckfrage kommen.
+    Aus zwoelf Metern liest niemand einen Nebensatz -- deshalb wenig
+    Text, grosse Codes, klare Farben. */
+ *{box-sizing:border-box;margin:0}
+ :root{
+   --tinte:#141f52; --grau:#6b7385; --linie:#d9dce4;
+   --gelb-rand:#c8912b; --gelb-grund:#fff7e6; --gelb-text:#5a3f0a;
+   --blau-rand:#1c6fa8; --blau-grund:#eaf4fb; --blau-text:#0d3f63;
+   --lila-rand:#6b4a9e; --lila-grund:#f3eefb; --lila-text:#3b1e73;
+ }
+ body{font:16px/1.4 Georgia,serif;color:var(--tinte);background:#fff;
+   height:100vh;display:flex;flex-direction:column;padding:2.2vh 2.4vw}
+ header{display:flex;align-items:center;gap:1.2vw;flex:0 0 auto}
+ .logo{height:5.2vh;width:auto;opacity:.9}
+ h1{font-size:clamp(1.3rem,3.6vh,3rem);font-weight:400;
+   letter-spacing:.1em;text-transform:uppercase}
+ .streifen{height:.5vh;flex:1;margin-left:.6vw;
+   background:linear-gradient(90deg,#3b1e73,#1c3a8f 52%,#1fa5d8)}
+
+ main{display:grid;grid-template-columns:1fr 1fr;gap:2.4vw;
+   flex:1;min-height:0;padding-top:1.6vh}
+
+ /* ---------------------------------------------------- links */
+ .links{display:grid;grid-template-rows:1fr 1fr;gap:1.6vh;min-height:0}
+ .schritt{display:grid;grid-template-columns:auto 1fr;
+   grid-template-rows:auto 1fr;column-gap:1.2vw;row-gap:.6vh;min-height:0}
+ .nr{grid-row:1 / span 2;display:grid;place-items:center;
+   width:6.4vh;height:6.4vh;border-radius:50%;
+   background:var(--tinte);color:#fff;
+   font:3.2vh/1 system-ui,sans-serif}
+ .kopf{display:flex;align-items:center;gap:.7vw;min-width:0}
+ .kopf svg{width:4.2vh;height:4.2vh;flex:0 0 auto;stroke:var(--tinte)}
+ /* Alle Groessen in vh und mit hohen Obergrenzen: die Seite haengt
+    am Beamer, nicht auf einem Bildschirm. Bei 1080p ist 1vh rund
+    11 Pixel -- eine Obergrenze von 1,4rem haette den Text auf 22
+    Pixel gedeckelt, und aus zwoelf Metern liest das niemand. */
+ .was{font-size:clamp(1.1rem,3.2vh,2.6rem);min-width:0}
+ .codefeld{display:flex;align-items:center;gap:1.2vw;min-height:0}
+ .codefeld img{height:100%;max-height:30vh;width:auto;
+   image-rendering:pixelated}
+ /* Netzname, Passwort und Adresse werden von hinten abgetippt.
+    Sie sind die groesste Schrift der Seite nach den Ueberschriften. */
+ .zugang{font:2.9vh/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
+   word-break:break-word;min-width:0;letter-spacing:.02em}
+ .zugang b{display:block;font:1.9vh/1.4 system-ui,sans-serif;
+   color:var(--grau);font-weight:600;letter-spacing:.04em;
+   text-transform:uppercase}
+ .zugang span{display:block;margin-bottom:.8vh}
+
+ /* ---------------------------------------------------- rechts */
+ .rechts{display:flex;flex-direction:column;gap:1.2vh;min-height:0}
+ .sprachkopf{display:flex;align-items:center;justify-content:space-between;
+   gap:1vw;flex:0 0 auto;border-bottom:1px solid var(--linie);
+   padding-bottom:.6vh}
+ .sprachname{font-size:clamp(1.05rem,3.1vh,2.4rem);color:var(--tinte)}
+ .punkte{display:flex;gap:.5vw}
+ .punkt{width:1.1vh;height:1.1vh;border-radius:50%;
+   background:var(--linie)}
+ .punkt.an{background:var(--tinte)}
+
+ .kasten{display:grid;grid-template-columns:auto 1fr;gap:1.1vw;
+   align-items:center;border:.25vh solid;border-radius:.7vh;
+   padding:1.2vh 1.2vw;flex:1;min-height:0}
+ /* Das Symbolfeld bleibt LINKS, in jeder Sprache. Wer vorn sagt
+    "der gelbe Kasten oben", muss auch auf Farsi recht haben --
+    also dreht sich nur der Text, nie die Anordnung. */
+ .zeichen{display:flex;align-items:center;gap:.5vw;flex:0 0 auto}
+ .zeichen svg{width:5.6vh;height:5.6vh}
+ .zeichen .wort{font:2.4vh/1 system-ui,sans-serif;font-weight:700}
+ .satz{font:clamp(1.05rem,3vh,2.3rem)/1.32 system-ui,sans-serif;
+   min-width:0}
+ .gelb{border-color:var(--gelb-rand);background:var(--gelb-grund);
+   color:var(--gelb-text)}
+ .gelb svg{stroke:var(--gelb-rand)} .gelb .wort{color:var(--gelb-rand)}
+ .blau{border-color:var(--blau-rand);background:var(--blau-grund);
+   color:var(--blau-text)}
+ .blau svg{stroke:var(--blau-rand)} .blau .wort{color:var(--blau-rand)}
+ .lila{border-color:var(--lila-rand);background:var(--lila-grund);
+   color:var(--lila-text)}
+ .lila svg{stroke:var(--lila-rand)} .lila .wort{color:var(--lila-rand)}
+
+ svg{fill:none;stroke-width:1.9;stroke-linecap:round;
+   stroke-linejoin:round}
+ .voll{fill:currentColor;stroke:none}
+ .weg{stroke:#c0392b;stroke-width:2.4}
+
+ .holen{font:1.7vh system-ui,sans-serif;text-align:center;
+   flex:0 0 auto;padding-top:1vh}
+ .holen a{color:#1c3a8f;margin:0 .7em}
+
+ /* Gedruckt: eine Seite JE SPRACHE, zum Auslegen am Eingang. Der
+    Beamer zeigt immer genau eine und wechselt; Papier kann nicht
+    wechseln. Die Seiten entstehen im Server, nicht im Skript --
+    gedruckt wird oft aus einer Vorschau, und ob dort ein Zeitgeber
+    lief, soll keine Rolle spielen. */
+ .drucksatz{display:none}
+ @media print{
+   body{height:auto;display:block;padding:1.2cm;font-size:11pt}
+   main,.holen,.streifen{display:none}
+   .drucksatz{display:block}
+   .druckseite{break-after:page}
+   .druckseite:last-child{break-after:auto}
+   .druckseite h2{font:1.2rem Georgia,serif;font-weight:400;
+     margin:0 0 .5cm;padding-bottom:.2cm;
+     border-bottom:1px solid var(--linie)}
+   .druckcodes{display:flex;gap:1cm;margin-bottom:.6cm}
+   .druckcodes img{width:6.5cm;height:auto}
+   .druckcodes p{font:10pt/1.4 ui-monospace,monospace;word-break:break-all}
+   .druckcodes b{display:block;font:9pt system-ui,sans-serif;
+     color:var(--grau);text-transform:uppercase;letter-spacing:.04em}
+   .drucksatz .kasten{break-inside:avoid;margin-bottom:.35cm;
+     padding:.35cm;display:grid;grid-template-columns:auto 1fr;gap:.5cm}
+   .drucksatz .zeichen svg{width:1.1cm;height:1.1cm}
+   .drucksatz .satz{font-size:11pt}
+ }
 </style>
-<img class=logo src="/logo.png" alt="" onerror="this.remove()">
-<h1>Übersetzung</h1>
-<div class=streifen></div>
-{hinweis}
-{geduld}
-<div class=reihe>
-{wlan_block}
-<div class=schritt>
-  <span class=nr>{nr_seite}</span>
-  <p class=was>Seite öffnen</p>
-  <img src="{seiten_qr}" alt="Seite">
-  <p class=klein>{adresse}</p>
-</div>
-</div>
-<p class=fuss>Mit der Kamera scannen · Sprache auswählen · Kopfhörer empfohlen</p>
-<p class=holen>{holen}</p>
+<header>
+  <img class=logo src="<!--LOGO-->" alt="" onerror="this.remove()">
+  <h1>Übersetzung</h1>
+  <div class=streifen></div>
+</header>
+
+<main>
+ <section class=links>
+<!--WLANSCHRITT-->
+  <div class=schritt>
+    <span class=nr><!--NRSEITE--></span>
+    <div class=kopf><!--ZEICHENSEITE--><p class=was id=titel2></p></div>
+    <div class=codefeld>
+      <img src="<!--SEITENQR-->" alt="">
+      <p class=zugang><b>Adresse</b><span><!--ADRESSE--></span></p>
+    </div>
+  </div>
+ </section>
+
+ <section class=rechts>
+  <div class=sprachkopf>
+    <span class=sprachname id=sprachname></span>
+    <span class=punkte id=punkte></span>
+  </div>
+
+<!--KAESTEN-->
+ </section>
+</main>
+
+<p class=holen><!--HOLEN--></p>
+
+<div class=drucksatz><!--DRUCKSATZ--></div>
+
+<script>
+// Die Sprachen, die am Pult eingeschaltet sind, dazu immer Englisch.
+// Wer uebersetzt mithoert, liest kein Deutsch -- und Englisch ist die
+// Sprache, in der am ehesten jemand mitkommt, dessen eigene fehlt.
+const SPRACHEN = <!--SPRACHDATEN-->;
+const FELDER = ["titel1","titel2","geduld","internet","hoeren"];
+let wo = 0;
+
+function punkteBauen(){
+  const p = document.getElementById("punkte");
+  p.innerHTML = "";
+  for(let i = 0; i < SPRACHEN.length; i++){
+    const d = document.createElement("span");
+    d.className = "punkt" + (i === wo ? " an" : "");
+    p.appendChild(d);
+  }
+}
+
+function zeigen(i){
+  const s = SPRACHEN[i];
+  if(!s) return;
+  document.getElementById("sprachname").textContent = s.name;
+  // NUR der Text dreht sich. Kaesten, Symbole und Farben bleiben, wo
+  // sie sind -- sonst stimmt kein Hinweis mehr, den jemand vorn gibt.
+  for(const feld of FELDER){
+    const el = document.getElementById(feld);
+    if(!el) continue;
+    el.textContent = s[feld] || "";
+    el.lang = s.code;
+    el.dir = s.rtl ? "rtl" : "ltr";
+  }
+  const n = document.getElementById("sprachname");
+  n.lang = s.code; n.dir = s.rtl ? "rtl" : "ltr";
+  punkteBauen();
+}
+
+// Mit einem Anker startet der Durchlauf bei dieser Sprache:
+// /qr#fa zeigt sofort Farsi. Zum Nachsehen vor dem Gottesdienst --
+// und damit sich jede Sprache pruefen laesst, ohne zu warten.
+const gewuenscht = decodeURIComponent((location.hash || "").slice(1));
+const start = SPRACHEN.findIndex(s => s.code === gewuenscht);
+wo = start < 0 ? 0 : start;
+zeigen(wo);
+if(SPRACHEN.length > 1){
+  // Acht Sekunden: lang genug, um drei kurze Saetze zu lesen, kurz
+  // genug, dass niemand denkt, die Seite haenge.
+  setInterval(() => { wo = (wo + 1) % SPRACHEN.length; zeigen(wo); }, 8000);
+}
+</script>
 </html>"""
 
 
