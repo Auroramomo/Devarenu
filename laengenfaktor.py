@@ -80,6 +80,12 @@ AUSWEICHE = {
     "ru": ["ru/ru_RU/dmitri/medium/ru_RU-dmitri-medium"],
     "fa": ["fa/fa_IR/gyro/medium/fa_IR-gyro-medium",
            "fa/fa_IR/ganji/medium/fa_IR-ganji-medium"],
+    # Polnisch: vier Kandidaten fuer die Wahl durch den Pruefer.
+    # mls_6892 faellt raus -- Qualitaetsstufe "low", und die anderen
+    # Sprachen laufen alle auf medium oder besser.
+    "pl": ["pl/pl_PL/gosia/medium/pl_PL-gosia-medium",
+           "pl/pl_PL/mc_speech/medium/pl_PL-mc_speech-medium",
+           "pl/pl_PL/bass/high/pl_PL-bass-high"],
 }
 
 STIMMEN = {sp: [pfad] + AUSWEICHE.get(sp, [])

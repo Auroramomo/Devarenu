@@ -39,6 +39,13 @@ zustand.json*
 # drin ist, traegt jede Gemeinde fuer immer mit.
 pruefung/paket_*
 
+# Das fertige Begriffsdokument. Aus den CSV-Dateien daneben in Sekunden
+# wieder gebaut, und es ist ein Erzeugnis wie die Pakete. Die QUELLEN
+# gehoeren ins Repo: fallstricke_*.csv, saetze_auswahl_*.csv,
+# vorschlag_*.json und das Glossar.
+pruefung/begriffe_*.docx
+pruefung/rueck_*/
+
 # Ausgaben von tondiagnose.sh. Sie gehoeren zu genau einem Rechner und
 # genau einem Zeitpunkt -- im Repo waeren sie Ballast, der aelter wird.
 tonbericht*.txt

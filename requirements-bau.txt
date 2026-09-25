@@ -3,3 +3,4 @@ fonttools==4.66.0
 fpdf2==2.8.8
 pillow==12.3.0
 uharfbuzz==0.56.2
+python-docx==1.2.0
