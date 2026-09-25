@@ -64,6 +64,12 @@ blau() { printf '\n\033[1;34m== %s\033[0m\n' "$1"; }
 gut()  { printf '   \033[32mok\033[0m   %s\n' "$1"; }
 warn() { printf '   \033[33m!\033[0m    %s\n' "$1"; }
 fehl() { printf '   \033[31mFEHLT\033[0m %s\n' "$1"; }
+# Fehlte bis 0.2.14. Die Aufrufe standen da, die Funktion nicht -- und
+# "info" ist auf vielen Systemen der texinfo-Leser. Der Updater rief
+# also im Unterordner-Fall ein fremdes Programm auf und schrieb dessen
+# Fehlermeldung ins Journal. Ohne "set -e" lief er weiter, deshalb fiel
+# es nie auf.
+info() { printf '        %s\n' "$1"; }
 
 BENUTZER="$(stat -c %U "$ORDNER" 2>/dev/null || id -un)"
 

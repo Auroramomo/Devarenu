@@ -6,6 +6,14 @@
 #
 # Ohne --python gilt 3.14 -- die Fassung auf dem Gemeinderechner.
 #   bash stick_bauen.sh /run/media/name/STICK --ohne-wheels
+#
+# OHNE STICK, als ZIP zum Verschicken:
+#   bash stick_bauen.sh --zip ~/Devarenu-Stick-v0.2.15.zip
+# Die Dateien liegen im ZIP GANZ OBEN, nicht in einem Unterordner.
+# Windows entpackt es dadurch in einen Ordner, der nach dem ZIP heisst,
+# und dieser eine Ordner darf unveraendert auf den Stick. Mit einem
+# Unterordner im ZIP waeren es zwei Ebenen, und der Rechner sucht nur
+# eine tief.
 #   bash stick_bauen.sh --nur-constraints          nach jeder Aenderung an
 #                                               requirements.txt
 #
@@ -37,6 +45,10 @@ blau() { printf '\n\033[1;34m== %s\033[0m\n' "$1"; }
 gut()  { printf '   \033[32mok\033[0m   %s\n' "$1"; }
 warn() { printf '   \033[33m!\033[0m    %s\n' "$1"; }
 fehl() { printf '   \033[31mFEHLT\033[0m %s\n' "$1"; }
+# Siehe stick_update.sh: dieselbe fehlende Funktion. Hier traf es den
+# NORMALFALL -- jeder Bau ohne --von/--voll rief dreimal den
+# texinfo-Leser auf.
+info() { printf '        %s\n' "$1"; }
 
 # Die Gemeinderechner laufen auf Debian oder Ubuntu, dieser hier auf
 # CachyOS -- mit einer anderen Python-Fassung. Wheels, die hier passen,
@@ -56,16 +68,19 @@ STICK=""
 NUR_BEDINGUNGEN=nein
 VON=""
 VOLL=nein
+ZIEL_ZIP=""
+ZIP_MODUS=nein
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --python)           ZIEL_PYTHON="${2:-}"; shift 2 ;;
     --ohne-wheels)      WHEELS=nein; shift ;;
     --nur-constraints)  NUR_BEDINGUNGEN=ja; shift ;;
+    --zip)              ZIEL_ZIP="${2:-}"; shift 2 ;;
     --von)              VON="${2:-}"; shift 2 ;;
     --voll)             VOLL=ja; shift ;;
     -h|--hilfe|--help|-\?)
-                    sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+                    sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*)             fehl "Unbekannt: $1"; exit 1 ;;
     *)              STICK="$1"; shift ;;
   esac
@@ -112,7 +127,21 @@ PYCODE
   exit 0
 fi
 
-[ -n "$STICK" ] || { fehl "Aufruf: $0 /pfad/zum/stick [--python 3.13]"; exit 1; }
+# ------------------------------------------------------------- Ziel
+if [ -n "$ZIEL_ZIP" ]; then
+  [ -z "$STICK" ] || { fehl "Entweder ein Stick ODER --zip, nicht beides."; exit 1; }
+  case "$ZIEL_ZIP" in *.zip) ;; *) ZIEL_ZIP="$ZIEL_ZIP.zip" ;; esac
+  ZIP_MODUS=ja
+  # Gebaut wird in einen Wegwerfordner; ins ZIP kommt sein INHALT.
+  ZIP_BAU="$(mktemp -d)"
+  trap 'rm -rf "$ZIP_BAU"' EXIT INT TERM
+  STICK="$ZIP_BAU"
+fi
+
+[ -n "$STICK" ] || {
+  fehl "Aufruf: $0 /pfad/zum/stick [--python 3.14]"
+  echo "   oder ohne Stick:  $0 --zip ~/Devarenu-Stick.zip"
+  exit 1; }
 
 # ---------------------------------------------------------------- pruefen
 blau "Vorher nachsehen"
@@ -200,18 +229,49 @@ echo "   Diesen Fingerabdruck braucht der Techniker bei der"
 echo "   Erstinstallation. Nicht ueber den Stick uebermitteln -- anrufen."
 
 # ---------------------------------------------------------------- Stick
-blau "Stick"
+if [ "$ZIP_MODUS" = ja ]; then
+  blau "ZIP statt Stick"
+  gut "gebaut wird nach $ZIEL_ZIP"
+else
+  blau "Stick"
+fi
 
 [ -d "$STICK" ] || { fehl "$STICK gibt es nicht oder es ist kein Ordner"; exit 1; }
 [ -w "$STICK" ] || { fehl "$STICK ist nicht beschreibbar"; exit 1; }
-gut "$STICK"
+[ "$ZIP_MODUS" = ja ] || gut "$STICK"
 
 # Das Dateisystem interessiert hier nur fuer die Warnung: der
 # Gemeinderechner nimmt vfat, exfat und ntfs gleichermassen. Auf vfat
 # passt keine Datei ueber 4 GB -- mit wheels/ kommt man dem naeher, als
 # einem lieb ist.
-DATEISYSTEM="$(findmnt -n -o FSTYPE --target "$STICK" 2>/dev/null || echo unbekannt)"
-gut "Dateisystem $DATEISYSTEM"
+if [ "$ZIP_MODUS" = ja ]; then
+  DATEISYSTEM=zip
+else
+  DATEISYSTEM="$(findmnt -n -o FSTYPE --target "$STICK" 2>/dev/null || echo unbekannt)"
+  gut "Dateisystem $DATEISYSTEM"
+fi
+
+# FAT32 kann keine Datei ueber 4 GB. Das Sprachmodell allein ist
+# groesser. Der Fehler faellt sonst erst nach einer Viertelstunde
+# Kopieren auf, als abgebrochene Datei -- und die merkt niemand, bis der
+# Gemeinderechner sie auspackt und dabei scheitert. Also vorher.
+if [ "$VOLL" = ja ] || [ -n "$VON" ]; then
+  case "$DATEISYSTEM" in
+    vfat|msdos|fat|fat32)
+      fehl "Dieser Stick ist mit $DATEISYSTEM formatiert (FAT32)."
+      echo "   Darauf passt KEINE Datei ueber 4 GB -- und mit --voll oder"
+      echo "   --von sind genau solche dabei (Sprachmodell, Stimmen)."
+      echo "   Das Kopieren liefe durch und lieferte abgeschnittene"
+      echo "   Dateien; auffallen wuerde es erst vor Ort."
+      echo
+      echo "   Entweder den Stick neu formatieren:"
+      echo "     exFAT  -- Windows, Mac und Linux lesen es"
+      echo "     NTFS   -- ebenso, aber unter Mac nur lesend"
+      echo "   oder ohne --voll/--von bauen: dann sind es nur Code und"
+      echo "   Pakete, und FAT32 reicht."
+      exit 1 ;;
+  esac
+fi
 
 blau "Bundle"
 # --all statt eines Ausschnitts ab dem letzten Tag: dann passt der Stick
@@ -300,6 +360,48 @@ else
 fi
 
 sync
+
+# ---------------------------------------------------------------- packen
+if [ "$ZIP_MODUS" = ja ]; then
+  blau "Packen"
+  rm -f "$ZIEL_ZIP"
+  # Ueber Python und nicht ueber "zip": das Paket ist auf einem
+  # frischen Arbeitsrechner nicht immer da, das Modul zipfile dagegen
+  # immer. Gepackt wird der INHALT des Bauordners, ohne Wrapper --
+  # siehe Kopf dieser Datei.
+  python3 - "$ZIP_BAU" "$ZIEL_ZIP" <<'PYCODE'
+import os, sys, zipfile
+quelle, ziel = sys.argv[1], sys.argv[2]
+n = 0
+with zipfile.ZipFile(ziel, "w", zipfile.ZIP_DEFLATED) as z:
+    for wurzel, ordner, dateien in os.walk(quelle):
+        ordner.sort(); dateien.sort()
+        for d in dateien:
+            voll = os.path.join(wurzel, d)
+            z.write(voll, os.path.relpath(voll, quelle))
+            n += 1
+print(f"   {n} Dateien")
+PYCODE
+  [ -s "$ZIEL_ZIP" ] || { fehl "Das ZIP wurde nicht geschrieben."; exit 1; }
+  gut "$ZIEL_ZIP ($(du -h "$ZIEL_ZIP" | cut -f1))"
+
+  blau "Fertig"
+  cat <<ENDE
+   Im ZIP liegt Devarenu $VERSION ($TAG).
+
+   So kommt es auf den Stick:
+     1. ZIP auf den Windows-Rechner kopieren.
+     2. Rechtsklick -> "Alle extrahieren". Windows legt dabei einen
+        Ordner an, der wie das ZIP heisst.
+     3. DIESEN EINEN ORDNER auf den Stick ziehen. Der Stick muss nicht
+        leer sein -- aber es darf kein aelterer Update-Ordner mehr
+        darauf liegen.
+
+   Der Gemeinderechner sucht upd-dev.txt eine Ebene tief; der Ordner
+   auf dem Stick ist also genau richtig. Zwei Ebenen findet er nicht.
+ENDE
+  exit 0
+fi
 
 # ---------------------------------------------------------------- fertig
 blau "Fertig"
