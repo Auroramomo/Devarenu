@@ -935,9 +935,26 @@ const Verbindung = {
   versuche: 0,
   _uhr: null,
 
+  // Einen Draht endgueltig loswerden. close() allein genuegt NICHT:
+  // es stoesst nur den Abschied an, und was der Browser schon
+  // empfangen hat, wird danach noch zugestellt. Beim Sprachwechsel
+  // landeten diese Nachzuegler im Strom -- in der alten Sprache, unter
+  // dem neuen Text. Also erst die Handler abhaengen, dann schliessen.
+  _wegwerfen(){
+    const alt = this.draht;
+    this.draht = null;
+    if(!alt) return;
+    alt.onmessage = alt.onopen = alt.onclose = alt.onerror = null;
+    try{ alt.close(); }catch(e){}
+  },
+
   verbinden(sprache){
     this.gewollt = true;
     clearTimeout(this._uhr);
+    // Nie zwei nebeneinander. Ohne das bliebe bei einem Wiederanlauf
+    // der alte offen, und niemand saehe es -- nur die Zeilen kaemen
+    // doppelt.
+    this._wegwerfen();
     zustandZeigen("verbinde");
 
     const schema = location.protocol === "https:" ? "wss" : "ws";
@@ -975,8 +992,7 @@ const Verbindung = {
   trennen(){
     this.gewollt = false;
     clearTimeout(this._uhr);
-    try{ this.draht && this.draht.close(); }catch(e){}
-    this.draht = null;
+    this._wegwerfen();
     abschnittSchliessen();
     zustandZeigen("getrennt");
   },
@@ -1141,18 +1157,41 @@ const Ton = {
 /* ============================================================
    Sprachwechsel im laufenden Betrieb
    ------------------------------------------------------------
-   Beim Wechsel wird der bisherige Strom stehen gelassen und ein
-   Trenner gesetzt. Sobald das Backend steht, hier zusätzlich die
-   alte Verbindung schließen und mit der neuen Sprache öffnen.
+   Es läuft immer genau EINE Sprache. Früher blieb der bisherige
+   Verlauf mit einem Trennstrich stehen — gemeint war „man kann
+   nachlesen", angekommen ist „es laufen zwei Übersetzungen
+   untereinander". Wer mitliest, sucht den aktuellen Satz und findet
+   Zeilen in einer Schrift, die er nicht liest.
+
+   Geräumt wird vollständig, in dieser Reihenfolge:
+
+     1. die alte Verbindung, samt abgehängter Handler
+     2. die Tonschlange und das gerade spielende Häppchen
+     3. der halbfertige Abschnitt — darin steht noch alter Text,
+        und sein Zeitgeber hätte ihn gleich in den neuen Strom
+        geschrieben
+     4. der sichtbare Verlauf
+
+   Erst danach die neue Sprache. Geprüft in
+   pruefstand/sprachwechsel_test.mjs, in allen vier Richtungen —
+   von RTL zu LTR, zurück, und zwischen zweien derselben Richtung.
+   Die Schreibrichtung spielt dabei keine Rolle; gemessen.
    ============================================================ */
 function spracheWechseln(neu){
   if(neu === zustand.sprache) return;
   Verbindung.trennen();
   Ton.leeren();
+
+  // Der halbfertige Abschnitt wird VERWORFEN, nicht ausgegeben.
+  // abschnittSchliessen() in trennen() hat ihn eben noch geschrieben;
+  // gleich darauf ist er samt Verlauf wieder weg.
+  clearTimeout(puffer.uhr);
+  puffer.teile = []; puffer.woerter = 0;
+
   zustand.sprache = neu;
-  const strich = document.createElement("hr");
-  strich.style.cssText = "border:0;border-top:1px solid var(--linie);margin:1.4rem 0";
-  $("strom").append(strich);
+  const strom = $("strom");
+  while(strom.firstChild) strom.removeChild(strom.firstChild);
+
   beschriftungenSetzen();
   Verbindung.verbinden(neu);
   systemleisteSetzen();
