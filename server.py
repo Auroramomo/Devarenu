@@ -49,6 +49,7 @@ import grafikkarte
 # Funktion zustand() steht. Die wuerde das Modul im ganzen Namensraum von
 # app_bauen verdecken, und zwar still: der Zugriff schluege erst zur
 # Laufzeit fehl, beim ersten Speichern am Pult.
+import pultschutz
 import zustand as zustandsdatei
 from glossar import Glossar, glossarzeilen, vokalisieren
 
@@ -3242,7 +3243,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
     from fastapi import (FastAPI, File, Form, Request, UploadFile, WebSocket,
                          WebSocketDisconnect)
     from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
-                                   PlainTextResponse, Response)
+                                   PlainTextResponse, RedirectResponse,
+                                   Response)
     from html import escape as html_escape
 
     @asynccontextmanager
@@ -3271,6 +3273,82 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
     # Pfade. Ohne den Umbau fragt sie ohnehin niemand, dann liegen sie
     # nur da.
     app.include_router(netzpruefung.router)
+
+    # ------------------------------------------------ Pult-Passwort
+    # Freiwillig. Ist keines gesetzt -- die Vorgabe --, aendert sich
+    # gar nichts: die Wache winkt jeden durch, und es kostet einen
+    # stat auf zustand.json.
+    wache = pultschutz.Wache(zustandsdatei.DATEI)
+
+    @app.middleware("http")
+    async def pult_schuetzen(request, weiter):
+        pfad = request.url.path
+        host = request.client.host if request.client else ""
+        ja, grund = wache.darf(
+            pfad, host,
+            request.cookies.get(pultschutz.KEKS),
+            request.query_params.get("schluessel"))
+        if ja:
+            return await weiter(request)
+        # 401 und nicht 403: der Aufrufer KANN etwas tun, naemlich sich
+        # anmelden. Eine Seite statt eines nackten Fehlers, damit am
+        # Handy nicht "Unauthorized" steht und sonst nichts.
+        return HTMLResponse(
+            ANMELDUNG.format(ziel=html_escape(request.url.path), fehler=""),
+            status_code=401)
+
+    @app.post("/pult-anmeldung")
+    async def pult_anmelden(request: Request):
+        daten = await request.form()
+        passwort = str(daten.get("passwort") or "")
+        ziel = str(daten.get("ziel") or "/pult")
+        # Kein offener Umleitungspunkt: nur Wege auf diesem Server.
+        if not ziel.startswith("/") or ziel.startswith("//"):
+            ziel = "/pult"
+        if not wache.gesetzt:
+            return RedirectResponse(ziel, status_code=303)
+        if not pultschutz.stimmt(passwort, wache.hash):
+            host = request.client.host if request.client else "?"
+            print(warnung(f"Pult: Anmeldung abgelehnt (von {host})."))
+            return HTMLResponse(
+                ANMELDUNG.format(ziel=html_escape(ziel),
+                                 fehler=ANMELDUNG_FEHLER),
+                status_code=401)
+        antwort = RedirectResponse(ziel, status_code=303)
+        antwort.set_cookie(
+            pultschutz.KEKS, pultschutz.ausweis(wache.hash),
+            max_age=pultschutz.KEKS_DAUER, httponly=True, samesite="lax",
+            path="/")
+        return antwort
+
+    @app.post("/api/pult-passwort")
+    async def pult_passwort(daten: dict):
+        """Setzen, aendern oder loeschen -- vom Pult aus.
+
+        Ein leeres Passwort loescht es. Wer schon angemeldet ist, darf
+        das: er sitzt entweder am Rechner oder hat sich vorher
+        ausgewiesen. Ein zweites Mal danach zu fragen hiesse, es
+        zweimal zu tippen."""
+        neu_wort = str(daten.get("passwort") or "")
+        stand = zustandsdatei.laden()[0]
+        if neu_wort and len(neu_wort) < 4:
+            return JSONResponse({"grund": "zu_kurz"}, status_code=400)
+        stand["pult_passwort"] = pultschutz.hashen(neu_wort) if neu_wort else ""
+        if not zustandsdatei.speichern(stand):
+            return JSONResponse({"grund": "nicht_schreibbar"}, status_code=500)
+        print(f"Pult-Passwort {'gesetzt' if neu_wort else 'geloescht'}.")
+        # Der Keks dieses Browsers wird mit dem neuen Hash ungueltig --
+        # also gleich einen neuen mitgeben, sonst sperrt sich aus, wer
+        # es gerade erst gesetzt hat.
+        antwort = JSONResponse({"gesetzt": bool(neu_wort)})
+        if neu_wort:
+            antwort.set_cookie(
+                pultschutz.KEKS, pultschutz.ausweis(stand["pult_passwort"]),
+                max_age=pultschutz.KEKS_DAUER, httponly=True,
+                samesite="lax", path="/")
+        else:
+            antwort.delete_cookie(pultschutz.KEKS, path="/")
+        return antwort
 
     client = basis / "client.html"
 
@@ -3831,6 +3909,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                                  if lauf.audio_quelle else None),
                 "mitschnitt": lauf.mitschnitt.lage(),
                 "protokoll_mitschrift": PROTOKOLL_MITSCHRIFT,
+                # Nur ob eines gesetzt ist, nie der Hash. Das Pult muss
+                # den Schalter richtig anzeigen und sonst nichts.
+                "pult_passwort": wache.gesetzt,
                 "nachrichten": list(lauf.nachrichten),
                 # Steht hier und nicht nur unter Einrichtung: ein Update,
                 # das aufs Anhalten wartet, geht den Techniker waehrend
@@ -4166,15 +4247,12 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         import segno
         import urllib.parse
         if was == "bericht":
-            lage = netzzustand.laden()[0]
-            if lage["router"] and lage["adresse"]:
-                # Ueber Port 80, damit keine Portnummer im Code steht
-                # und der Link auch ohne sie geht.
-                inhalt = f"http://{lage['adresse']}/fehlerbericht.txt?schnell=1"
-            elif lauf.adresse:
-                inhalt = (f"http://{lauf.adresse}:{a_port[0]}"
-                          f"/fehlerbericht.txt?schnell=1")
-            else:
+            # Ueber Port 80, damit keine Portnummer im Code steht und
+            # der Link auch ohne sie geht. Mit gesetztem Pult-Passwort
+            # haengt ein Einmalschluessel dran -- sonst kaeme das Handy
+            # nicht hinein: es ist im Saalnetz und hat keinen Keks.
+            inhalt = bericht_link()
+            if not inhalt:
                 return JSONResponse({"fehler": "keine Adresse bekannt"},
                                     status_code=404)
         else:
@@ -4192,11 +4270,39 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         return Response(content=puffer.getvalue(), media_type="image/png",
                         headers={"Cache-Control": "no-store"})
 
+    def bericht_link():
+        """Der Link, unter dem ein Handy im Saal den Bericht holt.
+
+        Eine Funktion und nicht zweimal derselbe Code: der QR und der
+        Text darunter muessen auf dieselbe Adresse zeigen. Stimmten sie
+        nicht ueberein, fiele es genau dann auf, wenn jemand den einen
+        Weg probiert, weil der andere nicht ging.
+
+        Mit gesetztem Pult-Passwort haengt ein Einmalschluessel dran.
+        Ohne Passwort bleibt der Link kurz."""
+        lage = netzzustand.laden()[0]
+        if lage["router"] and lage["adresse"]:
+            grund = f"http://{lage['adresse']}/fehlerbericht.txt?schnell=1"
+        elif lauf.adresse:
+            grund = (f"http://{lauf.adresse}:{a_port[0]}"
+                     f"/fehlerbericht.txt?schnell=1")
+        else:
+            return ""
+        if wache.gesetzt:
+            grund += "&schluessel=" + wache.schluessel.neu()
+        return grund
+
     @app.get("/api/betreuer")
     def betreuer():
-        """Name und Adresse fuers Pult -- aus betreuer.txt."""
+        """Name und Adresse fuers Pult -- aus betreuer.txt.
+
+        Dazu der Berichtlink im Klartext. Wer den QR nicht scannen kann
+        -- aelteres Handy, schlechtes Licht --, tippt ihn ab. Dieselbe
+        Ueberlegung wie beim WLAN-Passwort auf der QR-Seite: der Code
+        ist der bequeme Weg, nicht der einzige."""
         return {"name": config.BETREUER_NAME,
-                "mail": config.RUECKMELDUNG_MAIL}
+                "mail": config.RUECKMELDUNG_MAIL,
+                "bericht_link": bericht_link()}
 
     @app.get("/anleitung.pdf")
     def anleitung(teil: str = "alles", sprache: str = ""):
@@ -4414,6 +4520,43 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
 
     return app
 
+
+# Die Seite, die statt des Pults erscheint, solange sich das Geraet
+# nicht ausgewiesen hat. Bewusst karg: sie ist kein Teil der Bedienung,
+# sondern eine Tuer. Und sie sagt, wo das Passwort herkommt -- sonst
+# steht sonntags jemand davor und weiss nicht, wen er fragen soll.
+ANMELDUNG = """<!doctype html><html lang=de><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Pult</title>
+<style>
+ *{{box-sizing:border-box}}
+ body{{font:16px/1.5 Georgia,serif;color:#141f52;background:#f7f8fa;
+   margin:0;min-height:100vh;display:grid;place-items:center;padding:1.5rem}}
+ form{{background:#fff;border:1px solid #d9dce4;border-radius:.6rem;
+   padding:1.6rem;max-width:22rem;width:100%}}
+ h1{{font-size:1.25rem;font-weight:400;margin:0 0 .3rem;
+   letter-spacing:.06em;text-transform:uppercase}}
+ p{{font:.9rem/1.45 system-ui,sans-serif;color:#6b7385;margin:.2rem 0 1.1rem}}
+ input{{font:1.05rem system-ui,sans-serif;width:100%;padding:.7rem;
+   border:1px solid #d9dce4;border-radius:.35rem;margin-bottom:.8rem}}
+ button{{font:1rem Georgia,serif;letter-spacing:.06em;width:100%;
+   padding:.8rem;border:0;border-radius:.35rem;background:#1c3a8f;
+   color:#fff;cursor:pointer}}
+ .fehler{{color:#c0392b;font:.9rem system-ui,sans-serif;margin:0 0 .8rem}}
+</style>
+<form method=post action="/pult-anmeldung">
+ <h1>Pult</h1>
+ <p>Diese Gemeinde hat das Pult mit einem Passwort versehen. Einmal
+ eingeben, danach merkt sich dieses Gerät die Anmeldung.</p>
+ {fehler}
+ <input type=password name=passwort placeholder="Passwort" autofocus
+   autocomplete="current-password">
+ <input type=hidden name=ziel value="{ziel}">
+ <button type=submit>Weiter</button>
+</form>
+</html>"""
+
+ANMELDUNG_FEHLER = '<p class=fehler>Das war nicht das richtige Passwort.</p>'
 
 QR_SEITE = """<!doctype html><html lang=de><meta charset=utf-8>
 <title>Übersetzung</title>
@@ -4831,7 +4974,8 @@ Betreuer eine Mail.</p>
     fertige Mail.</p></div>
   <div><img id=qrbericht alt="" width="190" height="190">
     <p class=hin data-t=fehler_qr_bericht>Scannen: lädt den Fehlerbericht
-    aufs Handy, zum Anhängen.</p></div>
+    aufs Handy, zum Anhängen.</p>
+    <p class=hin><code id=berichtklartext></code></p></div>
 </div>
 
 <p class="hin" data-t=fehler_offline>Die Mail geht raus, sobald das Handy
@@ -4906,6 +5050,23 @@ Handys mit einem Scan verbinden, ohne dass jemand ein Passwort abtippt.
 Ohne Eintrag zeigt die QR-Seite nur den zweiten Code.</p>
 <p class=hin><a href="/qr" target="_blank" data-t=qr_oeffnen>QR-Seite für den
 Beamer öffnen</a></p>
+
+<h2 data-t=pw_ueber>Pult-Passwort (freiwillig)</h2>
+<p class=hin data-t=pw_hin>Ohne Eintrag bleibt alles wie bisher: jeder im
+Saal-WLAN kann dieses Pult bedienen. Mit Eintrag wird jedes Gerät im Saal
+einmal danach gefragt und merkt sich die Anmeldung. Die Zuhörerseite bleibt
+immer offen, und an diesem Rechner wird nie gefragt.</p>
+<p class=hin id=pwstand></p>
+<div class=reihe>
+  <input type=password id=pwfeld placeholder="Passwort" style="flex:1"
+    autocomplete="new-password">
+  <button class=klein onclick=pultPasswortSetzen()
+    data-t=pw_setzen>Übernehmen</button>
+</div>
+<p class=hin><button class="klein knopf-still" onclick=pultPasswortLoeschen()
+  data-t=pw_weg>Passwort entfernen</button></p>
+<p class=hin data-t=pw_vergessen>Vergessen? Am Rechner selbst:
+<code>python werkzeuge/pult_passwort.py --loeschen</code></p>
 
 </div>
 </div>
@@ -5056,6 +5217,19 @@ const TEXTE={
    fehler_inhalt:"Der Bericht enthält nur technische Angaben: Fassung, "
      +"Rechner, Systemcheck, Meldungen ab Warnstufe. Keine Mitschriften, "
      +"keine Zuschriften aus dem Saal, kein WLAN-Passwort.",
+   pw_ueber:"Pult-Passwort (freiwillig)",
+   pw_hin:"Ohne Eintrag bleibt alles wie bisher: jeder im Saal-WLAN kann "
+     +"dieses Pult bedienen. Mit Eintrag wird jedes Gerät im Saal einmal "
+     +"danach gefragt und merkt sich die Anmeldung. Die Zuhörerseite bleibt "
+     +"immer offen, und an diesem Rechner wird nie gefragt.",
+   pw_setzen:"Übernehmen", pw_weg:"Passwort entfernen",
+   pw_an:"Gesetzt. Geräte im Saal werden einmal gefragt.",
+   pw_aus:"Keines gesetzt. Das Pult ist im Saal für jeden offen.",
+   pw_leer:"Erst ein Passwort eintragen.",
+   pw_kurz:"Zu kurz. Mindestens vier Zeichen.",
+   pw_fehler:"Ließ sich nicht speichern.",
+   pw_vergessen:"Vergessen? Am Rechner selbst: "
+     +"python werkzeuge/pult_passwort.py --loeschen",
    protokoll_an:"Mitschrift im Protokoll (nur zur Fehlersuche)",
    protokoll_hin:"Aus. Der gesprochene Satz steht dann nicht im "
      +"Protokoll – nur seine Länge.",
@@ -5201,6 +5375,19 @@ const TEXTE={
    fehler_inhalt:"The report contains technical details only: version, "
      +"computer, system check, messages at warning level and above. No "
      +"transcripts, no messages from the hall, no wifi password.",
+   pw_ueber:"Desk password (optional)",
+   pw_hin:"Left empty, nothing changes: anyone on the hall wi-fi can "
+     +"operate this desk. Once set, every device in the hall is asked once "
+     +"and then remembers. The listener page always stays open, and this "
+     +"computer is never asked.",
+   pw_setzen:"Apply", pw_weg:"Remove password",
+   pw_an:"Set. Devices in the hall are asked once.",
+   pw_aus:"Not set. The desk is open to everyone in the hall.",
+   pw_leer:"Enter a password first.",
+   pw_kurz:"Too short. At least four characters.",
+   pw_fehler:"Could not be saved.",
+   pw_vergessen:"Forgotten? On the computer itself: "
+     +"python werkzeuge/pult_passwort.py --loeschen",
    protokoll_an:"Transcript in the log (for troubleshooting only)",
    protokoll_hin:"Off. The spoken sentence does not go into the log – "
      +"only its length.",
@@ -5737,6 +5924,9 @@ async function fehlerZeigen(){
     const d = await a.json();
     betreuername.textContent = d.name || "";
     betreuermail.textContent = d.mail || "";
+    // Derselbe Link, den der rechte QR traegt -- zum Abtippen, wenn
+    // das Scannen nicht klappt. Aelteres Handy, schlechtes Licht.
+    berichtklartext.textContent = d.bericht_link || "";
   }catch(e){ /* dann bleibt das Feld leer, der QR geht trotzdem */ }
   const jetzt = Date.now();
   qrmail.src = "/fehler-qr.png?was=mail&t=" + jetzt;
@@ -5744,6 +5934,36 @@ async function fehlerZeigen(){
   // Der Download vom Pult aus darf lange dauern -- wer hier klickt,
   // sitzt davor. Das Handy bekommt ueber den QR die schnelle Fassung.
   berichtlink.href = "/fehlerbericht.txt";
+}
+
+async function pultPasswortSetzen(){
+  const w = pwfeld.value;
+  if(!w){ pwstand.textContent = TEXTE[UI].pw_leer; return; }
+  const a = await fetch("/api/pult-passwort",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({passwort:w})});
+  if(!a.ok){
+    const d = await a.json().catch(()=>({}));
+    pwstand.textContent = d.grund==="zu_kurz"
+      ? TEXTE[UI].pw_kurz : TEXTE[UI].pw_fehler;
+    return;
+  }
+  // Nicht stehen lassen: ein Passwort im Feld liest der Nächste mit,
+  // der am Pult vorbeikommt.
+  pwfeld.value = "";
+  pultPasswortAnzeigen(true);
+}
+async function pultPasswortLoeschen(){
+  await fetch("/api/pult-passwort",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({passwort:""})});
+  pwfeld.value = "";
+  pultPasswortAnzeigen(false);
+}
+function pultPasswortAnzeigen(gesetzt){
+  const t = TEXTE[UI];
+  pwstand.textContent = gesetzt ? t.pw_an : t.pw_aus;
+  pwstand.classList.toggle("warnung", false);
 }
 
 async function protokollSetzen(){
@@ -5915,6 +6135,7 @@ async function lies(){
     }
     if(d.protokoll_mitschrift!==undefined)
       protokollAnzeigen(d.protokoll_mitschrift);
+    if(d.pult_passwort!==undefined) pultPasswortAnzeigen(d.pult_passwort);
     const post_=(d.nachrichten||[]);
     briefkasten.hidden = post_.length===0;
     postzahl.textContent = post_.length;

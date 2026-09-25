@@ -138,6 +138,14 @@ def vorgabe():
         # Hier und nicht in config.py: ein geaenderter Wert in einer
         # versionierten Datei laesst jedes Update abbrechen.
         "protokoll_mitschrift": False,
+        # Das freiwillige Pult-Passwort, als Hash. Leer heisst: keines,
+        # und das ist die Vorgabe -- das Pult bleibt offen wie bisher.
+        #
+        # Nur der Hash, nie das Passwort. Wer die Datei in die Hand
+        # bekommt, hat damit noch keinen Zugang; und der Fehlerbericht,
+        # der technische Angaben aus dieser Datei zieht, kann ihn
+        # konstruktiv nicht ausplaudern.
+        "pult_passwort": "",
     }
 
 
@@ -230,6 +238,15 @@ def _uebernehmen(roh, daten):
         daten["protokoll_mitschrift"] = roh["protokoll_mitschrift"]
     elif roh.get("protokoll_mitschrift") is not None:
         fehlerhaft.append("protokoll_mitschrift")
+
+    # Eine Zeichenkette oder gar nichts. Steht dort Unsinn, faellt sie
+    # auf leer zurueck -- also auf ein offenes Pult. Andersherum waere
+    # es schlimmer: ein unlesbarer Wert, der als "irgendein Passwort"
+    # gilt, sperrt die Gemeinde aus ihrem eigenen Pult aus.
+    if isinstance(roh.get("pult_passwort"), str):
+        daten["pult_passwort"] = roh["pult_passwort"]
+    elif roh.get("pult_passwort") is not None:
+        fehlerhaft.append("pult_passwort")
 
     quittiert = roh.get("glossar_quittiert")
     if isinstance(quittiert, list):

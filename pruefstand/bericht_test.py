@@ -26,6 +26,9 @@ GEHEIM = {
     "WLAN-Passwort": "Sonnenblume1874",
     "Zuschrift aus dem Saal": "Der Ton ist zu leise, sagt Frau Vossberg",
     "Mitschrift": "Wir beten heute fuer Hildegard Vossberg",
+    # Kein Passwort, aber auch nichts, was in eine Mail gehoert.
+    "Hash des Pult-Passworts":
+        "pbkdf2_sha256$240000$0123456789abcdef$deadbeefcafebabe",
 }
 
 fehler = 0

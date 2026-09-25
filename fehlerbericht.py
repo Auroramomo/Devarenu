@@ -64,6 +64,12 @@ VERDAECHTIG = [
     # Eingemessen: ... -- enthaelt keinen Text, aber die Zeile hat
     # schon einmal einen Satz gefuehrt; lieber gefangen als vergessen.
     re.compile(r"Eingemessen:.*[A-Za-z]{20,}"),
+    # Der Hash des Pult-Passworts. Er steht in zustand.json, und der
+    # Bericht liest von dort nur benannte Felder -- er kaeme also gar
+    # nicht hierher. Das Muster steht trotzdem da: ein Hash ist kein
+    # Passwort, aber er laedt zum Durchprobieren ein, und die Regel
+    # dieses Riegels ist "lieber gefangen als vergessen".
+    re.compile(r"pbkdf2_sha256\$"),
 ]
 
 
