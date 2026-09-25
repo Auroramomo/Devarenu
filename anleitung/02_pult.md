@@ -26,6 +26,41 @@ Adresse gilt, steht beim Start in der Ausgabe des Dienstes und in
    Passwort und niemand kommt ins Netz.
 5. **QR-Seite am Beamer prüfen.** Oben rechts auf *QR*.
 
+## Die QR-Seite für den Beamer
+
+Sie ist für 16:9 gebaut und für zwölf Meter Abstand.
+
+**Links die zwei Schritte.** Oben der Code fürs WLAN, darunter Netzname
+und Passwort in großer Schrift — der Code ist der bequeme Weg, nicht der
+einzige. Ältere Handys und Laptops tippen mit. Unten der Code für die
+Seite, darunter die Adresse zum Abtippen.
+
+**Rechts drei Kästen** in verschiedenen Farben, jeder mit einem Symbol:
+
+- **Gelb:** Bis zu einer Minute warten, nicht neu verbinden.
+- **Blau:** „Kein Internet" ist richtig. Oben kann 5G stehen.
+- **Lila:** Kopfhörer benutzen, Bildschirm anlassen.
+
+**Die Texte wechseln alle acht Sekunden die Sprache** — durch die
+Sprachen, die unter *Sprachen* eingeschaltet sind, dazu Englisch. Die
+Sprache, in der gepredigt wird, kommt **nicht** vor: wer direkt zuhört,
+braucht keine Anleitung zum Mithören. Oben rechts stehen Punkte für die
+Stelle im Durchlauf.
+
+Bei Farsi und Arabisch läuft **nur der Text** von rechts nach links.
+Kästen, Farben und Symbole bleiben, wo sie sind — wer vorn sagt „der
+gelbe Kasten oben", hat in jeder Sprache recht.
+
+Eine einzelne Sprache ansehen, ohne zu warten: `/qr#fa` statt `/qr`.
+
+**Als Datei herunterladen** liefert die ganze Seite als *eine* Datei,
+mit allem darin. Sie läuft auf jedem Laptop im Browser, auch ohne Netz —
+für einen Beamer-Rechner, der nicht im Saalnetz hängt. Gedruckt gibt sie
+eine Seite je Sprache, zum Auslegen am Eingang.
+
+> Die Datei enthält das WLAN-Passwort im Code. Sie wird bei jedem Abruf
+> neu erzeugt und gehört nicht weitergegeben.
+
 ## Während des Gottesdienstes
 
 - **Starten** und **Anhalten** mit dem großen Knopf. Anhalten stoppt die

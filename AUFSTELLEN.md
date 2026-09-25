@@ -528,6 +528,85 @@ systemd liest das als Stufe. Nötig ist das, weil systemd sonst
 Segmentzeilen bekommen die Marke **nicht**, und darum kann Mitschrift
 nie auf Warnstufe erscheinen. Genau ab dort sammelt der Bericht.
 
+## Wer im Saalnetz was erreicht
+
+Jeder Zuhörer ist im Saal-WLAN — das ist sein Zweck. Damit ist das Netz
+**nicht vertrauenswürdig**, und die Frage ist nicht theoretisch: die
+Adresse steht an der Wand.
+
+**Vorgabe ist ein offenes Pult, wie bisher.** In einer kleinen Gemeinde
+ist das die richtige Abwägung; ein Passwort, das sonntags getippt werden
+muss, landet als Zettel am Bildschirm.
+
+Gemessen an einer Wegwerf-Kopie, ohne Passwort:
+
+```
+GET  /pult               200   die vollständige Bedienoberfläche
+GET  /api/wlan           200   Netzname und Passwort im Klartext
+POST /api/protokoll      200   die Mitschrift lässt sich EINSCHALTEN
+POST /api/steuerung/…    200   die Übersetzung lässt sich anhalten
+GET  /mitschnitt/<name>  200   eine laufende Aufnahme lässt sich holen
+```
+
+Das WLAN-Passwort ist dabei der kleinste Verlust — wer es abruft, ist
+schon drin. Schwerer wiegen die anderen drei. Ein Angreifer ist dafür
+nicht nötig; es genügt jemand, der die Adresse von der Wand abliest und
+neugierig ist.
+
+### Das Pult-Passwort (freiwillig)
+
+Am Pult unter *Einrichtung*, ganz unten. Leer heißt: alles bleibt, wie
+es war.
+
+Ist eines gesetzt:
+
+| | |
+|---|---|
+| Geräte im Saal | werden **einmal** gefragt, danach ein Jahr lang nicht |
+| Die Zuhörerseite | bleibt offen — `/`, `/strom`, `/ton/…`, `/api/sprachen`, `/api/nachricht` |
+| Dieser Rechner | wird **nie** gefragt (jede Loopback-Adresse) |
+| Der Fehlerbericht aufs Handy | geht weiter: der QR trägt einen Schlüssel, 15 Minuten und drei Abrufe |
+
+Die Liste der offenen Wege ist eine **Erlaubnisliste**, keine Sperrliste.
+Kommt später ein Pult-Weg dazu, ist er geschützt, ohne dass jemand daran
+denkt. Eine vergessene Sperre fiele niemandem auf.
+
+Gespeichert wird ein PBKDF2-Hash mit 240 000 Runden und eigenem Salz,
+nie das Passwort. Der Keks im Browser ist daraus abgeleitet — deshalb
+braucht der Server keine Liste offener Sitzungen, die Anmeldung
+übersteht jeden Neustart, und ein geändertes Passwort macht alle alten
+Kekse mit einem Schlag ungültig.
+
+### Vergessen — der Fall, der eintritt
+
+```fish
+cd ~/Devarenu
+python werkzeuge/pult_passwort.py --stand
+python werkzeuge/pult_passwort.py --loeschen
+```
+
+**Kein Neustart nötig.** Der Dienst sieht sich die Datei bei jedem
+Aufruf kurz an und merkt die Änderung von selbst — wer gerade ausgesperrt
+ist, denkt nicht an `systemctl`.
+
+Setzen geht dort absichtlich nicht: ein Passwort in der Kommandozeile
+landet in der Verlaufsdatei der Shell.
+
+Geprüft in `pruefstand/pultschutz_test.py` — und zwar **aus dem Saal**,
+über eine Adresse, die nicht Loopback ist. Über 127.0.0.1 gilt jeder
+Aufruf als „am Rechner selbst"; ein Prüflauf, der nur darüber spricht,
+belegt die Sperre nie. Findet er keine solche Adresse, meldet er das als
+Fehler statt still durchzulaufen.
+
+### Was dabei NICHT entschieden ist
+
+Aufnahmen (`/mitschnitt/…`) werden nur nach ausdrücklichem Druck am Pult
+geschrieben — im normalen Betrieb entsteht nichts. Sie werden aber
+**nie gelöscht**: kein Höchstalter, keine Höchstzahl, kein Hinweis. Wer
+die Aufnahme ein Jahr lang jeden Sabbat benutzt, hat rund fünfzig
+Predigten als Rohton auf der Platte. Das gehört entschieden, ist hier
+aber offen.
+
 ## Im Betrieb kein Internet, für die Wartung ein Hotspot
 
 Im Gottesdienst hat der Rechner **kein Netz nach draußen**, und nichts
@@ -1272,7 +1351,14 @@ Bei jeder Fassung:
       python pruefstand/teile_test.py
       python pruefstand/bericht_test.py
       python pruefstand/netz_alt_test.py
+      python pruefstand/pultschutz_test.py
+      python pruefstand/qrseite_test.py
+      node  pruefstand/sprachwechsel_test.mjs
       ```
+      Der letzte braucht **node**, und zwar nur auf dem Arbeitsrechner.
+      Er fährt das echte Skript aus `client.html` gegen einen
+      nachgebauten Browser. Auf den Gemeinderechner kommt node nicht,
+      und in `requirements.txt` hat es nichts verloren.
       Der dritte prüft mit **erfundenen** Daten, dass im Fehlerbericht
       weder Mitschrift noch Namen noch Zugangsdaten stehen. Der vierte,
       dass ein Netz nach altem Aufbau einen ruhigen Hinweis bekommt und

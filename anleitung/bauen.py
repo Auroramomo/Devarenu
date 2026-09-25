@@ -272,6 +272,30 @@ class Anleitung(FPDF):
         self.cell(0, 5, fassung() + (f"  ·  {datum}" if datum else ""),
                   align="C", new_x="LMARGIN", new_y="NEXT")
 
+    def lateinisch_pruefen(self, text, woher):
+        """Warnt vor lateinischen Buchstaben in einer RTL-Fassung.
+
+        NotoNaskhArabic hat KEINE lateinischen Buchstaben. Sie fallen
+        beim Setzen spurlos weg -- aus "5G oder LTE" wurde "5" und zwei
+        Leerstellen, und die Seite sah auf den ersten Blick heil aus.
+
+        Eine Ersatzschrift waere der naheliegende Ausweg und geht
+        NICHT: mit set_fallback_fonts zerfaellt in fpdf2 2.8.8 die
+        arabische Verbindungsschrift, aus "صفحه" wird "صف حه". An einer
+        gerenderten Seite gesehen, beides.
+
+        Also: nicht heimlich reparieren, sondern melden. Der Text
+        gehoert umgeschrieben, ohne lateinische Buchstaben."""
+        if not self.rtl:
+            return
+        import unicodedata
+        schlimm = sorted({z for z in text
+                          if "LATIN" in unicodedata.name(z, "")})
+        if schlimm:
+            print(f"  ! {woher}: lateinische Buchstaben in einer "
+                  f"Fassung von rechts nach links -- sie fallen im PDF "
+                  f"WEG: {''.join(schlimm)}")
+
     def markdown(self, text):
         """Der kleine Teil von Markdown, den diese Anleitung benutzt."""
         aus = "R" if self.rtl else "L"
@@ -466,7 +490,9 @@ def bauen(quellen, ziel, untertitel, teile, rtl=False, maschinell="",
         pdf.titelseite(untertitel, teile, maschinell, worte=buchstaben)
     for quelle, buchstabe in quellen:
         pdf.teilbuchstabe = buchstabe
-        pdf.markdown(quelle.read_text(encoding="utf-8"))
+        roh = quelle.read_text(encoding="utf-8")
+        pdf.lateinisch_pruefen(roh, quelle.name)
+        pdf.markdown(roh)
 
     # Reproduzierbar: ohne feste Kennung und festes Datum traegt jedes
     # PDF eine neue Erstellungszeit und eine zufaellige Datei-Kennung --

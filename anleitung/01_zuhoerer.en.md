@@ -28,6 +28,12 @@ Your phone may show an exclamation mark or the message *No internet*.
 That is true: this wifi leads nowhere. It exists only to carry the
 sound from the hall to your phone. **Please stay connected anyway.**
 
+**If you leave mobile data on:** *5G* or *LTE* may still show at the
+top. That is correct and not a fault — the translation still comes over
+the wifi. But after a few minutes the phone switches back to the mobile
+network on its own, and then the sound stops. That is why the first step
+above matters.
+
 ## If the sound stutters
 
 - **Keep the screen on.** Some phones stop playback when the screen

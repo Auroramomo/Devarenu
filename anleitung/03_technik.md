@@ -105,6 +105,45 @@ Zur Fehlersuche lässt sich das am Pult unter *Einrichtung*
 einschalten: **Mitschrift im Protokoll**. Solange es an ist, steht ein
 Hinweis am Pult. **Danach wieder ausschalten.**
 
+## Das Pult-Passwort
+
+**Freiwillig.** Ohne Eintrag bleibt alles wie bisher: jeder im Saal-WLAN
+kann das Pult öffnen und bedienen. In einer kleinen Gemeinde ist das oft
+richtig — ein Passwort, das sonntags getippt werden muss, landet sonst
+als Zettel am Bildschirm.
+
+Wer es anders will, trägt unter *Einrichtung*, ganz unten, eines ein.
+Dann gilt:
+
+- **Jedes Gerät im Saal wird einmal gefragt** und merkt sich die
+  Anmeldung ein Jahr lang.
+- **Die Zuhörerseite bleibt offen.** Sie ist der Zweck des Netzes.
+- **An diesem Rechner wird nie gefragt.** Wer davorsitzt, hat ohnehin
+  Tastatur und Bildschirm.
+- **Der Fehlerbericht aufs Handy geht weiter.** Der QR-Code trägt einen
+  Schlüssel, der eine Viertelstunde und drei Abrufe gilt.
+
+Gespeichert wird nur ein Hash, nie das Passwort selbst. Im Fehlerbericht
+taucht weder das eine noch das andere auf.
+
+### Vergessen
+
+Das ist der Fall, der eintritt — nach einem halben Jahr, mit einem
+anderen Techniker. Am Rechner selbst, ohne Pult:
+
+```
+cd ~/Devarenu
+python werkzeuge/pult_passwort.py --stand
+python werkzeuge/pult_passwort.py --loeschen
+```
+
+Danach ist das Pult wieder offen, und unter *Einrichtung* lässt sich ein
+neues setzen. **Ein Neustart ist nicht nötig** — der Dienst merkt die
+Änderung von selbst.
+
+Setzen geht dort absichtlich nicht: ein Passwort in der Kommandozeile
+landet in der Verlaufsdatei der Shell.
+
 ## Was die Technik nicht anfassen muss
 
 Das Saalnetz. Es ist einmal eingerichtet und bleibt so.

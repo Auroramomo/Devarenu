@@ -30,6 +30,12 @@ Ihr Handy zeigt beim WLAN vielleicht ein Ausrufezeichen oder die Meldung
 dafür da, den Ton aus dem Saal an Ihr Handy zu bringen. **Bleiben Sie
 trotzdem verbunden.**
 
+**Wer die mobilen Daten anlässt:** Oben kann weiterhin *5G* oder *LTE*
+stehen. Das ist richtig und kein Fehler — die Übersetzung kommt trotzdem
+über das WLAN. Nur wechselt das Handy nach einigen Minuten von selbst
+zurück ins Mobilnetz, und dann bricht der Ton ab. Deshalb der erste
+Schritt oben.
+
 ## Wenn der Ton stockt
 
 - **Bildschirm anlassen.** Schaltet sich der Bildschirm ab, stoppen
