@@ -272,13 +272,88 @@ def _dienste(befunde, netz):
                 tun_en="sudo systemctl enable --now dnsmasq"))
 
 
-def _netzumbau(befunde, netz):
+# Wo die Handarbeit von 0.2.11 ihre Spuren hinterlassen hat. Alle drei
+# raeumt netz_einrichten.sh weg; hier werden sie nur benannt.
+DNSMASQ_HAUPT = Path("/etc/dnsmasq.conf")
+DNSMASQ_ZUSATZ = Path("/etc/systemd/system/dnsmasq.service.d/devarenu.conf")
+CONF_DIR_ZEILE = re.compile(
+    r"^\s*conf-dir=/etc/dnsmasq\.d/?,\*\.conf\s*$", re.M)
+
+
+def _netz_alt(befunde, netz):
+    """Laeuft das Netz noch nach dem Aufbau von 0.2.11?
+
+    Bis 0.2.11 lag die Konfiguration in /etc/dnsmasq.d/, die conf-dir-Zeile
+    wurde von Hand an /etc/dnsmasq.conf gehaengt und der systemd-Zusatz
+    von Hand geschrieben. Das laeuft -- es ist nur nicht mehr der Aufbau,
+    den netz_einrichten.sh herstellt.
+
+    Ohne diese Pruefung meldete der Systemcheck dafuer drei FEHLT-Befunde,
+    allen voran "Der Umbau ist halb". Das ist ein roter Alarm fuer einen
+    Rechner, an dem nichts fehlt, und er landet am Pult vor jemandem, der
+    ihn nicht einordnen kann. Ein Ehrenamtlicher, der sonntags einen
+    roten Punkt sieht, ruft an -- zu Recht, und umsonst.
+
+    Rueckgabe: True, wenn die alte Lage erkannt wurde. Der Aufrufer
+    ueberspringt dann die Befunde, die nur daher ruehren.
+    """
+    import netzzustand
+    if not netz["router"]:
+        return False
+    # Die alte Lage ist: alte Datei da, neue nicht. Sind BEIDE da, ist
+    # etwas halb umgezogen -- das soll sehr wohl auffallen.
+    if not netzzustand.DNSMASQ_KONF_ALT.exists():
+        return False
+    if netzzustand.DNSMASQ_KONF.exists():
+        return False
+
+    # Die beiden anderen Spuren einzeln benennen. Wer vor Ort steht,
+    # soll wissen, was ihn erwartet, statt es zu suchen.
+    spuren = [str(netzzustand.DNSMASQ_KONF_ALT)]
+    try:
+        if CONF_DIR_ZEILE.search(
+                DNSMASQ_HAUPT.read_text(encoding="utf-8", errors="replace")):
+            spuren.append("die von Hand angehaengte conf-dir-Zeile in "
+                          "/etc/dnsmasq.conf")
+    except OSError:
+        pass
+    if DNSMASQ_ZUSATZ.exists():
+        try:
+            text = DNSMASQ_ZUSATZ.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            text = ""
+        if re.search(r"^\s*After\s*=.*network-online", text, re.M):
+            spuren.append("der von Hand angelegte systemd-Zusatz mit "
+                          "Ordnungszyklus")
+        else:
+            spuren.append("der von Hand angelegte systemd-Zusatz")
+
+    befunde.append(Befund(
+        "netz_alt", HINWEIS,
+        "Das Netz laeuft noch nach dem Aufbau von 0.2.11. Es funktioniert; "
+        "nichts ist kaputt. Beim naechsten Wartungsbesuch neu einrichten. "
+        "Betroffen: " + ", ".join(spuren) + ".",
+        "Beim naechsten Besuch:  sudo bash netz_einrichten.sh",
+        was_en="The network still uses the 0.2.11 layout. It works, "
+               "nothing is broken. Set it up again at the next "
+               "maintenance visit. Affected: " + ", ".join(spuren) + ".",
+        tun_en="At the next visit:  sudo bash netz_einrichten.sh"))
+    return True
+
+
+def _netzumbau(befunde, netz, alt=False):
     """Greift die eigene Konfiguration, steht der Start-Zusatz, ist die
-    Weiterleitung aus?"""
+    Weiterleitung aus?
+
+    alt=True: die Lage von 0.2.11 wurde erkannt und ist bereits gemeldet.
+    Dann bleiben die drei Befunde weg, die nur besagen, dass der neue
+    Aufbau noch nicht da ist -- das weiss der Leser schon. Weiterleitung
+    und Firewall werden trotzdem geprueft: die gehen den alten Aufbau
+    genauso an."""
     if not netz["router"]:
         return
     import netzzustand
-    if not netzzustand.DNSMASQ_KONF.exists():
+    if not alt and not netzzustand.DNSMASQ_KONF.exists():
         befunde.append(Befund(
             "dnsmasq_konf", FEHLT,
             f"netz.json sagt Router, aber {netzzustand.DNSMASQ_KONF} "
@@ -287,8 +362,13 @@ def _netzumbau(befunde, netz):
             was_en="netz.json says router, but the dnsmasq configuration "
                    "is missing.",
             tun_en="sudo bash netz_einrichten.sh"))
-    zusatz = Path("/etc/systemd/system/dnsmasq.service.d/devarenu.conf")
-    if not zusatz.exists():
+    zusatz = DNSMASQ_ZUSATZ
+    if alt:
+        # Der Zusatz gehoert hier zur alten Lage und ist dort schon
+        # benannt. Ein zweites Mal daraufhinzuweisen macht die Liste am
+        # Pult laenger, nicht klarer.
+        pass
+    elif not zusatz.exists():
         befunde.append(Befund(
             "dnsmasq_zusatz", FEHLT,
             "Der systemd-Zusatz fuer dnsmasq fehlt. Ohne ihn liest "
@@ -617,7 +697,7 @@ def pruefen():
     befunde = []
     _ordner(befunde)
     _dienste(befunde, netz)
-    _netzumbau(befunde, netz)
+    _netzumbau(befunde, netz, alt=_netz_alt(befunde, netz))
     _autologin(befunde)
     _energie(befunde)
     _sitzung(befunde)

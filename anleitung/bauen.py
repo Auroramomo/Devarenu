@@ -116,6 +116,11 @@ class Anleitung(FPDF):
         # Anleitung aufgeschlagen in der Hand haelt, soll auf einen
         # Blick wissen, in welchem Teil er ist.
         self.teilbuchstabe = ""
+        # Ein einzelnes Blatt: keine Titelseite, keine Teile, und die
+        # Fusszeile schon auf Seite 1 -- sonst traegt das Blatt weder
+        # Fassung noch Datum, und gedruckt weiss in einem halben Jahr
+        # niemand mehr, welches er in der Hand haelt.
+        self.einblatt = False
         self.set_auto_page_break(True, margin=20)
         # DejaVu ist in fpdf2 nicht dabei, aber auf jedem Linux da.
         # Ohne eine Unicode-Schrift gaebe es keine Umlaute -- die
@@ -195,6 +200,12 @@ class Anleitung(FPDF):
         self.set_xy(self.l_margin, self.t_margin)
 
     def footer(self):
+        if self.einblatt:
+            self.set_y(-15)
+            self.set_text_color(*GRAU)
+            self.set_font("s", "", 8)
+            self.cell(0, 5, f"Devarenu {fassung()}  ·  {stand()}", align="C")
+            return
         if self.page_no() == 1:
             return
         self.set_y(-15)
@@ -330,12 +341,26 @@ class Anleitung(FPDF):
                 puffer = []
             art, marke = "text", ""
 
+        im_zaun = False
         for roh in text.split("\n"):
             zeile = roh.rstrip()
             nackt = zeile.strip()
             eingerueckt = zeile[:1] == " " and not zeile.startswith("    ")
 
-            if not nackt:
+            # Ein Zaun aus ``` -- die Schreibweise, die jeder aus
+            # Markdown kennt. Der Bauer kannte bis 0.2.14 nur die
+            # Einrueckung, und ein Zaun wurde still zu Fliesstext: die
+            # Backticks standen im PDF, und die Anfuehrungszeichen im
+            # Befehl wurden zu deutschen. Genau so ist es beim Blatt
+            # fuer den Helfer passiert.
+            if nackt.startswith("```"):
+                leeren()
+                im_zaun = not im_zaun
+                continue
+            if im_zaun:
+                leeren()
+                bloecke.append(("code", nackt))
+            elif not nackt:
                 leeren()
                 bloecke.append(("leer", ""))
             elif zeile.startswith("    "):
@@ -429,10 +454,16 @@ class Anleitung(FPDF):
 
 
 def bauen(quellen, ziel, untertitel, teile, rtl=False, maschinell="",
-          buchstaben=None):
-    """quellen: Liste von (Pfad, Teilbuchstabe)."""
+          buchstaben=None, einblatt=False):
+    """quellen: Liste von (Pfad, Teilbuchstabe).
+
+    einblatt=True laesst die Titelseite weg. Gedacht fuer das eine
+    Blatt, das jemand ausdruckt und in die Hand nimmt -- dort waere
+    eine Titelseite die Haelfte des Papiers fuer nichts."""
     pdf = Anleitung("Devarenu " + untertitel, rtl=rtl)
-    pdf.titelseite(untertitel, teile, maschinell, worte=buchstaben)
+    pdf.einblatt = einblatt
+    if not einblatt:
+        pdf.titelseite(untertitel, teile, maschinell, worte=buchstaben)
     for quelle, buchstabe in quellen:
         pdf.teilbuchstabe = buchstabe
         pdf.markdown(quelle.read_text(encoding="utf-8"))
@@ -454,7 +485,12 @@ def bauen(quellen, ziel, untertitel, teile, rtl=False, maschinell="",
     ).hexdigest()[:32].upper()
     pdf.file_id = lambda m=marke: f"<{m}><{m}>"
     pdf.output(str(ziel))
-    print(f"  {ziel.relative_to(WURZEL)}  ({ziel.stat().st_size // 1024} KB)")
+    print(f"  {ziel.relative_to(WURZEL)}  "
+          f"({ziel.stat().st_size // 1024} KB, {pdf.page_no()} Seite"
+          f"{'n' if pdf.page_no() != 1 else ''})")
+    if einblatt and pdf.page_no() != 1:
+        sys.exit(f"  {ziel.name} soll EIN Blatt sein, hat aber "
+                 f"{pdf.page_no()} Seiten. Text kuerzen.")
 
 
 def main():
@@ -475,6 +511,14 @@ def main():
           ["Teil A  Für die Zuhörer",
            "Teil B  Für das Pult",
            "Teil C  Für die Technik"])
+
+    # Das eine Blatt fuer den Helfer. Ein Ehrenamtlicher, der einmal im
+    # Jahr einen Stick einsteckt, liest keine dreissigseitige Anleitung
+    # -- und soll es auch nicht muessen.
+    helfer = hier / "04_helfer.md"
+    if helfer.exists():
+        bauen([(helfer, "")], hier / "Devarenu-Umstellung.pdf",
+              "Umstellung", [], einblatt=True)
 
     # Teil A einzeln, in jeder Sprache, die die Zuhoererseite anbietet.
     # Wer uebersetzt mithoert, spricht ja gerade kein Deutsch.

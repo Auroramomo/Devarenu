@@ -22,8 +22,19 @@ import time
 import wave
 from pathlib import Path
 
-# Der Satz fuer die Durchlaufprobe. Kurz, deutsch, und die Woerter darin
-# sind haeufig genug, dass keine Spracherkennung daran scheitern darf.
+# Der Satz fuer die Durchlaufprobe. Kurz und deutsch.
+#
+# MERKPOSTEN, noch nicht erledigt: der Satz ist NICHT robust genug.
+# Gemessen ueber acht Laeufe hintereinander hoerte Whisper "mangeln"
+# fuenfmal als "manneln" oder "mannen" -- die Probe meldete dann "Nur
+# teilweise verstanden (2 von 3 Woertern)". Am Rechner ist nichts
+# falsch; das Wort ist zu selten und endet auf eine Silbe, die leicht
+# verschluckt wird. Ein Selbsttest, der ohne Grund gelb wird, gewoehnt
+# einem das Hinsehen ab -- das ist schlimmer als gar keine Probe.
+#
+# Zu tun: einen Satz waehlen, dessen Woerter alle haeufig und klar
+# getrennt sind, und ihn ueber mehrere Laeufe gegenmessen, statt ihn
+# wieder nur fuer robust zu HALTEN.
 PROBESATZ = "Der Herr ist mein Hirte, mir wird nichts mangeln."
 PRUEFWOERTER = ("herr", "hirte", "mangeln")
 

@@ -556,6 +556,12 @@ und alle Freigaben hängen an der Kabelkarte zum Zugangspunkt.
 
 ## Von 0.2.11 auf 0.2.12 — die Schritte am Gemeinderechner
 
+> **Überholt.** Der Rechner geht in einem Zug auf 0.2.15, siehe
+> [Von 0.2.11 direkt auf 0.2.15](#von-0211-direkt-auf-0215--der-weg-des-helfers).
+> Dieser Abschnitt bleibt stehen, weil er erklärt, **warum** der Ordner
+> verändert ist und was `dienst.sh` tut — beides braucht man, wenn
+> unterwegs etwas klemmt.
+
 Der Rechner steht mit einer geänderten `config.py` da: `netz_einrichten.sh`
 hatte dort bis 0.2.11 `NETZ_ROUTER = True` eingetragen. Deshalb bricht
 jedes Update ab. Das muss von Hand aufgelöst werden — **einmal**, danach
@@ -803,16 +809,97 @@ bash stick_bauen.sh /run/media/<name>/STICK --voll         alles
 Ohne `--von` oder `--voll` sind **keine** großen Teile dabei. Das ist
 der Normalfall — die meisten Updates ändern nur Code.
 
+**FAT32 und große Teile gehen nicht zusammen.** Auf FAT32 passt keine
+Datei über 4 GB; das Sprachmodell allein ist größer. Mit `--von` oder
+`--voll` bricht der Bau auf einem FAT32-Stick ab und sagt, was zu tun
+ist. Ohne große Teile ist FAT32 unproblematisch.
+
+> **Noch nicht gebaut, für später vorgemerkt.** Statt FAT32 abzulehnen,
+> große Dateien immer in Stücke unter 4 GB teilen, sie auf dem
+> Zielrechner wieder zusammensetzen und gegen die `sha256` aus der
+> Teileliste prüfen. Dann ist das Dateisystem des Sticks egal, und ein
+> halb kopierter Stick fällt beim Prüfen auf statt vor Ort. Solange das
+> nicht da ist, gilt der Abbruch oben.
+
+### Einen Stick als ZIP verschicken
+
+Wenn niemand vor Ort einen Stick bespielen kann — oder der Stick erst
+beim Helfer ankommt:
+
+```
+bash stick_bauen.sh --zip ~/Devarenu-Stick-v0.2.15.zip
+```
+
+Kein echter Stick nötig. Die Dateien liegen im ZIP **ganz oben**, nicht
+in einem Unterordner. Das ist Absicht: Windows entpackt in einen Ordner,
+der wie das ZIP heißt, und genau dieser eine Ordner darf unverändert auf
+den Stick. Der Rechner sucht `upd-dev.txt` eine Ebene tief und findet
+ihn dort. Läge im ZIP schon ein Unterordner, wären es zwei Ebenen — und
+der Rechner meldete „kein Update-Stick".
+
+**Auf dem Stick darf nur ein Update-Ordner liegen.** Sind es zwei — ein
+alter vom letzten Mal —, entschiede die Reihenfolge des Dateisystems,
+welche Fassung gilt. Deshalb bricht der Rechner ab und schreibt ans
+Pult, was zu tun ist. Keine Fassung, die vom Zufall abhängt.
+
 ### Prüfen, ohne acht Gigabyte anzufassen
 
 ```
 bash pruefstand/updater_test.sh
 python pruefstand/teile_test.py
+python pruefstand/bericht_test.py
+python pruefstand/netz_alt_test.py
 ```
 
-Beides läuft mit Attrappen, ohne Wurzelrechte, ohne systemd, ohne
-Modell. `systemctl`, `sudo` und `curl` kommen aus
-`pruefstand/attrappen/` und schreiben nur mit.
+Alles läuft mit Attrappen, ohne Wurzelrechte, ohne systemd, ohne
+Modell. `systemctl`, `sudo`, `curl`, `runuser`, `id` und `udevadm`
+kommen aus `pruefstand/attrappen/` und schreiben nur mit.
+
+Vier Umgebungsvariablen biegen Pfade um, **nur** für den Prüfstand. Ihre
+Vorgabe ist immer der echte Ort:
+
+| | statt |
+|---|---|
+| `DEVARENU_UNIT_ORDNER` | `/etc/systemd/system` |
+| `DEVARENU_UDEV_REGEL` | `/etc/udev/rules.d/99-devarenu-stick.rules` |
+| `DEVARENU_DATEN` | `/var/lib/devarenu/updates` |
+| `DEVARENU_STICK_ORDNER` | ein eingehängter Datenträger |
+
+Die Liste der erlaubten Schlüssel hat **bewusst keinen** eigenen
+Schalter — eine Variable, die bestimmt, welche Signatur gilt, wäre der
+Hebel, mit dem sich ein fremdes Tag annehmen ließe. Sie hängt an
+`DEVARENU_DATEN`.
+
+### Die Schlüsselliste kommt nie vom Stick
+
+Auf dem Stick **liegt** eine `schluessel.erlaubt`. Sie ist
+ausschließlich für `bootstrap.sh` da — für einen Rechner, der das
+Verfahren noch nicht kennt und deshalb noch keine eigene Liste hat.
+`bootstrap.sh` zeigt den Fingerabdruck daraus am Bildschirm, und ein
+Mensch vergleicht ihn **am Telefon** mit dem, den der Betreuer ihm
+nennt. Dieser Anruf ist der Vertrauensanker, nicht die Datei.
+
+**`stick_update.sh` liest sie nicht.** Der Kern prüft ausschließlich
+gegen `~/Devarenu/schluessel.erlaubt`, also gegen die installierte
+Liste. Vom Stick kommen nur `devarenu.bundle`, `wheels/` und `teile/`.
+
+Würde er die Liste vom Stick lesen, bräuchte ein Angreifer nur einen
+Stick zu bespielen: er brächte seine eigene Erlaubnis mit, und die
+Signaturprüfung prüfte nichts mehr als sich selbst.
+
+Belegt als **Fall 13** im Prüfstand — ein Tag von fremder Hand, dieselbe
+Absenderadresse, dazu die passende Erlaubnis auf dem Stick:
+
+```
+ok    die Signatur wird als ungueltig erkannt
+ok    das Pult sagt: Signatur
+ok    die Fassung blieb unangetastet
+ok    der fremde Schluessel steht in keiner Erlaubnisliste
+ok    mit dem echten Schluessel geht derselbe Stick durch
+```
+
+Die letzte Zeile gehört dazu: ohne sie bewiese der Fall nur, dass
+irgendetwas scheitert.
 
 ### Von 0.2.12 auf 0.2.13
 
@@ -821,6 +908,9 @@ Modell. `systemctl`, `sudo` und `curl` kommen aus
 0.2.13 keine großen Teile mit und lässt `requirements.txt` unangetastet.
 
 ### Von 0.2.11 direkt auf 0.2.13
+
+> **Nicht mehr der geplante Weg** — es geht direkt auf 0.2.15. Das
+> Folgende gilt unverändert weiter, nur mit der höheren Zahl.
 
 Geht genauso, mit **denselben** Übergangsschritten. Geprüft:
 
@@ -837,6 +927,102 @@ Geht genauso, mit **denselben** Übergangsschritten. Geprüft:
 
 0.2.12 wird dabei übersprungen. Das ist ohne Folgen — sie bringt keine
 Datenänderung mit, die 0.2.13 nicht selbst nachholt.
+
+## Von 0.2.11 direkt auf 0.2.15 — der Weg des Helfers
+
+Der Gemeinderechner steht auf 0.2.11. Vor Ort ist kein Techniker,
+sondern ein Ehrenamtlicher **ohne Admin-Passwort**. Er soll so wenig wie
+möglich tun: **ein Stick, eine Runde, eine getippte Zeile.**
+
+Gedruckt bekommt er dafür `anleitung/Devarenu-Umstellung.pdf` — eine
+Seite, ohne Fachbegriffe. Alles Folgende steht dort in seiner Sprache.
+
+### Warum das ohne sudo geht
+
+Er braucht kein Wurzelrecht, weil an keiner Stelle er selbst eines
+braucht:
+
+| Schritt | wer mit Rechten läuft |
+|---|---|
+| die eine Zeile | niemand, es ist sein eigener Ordner |
+| Stick einstecken | udev → `devarenu-stick@.service`, von systemd |
+| „Jetzt einspielen" | das Pult schreibt nur eine Marke, als normaler Benutzer |
+| einspielen | `devarenu-update.timer`, von systemd, binnen einer Minute |
+
+Der Server startet **nichts** selbst neu. Er legt `update/jetzt` an, und
+der Timer, der ohnehin jede Minute nachsieht, überspringt daraufhin die
+Wartezeit. Genau dafür gibt es keine dauerhaft offene sudo-Regel.
+
+### Die eine Zeile
+
+```fish
+cd ~/Devarenu; git checkout HEAD -- .
+```
+
+Bis 0.2.11 schrieb `netz_einrichten.sh` in `config.py`, und `firewall.sh`
+bekam ein Ausführungsrecht. Beides macht den Ordner „verändert", und
+jedes Update bricht dann ab.
+
+`git checkout HEAD -- .` statt zweier Dateinamen: der Helfer soll nicht
+entscheiden müssen, was abweicht. **Geprüft, dass das ungefährlich ist** —
+unversionierte Dateien bleiben unberührt, also `zustand.json` mit dem
+WLAN-Passwort, `netz.json`, `update/`, `models/`, `voices/`, `.venv/`.
+Wiederhergestellt wird nur, was im Repo steht, samt Rechtebits.
+
+`HEAD --` und nicht nur `--`: ohne `HEAD` holt git aus dem *Index*. Wäre
+je etwas vorgemerkt worden, bliebe der Ordner verändert und das Update
+bräche weiter ab — ohne dass jemand sähe, warum.
+
+### Was mitkommt und was nicht
+
+0.2.15 wird mit dem **alten** Updater von 0.2.11 eingespielt. Der neue
+Kern kommt mit und greift erst beim Update danach. Also bewusst klein:
+`requirements.txt` seit v0.2.11 unverändert, keine großen Teile.
+
+Der alte Kern überschreibt sich dabei selbst — er führt ein
+`git merge --ff-only` auf eine Fassung aus, in der `stick_update.sh`
+anders aussieht. **Das geht gut**, und es ist nicht Glück: git legt beim
+Auschecken eine neue Datei an und benennt sie um, statt die alte zu
+überschreiben. Die laufende Shell liest über ihren offenen Deskriptor
+die alte Fassung zu Ende. Im Prüfstand ist das Fall 9, mit dem echten
+Kern aus `git show v0.2.11:stick_update.sh`.
+
+**Die Units bleiben die von 0.2.11.** Sie rufen das Skript ohne
+`/bin/bash` auf, was am Ausführungsrecht hängt — das führt git mit
+(`100755`). Fall 10 belegt, dass der neue Kern dieselben Argumente
+verträgt. Neu geschrieben werden sie erst beim nächsten Update.
+
+### Was danach noch offen ist
+
+Nichts davon kann ein Update erledigen, alles braucht jemanden vor Ort:
+
+| | warum nicht im Update |
+|---|---|
+| **Netz** `netz_einrichten.sh` | stellt die Netzkarte um; geht es schief, ist der Rechner ohne Netz |
+| **Firewall** `firewall.sh --schnittstelle` | hängt an der Karte, die erst das Netz festlegt |
+| **Rechner** `rechner_einrichten.sh` | Autologin, kein Standby — gilt für den ganzen Rechner |
+| **Vorrat** `vorrat_bauen.sh` | braucht eine Leitung, rund 13 GB |
+| **Journal** `--rotate`, `--vacuum-time=1s` | löscht das ganze Systemprotokoll |
+
+Das Pult meldet Vorrat, veraltete Units und das alte Netz von selbst.
+
+### Das alte Netz meldet sich ruhig
+
+Bis 0.2.14 meldete der Systemcheck für den Aufbau von 0.2.11 **drei
+FEHLT-Befunde**, allen voran „Der Umbau ist halb". Das ist ein roter
+Alarm für einen Rechner, an dem nichts kaputt ist — und er stand am
+Pult vor jemandem, der ihn nicht einordnen konnte.
+
+Ab 0.2.15 steht dort **ein Hinweis**:
+
+> Das Netz läuft noch nach dem Aufbau von 0.2.11. Es funktioniert;
+> nichts ist kaputt. Beim nächsten Wartungsbesuch neu einrichten.
+> Betroffen: /etc/dnsmasq.d/devarenu.conf, die von Hand angehängte
+> conf-dir-Zeile in /etc/dnsmasq.conf, der von Hand angelegte
+> systemd-Zusatz mit Ordnungszyklus.
+
+Liegen **beide** Konfigurationen da, ist etwas halb umgezogen — dann
+bleibt es beim Alarm. Geprüft in `pruefstand/netz_alt_test.py`.
 
 ## Neuen Kern vor Ort prüfen — mit 0.2.14
 
@@ -1055,15 +1241,32 @@ Bei jeder Fassung:
       und Erstellzeitpunkt kommen aus `anleitung/DATUM`, nicht aus der
       Uhr — sonst wäre jeder Neubau eine Änderung im Repo. Also bei
       einer neuen Fassung auch `anleitung/DATUM` setzen.
+
+      Gebaut werden sechs PDF-Dateien:
+
+      | Datei | für wen |
+      |---|---|
+      | `Devarenu-Anleitung.pdf` | die ganze Anleitung, Teil A bis C |
+      | `Devarenu-Zuhoerer{,-en,-ru,-fa}.pdf` | Teil A einzeln, vier Sprachen |
+      | `Devarenu-Umstellung.pdf` | **eine Seite** für den Helfer vor Ort |
+
+      Das Blatt für den Helfer hat keine Titelseite und muss auf **eine**
+      Seite passen. Wird es länger, bricht der Bau ab statt still zwei
+      Seiten zu liefern — ein zweiseitiges „Blatt" geht am Zweck vorbei.
+      Es nennt die Fassung im Fußbereich, damit ein Ausdruck von vor
+      einem Jahr erkennbar ist.
 - [ ] `bash pruefen.sh` und `python selbsttest.py` müssen grün sein.
 - [ ] **Den Prüfstand laufen lassen:**
       ```
       bash pruefstand/updater_test.sh
       python pruefstand/teile_test.py
       python pruefstand/bericht_test.py
+      python pruefstand/netz_alt_test.py
       ```
       Der dritte prüft mit **erfundenen** Daten, dass im Fehlerbericht
-      weder Mitschrift noch Namen noch Zugangsdaten stehen.
+      weder Mitschrift noch Namen noch Zugangsdaten stehen. Der vierte,
+      dass ein Netz nach altem Aufbau einen ruhigen Hinweis bekommt und
+      keinen Alarm.
 - [ ] **Ist das öffentlich zumutbar?**
       ```
       bash oeffentlich_pruefen.sh
