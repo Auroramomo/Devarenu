@@ -254,7 +254,10 @@ TEMPO_STIMME = {
     "it_IT-paola-medium": 1.05,  # Italienisch
     "ka_GE-natia-medium": 1.29,  # Georgisch
     "nl_NL-mls-medium": 1.63,  # Niederländisch
+    "pl_PL-bass-high": 1.36,  # Polnisch, nicht ausgeliefert
     "pl_PL-darkman-medium": 1.25,  # Polnisch
+    "pl_PL-gosia-medium": 1.25,  # Polnisch, nicht ausgeliefert
+    "pl_PL-mc_speech-medium": 1.01,  # Polnisch, nicht ausgeliefert
     "pt_BR-cadu-medium": 1.45,  # Portugiesisch, nicht ausgeliefert
     "pt_BR-faber-medium": 1.04,  # Portugiesisch
     "pt_BR-jeff-medium": 1.37,  # Portugiesisch, nicht ausgeliefert

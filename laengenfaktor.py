@@ -698,6 +698,26 @@ def je_stimme(anzahl, modell, tondatei, nur=None):
     # draussen -- er enthaelt Predigtsaetze, und das Repo ist oeffentlich.
     ziel = config.BASIS / "messungen" / "laengenfaktor_stimmen.json"
     ziel.parent.mkdir(exist_ok=True)
+
+    # Was schon gemessen war, bleibt stehen. Mit --nur pl misst dieser
+    # Lauf FUENF Stimmen -- ohne das Zusammenfuehren stuenden danach
+    # nur noch diese fuenf in der Datei, und die 25 Messungen der
+    # anderen Sprachen waeren weg. Genau das ist einmal passiert: der
+    # Beleg fuer fast jede Zahl in config.TEMPO_STIMME war nach einem
+    # Lauf ueber eine einzige Sprache verschwunden. Gesehen erst am
+    # Diffstat des Commits, "208 Zeilen dazu, 192 weg".
+    vorher = {}
+    if ziel.exists():
+        try:
+            vorher = json.loads(ziel.read_text(encoding="utf-8"))
+        except ValueError:
+            pass
+    zusammen = dict(vorher.get("stimmen", {}))
+    zusammen.update(ergebnis)
+    if len(zusammen) > len(ergebnis):
+        print(f"{len(zusammen) - len(ergebnis)} fruehere Messungen "
+              f"uebernommen.")
+
     ziel.write_text(json.dumps({
         "bezugsgroesse": "gegen_deutsch",
         # Ohne diesen Schalter waere jede Zahl hier um wenige Prozent
@@ -714,7 +734,8 @@ def je_stimme(anzahl, modell, tondatei, nur=None):
         "tondatei": Path(tondatei).name,
         "modell": modell,
         "saetze": len(saetze),
-        "stimmen": ergebnis,
+        # Die Werte dieses Laufs, dazu alles frueher Gemessene.
+        "stimmen": dict(sorted(zusammen.items())),
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\nGeschrieben: {ziel}")
     return ergebnis

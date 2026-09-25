@@ -1,0 +1,276 @@
+﻿id;block;typ;stt;de;suchvarianten;en;ru;fa;fa_vokal;k_en;k_ru;k_fa;anmerkung;es;k_es;pt;k_pt;hr;k_hr;fr;k_fr;pl;k_pl
+A001;A;hart;0;1. Mose;ersten Buch Mose|erster Buch Mose|erstes Buch Mose|erstem Buch Mose|erste Buch Mose|1. Mose|Genesis|1 Mose;Genesis;Бытие;پیدایش;;3;3;3;RU/EN/FA nutzen Genesis-Namen, DE die Mose-Zaehlung. Reine Nummernuebersetzung ist falsch.;Génesis;3;Gênesis;3;Postup;3;Genèse;3;Rodzimowierczy;3
+A002;A;hart;0;2. Mose;zweiten Buch Mose|zweiter Buch Mose|zweites Buch Mose|zweitem Buch Mose|zweite Buch Mose|2. Mose|2 Mose|Exodus;Exodus;Исход;خروج;;3;3;3;;Éxodo;3;Êxodo;3;Izlaz;3;Exode;3;Wyjście;3
+A003;A;hart;0;3. Mose;dritten Buch Mose|dritter Buch Mose|drittes Buch Mose|drittem Buch Mose|dritte Buch Mose|Levitikus|3. Mose|3 Mose;Leviticus;Левит;لاویان;;3;3;3;;Levítico;3;Levítico;3;Levitika;3;Lévitique;3;Liczba 3;3
+A004;A;hart;0;4. Mose;vierten Buch Mose|vierter Buch Mose|viertes Buch Mose|viertem Buch Mose|vierte Buch Mose|4. Mose|4 Mose|Numeri;Numbers;Числа;اعداد;;3;3;3;;Números;3;Números;3;Brojevi;3;Nombres;3;Liczby;3
+A005;A;hart;0;5. Mose;fünften Buch Mose|fünfter Buch Mose|fünftes Buch Mose|fünftem Buch Mose|fünfte Buch Mose|Deuteronomium|5. Mose|5 Mose;Deuteronomy;Второзаконие;تثنیه;;3;3;3;;Deuteronomio;3;Deuteronômio;3;Ponavijesti;3;Deutéronome;3;Powtórzenie Prawa;3
+A006;A;hart;0;Josua;Josua;Joshua;Иисус Навин;یوشع;;3;3;3;RU-Name enthaelt Iisus. Nicht mit Jesus verwechseln lassen.;Josué;3;Josué;3;Josua;3;Josué;3;Josue;3
+A007;A;weich;1;Richter;Buch der Richter|Richter;Judges;Судей;داوران;;3;3;3;WEICH: Richter ist im Deutschen doppeldeutig. Nur bei Stellenangabe erzwingen.;Jueces;3;Juízes;3;Sudije;3;Juges;3;Sędziowie;3
+A008;A;hart;0;Ruth;Ruth|Rut;Ruth;Руфь;روت;;3;3;3;;Rut;3;Rute;3;Rut;3;Ruth;3;Rut;3
+A009;A;hart;0;1. Samuel;ersten Buch Samuel|erster Buch Samuel|erstes Buch Samuel|erstem Buch Samuel|erste Buch Samuel|1. Samuel|1 Samuel;1 Samuel;1-я Царств;اول سموئیل;;3;3;3;FALLSTRICK RU: Samuel und Koenige werden als 1-4 Zarstv gezaehlt. 1. Samuel = 1-ja Zarstv.;1 Samuel;3;1 Samuel;3;1. Samuil;3;1 Samuel;3;1 Samuela;3
+A010;A;hart;0;2. Samuel;zweiten Buch Samuel|zweiter Buch Samuel|zweites Buch Samuel|zweitem Buch Samuel|zweite Buch Samuel|2. Samuel|2 Samuel;2 Samuel;2-я Царств;دوم سموئیل;;3;3;3;FALLSTRICK RU: 2. Samuel = 2-ja Zarstv.;2 Samuel;3;2 Samuel;3;2. Samuil;3;2 Samuel;3;2 Samuela;3
+A011;A;hart;0;1. Könige;ersten Buch der Könige|erster Buch der Könige|erstes Buch der Könige|erstem Buch der Könige|erste Buch der Könige|1. Könige|1 Könige;1 Kings;3-я Царств;اول پادشاهان;;3;3;3;FALLSTRICK RU: 1. Koenige = 3-ja Zarstv, NICHT 1-ja. Haeufigster Bibelstellenfehler.;1 Reyes;3;1 Reis;3;1. Kralj;3;1 Rois;3;1. Królowie;3
+A012;A;hart;0;2. Könige;zweiten Buch der Könige|zweiter Buch der Könige|zweites Buch der Könige|zweitem Buch der Könige|zweite Buch der Könige|2. Könige|2 Könige;2 Kings;4-я Царств;دوم پادشاهان;;3;3;3;FALLSTRICK RU: 2. Koenige = 4-ja Zarstv.;2 Reyes;3;2 Reis;3;2. Kralj;3;2 Rois;3;2 Królowie;3
+A013;A;hart;1;1. Chronik;1. Chronik|1 Chronik;1 Chronicles;1-я Паралипоменон;اول تواریخ;;3;3;3;;1 Crónicas;3;1 Crônicas;3;1. Krônike;3;1 Chroniques;3;1. Kroniki;3
+A014;A;hart;1;2. Chronik;2. Chronik|2 Chronik;2 Chronicles;2-я Паралипоменон;دوم تواریخ;;3;3;3;;2 Crónicas;3;2 Crônicas;3;2. Krônike;3;2 Chroniques;3;2. Kroniki;3
+A015;A;hart;1;Esra;Esra;Ezra;Ездра;عزرا;;3;3;3;;Esdras;3;Esdras;3;Ezra;3;Esdras;3;Ezra;3
+A016;A;hart;1;Nehemia;Nehemia;Nehemiah;Неемия;نحمیا;;3;3;3;;Nehemías;3;Neemias;3;Nehemija;3;Néhémie;3;Nehemiasz;3
+A017;A;hart;0;Esther;Esther|Ester;Esther;Есфирь;استر;;3;3;3;;Ester;3;Ester;3;Ester;3;Esther;3;Ester;3
+A018;A;hart;0;Hiob;Hiob|Ijob;Job;Иов;ایوب;;3;3;3;;Job;3;Jó;3;Job;3;Job;3;Ioj;3
+A019;A;hart;0;Psalmen;Psalmen|Psalter|Psalm;Psalms;Псалтирь;مزامیر;;3;3;3;RU: Buch = Psaltir, Einzelpsalm = Psalom.;Salmos;3;Salmos;3;Psalmi;3;Psaumes;3;Psalmy;3
+A020;A;weich;1;Sprüche;Buch der Sprüche|Sprichwörter|Sprüche;Proverbs;Притчи;امثال;;3;3;3;WEICH: RU Pritchi heisst zugleich Gleichnisse. Siehe C072.;Proverbios;3;Provérbios;3;Mudrosti;3;Proverbes;3;Przysłowie;3
+A021;A;weich;1;Prediger;Prediger|Kohelet;Ecclesiastes;Екклесиаст;جامعه;;3;3;3;WEICH: Prediger ist im Deutschen doppeldeutig (Buch vs. Person). Siehe D028.;Eclesiastés;3;Eclesiastes;3;Propovitelj;3;Ecclésiastes;3;Kohegacz;3
+A022;A;hart;1;Hohelied;Hoheslied|Hohelied;Song of Songs;Песнь Песней;غزل غزلها;;3;3;3;;Cantares;3;Cânticos;3;Pjevačevka;3;Cantique des Cantiques;3;Pieśń Pieśni;3
+A023;A;hart;0;Jesaja;Jesaja;Isaiah;Исаия;اشعیا;;3;3;3;;Isaías;3;Isaías;3;Isaija;3;Ésaïe;3;Izajasz;3
+A024;A;hart;0;Jeremia;Jeremia;Jeremiah;Иеремия;ارمیا;;3;3;3;;Jeremías;3;Jeremias;3;Jeremija;3;Jérémie;3;Jeremias;3
+A025;A;hart;1;Klagelieder;Klagelieder;Lamentations;Плач Иеремии;مراثی ارمیا;;3;3;3;;Lamentaciones;3;Lamentações;3;Lamentacije;3;Lamentations;3;Pieśni Lamentacji;3
+A026;A;hart;1;Hesekiel;Hesekiel|Ezechiel;Ezekiel;Иезекииль;حزقیال;;3;3;3;Schlachter 2000 schreibt Hesekiel, katholisch Ezechiel.;Ezequiel;3;Ezequiel;3;Ezikijil;3;Ézéchiel;3;Ezechiel;3
+A027;A;hart;0;Daniel;Daniel;Daniel;Даниил;دانیال;;3;3;3;;Daniel;3;Daniel;3;Danijel;3;Daniel;3;Daniel;3
+A028;A;hart;1;Hosea;Hosea;Hosea;Осия;هوشع;;3;3;3;;Oseas;3;Oseias;3;Hosea;3;Osée;3;Ozyjasz;3
+A029;A;hart;1;Joel;Joel;Joel;Иоиль;یوئیل;;3;3;3;;Joel;3;Joel;3;Joel;3;Joël;3;Joel;3
+A030;A;hart;1;Amos;Amos;Amos;Амос;عاموس;;3;3;3;;Amós;3;Amós;3;Amos;3;Amos;3;Amos;3
+A031;A;hart;1;Obadja;Obadja;Obadiah;Авдий;عوبدیا;;3;3;3;;Abdías;3;Abdias;3;Obadija;3;Abdias;3;Obadjasz;3
+A032;A;hart;0;Jona;Jona;Jonah;Иона;یونس;;3;3;3;FA Yunes ist zugleich der islamische Name. Unproblematisch, aber bewusst.;Jonás;3;Jonas;3;Jona;3;Jonas;3;Jonasz;3
+A033;A;hart;1;Micha;Micha;Micah;Михей;میکاه;;3;3;3;;Miqueas;3;Miqueias;3;Mika;3;Michée;3;Michał;3
+A034;A;hart;1;Nahum;Nahum;Nahum;Наум;ناحوم;;3;3;3;;Nahú;3;Naum;3;Nahum;3;Nahum;3;Nahum;3
+A035;A;hart;1;Habakuk;Habakuk;Habakkuk;Аввакум;حبقوق;;3;3;3;;Habacuc;3;Habacuque;3;Habakuk;3;Habacuc;3;Habakuk;3
+A036;A;hart;1;Zephanja;Zephanja|Zefanja;Zephaniah;Софония;صفنیا;;3;3;3;;Sofonías;3;Sofonias;3;Sofonija;3;Sophonie;3;Zachariasz;3
+A037;A;hart;1;Haggai;Haggai;Haggai;Аггей;حجی;;3;3;3;;Hageo;3;Ageu;3;Hagaj;3;Aggée;3;Hagaj;3
+A038;A;hart;1;Sacharja;Sacharja;Zechariah;Захария;زکریا;;3;3;3;;Zacarías;3;Zacarias;3;Zakarija;3;Zacharie;3;Zachariasz;3
+A039;A;hart;1;Maleachi;Maleachi;Malachi;Малахия;ملاکی;;3;3;3;;Malaquías;3;Malaquias;3;Malakija;3;Malachie;3;Malachiasz;3
+A040;A;hart;0;Matthäus;Matthäus;Matthew;Матфея;متی;;3;3;3;;Mateo;3;Mateus;3;Matej;3;Matthieu;3;Mateusz;3
+A041;A;hart;0;Markus;Markus;Mark;Марка;مرقس;;3;3;3;;Marcos;3;Marcos;3;Marko;3;Marc;3;Mark</th>;3
+A042;A;hart;0;Lukas;Lukas;Luke;Луки;لوقا;;3;3;3;;Lucas;3;Lucas;3;Luka;3;Luc;3;Łukasz;3
+A043;A;weich;0;Johannes;Johannes;John;Иоанна;یوحنا;;3;3;3;WEICH: Johannesevangelium vs. Johannesbriefe vs. Johannes der Taeufer. Kontext noetig.;Juan;3;João;3;Ivan;3;Jean;3;Jan;3
+A044;A;hart;0;Apostelgeschichte;Apostelgeschichte;Acts;Деяния;اعمال رسولان;;3;3;3;;Hechos;3;Atos;3;Djinjave;3;Actes;3;Dzieje Apostołów;3
+A045;A;hart;0;Römer;Römerbrief|Römer;Romans;Римлянам;رومیان;;3;3;3;;Romanos;3;Romanos;3;Rimljani;3;Romains;3;Rzymianin;3
+A046;A;hart;1;1. Korinther;1. Korinther|1 Korinther;1 Corinthians;1-е Коринфянам;اول قرنتیان;;3;3;3;;1 Corintios;3;1 Coríntios;3;1. Korinćani;3;1 Corinthiens;3;1. Listy do Korntian;3
+A047;A;hart;1;2. Korinther;2. Korinther|2 Korinther;2 Corinthians;2-е Коринфянам;دوم قرنتیان;;3;3;3;;2 Corintios;3;2 Coríntios;3;2. Korinćani;3;2 Corinthiens;3;2. Listwa do 2. Listu do Koryntian;3
+A048;A;hart;1;Galater;Galaterbrief|Galater;Galatians;Галатам;غلاطیان;;3;3;3;;Gálatas;3;Gálatas;3;Galatljani;3;Galates;3;Galatym;3
+A049;A;hart;1;Epheser;Epheserbrief|Epheser;Ephesians;Ефесянам;افسسیان;;3;3;3;;Efesios;3;Efésios;3;Efesijama;2;Éphésiens;3;Efezczyńscy;3
+A050;A;hart;1;Philipper;Philipperbrief|Philipper;Philippians;Филиппийцам;فیلیپیان;;3;3;3;Nicht mit Philemon verwechseln.;Filipenses;3;Filipenses;3;Filipijcima;2;Philippiens;3;Filipijczyków;3
+A051;A;hart;1;Kolosser;Kolosserbrief|Kolosser;Colossians;Колоссянам;کولسیان;;3;3;3;;Colosenses;3;Colossenses;3;Kolosnjima;2;Colossiens;3;Koligasińczy;3
+A052;A;hart;1;1. Thessalonicher;1. Thessalonicher|1 Thessalonicher;1 Thessalonians;1-е Фессалоникийцам;اول تسالونیکیان;;3;3;3;;1 Tesalonicenses;3;1 Tessalonicenses;3;1. Tesaloničarima;2;1 Thessaloniciens;3;1. Listów do Tesaloniczan;3
+A053;A;hart;1;2. Thessalonicher;2. Thessalonicher|2 Thessalonicher;2 Thessalonians;2-е Фессалоникийцам;دوم تسالونیکیان;;3;3;3;;2 Tesalonicenses;3;2 Tessalonicenses;3;2. Tesaloničarima;2;2 Thessaloniciens;3;2. Listwa do Tesaloniczan;3
+A054;A;hart;1;1. Timotheus;1. Timotheus|1 Timotheus;1 Timothy;1-е Тимофею;اول تیموتائوس;;3;3;2;;1 Timoteo;3;1 Timóteo;3;1. Timoteju;2;1 Timothée;3;1. Tymoteus;3
+A055;A;hart;1;2. Timotheus;2. Timotheus|2 Timotheus;2 Timothy;2-е Тимофею;دوم تیموتائوس;;3;3;2;;2 Timoteo;3;2 Timóteo;3;2. Timoteju;2;2 Timothée;3;2 Tymoteus;3
+A056;A;hart;1;Titus;Titusbrief|Titus;Titus;Титу;تیطس;;3;3;3;;Tito;3;Tito;3;Titu;2;Tite;3;Tytus;3
+A057;A;hart;1;Philemon;Philemon;Philemon;Филимону;فلیمون;;3;3;3;;Filemón;3;Filemão;3;Filemon;3;Philémon;3;Filemon;3
+A058;A;hart;0;Hebräer;Hebräerbrief|Hebräer;Hebrews;Евреям;عبرانیان;;3;3;3;Adventistisch zentral wegen Heiligtumslehre.;Hebreos;3;Hebreus;3;Hebreje;3;Hébreux;3;Hebreuszy;3
+A059;A;hart;0;Jakobus;Jakobusbrief|Jakobus;James;Иакова;یعقوب;;3;3;3;FALLSTRICK: EN James sieht wie ein anderer Name aus. FA Yaqub = zugleich Jakob im AT.;Santiago;3;Tiago;3;Jakov;3;Jacques;3;Jakub;3
+A060;A;hart;0;1. Petrus;1. Petrus|1 Petrus;1 Peter;1-е Петра;اول پطرس;;3;3;3;;1 Pedro;3;1 Pedro;3;1. Petrova;3;1 Pierre;3;1 Listy Piotra;3
+A061;A;hart;0;2. Petrus;2. Petrus|2 Petrus;2 Peter;2-е Петра;دوم پطرس;;3;3;3;;2 Pedro;3;2 Pedro;3;2. Petrova;3;2 Pierre;3;2. Lista Piotra;3
+A062;A;hart;0;1. Johannes;1. Johannes|1 Johannes;1 John;1-е Иоанна;اول یوحنا;;3;3;3;;1 Juan;3;1 João;3;1. Jovanovo;3;1 Jean;3;1 Jana;3
+A063;A;hart;0;2. Johannes;2. Johannes|2 Johannes;2 John;2-е Иоанна;دوم یوحنا;;3;3;3;;2 Juan;3;2 João;3;2. Jovanovo;3;2 Jean;3;2 Jana;3
+A064;A;hart;0;3. Johannes;3. Johannes|3 Johannes;3 John;3-е Иоанна;سوم یوحنا;;3;3;3;;3 Juan;3;3 João;3;3. Jovanovo;3;3 Jean;3;3 Jana;3
+A065;A;hart;1;Judas;Brief des Judas|Judasbrief;Jude;Иуды;یهودا;;3;3;3;FALLSTRICK: EN unterscheidet Jude (Brief) von Judas (Iskariot). DE nicht.;Judas;3;Judas;3;Judin;2;Judas;3;Judas;3
+A066;A;weich;0;Offenbarung;Offenbarung des Johannes|Offenbarung;Revelation;Откровение;مکاشفه;;3;3;3;WEICH: Offenbarung als Buch vs. Offenbarung als Sachbegriff. Siehe C022.;Apocalipsis;3;Apocalipse;3;Otkrivenje;2;Apocalypse;3;Objawienie;3
+C001;C;hart;0;Gnade;Gnaden|Gnade;grace;благодать;فیض;;3;3;3;RU: milost = Barmherzigkeit, nicht charis. Trennung wichtig.;gracia;3;graça;3;milost;2;grâce;3;łaska;3
+C002;C;hart;0;Barmherzigkeit;Barmherzigkeit|barmherzig;mercy;милость;رحمت;;3;3;3;;misericordia;2;misericórdia;2;milost;2;miséricorde;3;miłosierdzie;3
+C003;C;hart;0;Glaube;Glaubens|Glauben|Glaube;faith;вера;ایمان;;3;3;3;;fe;3;fé;3;vjera;2;foi;3;wiara;3
+C004;C;weich;0;Liebe;Gotten Liebe|Gotter Liebe|Gottes Liebe|Gottem Liebe|Gotte Liebe|lieben|Liebe;love;любовь;محبت;;3;3;3;FA: mohabbat ist die biblische Liebe, eshgh ist romantisch. Nicht verwechseln.;amor;3;amor;3;ljubav;2;amour;3;miłość;3
+C005;C;hart;0;Hoffnung;Hoffnung|hoffen;hope;надежда;امید;;3;3;3;;esperanza;3;esperança;3;nada;2;espérance;3;nadzieja;3
+C006;C;hart;0;Rechtfertigung;Rechtfertigung|gerechtfertigt|rechtfertigen;justification;оправдание;عادل شمرده شدن;عادِل شِمُرده شُدَن;3;3;3;FA: Verbalkonstruktion. Konsistenz mit C Gerechtigkeit pruefen.;justificación;3;justificação;3;opravdanje;2;justification;3;usprawiedliwienie;3
+C007;C;hart;0;Heiligung;Heiligung|geheiligt|heiligen;sanctification;освящение;تقدیس;;3;3;2;;santificación;3;santificação;3;osvjetinje;2;sanctification;3;uświęcenie;3
+C008;C;hart;0;Erlösung;Erlösung|erlösen|erlöst;redemption;искупление;فدیه;;3;3;2;Loskauf. Abgrenzen von Heil = Rettung.;redención;3;redenção;3;iskupljenje;2;rédemption;3;wykupienie;3
+C009;C;weich;0;Heil;das Heil|Heils;salvation;спасение;نجات;;3;3;3;WEICH: Heil ist im Deutschen auch Grusswort und Adjektiv. Nur substantivisch erzwingen.;salvación;3;salvação;3;spasenje;2;salut;3;zbawienie;3
+C010;C;hart;0;Erlöser;Erlöser;Redeemer;Искупитель;نجات‌دهنده;;3;3;3;Gleicher FA-Terminus wie Heiland.;Redentor;3;Redentor;3;Otpčuvač;1;Rédempteur;3;Zbawiciel;3
+C011;C;hart;0;Heiland;Heiland;Savior;Спаситель;نجات‌دهنده;;3;3;3;;Salvador;3;Salvador;3;Spasitelj;2;Sauveur;3;Zbawiciel;3
+C012;C;hart;0;Sünde;sündigen|Sünden|Sünde;sin;грех;گناه;;3;3;3;;pecado;3;pecado;3;grijeh;2;péché;3;grzech;3
+C013;C;hart;1;Sündenfall;Fall des Menschen|Sündenfall;the Fall;грехопадение;سقوط انسان;;3;3;2;;la Caída;3;a Queda;3;Pad;2;la Chute;3;Upadek;3
+C014;C;hart;0;Buße;Bußfertigkeit|Buße;repentance;покаяние;توبه;;3;3;3;;arrepentimiento;3;arrependimento;3;pokajanje;2;repentance;3;pokuta;3
+C015;C;weich;0;Umkehr;umkehren|Umkehr;repentance;покаяние;بازگشت به خدا;;3;3;2;Gleicher Zielterminus wie Busse.;arrepentimiento;3;arrependimento;3;pokajanje;3;repentance;3;pokuta;3
+C016;C;hart;0;Bekehrung;Bekehrung|bekehren|bekehrt;conversion;обращение;توبه و بازگشت به سوی خدا;توبه وَ بازگَشت به سوی خُدا;3;3;3;;conversión;3;conversão;3;preobraženje;2;conversion;3;nawrócenie;3
+C017;C;hart;0;Vergebung;Vergebung|vergeben;forgiveness;прощение;آمرزش;;3;3;2;;perdón;3;perdão;3;oprostitev;3;pardon;3;wybaczenie;3
+C018;C;hart;0;Versöhnung;Versöhnung|versöhnen|versöhnt;reconciliation;примирение;آشتی;;3;3;2;Nicht mit Suehne verwechseln. Versoehnung = Beziehungswiederherstellung.;reconciliación;3;reconciliação;3;pomirenje;3;réconciliation;3;pojednanie;3
+C019;C;hart;1;Sühne;Sühnopfer|Sühnung|sühnen|Sühne;atonement;умилостивление;کفاره;;3;2;2;RU: iskuplenie wird oft synonym benutzt. In RU-Adventliteratur pruefen.;expiación;3;expiação;3;iskupljenje;2;expiation;3;odkupienie;3
+C020;C;hart;1;Fürbitte;Fürbitten|Fürbitte;intercession;ходатайство;شفاعت;;3;3;2;FALLSTRICK RU: nicht zastupnichestvo. Das ist orthodox fuer Heiligenanrufung und adventistisch problematisch.;intercesión;3;intercessão;3;pregovorstvo;2;intercession;3;prośba o wstawiennictwo;3
+C021;C;hart;0;Mittler;Mittlerdienst|Mittleramt|Mittler;mediator;посредник;واسطه;;3;3;2;;mediador;3;mediador;3;posrednik;3;médiateur;3;Pośrednik;3
+C022;C;hart;1;Hohepriester;hohepriesterlich|Hohepriester;high priest;первосвященник;رئیس کهنه;;3;3;2;;sacerdote sumo;3;sumo sacerdote;3;vrhovni sveštenik;3;grand prêtre;3;Najwyższy Kapłan;3
+C023;C;hart;1;Priestertum;Priestertum;priesthood;священство;کهانت;;3;3;2;;sacerdocio;3;sacerdócio;3;svištvo;2;sacerdoce;3;kapłaństwo;3
+C024;C;weich;0;Opfer;Opferung|opfern|Opfer;sacrifice;жертва;قربانی;;3;3;3;WEICH: Opfer als Gabe vs. Opfer als Geschaedigter. EN victim vs. sacrifice.;sacrificio;3;sacrifício;3;žrtva;3;sacrifice;3;ofiara;3
+C025;C;hart;0;Blut Christi;Blut des Lammes|Blut Christi;blood of Christ;Кровь Христа;خون مسیح;;3;3;2;;sangre de Cristo;3;sangue de Cristo;3;krv Krista;3;sang de Christ;3;krew Chrystusa;3
+C026;C;hart;0;Kreuz;Kreuzes|Kreuz;cross;крест;صلیب;;3;3;3;;cruz;3;cruz;3;krst;3;croix;3;krzyż;3
+C027;C;hart;0;Kreuzigung;Kreuzigung|gekreuzigt|kreuzigen;crucifixion;распятие;مصلوب شدن;;3;3;2;;crucifixión;3;crucifixão;3;raspinje;3;crucifixion;3;ukrzyżowanie;3
+C028;C;weich;0;Bund;Bündnis|Bundes|Bund;covenant;завет;عهد;;3;3;3;WEICH: RU zavet auch fuer Testament (Vetkhiy Zavet = AT). Kontext.;pacto;3;pacto;3;zavez;3;alliance;3;przymierze;3
+C029;C;hart;0;Verheißung;Verheißung|verheißen;promise;обетование;وعده;;3;3;3;RU: obetovanie theologisch, obeshchanie alltaeglich.;promesa;3;promessa;3;oboćaj;2;promesse;3;obietnica;3
+C030;C;weich;0;Offenbarung;Offenbarung|offenbaren|offenbart;revelation;откровение;مکاشفه;;3;3;3;WEICH: Bibelbuch (A066) vs. Sachbegriff.;revelación;3;revelação;3;otkrivenje;3;révélation;3;Objawienie;3
+C031;C;hart;0;Inspiration;Inspiration|inspiriert;inspiration;богодухновенность;الهام;;3;2;2;RU: bogodukhnovennost fuer Schriftinspiration, vdokhnovenie ist allgemeine Eingebung.;inspiración;3;inspiração;3;inspiracija;2;inspiration;3;natchłonienie;3
+C032;C;hart;0;Heilige Schrift;Heiligen Schrift|Heiliger Schrift|Heiliges Schrift|Heiligem Schrift|Heilige Schrift|die Schrift|Schriften;Scripture;Священное Писание;کتاب‌مقدس;;3;3;3;;las Escrituras;3;as Escrituras;3;Sveto pismo;3;Écritures;3;Święte Pismo;3
+C033;C;hart;0;Evangelium;Evangeliums|Evangelium;gospel;Евангелие;انجیل;;3;3;3;;evangelio;3;evangelho;3;Jevanđelje;3;Évangile;3;Ewangelia;3
+C034;C;hart;0;Prophetie;prophetisch|Weissagung|Prophetie;prophecy;пророчество;نبوت;;3;3;3;;profecía;3;profecia;3;proročanstvo;3;prophétie;3;proroctwo;3
+C035;C;hart;0;Prophet;Propheten|Prophet;prophet;пророк;نبی;;3;3;3;FA: payambar ist islamisch konnotiert, nabi biblisch neutraler.;profeta;3;profeta;3;prorok;3;prophète;3;prorok;3
+C036;C;hart;0;Apostel;Apostel;apostle;апостол;رسول;;3;3;3;;apóstol;3;apóstolo;3;apostol;3;apôtre;3;apostoł;3
+C037;C;hart;0;Jünger;Jüngerschaft|Jünger;disciple;ученик;شاگرد;;3;3;3;;discípulo;3;discípulo;3;učenik;3;disciple;3;uczeń;3
+C038;C;weich;0;Gemeinde;Gemeinden|Gemeinde;congregation;церковь;کلیسا;;2;3;3;DE Gemeinde meint die Ortsgemeinde. EN church doppeldeutig, congregation praeziser.;congregación;3;congregação;3;zajednica;2;église;3;zbór;2
+C039;C;hart;0;Leib Christi;Leib Christi;body of Christ;тело Христово;بدن مسیح;;3;3;2;;cuerpo de Cristo;3;corpo de Cristo;3;tijelo Krista;2;corps du Christ;3;Ciało Chrystusa;3
+C040;C;hart;0;Taufe;getauft|taufen|Taufe;baptism;крещение;تعمید;;3;3;3;;bautismo;3;batismo;3;krštenje;3;baptême;3;chrzest;3
+C041;C;hart;1;Abendmahl;Herrenmahl|Abendmahl;Lord's Supper;Вечеря Господня;عشای ربانی;;3;3;2;;Cena del Señor;3;Ceia do Senhor;3;Gospodnjeva večera;2;Sainte Cène;3;Wieczerza Pańska;3
+C042;C;hart;1;Fußwaschung;Fußwaschung;foot washing;омовение ног;شستن پاها;شُستن پاها;3;3;3;;lavamiento de los pies;3;lava-pés;3;pranje nogu;2;lavement des pieds;3;umycie nóg;3
+C043;C;hart;0;Gebet;Gebete|Gebet|beten;prayer;молитва;دعا;;3;3;3;;oración;3;oração;3;molitva;3;prière;3;modlitwa;3
+C044;C;hart;0;Anbetung;Anbetung|anbeten;worship;поклонение;پرستش;;3;3;3;;adoración;3;adoração;3;adoranje;2;adoration;3;adoracja;3
+C045;C;hart;0;Lobpreis;Lobpreis|preisen|loben;praise;хвала;ستایش;;3;3;3;;alabanza;3;louvor;3;hvaljenje;2;louange;3;uwielbienie;3
+C046;C;hart;0;Segen;gesegnet|segnen|Segen;blessing;благословение;برکت;;3;3;3;;bendición;3;bênção;3;blagoslovlje;3;bénédiction;3;błogosławieństwo;3
+C047;C;hart;0;Heiliger Geist;Heiligen Geist|Heiliger Geist|Heiliges Geist|Heiligem Geist|Heilige Geist|Geist Gottes;Holy Spirit;Святой Дух;روح‌القدس;;3;3;3;Muss vor dem Einzeleintrag Geist matchen (laengster Treffer zuerst).;Espíritu Santo;3;Espírito Santo;3;Sveti Duh;3;Saint-Esprit;3;Duch Święty Duch;3
+C048;C;hart;1;Dreieinigkeit;Dreieinigkeit|dreieinig|Trinität;Godhead;Троица;تثلیث;;2;3;2;Adventistisch oft Godhead statt Trinity. Entscheidung noetig.;la Trinidad;2;a Trindade;2;Sveta Trojica;3;Trinité;3;Trójca Święta;2
+C049;C;hart;0;Vorsehung;Vorsehung;providence;провидение;مشیت الهی;مَشیَّتِ اِلٰهی;3;3;3;FA: taqdir ist islamisch als Vorherbestimmung besetzt, mashiyat neutraler. Pruefen.;Providencia;3;Providência;3;Providencija;2;providence;3;Opieka Boża;3
+C050;C;hart;0;Erwählung;auserwählt|Erwählung|erwählt;election;избрание;برگزیدگی;بَرگُزیدِگی;3;3;3;;elección;3;eleição;3;izabranije;2;élection;3;wybranie;3
+C051;C;weich;0;Berufung;Berufung|berufen;calling;призвание;دعوت;;3;3;2;WEICH: Berufung auch juristisch und beruflich.;llamado;3;chamado;3;poziv;3;appel;3;powołanie;3
+C052;C;hart;0;Nachfolge;nachfolgen|Nachfolge;discipleship;ученичество;پیروی از مسیح;;3;2;2;;discipulado;3;discipulado;3;učenichestvo;2;discipulat;3;ucinnienie;3
+C053;C;hart;0;Auferstehung;Auferstehung|auferstanden|auferstehen;resurrection;воскресение;رستاخیز;;3;3;3;FA: qiyamat ist islamisch als Juengster Tag besetzt, rastakhiz neutraler.;resurrección;3;ressurreição;3;uskrsnuće;3;résurrection;3;wskrzeszenie;3
+C054;C;hart;0;Himmelfahrt;Himmelfahrt;ascension;вознесение;صعود;;3;3;2;;ascensión;3;ascensão;3;uznesenje;3;ascension;3;Wniebowstąpienie;3
+C055;C;hart;0;Wiederkunft;zweiten Kommen|zweiter Kommen|zweites Kommen|zweitem Kommen|zweite Kommen|Wiederkommen|Wiederkunft;Second Coming;Второе пришествие;بازگشت مسیح;;3;3;2;Zentralbegriff. Muss sitzen.;Segunda Venida;3;Segunda Vinda;3;Drugo dojavljanje;2;Second Avènement;3;Drugie przyjście;3
+C056;C;hart;0;Ewiges Leben;ewigen Leben|ewiger Leben|ewiges Leben|ewigem Leben|ewige Leben;eternal life;вечная жизнь;حیات جاودان;;3;3;2;;vida eterna;3;vida eterna;3;vječni život;3;vie éternelle;3;wieczne życie;3
+C057;C;hart;0;Ewigkeit;Ewigkeit;eternity;вечность;ابدیت;;3;3;3;;eternidad;3;eternidade;3;vječnost;3;éternité;3;wieczność;3
+C058;C;hart;0;Reich Gottes;Königreich Gottes|Reich Gottes|Himmelreich;kingdom of God;Царство Божье;ملکوت خدا;;3;3;3;;Reino de Dios;3;Reino de Deus;3;Carstvo Božje;3;Royaume de Dieu;3;Królestwo Boże;3
+C059;C;weich;0;Gericht;das Gericht|Gerichts;judgment;суд;داوری;;3;3;3;WEICH: Gericht auch als Speise und als Behoerde. Nur theologisch erzwingen.;juicio;3;julgamento;3;sudba;2;jugement;3;sąd;3
+C060;C;hart;0;Jüngstes Gericht;jüngsten Gericht|jüngster Gericht|jüngstes Gericht|jüngstem Gericht|jüngste Gericht|Endgericht;Last Judgment;последний суд;داوری نهایی;;3;2;2;RU: Strashnyy sud ist orthodox gaengig, adventistisch eher posledniy sud.;Juicio Final;3;Julgamento Final;3;Sudnji dan;3;Jugement dernier;3;Ostatni Sąd;3
+C061;C;hart;0;Hölle;Hölle;hell;ад;جهنم;;3;3;3;Adventistisch theologisch heikel (kein ewiges Feuer). Sachlich uebersetzen, Lehre klaert die Predigt.;infierno;3;inferno;3;pakao;3;enfer;3;piekło;3
+C062;C;hart;1;Feuersee;Feuersee;lake of fire;озеро огненное;دریاچه آتش;;3;3;2;;lago de fuego;3;lago de fogo;3;jezero vatre;3;lac de feu;3;jezioro ognia;3
+C063;C;hart;0;Satan;der Widersacher|Satan;Satan;сатана;شیطان;;3;3;3;;Satanás;3;Satanás;3;Satan;3;Satan;3;Szatan;3
+C064;C;hart;0;Teufel;Teufel;devil;дьявол;ابلیس;;3;3;2;;diablo;3;diabo;3;đavol;3;diable;3;diabeł;3
+C065;C;hart;0;Engel;Engel;angel;ангел;فرشته;;3;3;3;;ángel;3;anjo;3;anđeo;3;ange;3;anioł;3
+C066;C;hart;0;Dämon;dämonisch|Dämonen|Dämon;demon;бес;دیو;;3;3;2;RU: bes ist der biblische Terminus, demon literarisch.;demonio;3;demônio;3;demoni;2;démon;3;demon;3
+C067;C;hart;1;Heiligtum;Heiligtums|Heiligtum;sanctuary;святилище;قدس;;3;3;2;;santuario;3;santuário;3;svetište;3;sanctuaire;3;miejsce święte;3
+C068;C;hart;1;Allerheiligste;Allerheiligstes|Allerheiligste;Most Holy Place;Святое святых;قدس‌الاقداس;;3;3;2;;Lugar Santísimo;3;Lugar Santíssimo;3;Svetitelj;2;Lieu Très Saint;3;Najświętsze Miejsce;3
+C069;C;hart;1;Bundeslade;Bundeslade|die Lade;ark of the covenant;ковчег завета;صندوق عهد;;3;3;2;;Arca de la Alianza;3;Arca da Aliança;3;kovčeg zavjeta;3;arche de l'alliance;3;Arka przymierza;3
+C070;C;hart;1;Stiftshütte;Stiftshütte;tabernacle;скиния;خیمه عبادت;;3;3;2;;tabernáculo;3;tabernáculo;3;šadrvan;2;tabernacle;3;namiot spotkania;3
+C071;C;hart;0;Vorbild;Vorbild und Erfüllung|typologisch|Typus;type and antitype;прообраз;الگو;اُلگو;2;3;3;Fachbegriff der Typologie, nicht die Alltagsbedeutung Vorbild.;tipo y antitipo;3;tipo e antitipo;3;tip i antitip;2;type et antitype;3;typ i antytyp;2
+C072;C;hart;0;Gesetz;Gesetzes|Gesetz;law;закон;شریعت;شَریعَت;3;3;3;FA: shariat ist islamisch stark besetzt. Alternative qanun pruefen.;ley;3;lei;3;zakon;3;loi;3;prawo;3
+C073;C;hart;0;Zehn Gebote;Zehn Gebote|Dekalog;Ten Commandments;Десять заповедей;ده فرمان;;3;3;3;;Diez Mandamientos;3;Dez Mandamentos;3;Deset zapovijedi;3;Dix Commandements;3;Dziesięć Przykazań;3
+C074;C;hart;0;Gebot;Gebote|Gebot;commandment;заповедь;فرمان;;3;3;3;;mandamiento;3;mandamento;3;zapovijed;3;commandement;3;przykazanie;3
+C075;C;hart;0;Gehorsam;gehorchen|Gehorsam;obedience;послушание;اطاعت;;3;3;3;;obediencia;3;obediência;3;poslušnost;3;obéissance;3;posłuszeństwo;3
+C076;C;weich;0;Werke;Werkgerechtigkeit|gute Werke|Werke;works;дела;اعمال;;3;3;2;WEICH: Werke auch als Fabrik oder Kunstwerk.;obras;3;obras;3;dela;3;œuvres;3;dzieła;3
+C077;C;weich;0;Sabbat;Sabbats|Sabbat;Sabbath;суббота;روز سبت;;3;3;2;WEICH: RU subbota ist zugleich der Wochentag Samstag. Kontext entscheidet.;Sábado;3;Sábado;3;subota;3;sabbat;3;sabat;3
+C078;C;hart;0;Ruhetag;Ruhetag;day of rest;день покоя;روز استراحت;;3;3;2;;día de reposo;3;dia de descanso;3;dan pokoja;3;jour de repos;3;dzień odpoczynku;3
+C079;C;weich;0;Zeugnis;bezeugen|Zeugnis|Zeuge;testimony;свидетельство;شهادت;;3;3;3;WEICH: Zeugnis auch als Schulzeugnis.;testimonio;3;testemunho;3;svjedočanstvo;3;témoignage;3;świadectwo;3
+C080;C;hart;0;Mission;missionarisch|Mission;mission;миссия;مأموریت;;3;3;2;;misión;3;missão;3;misija;3;mission;3;misja;3
+C081;C;hart;0;Verkündigung;Verkündigung|verkündigen;proclamation;проповедь;موعظه;;3;3;3;;proclamación;3;proclamação;3;proglasa;2;annonce;3;głoszenie;3
+C082;C;hart;1;Seelsorge;seelsorgerlich|Seelsorge;pastoral care;душепопечение;مراقبت شبانی;مُراقِبَتِ شَبانی;3;2;3;RU pruefen, dushepopechenie ist teils orthodox konnotiert.;pastoral;3;pastoral;3;dušbriga;2;soins pastoraux;3;opieka pastoralna;3
+C083;C;weich;0;Gemeinschaft;Gemeinschaft;fellowship;общение;مشارکت;;3;3;2;;comunión;3;comunhão;3;zajedništvo;2;fraternité;3;braterstwo;3
+C084;C;hart;0;Demut;demütig|Demut;humility;смирение;فروتنی;;3;3;3;;humildad;3;humildade;3;ponižnost;3;humilité;3;pokora;3
+C085;C;hart;0;Sanftmut;sanftmütig|Sanftmut;meekness;кротость;ملایمت;;3;3;2;;mansedumbre;3;mansidão;3;smirenje;2;douceur;3;łagodność;3
+C086;C;hart;1;Langmut;langmütig|Langmut;longsuffering;долготерпение;بردباری;;3;3;2;;paciencia;3;paciência;3;strpljenje;3;patience;3;cierpliwość;3
+C087;C;hart;0;Versuchung;versucht werden|Versuchung;temptation;искушение;وسوسه;;3;3;3;;tentación;3;tentação;3;iskušenje;2;tentation;3;pokusa;3
+C088;C;hart;1;Anfechtung;angefochten|Anfechtung;trial;испытание;آزمایش;;2;3;2;EN: trial oder temptation je nach Kontext. Kein sauberes Aequivalent.;prueba;3;provação;3;iskušenje;2;épreuve;3;próba;2
+C089;C;hart;0;Leiden;Leiden;suffering;страдание;رنج;;3;3;3;;sufrimiento;3;sofrimento;3;patnja;2;souffrance;3;cierpienie;3
+C090;C;hart;0;Trost;trösten|Tröster|Trost;comfort;утешение;تسلی;;3;3;2;Troester als Bezeichnung des Heiligen Geistes (Paraklet) gesondert beachten.;consuelo;3;consolo;3;utjeha;2;réconfort;3;pocieszenie;3
+C091;C;weich;0;Frieden;Frieden|Friede;peace;мир;آرامش;;3;3;3;FALLSTRICK RU: mir heisst zugleich Welt. Kontext entscheidet.;paz;3;paz;3;mir;2;paix;3;pokój;3
+C092;C;hart;0;Freude;sich freuen|Freude;joy;радость;شادی;;3;3;3;;gozo;3;alegria;3;radost;2;joie;3;radość;3
+C093;C;hart;0;Bekenntnis;Bekenntnis|bekennen;confession;исповедание;اعتراف;;3;3;2;;confesión;3;confissão;3;ispovijest;2;confession;3;wyznanie;3
+C094;C;hart;0;Gewissen;Gewissen;conscience;совесть;وجدان;;3;3;3;;conciencia;3;consciência;3;savjest;2;conscience;3;sumienie;3
+C095;C;weich;0;Herz;Herzen|Herz;heart;сердце;دل;;3;3;3;Biblisch Sitz des Willens, nicht nur des Gefuehls.;corazón;3;coração;3;srce;3;cœur;3;serce;3
+C096;C;hart;0;Gleichnis;Gleichnisse|Gleichnis;parable;притча;مَثَل;;3;3;2;RU pritcha, nicht sravnenie. Kollidiert mit dem Buchnamen Sprueche.;parábola;3;parábola;3;parabola;3;parabole;3;przystawka;3
+C097;C;hart;1;Bergpredigt;Bergpredigt;Sermon on the Mount;Нагорная проповедь;موعظه سر کوه;;3;3;2;;Sermón del Monte;3;Sermão no Monte;3;Progovor na gori;3;Sermon sur la montagne;3;Kazanie na Górze;3
+C098;C;hart;0;Menschensohn;Menschensohn;Son of Man;Сын Человеческий;پسر انسان;;3;3;2;;Hijo del Hombre;3;Filho do Homem;3;Sinovi čoveka;3;Fils de l'homme;3;Syn Człowieka;3
+C099;C;hart;0;Sohn Gottes;Sohn Gottes|Gottessohn;Son of God;Сын Божий;پسر خدا;;3;3;3;;Hijo de Dios;3;Filho de Deus;3;Sin Božji;3;Fils de Dieu;3;Syn Boży;3
+C100;C;hart;0;Messias;messianisch|Messias;Messiah;Мессия;مسیح موعود;مَسیح موعود;3;3;3;FA: masih allein heisst bereits Christus. Moud praezisiert den erwarteten Messias.;Mesías;3;Messias;3;Mesija;3;Messie;3;Mesjasz;3
+C101;C;hart;0;Christus;Christus|Christi;Christ;Христос;مسیح;;3;3;3;;Cristo;3;Cristo;3;Kristo;3;Christ;3;Chrystus;3
+C102;C;weich;0;Herr;dem Herrn|des Herrn|der Herr;the Lord;Господь;خداوند;;3;3;3;FALLSTRICK RU: Gospod (Gott) vs. gospodin (Anrede Herr Mueller). Verwechslung ist peinlich.;el Señor;3;o Senhor;3;Gospod;3;le Seigneur;3;Pan;3
+C103;C;hart;1;Lamm Gottes;Lamm Gottes;Lamb of God;Агнец Божий;بره خدا;;3;3;2;RU: Agnets liturgisch, nicht yagnenok.;Cordero de Dios;3;Cordeiro de Deus;3;Janje Božji;3;Agneau de Dieu;3;Baranek Boży;3
+C104;C;weich;0;Herrlichkeit;verherrlichen|Herrlichkeit;glory;слава;جلال;;3;3;2;RU slava zugleich Ruhm.;Gloria;3;Glória;3;Slava;3;gloire;3;chwała;3
+C105;C;weich;0;Fleisch;fleischlich|Fleisch;flesh;плоть;جسم;;3;3;2;FALLSTRICK RU: nicht myaso. Theologisch sarx, nicht Nahrungsmittel. Weich, weil echtes Fleisch vorkommen kann.;Carne;3;Carne;3;Tijelo;2;chair;3;ciało;3
+C106;C;weich;0;Geist;der Geist|geistlich;spirit;дух;روح;;3;3;3;WEICH: Geist auch als Verstand oder Gespenst. Siehe Heiliger Geist.;Espíritu;3;Espírito;3;Duh;3;Esprit;3;Duch;3
+C107;C;hart;0;Seele;Seelen|Seele;soul;душа;جان;;3;3;2;Adventistisch zentral wegen Ganzheitlichkeit des Menschen.;Alma;3;Alma;3;Duša;3;âme;3;dusza;3
+C108;C;hart;0;Ebenbild Gottes;Ebenbild Gottes|Bild Gottes;image of God;образ Божий;صورت خدا;;3;3;2;;Imagen de Dios;3;Imagem de Deus;3;Slika Božja;3;image de Dieu;3;obraz Boży;3
+C109;C;hart;0;Wort Gottes;Wort Gottes;Word of God;Слово Божье;کلام خدا;;3;3;3;;Palabra de Dios;3;Palavra de Deus;3;Riječ Božja;3;Parole de Dieu;3;Słowo Boże;3
+C110;C;hart;0;Schöpfung;Schöpfung;creation;творение;آفرینش;;3;3;2;RU tvorenie theologisch, sozdanie technisch.;Creación;3;Criação;3;Stvaranje;3;création;3;stworzenie;3
+C111;C;hart;0;Schöpfer;Schöpfer;Creator;Творец;آفریدگار;;3;3;2;;Creador;3;Criador;3;Stvoritelj;2;Créateur;3;Stwórca;3
+C112;C;hart;0;Paradies;Paradies;paradise;рай;بهشت;;3;3;3;;paraíso;3;paraíso;3;raj;2;paradis;3;raj;3
+C113;C;hart;1;Sintflut;Sintflut;the Flood;потоп;طوفان نوح;;3;3;2;;el Diluvio;3;o Dilúvio;3;potop;2;le Déluge;3;Potop;3
+C114;C;hart;0;Wiedergeburt;wiedergeboren|Wiedergeburt;new birth;новое рождение;تولد تازه;;3;3;2;Nicht mit Reinkarnation verwechseln lassen.;nuevo nacimiento;3;novo nascimento;3;novo rođenje;2;nouvelle naissance;3;odrodzenie;3
+C115;C;hart;0;Nächstenliebe;Nächstenliebe|der Nächste;love for one's neighbor;любовь к ближнему;محبت به همسایه;;3;3;2;;amor al prójimo;3;amor ao próximo;3;ljubav prema bližnjemu;2;amour du prochain;3;miłość do bliźniego;3
+C116;C;hart;1;Feindesliebe;Feindesliebe;love for enemies;любовь к врагам;محبت به دشمنان;;3;3;2;;amor a los enemigos;3;amor aos inimigos;3;ljubav prema neprijateljima;2;amour des ennemis;3;miłość do nieprzyjaciół;3
+C117;C;hart;1;Gottesfurcht;Ehrfurcht vor Gott|Gottesfurcht;fear of God;страх Божий;ترس خدا;;3;3;2;Ehrfurcht, nicht Angst.;temor de Dios;3;temor a Deus;3;strah Božji;2;crainte de Dieu;3;lęk przed Bogiem;3
+C118;C;hart;1;Erweckung;Erweckung;revival;пробуждение;بیداری روحانی;بیداریِ روحانی;3;3;3;;avivamiento;3;avivamento;3;probudljenje;2;réveil;3;odrodzenie;3
+C119;C;hart;1;Geistesgaben;Geistesgaben|Gnadengaben|Charismen;spiritual gifts;духовные дары;عطایای روحانی;عَطایایِ روحانی;3;3;3;;dones espirituales;3;dons espirituais;3;duhovne darove;2;dons spirituels;3;dary duchowe;3
+C120;C;hart;0;Heiden;Heidenvölker|die Völker|Heiden;Gentiles;язычники;امت‌ها;اُمَّت ها;3;3;3;Bei Paulus zentral. EN Gentiles, nicht heathens.;gentiles;3;gentios;3;pagani;2;les non-juifs;3;niewierni;3
+C121;C;hart;1;Pharisäer;Pharisäer;Pharisees;фарисеи;فریسیان;;3;3;2;;fariseos;3;fariseus;3;fariseji;3;pharisiens;3;faryzeusze;3
+C122;C;hart;1;Sadduzäer;Sadduzäer;Sadducees;саддукеи;صدوقیان;صَدوّقیان;3;3;3;;saduceos;3;saduceus;3;sadukeji;3;sadducéens;3;Saduceusze;3
+C123;C;hart;1;Schriftgelehrte;Schriftgelehrter|Schriftgelehrte;scribes;книжники;کاتبان;;3;3;2;;escribas;3;escribas;3;pisari;2;scribes;3;pisarze;3
+C124;C;hart;1;Zöllner;Zöllner;tax collector;мытарь;باجگیر;;3;3;2;FALLSTRICK RU: mytar ist biblisch, sborshchik nalogov klingt nach Finanzamt.;recaudador de impuestos;3;cobrador de impostos;3;porezničar;2;collecteurs d'impôts;3;poborca;3
+C125;C;hart;1;Sündenbock;Sündenbock;scapegoat;козёл отпущения;بز طلیقه;بُز ظَلیقه;3;3;3;Adventistisch relevant wegen Asasel und Heiligtumslehre.;chivo expiatorio;3;bode expiatória;3;kozaci žrtva;2;bouc émissaire;3;kozioł obarczony grzechem;3
+C126;C;hart;1;Passa;Passafest|Passah|Passa;Passover;Пасха;عید فصح;;3;2;2;FALLSTRICK RU: Paskha heisst zugleich Ostern.;Pascua;3;Páscoa;3;Pascha;3;Pâque;3;Pascha;3
+C127;C;hart;1;Laubhüttenfest;Laubhüttenfest|Sukkot;Feast of Tabernacles;праздник кущей;عید خیمه‌ها;عیدِ خِیمِه ها;3;3;3;;Fiesta de los Tabernáculos;3;Festa dos Tabernáculos;3;Blagovanje u šatorima;2;Fête des Tabernacles;3;Święto Szałasów;3
+C128;C;hart;1;Versöhnungstag;Versöhnungstag|Jom Kippur;Day of Atonement;День очищения;روز کفاره;;3;2;2;Adventistisch zentral wegen der 1844-Typologie.;Día de Expiación;3;Dia do Perdão;3;Dan Velike pomirenja;2;Jour de l'Expiation;3;Dzień Pojednania;3
+C129;C;hart;0;Tempel;Tempel;temple;храм;معبد;;3;3;3;;templo;3;templo;3;hram;3;temple;3;świątynia;3
+C130;C;hart;0;Synagoge;Synagoge;synagogue;синагога;کنیسه;;3;3;2;;sinagoga;3;sinagoga;3;sinagoga;3;synagogue;3;synagoga;3
+C131;C;hart;1;Hoher Rat;Hohen Rat|Hoher Rat|Hohes Rat|Hohem Rat|Synedrium|Hohe Rat;Sanhedrin;синедрион;شورای عالی یهود;شوُرایِ عالیِ یَهود;3;3;3;;Sinedrio;3;Sinedrio;3;Sinedrij;2;Sanhedrin;3;Wysoka Rada;3
+C132;C;hart;1;Tora;Tora;Torah;Тора;تورات;;3;3;3;;Torá;3;Torá;3;Tora;3;Torah;3;Tora;3
+C133;C;hart;0;Beschneidung;Beschneidung|beschnitten;circumcision;обрезание;ختنه;;3;3;3;;circuncisión;3;circuncisão;3;obrezivanje;3;circoncision;3;obrzezanie;3
+C134;C;weich;0;Sauerteig;Sauerteig;leaven;закваска;خمیرمایه;;3;3;2;Meist bildlich gebraucht.;levadura;3;fermento;3;kvasnica;2;levain;3;zakwas;3
+C135;C;hart;0;Weinstock;Weinstock|Reben|Rebe;vine;виноградная лоза;تاک;;3;3;2;;vid;3;videira;3;groždje;2;vigne;3;krzew winny;3
+C136;C;hart;0;Hirte;guten Hirte|guter Hirte|gutes Hirte|gutem Hirte|gute Hirte|Hirten|Hirte;shepherd;пастырь;شبان;;3;3;2;FALLSTRICK RU: pastyr geistlich, pastukh ist der Beruf.;pastor;3;pastor;3;pastir;2;berger;3;pasterz;3
+C137;C;weich;0;Bräutigam;Bräutigam|die Braut;bridegroom;жених;داماد;;3;3;2;Bildwort fuer Christus und Gemeinde.;esposo;3;noivo;3;mladenac;2;époux;3;Pan Młody;3
+C138;C;hart;1;Halleluja;Halleluja;Hallelujah;Аллилуйя;هللویاه;;3;3;2;;Aleluya;3;Aleluia;3;Aleluja;3;Alléluiah;3;Alleluja;3
+C139;C;hart;1;Hosianna;Hosianna|Hosanna;Hosanna;Осанна;هوشیعانا;هوشیعانا;3;3;3;;Hosanna;3;Hosana;3;Hosana;3;Hosanna;3;Hosanna;3
+C140;C;hart;0;Amen;Amen;Amen;Аминь;آمین;;3;3;3;;Amén;3;Amém;3;Amin;3;Amen;3;Amen;3
+C141;C;hart;1;Immanuel;Immanuel|Emmanuel;Immanuel;Еммануил;عمانوئیل;;3;3;2;;Inmanuel;3;Emanuel;3;Imanuel;2;Emmanuel;3;Immanuel;3
+C142;C;hart;1;Vaterunser;Vaterunser;Lord's Prayer;Отче наш;دعای ربانی;;3;3;2;;Padre Nuestro;3;Pai Nosso;3;Oče naš;2;Notre Père;3;Modlitwa Pańska;3
+C143;C;hart;1;Barmherziger Samariter;barmherzigen Samariter|barmherziger Samariter|barmherziges Samariter|barmherzigem Samariter|barmherzige Samariter|Samariter;Good Samaritan;милосердный самарянин;سامری نیکو;;3;3;2;;Buen Samaritano;3;Bom Samaritano;3;Dobri samaritanin;3;Bon Samaritain;3;Dobry Samarytanin;3
+C144;C;hart;0;Verlorener Sohn;verlorenen Sohn|verlorener Sohn|verlorenes Sohn|verlorenem Sohn|verlorene Sohn;Prodigal Son;блудный сын;پسر گمشده;;3;3;2;;Hijo Pródigo;3;Filho Pródigo;3;Bludni sin;3;Fils prodigue;3;Zagubiony Syn;3
+C145;C;hart;1;Zungenrede;in Zungen reden|Zungenrede;speaking in tongues;говорение на языках;سخن گفتن به زبان‌ها;سُخَن گُفتَن بِه زبانها;3;3;3;;Hablar en lenguas;3;Falar em línguas;3;govoriti jezicima;3;parler en langues;3;mówienie w językach;3
+C146;C;hart;1;Märtyrer;Martyrium|Märtyrer;martyr;мученик;شهید;شَهید;3;3;3;WARNUNG FA: shahid ist islamisch stark besetzt (Gefallener im Glaubenskampf). Alternative dringend pruefen.;Mártir;3;Mártir;3;Mučitelj;3;martyr;3;męczennicy;3
+C147;C;hart;0;Gerechtigkeit;Gerechtigkeit|gerecht;righteousness;праведность;پارسایی;;3;3;2;FALLSTRICK RU: nicht spravedlivost, das ist juristische Fairness.;Justicia;3;Justiça;3;Pravednost;3;justice;3;prawość;3
+C148;C;hart;1;Gottlosigkeit;Gottlosigkeit|die Gottlosen|gottlos;wickedness;нечестие;بی خدایی;بی خُدایی;3;3;3;Gegenbegriff zu Gerechtigkeit.;Impiedad;3;Impedadez;3;Bezbožje;3;méchanceté;3;bezbożność;3
+C149;C;hart;0;Heiligkeit;Heiligkeit;holiness;святость;قدوسیت;;3;3;2;Eigenschaft Gottes. Abgrenzen von Heiligung als Prozess.;Santidad;3;Santidade;3;Svetost;3;sainteté;3;świętość;3
+C150;C;hart;1;Allmacht;der Allmächtige|allmächtig|Allmacht;almighty;Вседержитель;قادر مطلق;;3;3;2;RU: Vsederzhitel ist der biblische Gottestitel.;Todopoderoso;3;Todo-poderoso;3;Svemogućnost;3;omnipotence;3;Wszechmogący;3
+C151;C;weich;0;Ehre;ehren|Ehre;honor;честь;احترام;;3;3;2;WEICH: kollidiert semantisch mit Herrlichkeit.;honra;3;honra;3;čast;2;honneur;3;cześć;3
+C152;C;hart;0;Treue;Treue|treu;faithfulness;верность;وفاداری;;3;3;2;;fidelidad;3;fidelidade;3;vjernost;2;fidélité;3;wierność;3
+C153;C;hart;0;Wahrheit;Wahrheit;truth;истина;حقیقت;;3;3;3;RU: istina theologische Wahrheit, pravda eher Richtigkeit und Gerechtigkeit.;verdad;3;verdade;3;istina;2;vérité;3;prawda;3
+C154;C;hart;0;Weisheit;Weisheit|weise;wisdom;мудрость;حکمت;;3;3;3;;sabiduría;3;sabedoria;3;mudrost;2;sagesse;3;mądrość;3
+C155;C;hart;0;Knecht;Gottesknecht|Knechte|Knecht;servant;раб;بنده;;3;3;2;RU rab ist der biblische Terminus (rab Bozhiy), sluga profan.;siervo;3;servo;3;sluga;2;serviteur;3;sługa;3
+C156;C;hart;1;Erstgeburt;Erstgeborener|Erstgeburt;firstborn;первенец;نخست‌زاده;;3;3;2;;primogénito;3;primogênito;3;prvorođenac;2;premier-né;3;pierworodny;3
+C157;C;hart;0;Wüste;Wüste;wilderness;пустыня;بیابان;;3;3;3;EN: wilderness, nicht desert, in biblischen Kontexten.;desierto;3;deserto;3;pustinja;2;désert;3;pustynia;3
+C158;C;hart;1;Manna;Manna;manna;манна;منّا;;3;3;2;;maná;3;maná;3;mana;2;manne;3;manna;3
+C159;C;hart;1;Götzendienst;Götzendienst|Götzen|Götze;idolatry;идолопоклонство;بت‌پرستی;;3;3;2;;idolatría;3;idolatria;3;idolatrija;2;idolâtrie;3;bałwochwalstwo;3
+C160;C;hart;0;Aufnahme in die Gemeinde;Aufnahmen in die Gemeinde|Aufnahmer in die Gemeinde|Aufnahmes in die Gemeinde|Aufnahmem in die Gemeinde|Aufnahme in die Gemeinde;baptism into membership;принятие в члены церкви;پذیرش در کلیسا;پَذیرِش دَر کِلیسا;2;3;3;;admisión a la membresía;3;aceitação na membresia;3;prijem u članstvo;2;admission dans la membreship;3;przyjęcie do zbóru;2
+D001;D;hart;0;Adventgemeinde;Adventgemeinde|adventistisch|Adventisten;Seventh-day Adventist Church;Церковь адвентистов седьмого дня;کلیسای ادونتیست روز هفتم;;3;3;2;;Iglesia Adventista del Séptimo Día;3;Igreja Adventista do Sétimo Dia;3;Crkva adventista sedmogog dana;3;Église Adventiste du Septième Jour;3;Kościół Adwentystów Dnia Siódmego;3
+D002;D;hart;1;Siebenten-Tags-Adventist;Siebenten-Tags-Adventist|STA;Seventh-day Adventist;адвентист седьмого дня;ادونتیست روز هفتم;;3;3;2;;Adventista del Séptimo Día;3;Adventista do Sétimo Dia;3;Adventista sedmogog dana;3;Adventiste du Septième Jour;3;Adwentysta Siedmiodniowy;3
+D003;D;hart;1;Sabbatschule;Sabbatschule;Sabbath School;субботняя школа;مدرسه سبت;مَدرِسه سَبَّت;3;3;3;;Escuela Sabática;3;Escola Sabatina;3;Subotna škola;3;École du Sabbat;3;Szkoła Sabatowa;3
+D004;D;hart;0;Gottesdienst;Gottesdienste|Gottesdienst;worship service;богослужение;عبادت;;3;3;2;;culto;3;culto;3;bogoslužje;3;culte;3;nabożeństwo;3
+D005;D;hart;1;Himmlisches Heiligtum;himmlischen Heiligtum|himmlischer Heiligtum|himmlisches Heiligtum|himmlischem Heiligtum|himmlische Heiligtum|Heiligtumslehre;heavenly sanctuary;небесное святилище;قدس آسمانی;قُدس آسِمانی;3;3;3;Kernlehre. FA muss geprueft werden.;santuario celestial;3;santuário celestial;3;nebesko svetište;2;sanctuaire céleste;3;Niebiańskie Sanktuarium;3
+D006;D;hart;1;Untersuchungsgericht;untersuchenden Gericht|untersuchender Gericht|untersuchendes Gericht|untersuchendem Gericht|untersuchende Gericht|Untersuchungsgericht;investigative judgment;следственный суд;داوری تحقیقی;داوَریِ تَحقیقی;3;3;3;Zentrale adventistische Lehre ohne selbstverstaendliche persische Entsprechung.;juicio investigador;3;julgamento investigativo;3;istraživački sud;2;jugement investigateur;3;sąd badawczy;3
+D007;D;hart;1;Vorabschließendes Gericht;vorabschließenden Gericht|vorabschließender Gericht|vorabschließendes Gericht|vorabschließendem Gericht|vorabschließende Gericht|Voruntersuchungsgericht;pre-advent judgment;предадвентный суд;داوری پیش از آمدن مسیح;داوَری پیش اَز آمَدنِ مَسیح;2;2;3;Neuere Bezeichnung fuer dieselbe Lehre.;juicio previo al adviento;2;julgamento pré-advento;2;sud prije došetica;1;jugement pré-avènement;3;sąd przed objawieniem;2
+D008;D;hart;0;Großer Kampf;Kampf zwischen Christus und Satan|großen Kampf|großer Kampf|großes Kampf|großem Kampf|große Kampf;great controversy;великая борьба;نبرد عظیم;نَبَردِ عَظیم;3;3;3;Auch Buchtitel von E. G. White.;gran conflicto;3;grande conflito;3;veliki sukob;2;La Tragédie des Siècles;3;Wielki Konflikt;3
+D009;D;hart;1;Geist der Prophetie;Geist der Prophetie;Spirit of Prophecy;дух пророчества;روح نبوت;;3;3;2;;Espíritu de Profecía;3;Espírito de Profecia;3;Duh proročanstva;2;Esprit de prophétie;3;Duch Proroctwa;3
+D010;D;hart;1;Ellen G. White;Ellen G. White|Ellen White|E. G. White;Ellen G. White;Эллен Уайт;الن جی وایت;;3;3;2;Eigenname. Nicht uebersetzen, nur transliterieren.;Ellen G. White;3;Ellen G. White;3;Ellen G. White;3;Ellen G. White;3;Ellen G. White;3
+D011;D;hart;0;Zustand der Toten;Zustand der Toten;state of the dead;состояние мёртвых;وضعیت مردگان;وَضعیَتِ مُردِگان;3;3;3;;estado de los muertos;3;estado dos mortos;3;stanje mrtvih;2;état des morts;3;stan umarłych;3
+D012;D;hart;1;Seelenschlaf;Seelenschlaf;soul sleep;сон души;خواب مرگ;خوابِ مَرگ;3;3;3;;sueño de la muerte;3;sono da morte;3;spavački san;1;sommeil de l'âme;3;senny sen duszy;3
+D013;D;hart;0;Unsterblichkeit der Seele;Unsterblichkeit der Seele;immortality of the soul;бессмертие души;جاودانگی روح;;3;3;2;Meist in Ablehnung gebraucht.;inmortalidad del alma;3;imortalidade da alma;3;besmrtnost duše;2;immortalité de l'âme;3;nieśmiertelność duszy;3
+D014;D;hart;1;Dreiengelsbotschaft;Botschaft der drei Engel|Dreiengelsbotschaft;three angels' messages;весть трёх ангелов;پیام سه فرشته;پَیامِ سِه فِرِشتِه;3;3;3;;mensaje de los tres ángeles;3;mensagem dos três anjos;3;poruka tri anđela;2;message des trois anges;3;przesłanie trzech aniołów;3
+D015;D;hart;1;Übrige;die Übrigen|Überrest;remnant;остаток;بازماندگان;بازماندِگان;3;3;3;DE uneinheitlich. Klaeren, welche Form die Gemeinde nutzt.;el remanente;3;o remanescente;3;preostanak;2;le reste;3;Reszta;3
+D016;D;hart;1;Malzeichen des Tieres;Malzeichen des Tieres|Zeichen des Tieres;mark of the beast;начертание зверя;نشان وحش;نِشانِ وَحش;3;3;3;;la marca de la bestia;3;a marca da besta;3;znak zveri;3;la marque de la bête;3;znak bestii;3
+D017;D;hart;0;Siegel Gottes;Siegel Gottes;seal of God;печать Божья;مهر خدا;;3;3;2;;el sello de Dios;3;o selo de Deus;3;pečat Božji;3;le sceau de Dieu;3;pieczęć Boga;3
+D018;D;hart;0;Babylon;Babylon;Babylon;Вавилон;بابل;;3;3;3;;Babilonia;3;Babilônia;3;Babilon;3;Babylone;3;Babilon;3
+D019;D;hart;1;Sonntagsgesetz;Sonntagsgesetz;Sunday law;воскресный закон;قانون یکشنبه;قانون یِکشَنبِه;3;3;3;;la ley del domingo;3;a lei do domingo;3;zakon o nedjelji;2;la loi du dimanche;3;ustawa o niedzieli;3
+D020;D;hart;1;Gnadenzeit;Gnadenzeit|Gnadentür;probation;время благодати;زمان فیض;زَمانِ فِیض;2;2;3;EN Fachterminus ist probation, nicht time of grace.;tiempo de gracia;2;tempo de graça;2;vrijeme milosti;2;période de grâce;3;czas próby;2
+D021;D;hart;1;Große Enttäuschung;großen Enttäuschung|großer Enttäuschung|großes Enttäuschung|großem Enttäuschung|große Enttäuschung;Great Disappointment;Великое разочарование;ناامیدی بزرگ;ناأُمیدی بُزُرگ;3;3;3;Bezug 1844.;la Gran Decepción;3;a Grande Decepção;3;Veliko razočaranje;2;la Grande Déception;3;Wielkie Rozczarowanie;3
+D022;D;hart;0;Zehnter;Zehnter|Zehnten;tithe;десятина;ده‌یک;;3;3;2;;el diezmo;3;o dízimo;3;desetina;3;la dîme;3;dziesięcina;3
+D023;D;weich;0;Gaben;Gaben und Opfer|Opfergaben;offerings;пожертвования;هدایا;;3;3;2;WEICH: Gaben auch als Geistesgaben oder Geschenke.;ofrendas;3;ofertas;3;prilozi;2;offrandes;3;dary;3
+D024;D;hart;1;Gesundheitsbotschaft;Gesundheitsbotschaft;health message;весть о здоровье;پیام سلامتی;پَیامِ سَلامَتی;3;3;3;;mensaje de salud;3;mensagem de saúde;3;poruka o zdravlju;2;message de santé;3;wiadomość zdrowotna;3
+D025;D;hart;1;Gesundheitsreform;Gesundheitsreform;health reform;санитарная реформа;اصلاح سلامتی;اِصلاحِ سَلامَتی;3;2;3;RU pruefen.;reforma de salud;3;reforma de saúde;3;zdravstvena reforma;2;réforme de santé;3;reforma zdrowotna;3
+D026;D;hart;0;Ältester;Gemeindeältester|Ältester|Älteste;elder;пресвитер;مشایخ;مَشایخ;3;3;3;RU: presviter adventistisch, starets ist orthodox. FA mashayekh ist Plural, Singular pruefen.;anciano;3;ancião;3;starac;2;ancien;3;starszy zboru;3
+D027;D;hart;1;Diakon;Diakonisse|Diakonin|Diakon;deacon;диакон;شماس;;3;3;2;;diácono;3;diácono;3;diakon;2;diacre;3;diakon;3
+D028;D;weich;0;Prediger;der Prediger|Pastor;pastor;пастор;شبان;;3;3;2;WEICH: kollidiert mit dem Bibelbuch Prediger (A021).;pastor;3;pastor;3;pastor;2;pasteur;3;kaznodzieja;3
+D029;D;hart;0;Gemeindeglied;Gemeindeglieder|Gemeindeglied;church member;член церкви;عضو کلیسا;;3;3;2;;miembro de la iglesia;3;membro da igreja;3;član crkve;2;membre de l'église;3;członek zboru;3
+D030;D;hart;0;Vereinigung;Vereinigung;conference;конференция;اتحاد;اِتِحاد;3;3;3;Kirchenstrukturbegriff, nicht die Alltagsbedeutung. Kritisch fuer MT.;Asociación;2;Associação;2;konferencija;2;Fédération;3;konferencja;3
+D031;D;hart;0;Verband;der Verband|Union;union;унион;اتحادیه;اِتِحادیه;3;3;3;Kirchenstrukturbegriff. WEICH-Kandidat, da Verband auch medizinisch.;Unión;3;União;3;Unija;2;Union;3;Związek;3
+D032;D;hart;1;Generalkonferenz;Generalkonferenz;General Conference;Генеральная конференция;کنفرانس عمومی;;3;3;2;;Asociación General;3;Associação Geral;3;Opća Konferencija;2;Conférence Générale;3;Konferencja Ogólna;3
+D033;D;hart;1;Gemeindehandbuch;Gemeindehandbuch;Church Manual;Церковное руководство;کتاب راهنمای کلیسا;کِتابِ راهنَمایِ کِلیسا;3;3;3;;Manual de la Iglesia;3;Manual da Igreja;3;Priručnik Crkve;2;Manuel de l'Église;3;Podręcznik Kościelny;3
+D034;D;hart;1;Glaubenspunkte;Glaubensüberzeugungen|Glaubenspunkte;fundamental beliefs;основы вероучения;اعتقادات بنیادین;اِعتِقاداتِ بُنیادین;3;3;3;;Creencias Fundamentales;3;Crenças Fundamentais;3;Osnovna vjerovanja;2;croyances fondamentales;3;podstawowe przekonania;3
+D035;D;hart;1;Kindersegnung;Segnung von Kindern|Kindersegnung;child dedication;посвящение детей;تقدیس کودکان;تَقدیسِ کودَکان;3;3;3;EN Fachterminus ist dedication, nicht blessing.;Dedicación de Niños;3;Dedicação de Crianças;3;Posvećivanje djece;2;présentation d'enfants;3;poświęcenie dzieci;3
+D036;D;hart;1;Schlachter 2000;Schlachten 2000|Schlachter 2000|Schlachtes 2000|Schlachtem 2000|Schlachte 2000|Schlachter;Schlachter 2000;Шлахтер 2000;ترجمه شلاختر;تَرجُمِه شلاختِر;3;2;3;Eigenname der Uebersetzung. Nicht uebersetzen, nur transliterieren.;Schlachter 2000;3;Schlachter 2000;3;Schlachter 2000;3;Schlachter 2000;3;Schlachter 2000;3
+D037;D;hart;0;Erweckung und Reformation;Erweckung und Reformation;revival and reformation;пробуждение и реформация;بیداری و اصلاح;بیداری وَ اِصلاح;3;3;3;Feste adventistische Wendung.;Avivamiento y Reforma;3;Avivamento e Reforma;3;Probudljenje i reforma;2;réveil et réformation;3;odnowienie i reforma;3
+D038;D;hart;1;Asasel;Asasel-Bock|Asasel;Azazel;Азазель;عزازیل;;3;3;2;Kern der Heiligtumstypologie.;Azazel;3;Azazel;3;Azazel;3;Azazel;3;Azazel;3
+D039;D;hart;1;Adventbewegung;Adventbewegung;Advent movement;адвентистское движение;جنبش ادونتیست;جُنبِشِ اَدوِنتیست;3;3;3;;movimiento adventista;3;movimento adventista;3;adventistički pokret;2;mouvement adventiste;3;Ruch Adwentystyczny;3
+D040;D;hart;1;Milleriten;William Miller|Milleriten;Millerites;миллериты;میلریان;میلِریان;3;3;3;;mileritas;3;mileritas;3;mileriti;2;millérites;3;mileryci;3
+D041;D;hart;0;Bibelstunde;Bibelgespräch|Bibelstunde;Bible study;библейский урок;مطالعه کتاب‌مقدس;;3;3;2;;estudio bíblico;3;estudo bíblico;3;biblijsko učenje;2;étude biblique;3;studium Biblii;3
+D042;D;hart;1;Hauskreis;Kleingruppe|Hauskreis;small group;малая группа;گروه خانگی;گُروهِ خانِگی;3;3;3;;grupo pequeño;3;grupo pequeno;3;mala grupa;2;groupe de maison;3;mały krąg;3
+D043;D;hart;1;Rüsttag;Vorbereitungstag|Rüsttag;preparation day;день приготовления;روز آمادگی;روزِ آمادِگی;3;3;3;Der Freitag. Adventistisch gaengig.;día de preparación;3;dia de preparação;3;dan pripravljanja;2;jour de préparation;3;Dzień przygotowania;3
+D044;D;hart;1;Sabbatanfang;Sabbatanfang|Sabbatbeginn;beginning of the Sabbath;начало субботы;آغاز سبت;آغازِ سَبَّت;2;3;3;;inicio del sábado;3;início do sábado;3;početak subote;2;début du sabbat;3;początek sabatu;2
+D045;D;hart;1;Andacht;Morgenandacht|Andacht;devotional;духовное размышление;تفکر روحانی;تَفَکُّرِ روحانی;2;2;3;Kein sauberer Standardterminus in RU/FA. Pruefen.;devocional;3;devocional;3;molitva;2;dévotion;3;modlitwa;2
+D046;D;hart;1;Pfadfinder;Pfadfinder|CPA;Pathfinders;следопыты;پیشاهنگان;پیشاهَنگان;3;3;3;Adventistische Jugendorganisation, nicht Scouts allgemein.;Conquistadores;3;Desbravadores;3;istraživači;2;Explorateurs;3;Podróżnicy;3
+D047;D;hart;1;Schriftprinzip;allein die Schrift|Schriftprinzip|sola scriptura;sola scriptura;только Писание;اصل کتاب مقدس;اَصلِ کِتابِ مُقَدَّس;3;3;3;;sola scriptura;3;sola scriptura;3;sola scriptura;2;sola scriptura;3;zasada samego Pisma;3
+D048;D;hart;1;Gemeindeaufbau;Gemeindeaufbau;church growth;созидание церкви;بنای کلیسا;بَنایِ کِلیسا;2;2;3;;crecimiento de la iglesia;3;crescimento da igreja;3;izgradnja crkve;2;croissance de l'église;3;wzrastanie zboru;2
+D049;D;hart;1;Missionsbericht;Missionsbericht;mission report;миссионерский отчёт;گزارش مأموریت;گُزارِشِ ماموریَت;3;2;3;;informe de misiones;3;relatório de missões;3;izvještaj o misijama;2;rapport de mission;3;raport misyjny;3

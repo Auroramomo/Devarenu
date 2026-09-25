@@ -1290,6 +1290,150 @@ Gebraucht wird danach nichts mehr aus dem Journal: der Fehlerbericht am
 Pult liest ohnehin nur die letzten zwei Tage und nur ab Stufe
 *warning*.
 
+## Eine Sprache prüfen lassen
+
+Devarenu übersetzt in einundzwanzig Sprachen. Geprüft hat die
+Fachbegriffe bisher niemand außer für Deutsch, Englisch, Russisch und
+Persisch — alles andere ist maschinell und läuft am Pult als
+*experimentell*, mit gestricheltem Rand.
+
+Was eine Sprache aus diesem Zustand holt, ist **ein Mensch aus der
+Gemeinde**, der sie als Muttersprache spricht. Nicht ein besseres
+Modell.
+
+### Was der Prüfer bekommt
+
+Zwei Dinge, beide ohne Technik zu bearbeiten:
+
+| | |
+|---|---|
+| `pruefung/begriffe_<sp>.docx` | 93 Fachbegriffe, dazu die Texte der Zuhörerseite, der QR-Seite und der Anleitung |
+| `pruefung/paket_<sp>/` | 20 gesprochene Sätze im Browser, dazu drei Stimmproben |
+
+Im Dokument füllt er **nur die Spalte Korrektur** aus. Was er leer
+lässt, gilt als richtig — das steht oben auf jeder Seite. Die Spalte
+*Kennung* ist ausgegraut: sie geht ihn nichts an, sie ist der Rückweg.
+
+Vorn stehen **zwei Fragen**, die über Dutzende Einzelfälle entscheiden
+und deshalb nicht hinten stehen dürfen: welche Bibelübersetzung gilt,
+und wie die Gemeinde angeredet wird.
+
+Im Bewertungspaket hört er zuerst **drei Stimmen** denselben Text
+sprechen und wählt. Die Messung wählt nicht aus, sie stellt nur zur
+Wahl: welche Stimme über eine dreiviertel Stunde erträglich ist, hört
+ein Mensch und rechnet kein Skript.
+
+### Bauen
+
+```fish
+# 1. Stimmen: alle Kandidaten messen
+python laengenfaktor.py --je-stimme --nur <sp>
+
+# 2. Glossarspalte, Übersetzungen, Bewertungspaket
+python werkzeuge/sprachpaket.py --bauen <sp>
+
+# 3. Das Dokument -- im BAU-venv, es braucht python-docx
+.bau-venv/bin/python werkzeuge/sprachpaket.py --dokument <sp>
+```
+
+Zwei venvs, und das ist Absicht: `python-docx` gehört nicht auf den
+Gemeinderechner. Das Skript sagt es, wenn es im falschen läuft.
+
+**Vorher anlegen**, sonst wird das Paket schwächer:
+
+- `pruefung/fallstricke_<sp>.csv` — acht Sätze, die genau dort
+  hinlangen, wo die allgemein kirchliche Übersetzung etwas anderes
+  heißt als die adventistische. Für Polnisch: `msza`, `komunia`,
+  `spowiedź`, `parafia`, `sakrament`.
+- `ANKER` in `werkzeuge/sprachpaket.py` — dieselben Fälle als
+  Wortpaare. **Ohne sie sind die Maschinenvorschläge unbrauchbar.**
+  Gemessen an acht Begriffen: ohne Anker kam *„Abendmahl = Wiecień
+  Pański"* (kein polnisches Wort) und *„Kościół Kościoła
+  Adwentystów"*; mit Ankern *Wieczerza Pańska* und *Kościół
+  Adwentystów Dnia Siódmego*. Das ist der Unterschied zwischen einer
+  Liste, die jemand korrigiert, und einer, die er wegwirft.
+
+Die neue Glossarspalte landet in einer **neuen** Fassung
+(`glossar_v0.8.csv`) und wird **nicht** aktiv geschaltet. Welche Datei
+`config.GLOSSAR_CSV` nennt, entscheidet ein Mensch nach einem Testlauf.
+
+### Zurück
+
+```fish
+python werkzeuge/sprachpaket.py --einlesen pruefung/rueck_<sp>/
+python werkzeuge/sprachpaket.py --einlesen pruefung/rueck_<sp>/ --scharf
+```
+
+In den Ordner gehören das ausgefüllte `begriffe_<sp>.docx` und die
+`bewertung_<sp>.csv`, die der Knopf *Bewertung speichern* im Browser
+erzeugt.
+
+**Der Trockenlauf ist die Vorgabe, nicht eine Option.** Er zeigt jede
+Änderung einzeln — alt in Rot, neu in Grün — und fasst nichts an. Was
+hier eingetragen wird, sind die Worte, die im Gottesdienst gesprochen
+werden; das sieht man sich vorher an.
+
+Mit `--scharf` werden eingetragen:
+
+| Kennung | wohin |
+|---|---|
+| `A001`, `C012`, `D033` | die Sprachspalte im Glossar |
+| `UI.*` | `client.html`, als eigener Sprachblock in `TEXTE` |
+| `QR.*` | `qr_texte.py` |
+| `AN.*` | `anleitung/01_zuhoerer.<sp>.md` |
+
+Danach steht die Sprache in `config.GEPRUEFT`, und das Pult zeigt sie
+ohne gestrichelten Rand.
+
+**Was der Rückweg nicht tut:** die Stimme umstellen. Er nennt die
+gewählte; `config.STIMMEN` setzt ein Mensch. Eine Stimme zu wechseln
+heißt, dass jeder Zuhörer ab dem nächsten Sabbat eine andere hört.
+
+Danach noch von Hand:
+
+```fish
+bash anleitung_bauen.sh      # das Zuhörer-PDF in der neuen Sprache
+```
+
+### Merkposten: das Glossar aktiv schalten
+
+**Noch offen, und ohne das bleibt der halbe Gewinn liegen.**
+
+Nach dem Rücklauf steht die geprüfte Sprache in `glossar_v0.8.csv` —
+aber `config.GLOSSAR_CSV` zeigt weiter auf `v0.4`. Die Sprache läuft
+damit **live ohne Fachwortverzeichnis**: das Pult zeigt sie als
+geprüft, und der Prediger bekommt trotzdem „Eucharystia" statt
+„Wieczerza Pańska". Das ist der schlechteste der drei Zustände, weil
+er nach dem besten aussieht.
+
+Zum Umschalten gehört dreierlei:
+
+1. **`config.GLOSSAR_CSV`** auf die neue Fassung setzen.
+
+2. **Die Pflichtdateiliste in `start.sh`** ergänzen. Sie nennt heute
+   `glossar.py`, aber **keine** Glossar-CSV — fehlt die Datei nach
+   einem Update, merkt es niemand beim Start, sondern erst mitten im
+   Gottesdienst an einer Übersetzung ohne Terminologie.
+
+3. **Vorher ein Vergleichslauf** über die Testsätze für die schon
+   aktiven Sprachen. Eine neue Glossarfassung hat mehr Spalten, und
+   `glossarzeilen()` baut daraus den Prompt. Was sich für Englisch,
+   Russisch oder Persisch dabei ändert, soll **niemand überraschen** —
+   und schon gar nicht am Sabbat. Erwartet wird: keine Änderung.
+
+Bis das geschehen ist, gilt die Sprache als geprüft, läuft aber ohne
+Glossar. Das gehört in die Release-Notiz, nicht in eine Fußnote.
+
+### Warum die Pakete nicht ins Repo gehören
+
+`pruefung/paket_*` ist gitignoriert. Ein Paket sind rund neun Megabyte
+Ton, und das Repo geht per `git bundle --all` auf **jeden**
+Update-Stick. Was einmal darin ist, trägt jede Gemeinde für immer mit.
+
+Die Quellen dagegen gehören hinein: `fallstricke_<sp>.csv`,
+`saetze_auswahl_<sp>.csv`, `vorschlag_<sp>.json` und das Glossar. Aus
+ihnen ist ein Paket in Minuten wieder gebaut.
+
 ## Release-Checkliste
 
 Bei jeder Fassung:

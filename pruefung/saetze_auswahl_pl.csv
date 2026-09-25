@@ -1,0 +1,21 @@
+﻿nummer;id;quelle;kategorie;satz;prueffokus
+01;F01;fallstricke_pl.csv;fallstricke;Liebe Geschwister, nach dem Gottesdienst treffen wir uns zum Mittagessen.;Geschwister als Gemeindeanrede (bracia i siostry), nicht als Verwandtschaft. Gottesdienst = nabozenstwo. NICHT msza -- das ist die katholische Messe.
+02;F02;fallstricke_pl.csv;fallstricke;Unser Ältester wird heute das Abendmahl austeilen.;Aeltester ist ein Amt (starszy zboru), kein alter Mensch. Abendmahl = Wieczerza Panska. NICHT komunia.
+03;F03;fallstricke_pl.csv;fallstricke;Die Gemeinde in Wrocław ist im letzten Jahr stark gewachsen.;Gemeinde meint die Ortsgemeinde: zbor. NICHT parafia -- eine Pfarrei gibt es bei Adventisten nicht.
+04;F04;fallstricke_pl.csv;fallstricke;Nach der Sabbatschule beginnt um halb elf der Gottesdienst.;Sabbatschule = Szkola Sobotnia, feststehender Name. Sabbat faellt mit dem Wochentag sobota zusammen.
+05;F05;fallstricke_pl.csv;fallstricke;Die Kirche der Siebenten-Tags-Adventisten feiert dieses Jahr ihr Jubiläum.;Der amtliche Name der Kirche, nicht beschreibend uebersetzen.
+06;F06;fallstricke_pl.csv;fallstricke;Unsere Vereinigung hat für die Jugendarbeit einen neuen Plan.;Vereinigung ist die kirchliche Verwaltungsebene ueber den Ortsgemeinden, kein Verein und kein Zusammenschluss.
+07;F07;fallstricke_pl.csv;fallstricke;Wer seine Schuld bekennt und umkehrt, dem wird vergeben.;Bekennen und Umkehr im biblischen Sinn. NICHT spowiedz -- das ist die Ohrenbeichte beim Priester.
+08;F08;fallstricke_pl.csv;fallstricke;Die Taufe ist kein leerer Brauch, sondern ein Bekenntnis vor der Gemeinde.;Taufe als Handlung der Gemeinde. Bei Adventisten obrzed und NICHT sakrament.
+09;P09;testsaetze_v0.4.csv;fachbegriffe;Ich bin zu gierig für alle Gnade und Treue, die du an deinem Knecht bewiesen hast.;Gnade, Treue, Knecht
+10;P22;testsaetze_v0.4.csv;fachbegriffe;Als aber Jesus ihren Glauben sah, da sprach er zu dem Gelähmten, Sohn, deine Sünden sind dir vergeben.;Glaube, Sünde, Vergebung
+11;P26;testsaetze_v0.4.csv;fachbegriffe;Und ich habe das erlebt, dass ich wirklich Szenen hatte, wo ich, ich habe das bei meiner Taufe schon einmal erzählt, nämlich die Geschichte von der Mutter von Miriam, seiner Freundin von Lena, davon die Mutter.;Taufe
+12;P13;testsaetze_v0.4.csv;fachbegriffe;Aber was er macht ist, in Demut zu ihm sprechen, ihn gleichzeitig festhalten und sagen, ich möchte aber dein Segen.;Demut, Segen
+13;P01;testsaetze_v0.4.csv;namen_stellen;Dadurch hatte ich einen Hauskreis und ich habe mich mit Jesaja beschäftigt.;Hauskreis, Jesaja
+14;P20;testsaetze_v0.4.csv;namen_stellen;Und die Geschichte von Jakob ist ja quasi nur eine Geschichte, wie sie viele in der Geschichte vorkommen, in den Geschichten vorkommen, in Genesis, in Exodus.;1. Mose, 2. Mose
+15;P18;testsaetze_v0.4.csv;namen_stellen;Aber, wie schon Ellen White auch sagte, sobald wir Schmerzen haben, sobald wir schwach werden, sind wir leicht empfänglich für Satan.;Ellen G. White, Satan
+16;P10;testsaetze_v0.4.csv;lange_saetze;Aber dann kommt etwas weiteres, nämlich, du aber hast gesagt, ich will dir gewisslich wohltun und deinen Samen machen wie den Sand am Meer, der vor Menge nicht zu zählen ist.;freie Predigtsyntax, 31 Woerter
+17;P19;testsaetze_v0.4.csv;lange_saetze;Die Geschichte, die Jakob hier erleben durfte, wie er zu Israel wurde, und dass er jetzt der war, der für Gott kämpft, der Gott als solchen verstanden hat, ist hier zu Ende.;freie Predigtsyntax, 32 Woerter
+18;P28;testsaetze_v0.4.csv;lange_saetze;Und zwei Tage später habe ich dann von Miriam eine Nachricht bekommen, dass es jetzt heilbar ist, dass sie jetzt gerettet werden kann, dass die Krankheit heilbar ist und heute geht es der Mutter gut.;freie Predigtsyntax, 35 Woerter
+19;P16;testsaetze_v0.4.csv;kontrolle;Seele, Nefesh, das kommt von Kehle, als sie der letzte Atemzug von ihr ging, weil sie am Sterben war.;Seele
+20;P29;testsaetze_v0.4.csv;kontrolle;Es war ein Flügelschlag, dass er später erkennen konnte, dass alle Verheißungen, die von Gott kamen, für ihn wahr sind.;Verheißung

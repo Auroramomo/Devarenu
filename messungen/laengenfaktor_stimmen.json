@@ -135,6 +135,14 @@
       "streuung": 0.357,
       "saetze": 20
     },
+    "pl_PL-bass-high": {
+      "sprache": "pl",
+      "ausgeliefert": false,
+      "gegen_deutsch": 1.361,
+      "gegen_original": 1.149,
+      "streuung": 0.267,
+      "saetze": 20
+    },
     "pl_PL-darkman-medium": {
       "sprache": "pl",
       "ausgeliefert": true,
@@ -143,12 +151,20 @@
       "streuung": 0.221,
       "saetze": 20
     },
-    "pt_BR-faber-medium": {
-      "sprache": "pt",
-      "ausgeliefert": true,
-      "gegen_deutsch": 1.039,
-      "gegen_original": 0.898,
-      "streuung": 0.159,
+    "pl_PL-gosia-medium": {
+      "sprache": "pl",
+      "ausgeliefert": false,
+      "gegen_deutsch": 1.25,
+      "gegen_original": 1.13,
+      "streuung": 0.226,
+      "saetze": 20
+    },
+    "pl_PL-mc_speech-medium": {
+      "sprache": "pl",
+      "ausgeliefert": false,
+      "gegen_deutsch": 1.006,
+      "gegen_original": 0.854,
+      "streuung": 0.155,
       "saetze": 20
     },
     "pt_BR-cadu-medium": {
@@ -157,6 +173,14 @@
       "gegen_deutsch": 1.454,
       "gegen_original": 1.288,
       "streuung": 0.176,
+      "saetze": 20
+    },
+    "pt_BR-faber-medium": {
+      "sprache": "pt",
+      "ausgeliefert": true,
+      "gegen_deutsch": 1.039,
+      "gegen_original": 0.898,
+      "streuung": 0.159,
       "saetze": 20
     },
     "pt_BR-jeff-medium": {
