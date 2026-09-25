@@ -5024,6 +5024,10 @@ const TEXTE={
      +"liegen. Fassung {alt} läuft weiter.",
    upd_unlesbar:"Auf dem Stick steht eine Datei upd-dev.txt, aber keine "
      +"Fassung darin.",
+   upd_mehrdeutig:"Auf dem Stick liegen mehrere Update-Ordner. Es ist nicht "
+     +"zu erkennen, welcher gemeint ist – deshalb wird keiner eingespielt. "
+     +"Den Stick an einem anderen Rechner leeren, nur den neuen Ordner "
+     +"daraufkopieren und noch einmal einstecken.",
    wlan_hin:"Netzname und Passwort des Routers, an dem dieser Rechner hängt. "
      +"Sie wandern in den ersten QR-Code, damit sich die Handys mit einem "
      +"Scan verbinden, ohne dass jemand ein Passwort abtippt. Ohne Eintrag "
@@ -5166,6 +5170,10 @@ const TEXTE={
    upd_kein_wheel:"Update {v} needs packages that are not on the stick. "
      +"Version {alt} keeps running.",
    upd_unlesbar:"The stick has a file upd-dev.txt, but no version in it.",
+   upd_mehrdeutig:"The stick holds several update folders. There is no way "
+     +"to tell which one is meant, so none is installed. Empty the stick on "
+     +"another computer, copy only the new folder onto it and plug it in "
+     +"again.",
    wlan_hin:"Network name and password of the router this computer is "
      +"connected to. They go into the first QR code so that phones can join "
      +"with one scan, without anyone typing a password. Without an entry the "

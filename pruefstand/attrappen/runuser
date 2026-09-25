@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Attrappe: "runuser -u <benutzer> -- <befehl>" wird durchgereicht.
+#
+# Der Updater stuft alles, was im Projektordner schreibt, auf dessen
+# Besitzer zurueck. Im Pruefstand laeuft ohnehin alles als derselbe
+# Benutzer -- der Umweg ueber runuser wuerde hier nur an fehlenden
+# Wurzelrechten scheitern.
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -u) shift 2 ;;
+    --) shift; break ;;
+    *)  break ;;
+  esac
+done
+exec "$@"

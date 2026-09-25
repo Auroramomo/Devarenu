@@ -19,6 +19,29 @@
 # Projektordner oder die venv anfasst, wird auf den Besitzer des Ordners
 # zurueckgestuft: sonst gehoeren Dateien danach root, der Dienst laeuft
 # als ein anderer, und git meldet ab da "dubious ownership".
+#
+# ---------------------------------------------------------------------
+# GRUNDSATZ: DIE SCHLUESSELLISTE KOMMT NIE VOM STICK.
+#
+# Auf dem Stick LIEGT eine schluessel.erlaubt. Sie ist ausschliesslich
+# fuer bootstrap.sh da -- fuer einen Rechner, der das Verfahren noch gar
+# nicht kennt und deshalb noch keine eigene Liste hat. bootstrap.sh
+# zeigt den Fingerabdruck daraus am Bildschirm, und ein Mensch
+# vergleicht ihn am Telefon mit dem, den der Betreuer ihm nennt. Dieser
+# Anruf ist der Vertrauensanker, nicht die Datei.
+#
+# Dieses Skript hier liest sie NICHT. Es prueft ausschliesslich gegen
+# "$ORDNER/schluessel.erlaubt", also gegen die installierte Liste. Vom
+# Stick kommen nur devarenu.bundle, wheels/ und teile/.
+#
+# Der Grund ist einfach: wuerde der Kern die Liste vom Stick lesen,
+# brauchte ein Angreifer nur einen Stick zu bespielen -- er braechte
+# seine eigene Erlaubnis gleich mit, und die Signaturpruefung pruefte
+# nichts mehr als sich selbst. Belegt in pruefstand/updater_test.sh,
+# Fall 13: ein Tag von fremder Hand, dazu die passende Erlaubnis auf dem
+# Stick, wird abgelehnt -- und derselbe Stick mit der echten Signatur
+# geht durch.
+# ---------------------------------------------------------------------
 
 set -u
 ORDNER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -44,7 +67,10 @@ PY="$ORDNER/.venv/bin/python"
 # Nicht im Reparaturvorrat: der ist eine geprueufte Offline-Kopie und
 # soll nicht mit Halbfertigem aus laufenden Updates vermischt werden.
 ABLAGE="$ORDNER/update"
-DATEN=/var/lib/devarenu/updates
+# Die Vorgabe ist der echte Ort. Umgebogen wird sie nur vom Pruefstand
+# -- sonst bliebe der ganze Leseweg ungeprueft: Signatur, Bundle, der
+# Ordner auf dem Stick. Genau der Weg, den ein Ehrenamtlicher geht.
+DATEN="${DEVARENU_DATEN:-/var/lib/devarenu/updates}"
 STAND="$ABLAGE/stand.json"
 BEREIT="$ABLAGE/bereit"
 RUHIG="$ABLAGE/ruhig"
@@ -52,7 +78,18 @@ JETZT="$ABLAGE/jetzt"
 SPERRE="$ABLAGE/sperre"
 
 EINHAENGEPUNKT=/run/devarenu-stick
-SCHLUESSEL_KOPIE=/run/devarenu-schluessel.erlaubt
+
+# Die Kopie der Schluesselliste, gegen die die Signatur geprueft wird.
+# Sie bekommt BEWUSST keinen eigenen Schalter: eine Umgebungsvariable,
+# die bestimmt, welche Schluessel gelten, waere der Hebel, mit dem sich
+# ein fremdes Tag annehmen liesse. Sie haengt an der Ablage, und die ist
+# ausserhalb des Pruefstands immer /var/lib/devarenu/updates.
+if [ -n "${DEVARENU_DATEN:-}" ]; then
+  SCHLUESSEL_KOPIE="$DATEN/schluessel.erlaubt"
+  mkdir -p "$DATEN"
+else
+  SCHLUESSEL_KOPIE=/run/devarenu-schluessel.erlaubt
+fi
 
 # Wie lange durchgehend Ruhe sein muss, bevor von allein eingespielt wird.
 # Der Timer laeuft jede Minute, also sind das 20 Minuten. Eine Pause
@@ -165,7 +202,16 @@ version_hier() {
 stick_lesen() {
   local geraet="$1"
 
-  [ -b "$geraet" ] || { fehl "$geraet ist kein Blockgeraet"; exit 1; }
+  # Ein bereits eingehaengter Ordner statt eines Geraets. NUR fuer den
+  # Pruefstand: Einhaengen braucht Wurzelrechte und ein echtes
+  # Blockgeraet, und dann bliebe ausgerechnet das Suchen der Datei
+  # ungeprueft -- der Teil, an dem sich entscheidet, ob ein Stick
+  # ueberhaupt erkannt wird.
+  local ohne_einhaengen="${DEVARENU_STICK_ORDNER:-}"
+
+  if [ -z "$ohne_einhaengen" ]; then
+    [ -b "$geraet" ] || { fehl "$geraet ist kein Blockgeraet"; exit 1; }
+  fi
 
   mkdir -p "$ABLAGE"
   chown "$BENUTZER" "$ABLAGE" 2>/dev/null || true
@@ -175,6 +221,11 @@ stick_lesen() {
   # Der Stick wird nur gelesen, nie beschrieben, und haengt so kurz wie
   # moeglich: ro gegen Unfaelle, noexec/nosuid/nodev, weil ein fremder
   # Datentraeger nichts mitbringen soll, was sich ausfuehren laesst.
+  if [ -n "$ohne_einhaengen" ]; then
+    EINHAENGEPUNKT="$ohne_einhaengen"
+    gut "Pruefstand: $EINHAENGEPUNKT gilt als eingehaengt"
+  else
+
   mkdir -p "$EINHAENGEPUNKT"
   local eingehaengt=""
   # ntfs3 gibt es erst ab Kernel 5.15, aelteres Debian kennt nur das
@@ -198,6 +249,7 @@ stick_lesen() {
   # ausgehaengt -- auch beim Abbruch von aussen.
   trap 'umount "$EINHAENGEPUNKT" 2>/dev/null; rmdir "$EINHAENGEPUNKT" 2>/dev/null' \
        EXIT INT TERM
+  fi
 
   # Gross- und Kleinschreibung offen lassen: auf vfat ist sie ohnehin
   # egal, und wer die Datei unter Windows anlegt, bekommt leicht
@@ -208,8 +260,25 @@ stick_lesen() {
   # auf den Stick zieht, statt seinen Inhalt. Dann laegen die Dateien
   # eine Ebene tiefer -- und der Rechner haette schweigend gar nichts
   # gemerkt. Sonntagmorgen ist das die falsche Art von Raetsel.
-  ausloeser="$(find "$EINHAENGEPUNKT" -maxdepth 2 -iname 'upd-dev.txt' \
-               -type f 2>/dev/null | head -1)"
+  local treffer anzahl
+  treffer="$(find "$EINHAENGEPUNKT" -maxdepth 2 -iname 'upd-dev.txt' \
+             -type f 2>/dev/null | sort)"
+  anzahl="$(printf '%s' "$treffer" | grep -c . || true)"
+
+  # Mehr als eine: NICHT raten. Der wahrscheinliche Fall ist ein Stick,
+  # auf dem noch ein alter Ordner von einem frueheren Update liegt --
+  # und dann entscheidet die Reihenfolge von "find", welche Fassung
+  # eingespielt wird. Eine Fassung, die vom Zufall abhaengt, ist
+  # schlimmer als gar keine.
+  if [ "$anzahl" -gt 1 ]; then
+    fehl "Auf dem Stick liegen $anzahl Dateien upd-dev.txt."
+    printf '%s\n' "$treffer" | sed "s|^$EINHAENGEPUNKT/||; s|^|     |"
+    stand_schreiben mehrdeutig "" \
+      "Auf dem Stick liegen $anzahl Update-Ordner. Es ist nicht zu erkennen, welcher gemeint ist. Den Stick an einem anderen Rechner leeren, nur den neuen Ordner daraufkopieren und noch einmal einstecken."
+    exit 1
+  fi
+
+  ausloeser="$(printf '%s' "$treffer" | head -1)"
   if [ -z "$ausloeser" ]; then
     # Der Normalfall: irgendein Stick, kein Update. Nichts melden, nichts
     # in die Statusdatei schreiben -- sonst ueberschreibt der Fotostick

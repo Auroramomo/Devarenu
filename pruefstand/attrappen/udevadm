@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Attrappe. Schreibt mit, statt udev anzusprechen.
+echo "udevadm $*" >> "${STUB_LOG:-/dev/null}"
+exit 0

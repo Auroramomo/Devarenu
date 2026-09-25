@@ -48,6 +48,13 @@ HIER="${DEV_HIER:-unbekannt}"
 SICHERUNG="${DEV_SICHERUNG:?fehlt}"
 NAME=devarenu
 
+# Wohin die Units geschrieben werden. Fest verdrahtet war das bis 0.2.14
+# und damit im Pruefstand nicht nachweisbar -- ausgerechnet der Teil, der
+# jahrelang GAR NICHT lief. Die Vorgabe ist der echte Ort; gesetzt wird
+# die Variable nur von den Tests.
+UNIT_ORDNER="${DEVARENU_UNIT_ORDNER:-/etc/systemd/system}"
+UDEV_REGEL="${DEVARENU_UDEV_REGEL:-/etc/udev/rules.d/99-$NAME-stick.rules}"
+
 cd "$ORDNER"
 
 blau() { printf '\n\033[1;34m== %s\033[0m\n' "$*"; }
@@ -181,7 +188,7 @@ for paar in "devarenu.service:devarenu.service.vorlage" \
             "devarenu-update.service:devarenu-update.service.vorlage" \
             "devarenu-update.timer:devarenu-update.timer.vorlage"; do
   unit="${paar%%:*}"; vorlage="${paar#*:}"
-  ziel="/etc/systemd/system/$unit"
+  ziel="$UNIT_ORDNER/$unit"
   [ -f "$ziel" ] || continue          # nicht eingerichtet, nichts zu tun
   [ -f "$ORDNER/$vorlage" ] || continue
   neu="$(sed -e "s|@ORDNER@|$ORDNER|g" -e "s|@BENUTZER@|$BENUTZER|g" \
@@ -197,6 +204,29 @@ if [ "$UNITS_GEAENDERT" = ja ]; then
   systemctl daemon-reload && gut "systemd neu geladen"
 else
   gut "Units unveraendert"
+fi
+
+# Die udev-Regel ging bis 0.2.14 leer aus. Sie sah nur deshalb richtig
+# aus, weil sie sich seit 0.2.11 nicht geaendert hat -- eine Luecke, die
+# erst bei der naechsten Aenderung aufgefallen waere, und dann als
+# "der Stick wird nicht mehr erkannt". Ohne Erkennung gibt es auch kein
+# Update mehr, das sie nachtraeglich reparieren koennte.
+if [ -f "$UDEV_REGEL" ] && [ -f "$ORDNER/stick.udev.vorlage" ]; then
+  if ! cmp -s "$ORDNER/stick.udev.vorlage" "$UDEV_REGEL"; then
+    cp "$ORDNER/stick.udev.vorlage" "$UDEV_REGEL"
+    chmod 644 "$UDEV_REGEL"
+    gut "udev-Regel neu geschrieben"
+    # Kein Abbruchgrund: udev liest seine Regeln spaetestens beim
+    # naechsten Start neu ein, und der kommt sonntags ohnehin.
+    if udevadm control --reload 2>/dev/null; then
+      gut "udev neu geladen"
+    else
+      warn "udev-Regel liegt, udevadm liess sich nicht ansprechen."
+      warn "Sie gilt ab dem naechsten Neustart."
+    fi
+  else
+    gut "udev-Regel unveraendert"
+  fi
 fi
 
 # ------------------------------------------------------------- Dienst

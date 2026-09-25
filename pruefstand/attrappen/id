@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Attrappe: "id -u" sagt 0, alles andere kommt vom echten id.
+#
+# Der Updater prueft mit "id -u", ob er Wurzelrechte hat -- zu Recht, er
+# haengt Datentraeger ein und startet Dienste neu. Im Pruefstand soll
+# genau dieser Weg durchlaufen werden, ohne dass der Prueflauf wirklich
+# root ist. Alles, was dahinter kaeme, ist ohnehin durch systemctl- und
+# sudo-Attrappen abgefangen.
+[ "${1:-}" = "-u" ] && [ $# -eq 1 ] && { echo 0; exit 0; }
+exec /usr/bin/id "$@"
