@@ -172,6 +172,36 @@ pruefe "das Kennzeichen von vorher ist da" "kennzeichen-alt" \
 pruefe "und es laeuft" "$VOR" \
   "$("$R/.venv/bin/python" -c 'import sys; print(sys.prefix)' 2>/dev/null)"
 
+printf '\n\033[1m== 8) Der echte Sprung 0.2.13 -> 0.2.14\033[0m\n'
+# Genau der Sprung, der vor Ort gemacht wird: kein Modellwechsel, keine
+# neuen Pakete, nur Code. Mit dem NEUEN Kern, also ueber
+# aktualisierung.sh -- so, wie es ab 0.2.13 laeuft.
+R="$BASIS/r8"; bau_repo "$R"
+echo "0.2.13" > "$R/VERSION"
+git -C "$R" add -A >/dev/null; git -C "$R" commit -q -m 0.2.13
+git -C "$R" tag v0.2.13
+ALT="$(git -C "$R" rev-parse HEAD)"
+
+# 0.2.14: eine Zeile mehr, sonst nichts. requirements.txt bleibt.
+echo "0.2.14" > "$R/VERSION"
+echo "Fehler melden am Pult" >> "$R/etwas.txt"
+git -C "$R" add -A >/dev/null; git -C "$R" commit -q -m 0.2.14
+git -C "$R" tag v0.2.14
+git -C "$R" update-ref refs/stick/v0.2.14 "$(git -C "$R" rev-parse v0.2.14)"
+git -C "$R" reset -q --hard "$ALT"
+mkdir -p "$BASIS/s8"
+AUS="$(lauf "$R" refs/stick/v0.2.14 0.2.14 "$ALT" "$BASIS/s8")"
+
+pruefe "0.2.14 ist eingespielt" "0.2.14" "$(cat "$R/VERSION")"
+pruefe "die neue Zeile ist da" "1" \
+  "$(grep -c 'Fehler melden am Pult' "$R/etwas.txt")"
+pruefe "kein venv getauscht (requirements unveraendert)" "nein" \
+  "$([ -f "$BASIS/s8/venv-vorher" ] && echo ja || echo nein)"
+pruefe "keine grossen Teile noetig" "1" \
+  "$(printf '%s' "$AUS" | grep -c 'keine grossen Teile')"
+pruefe "der Gesundheitscheck lief" "1" \
+  "$(printf '%s' "$AUS" | grep -c 'Gesundheitscheck')"
+
 printf '\n'
 if [ "$FEHLER" = 0 ]; then
   printf '\033[32mAlle Faelle wie erwartet.\033[0m\n'

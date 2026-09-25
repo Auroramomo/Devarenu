@@ -505,6 +505,29 @@ versteht, rund eine Stunde Zeit für eine Liste mit 93 Begriffen. Das
 ist der einzige Weg, wie aus einer experimentellen Sprache eine
 geprüfte wird.
 
+## Was nicht im Protokoll steht
+
+Der gesprochene Satz geht **nicht** ins Journal — nur seine Länge:
+
+```
+[  42]  3.2s Ton, STT 0.12s, gesamt 3.44s | 67 Z.
+```
+
+Dasselbe gilt für Zuschriften aus dem Saal und für die Personennamen
+aus dem Predigtmanuskript. Bis 0.2.13 stand das alles im Klartext da.
+
+Zur Fehlersuche lässt es sich am Pult unter *Einrichtung* einschalten
+(*Mitschrift im Protokoll*). Der Schalter steht in `zustand.json`,
+nicht in `config.py` — eine Änderung an einer versionierten Datei ließe
+jedes Update abbrechen. Solange er an ist, meldet ihn der Systemcheck.
+
+Damit der Fehlerbericht überhaupt etwas Brauchbares zeigen kann, setzt
+der Server seinen Warnungen `<4>` und seinen Fehlern `<3>` voran —
+systemd liest das als Stufe. Nötig ist das, weil systemd sonst
+**alles** auf Stufe 6 legt, stdout wie stderr; gemessen. Die
+Segmentzeilen bekommen die Marke **nicht**, und darum kann Mitschrift
+nie auf Warnstufe erscheinen. Genau ab dort sammelt der Bericht.
+
 ## Im Betrieb kein Internet, für die Wartung ein Hotspot
 
 Im Gottesdienst hat der Rechner **kein Netz nach draußen**, und nichts
@@ -815,33 +838,19 @@ Geht genauso, mit **denselben** Übergangsschritten. Geprüft:
 0.2.12 wird dabei übersprungen. Das ist ohne Folgen — sie bringt keine
 Datenänderung mit, die 0.2.13 nicht selbst nachholt.
 
-## Neuen Kern vor Ort prüfen
+## Neuen Kern vor Ort prüfen — mit 0.2.14
 
-Der neue Kern greift erst beim Update **nach** 0.2.13 — bis dahin ist er
-ungetestet auf diesem Rechner. Deshalb einmal eine Testfassung
-einspielen, während jemand danebensteht.
+Der neue Kern greift erst beim Update **nach** 0.2.13. **0.2.14 ist
+dieses Update** — die erste Fassung, die er selbst einspielt. Deshalb
+einmal danebenstehen.
 
-### Vorbereiten (zuhause)
-
-Eine Fassung 0.2.14 bauen, in der sich **eine einzige Textzeile**
-ändert — zum Beispiel ein Kommentar in `LIESMICH.md`. Nichts
-Funktionales, damit ein Fehlschlag eindeutig am Updater liegt und nicht
-an der Änderung.
-
-```
-# eine Zeile ändern, dann:
-echo 0.2.14 > VERSION
-git commit -am "Probefassung fuer den Kerntest"
-git tag -s v0.2.14 -m "Probefassung"
-bash stick_bauen.sh /run/media/<name>/STICK
-```
-
-Ohne `--von` und ohne `--voll` — es sollen **keine** großen Teile dabei
-sein.
+0.2.14 ist dafür geeignet: keine großen Teile, `requirements.txt`
+unverändert. Im Prüfstand ist genau dieser Sprung als Fall 8
+durchgespielt.
 
 ### Einspielen und zusehen
 
-Stick einstecken. Dann im Journal mitlesen:
+Stick einstecken, dann mitlesen:
 
 ```fish
 journalctl -f -u 'devarenu-stick@*' -u devarenu-update.service
@@ -849,55 +858,56 @@ journalctl -f -u 'devarenu-stick@*' -u devarenu-update.service
 
 ### Woran du erkennst, dass der neue Kern gearbeitet hat
 
-Diese vier Zeilen gibt es **nur** im neuen Kern. Stehen sie da, hat
-nicht mehr die alte Logik gearbeitet:
+Diese Zeilen gibt es **nur** im neuen Kern:
 
 ```
 ok    Stand gesichert: Units, zustand.json, netz.json
 ok    Logik aus <7 Zeichen> ausgepackt
 == Einspielen
 ok    requirements.txt unveraendert, keine Pakete noetig
+ok    keine grossen Teile in dieser Fassung
 ```
 
-Die zweite ist die wichtigste: sie nennt die **Objekt-SHA**, aus der die
-Update-Logik kam — nicht den Tagnamen.
+Die zweite ist die wichtigste: sie nennt die **Objekt-SHA**, aus der
+die Update-Logik kam — nicht den Tagnamen. Vergleichen lässt sie sich
+mit:
+
+```fish
+git rev-parse --short v0.2.14^{commit}
+```
 
 **Am Pult**, unter *Einrichtung*: „Update auf Fassung 0.2.14 ist
 eingespielt und läuft."
 
-**Auf der Platte** — hier liegt der Rückweg:
+**Auf der Platte:**
 
 ```fish
 sudo ls -la /var/lib/devarenu/updates/
+sudo ls -la /var/lib/devarenu/updates/vorher-0.2.14/
 ```
 
 Erwartet: `vorher-0.2.14/` mit `units/`, `zustand.json`, `netz.json`,
-und der Ordner selbst mit Rechten `700`. Das Auspackverzeichnis
-`logik-0.2.14/` ist danach wieder weg — es wird nach dem Lauf gelöscht.
+`befunde-vorher`, und der Ordner mit Rechten `700`. Das
+Auspackverzeichnis `logik-0.2.14/` ist danach wieder weg.
 
 ### Woran du erkennst, dass der Rückfall greifen würde
 
-Ohne etwas kaputtzumachen: die Sicherung **ist** der Beweis. Steht sie
+Ohne etwas kaputtzumachen: **die Sicherung ist der Beweis.** Steht sie
 da und ist vollständig, kann der Kern zurück.
 
-Wer es wirklich auslösen will, baut eine Fassung 0.2.15, deren
-`aktualisierung.sh` am Ende `exit 1` hat. Dann muss im Journal stehen:
+Wer es wirklich auslösen will, baut eine 0.2.15, deren
+`aktualisierung.sh` am Ende `exit 1` hat. Dann muss dastehen:
 
 ```
 FEHLT Die Update-Logik ist gescheitert (Rueckgabe 1).
 !     zurueck auf <7 Zeichen>
 ```
 
-und am Pult: „Fassung 0.2.13 wurde wiederhergestellt und läuft."
-Danach muss `bash pruefen.sh` wieder still sein.
-
-**Das gehört nicht an einen Sonntag.** Eingespielt wird ohnehin erst,
-wenn zwanzig Minuten niemand zugehört hat — aber für diesen Versuch
-sollte Zeit sein.
+und am Pult: „Fassung 0.2.14 wurde wiederhergestellt und läuft."
+Danach muss `bash pruefen.sh` wieder still sein. **Nicht an einem
+Sonntag.**
 
 ### Woran du erkennst, dass der Gesundheitscheck greift
-
-Er läuft bei jedem Update und meldet sich im Journal:
 
 ```
 == Gesundheitscheck
@@ -907,19 +917,113 @@ ok    meldet Fassung 0.2.14
 ok    keine neuen Fehler
 ```
 
-„Keine neuen Fehler" heißt: **neue** gegenüber dem Stand vor dem Update.
-Ein Rechner, bei dem vorher schon etwas im Argen lag, rollt deshalb
-kein Update zurück. Was vorher gemerkt wurde, steht in
-`/var/lib/devarenu/updates/vorher-0.2.14/befunde-vorher`.
+„Keine neuen" heißt: neu gegenüber dem Stand vor dem Update. Was vorher
+schon im Argen lag, rollt kein Update zurück. Der Vergleichsstand liegt
+in `vorher-0.2.14/befunde-vorher`.
 
 Ändern sich venv oder große Teile, läuft zusätzlich der Selbsttest —
-dann dauert es einige Minuten länger, und im Journal steht
-„Selbsttest bestanden".
+bei 0.2.14 also **nicht**.
 
-### Danach
+### Danach: einmalig das alte Journal aufräumen
 
-Die Probefassung bleibt liegen; sie unterscheidet sich ja nur in einer
-Zeile. Beim nächsten echten Update wird sie überschrieben.
+**Das gehört zu diesem Update dazu.** Bis 0.2.13 schrieb der Server bei
+jedem Abschnitt bis zu sechzig Zeichen des gesprochenen Satzes ins
+Journal, dazu die Zuschriften aus dem Saal im Wortlaut und die
+Personennamen aus dem Predigtmanuskript. Im Journal dieses Rechners
+stehen damit Predigtsätze aus früheren Gottesdiensten — Wochen davon.
+
+Ab 0.2.14 passiert das nicht mehr. Das Alte verschwindet dadurch aber
+nicht von allein.
+
+#### Warum `--vacuum-time=2d` allein nichts nützt
+
+Zwei Eigenschaften von `journalctl`, die zusammen eine Falle bilden:
+
+1. **Vacuum fasst nur archivierte Dateien an.** In der man-Page steht
+   es wörtlich: „removes the oldest **archived** journal files" und
+   „the vacuuming operation only operates on archived journal files."
+   Die gerade beschriebene, *aktive* Datei bleibt unangetastet.
+2. **Gelöscht wird dateiweise, nicht zeilenweise.** Eine Journaldatei
+   umfasst viele Stunden. Sie fliegt nur raus, wenn sie als Ganzes
+   älter ist als die Grenze.
+
+Daraus folgt: `sudo journalctl --vacuum-time=2d` lässt genau die Datei
+stehen, auf die es ankommt. Frisch rotiert enthält sie die alten
+Predigtsätze **und** die Einträge von eben — damit ist sie nicht zwei
+Tage alt und bleibt liegen. Ohne `--rotate` ist sie nicht einmal
+archiviert und kommt gar nicht erst in Frage.
+
+#### Der Ablauf
+
+**a) Erst den Kerntest zu Ende machen.** Das Aufräumen kommt danach,
+sonst löschst du die Meldungen, an denen du den Test abliest.
+
+**b) Die Meldungen des Kerntests wegsichern**, bevor sie verschwinden.
+`<beginn>` ist der Zeitpunkt, zu dem du den Stick eingesteckt hast, im
+Format `"2026-09-27 14:00"`:
+
+```fish
+journalctl -u 'devarenu-stick@*' -u devarenu-update.service \
+  --since "<beginn>" --no-pager > ~/kerntest-0.2.14.txt
+wc -l ~/kerntest-0.2.14.txt
+```
+
+Die Datei liegt im Home und übersteht das Aufräumen. Sieh kurz hinein —
+nach dem nächsten Schritt gibt es sie nur noch dort.
+
+**c) Alles Bisherige archivieren:**
+
+```fish
+sudo journalctl --rotate
+```
+
+Das schließt die aktiven Dateien ab und legt leere neue an. Die man-Page:
+„all currently active journal files are marked as archived and renamed,
+so that they are never written to in future."
+
+**d) Die archivierten Dateien wegwerfen:**
+
+```fish
+sudo journalctl --vacuum-time=1s
+```
+
+Alles, was älter als eine Sekunde ist — also alles aus Schritt c.
+
+> Die beiden Befehle lassen sich laut man-Page auch zu einem
+> zusammenfassen. **Hier nicht.** Bei `1s` kann die eben rotierte Datei
+> dann jünger als die Grenze sein und stehenbleiben. Getrennt getippt
+> liegt mehr als eine Sekunde dazwischen.
+
+**e) Kontrolle:**
+
+```fish
+journalctl -u devarenu --since -90days | grep -c "Ton, STT"
+journalctl --disk-usage
+```
+
+Erwartet: **0** Treffer und eine deutlich kleinere Zahl bei der
+Plattennutzung. Kommt etwas anderes heraus, ist Schritt c oder d nicht
+durchgelaufen — nicht weitermachen, sondern nachsehen.
+
+Zeilen, die ab jetzt neu dazukommen, tragen keinen Text mehr, sondern
+nur noch die Länge (`| 67 Z.`).
+
+#### Was dabei verloren geht
+
+**Das gesamte Systemprotokoll bis zu diesem Moment — nicht nur
+Devarenu.** Also auch Startmeldungen, Netzwerk- und Treibermeldungen,
+Fehler anderer Dienste, die ganze Vorgeschichte des Rechners.
+`journalctl` kann nicht nach einzelnen Diensten löschen; die Journale
+sind nach Zeit organisiert, nicht nach Herkunft.
+
+Das ist hier hinnehmbar, weil der Rechner nichts protokolliert, was
+über den Tag hinaus gebraucht wird — und weil das, was tatsächlich
+gebraucht wird, in Schritt b im Home liegt. Auf einem anderen Rechner
+wäre diese Abwägung eine andere.
+
+Gebraucht wird danach nichts mehr aus dem Journal: der Fehlerbericht am
+Pult liest ohnehin nur die letzten zwei Tage und nur ab Stufe
+*warning*.
 
 ## Release-Checkliste
 
@@ -956,7 +1060,10 @@ Bei jeder Fassung:
       ```
       bash pruefstand/updater_test.sh
       python pruefstand/teile_test.py
+      python pruefstand/bericht_test.py
       ```
+      Der dritte prüft mit **erfundenen** Daten, dass im Fehlerbericht
+      weder Mitschrift noch Namen noch Zugangsdaten stehen.
 - [ ] **Ist das öffentlich zumutbar?**
       ```
       bash oeffentlich_pruefen.sh

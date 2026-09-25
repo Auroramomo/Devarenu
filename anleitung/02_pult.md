@@ -50,6 +50,31 @@ Drei Zustände, und sie sehen verschieden aus:
 Wird eine ungeprüfte Sprache eingeschaltet, legt Devarenu einen Hinweis
 in den Briefkasten — einmal je Sprache.
 
+## Etwas funktioniert nicht
+
+Oben rechts, neben dem Zahnrad, sitzt ein **Käfer**. Dahinter steht,
+wie man es meldet:
+
+- **Name und Adresse** des Betreuers zum Abschreiben.
+- **Ein QR-Code**, der auf dem Handy eine fertige Mail öffnet — Betreff
+  und die wichtigsten Angaben stehen schon drin, zu schreiben bleibt
+  „Was ist passiert?".
+- **Ein zweiter QR-Code**, der den Fehlerbericht aufs Handy lädt. Der
+  ist nötig, weil das Pult meist am Rechner selbst bedient wird: ein
+  Download dort kommt nie in die Mail.
+- **Ein Knopf** für denselben Bericht, wenn man am Rechner sitzt.
+
+Die Mail geht erst raus, wenn das Handy wieder Internet hat. Im
+Saalnetz bleibt sie im Postausgang liegen — das ist richtig so und kein
+Fehler.
+
+**Was im Bericht steht:** Fassung, Rechner, Grafikkarte, Systemcheck,
+die Zusammenzählung von `pruefen.sh`, das letzte Update und Meldungen
+ab Warnstufe. **Was nicht darin steht:** Mitschriften, Übersetzungen,
+Zuschriften aus dem Saal, Namen aus dem Manuskript, das WLAN-Passwort.
+Nichts davon wird gesammelt und dann entfernt — es wird gar nicht erst
+geholt.
+
 ## Nach dem Gottesdienst
 
 Nichts weiter zu tun. Der Rechner darf am Netzschalter ausgeschaltet

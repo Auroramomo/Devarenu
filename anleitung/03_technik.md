@@ -80,6 +80,31 @@ Hat jemand am Rechner eine Datei des Projekts geändert, gewinnt beim
 Update der signierte Stand. Die Änderung geht aber nicht verloren — sie
 wird vorher als Patch gesichert, und das Pult nennt den Ablageort.
 
+## Den Fehlerbericht schicken
+
+Am Pult, hinter dem Käfer oben rechts. Der Bericht entsteht beim
+Abruf — er beschreibt den Rechner in diesem Moment, eine alte Kopie
+wäre schlimmer als keine.
+
+Zwei Wege, je nachdem, wo man steht:
+
+- **Am Rechner:** Knopf *Fehlerbericht herunterladen*, dann an die Mail
+  hängen.
+- **Mit dem Handy:** den zweiten QR-Code scannen. Das Handy lädt den
+  Bericht über das Saalnetz und kann ihn später anhängen, wenn es
+  wieder Internet hat.
+
+## Die Mitschrift im Protokoll
+
+Normalerweise steht der gesprochene Satz **nicht** im Protokoll — nur
+seine Länge. Das ist Absicht: über Wochen ergäbe sich sonst eine
+Sammlung von Predigtinhalten, die niemand angelegt hat und niemand
+löscht.
+
+Zur Fehlersuche lässt sich das am Pult unter *Einrichtung*
+einschalten: **Mitschrift im Protokoll**. Solange es an ist, steht ein
+Hinweis am Pult. **Danach wieder ausschalten.**
+
 ## Was die Technik nicht anfassen muss
 
 Das Saalnetz. Es ist einmal eingerichtet und bleibt so.

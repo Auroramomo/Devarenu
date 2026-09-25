@@ -4117,6 +4117,87 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             nr_seite="2" if wlan_qr else "1",
             seiten_qr=seiten_qr, adresse=adresse))
 
+    @app.get("/fehlerbericht.txt")
+    def fehlerbericht_txt(schnell: int = 0):
+        """Der Bericht zum Anhaengen an eine Mail.
+
+        Erzeugt beim Abruf, nie gespeichert: er beschreibt den Rechner
+        in DIESEM Moment, und eine alte Kopie waere schlimmer als
+        keine."""
+        import fehlerbericht as fb
+        try:
+            if schnell:
+                # pruefen.sh dauert Minuten. Vom Handy aus, im Saal,
+                # will niemand so lange warten.
+                alt = fb._pruefen_zusammen
+                fb._pruefen_zusammen = lambda: ["(uebersprungen, "
+                                                "siehe pruefen.sh)"]
+                try:
+                    text = fb.bauen()
+                finally:
+                    fb._pruefen_zusammen = alt
+            else:
+                text = fb.bauen()
+        except Exception as e:
+            text = (f"Devarenu -- Fehlerbericht\n\nDer Bericht liess "
+                    f"sich nicht erzeugen: {type(e).__name__}\n")
+        name = f"devarenu-{config.VERSION}-fehlerbericht.txt"
+        return PlainTextResponse(
+            text, headers={"Cache-Control": "no-store",
+                           "Content-Disposition":
+                               f'attachment; filename="{name}"'})
+
+    @app.get("/fehler-qr.png")
+    def fehler_qr(was: str = "mail"):
+        """Zwei QR-Codes fuer den Fehler-Dialog.
+
+        mail     oeffnet auf dem Handy eine fertige Mail
+        bericht  laedt den Fehlerbericht aufs Handy
+
+        Der zweite ist noetig, weil das Pult meist am Rechner selbst
+        bedient wird -- ein Download DORT kommt nie in die Mail. Das
+        Handy im Saalnetz kann ihn holen und spaeter anhaengen.
+
+        Beide bewusst klein gehalten: gemessen wird ein mailto mit
+        Betreff und kurzem Rumpf zu QR-Version 9. Nimmt man die Befunde
+        mit hinein, sind es Version 10 bis 14 -- und ab 10 wird es fuer
+        Handykameras zaeh. Die Einzelheiten stehen deshalb im Bericht,
+        nicht im Code."""
+        import segno
+        import urllib.parse
+        if was == "bericht":
+            lage = netzzustand.laden()[0]
+            if lage["router"] and lage["adresse"]:
+                # Ueber Port 80, damit keine Portnummer im Code steht
+                # und der Link auch ohne sie geht.
+                inhalt = f"http://{lage['adresse']}/fehlerbericht.txt?schnell=1"
+            elif lauf.adresse:
+                inhalt = (f"http://{lauf.adresse}:{a_port[0]}"
+                          f"/fehlerbericht.txt?schnell=1")
+            else:
+                return JSONResponse({"fehler": "keine Adresse bekannt"},
+                                    status_code=404)
+        else:
+            betreff = f"Devarenu {config.VERSION}: Fehlermeldung"
+            rumpf = (f"Datum: {time.strftime('%d.%m.%Y %H:%M')}\n"
+                     f"Fassung: {config.VERSION}\n\n"
+                     f"Was ist passiert?\n\n")
+            inhalt = "mailto:" + config.RUECKMELDUNG_MAIL + "?" \
+                + urllib.parse.urlencode({"subject": betreff, "body": rumpf})
+        code = segno.make(inhalt, error="m")
+        puffer = io.BytesIO()
+        module = code.symbol_size(border=2)[0]
+        code.save(puffer, kind="png", scale=max(4, 560 // module), border=2,
+                  dark="#141f52", light="#ffffff")
+        return Response(content=puffer.getvalue(), media_type="image/png",
+                        headers={"Cache-Control": "no-store"})
+
+    @app.get("/api/betreuer")
+    def betreuer():
+        """Name und Adresse fuers Pult -- aus betreuer.txt."""
+        return {"name": config.BETREUER_NAME,
+                "mail": config.RUECKMELDUNG_MAIL}
+
     @app.get("/anleitung.pdf")
     def anleitung(teil: str = "alles", sprache: str = ""):
         """Die Bedienungsanleitung. Fertig gebaut, liegt im Repo.
@@ -4439,6 +4520,18 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
     und wenn, dann meist waehrend etwas laeuft. Deshalb ueber dem
     Hauptknopf und mit einer kleinen Bewegung, die aufhoert, sobald man
     hinsieht. */
+ /* Der Kaefer sitzt neben dem Zahnrad: sichtbar, aber nicht bei den
+    Betriebsknoepfen. Wer im Gottesdienst einen Fehler bemerkt, soll
+    ihn finden, ohne zu suchen -- und niemand soll versehentlich
+    daraufkommen statt auf Start. */
+ #kaefer{background:none;border:0;color:#6b7385;cursor:pointer;
+   padding:.25rem .35rem;line-height:0}
+ #kaefer:hover{color:#c0392b}
+ .betreuer{margin:.6rem 0 1rem;font-size:1.05rem}
+ .betreuer code{font-size:.95rem;color:#1c3a8f}
+ .qrpaar{display:flex;gap:1.4rem;flex-wrap:wrap;margin:.4rem 0 1rem}
+ .qrpaar img{border:1px solid #d9dce4;border-radius:4px;background:#fff}
+ .qrpaar>div{max-width:210px}
  .briefkasten{background:#1fa5d8;display:flex;align-items:center;
    justify-content:center;gap:.6rem;font-size:1rem}
  /* Ohne das gewinnt display:flex gegen das hidden-Attribut, und der
@@ -4633,6 +4726,12 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
 <div class=kopfknoepfe>
   <button id=qrknopf onclick=qrOeffnen() title="QR-Seite für den Beamer">
     QR</button>
+  <button id=kaefer onclick=fehlerZeigen() title="Fehler melden"
+          aria-label="Fehler melden"><svg viewBox="0 0 24 24" width="17"
+    height="17" fill="none" stroke="currentColor" stroke-width="1.7"
+    stroke-linecap="round"><ellipse cx="12" cy="13.5" rx="4.6" ry="5.8"/>
+    <path d="M12 7.7V19.3M7.4 13.5H2.8M16.6 13.5h4.6M8 9.4 4.6 6.6M16 9.4l3.4-2.8M8 17.8l-3.4 2.6M16 17.8l3.4 2.6"/>
+    <path d="M9.3 8.1a3.2 3.2 0 0 1 5.4 0"/></svg></button>
   <button id=zahnrad onclick=einrichtungZeigen() title="Einrichtung">⚙</button>
   <button id=sprachknopf onclick=uiSprache()>EN</button>
 </div>
@@ -4719,6 +4818,30 @@ Rechner per USB angeschlossen ist.</p>
   <h2 data-t=post_ueber>Aus dem Saal</h2>
   <div class=post id=postliste></div>
   <button class=klein onclick=postLeeren() data-t=post_weg>Erledigt</button>
+</div>
+
+<div id=fehler hidden>
+<p class=hin data-t=fehler_text>Etwas funktioniert nicht? Schick dem
+Betreuer eine Mail.</p>
+<p class=betreuer><b id=betreuername></b><br><code id=betreuermail></code></p>
+
+<div class=qrpaar>
+  <div><img id=qrmail alt="" width="190" height="190">
+    <p class=hin data-t=fehler_qr_mail>Scannen: öffnet auf dem Handy eine
+    fertige Mail.</p></div>
+  <div><img id=qrbericht alt="" width="190" height="190">
+    <p class=hin data-t=fehler_qr_bericht>Scannen: lädt den Fehlerbericht
+    aufs Handy, zum Anhängen.</p></div>
+</div>
+
+<p class="hin" data-t=fehler_offline>Die Mail geht raus, sobald das Handy
+wieder Internet hat. Im Saalnetz bleibt sie im Postausgang liegen.</p>
+
+<p><a class=klein id=berichtlink href="/fehlerbericht.txt" download
+   data-t=fehler_laden>Fehlerbericht herunterladen</a></p>
+<p class=hin data-t=fehler_inhalt>Der Bericht enthält nur technische
+Angaben: Fassung, Rechner, Systemcheck, Meldungen ab Warnstufe. Keine
+Mitschriften, keine Zuschriften aus dem Saal, kein WLAN-Passwort.</p>
 </div>
 
 <div id=einrichtung hidden>
@@ -4918,6 +5041,17 @@ const TEXTE={
    post_ueber:"Aus dem Saal",post_weg:"Erledigt",
    post_neu:"neue Meldungen aus dem Saal",
    post_system:"Hinweis von Devarenu",
+   fehler_ueber:"Fehler melden",
+   fehler_text:"Etwas funktioniert nicht? Schick dem Betreuer eine Mail.",
+   fehler_qr_mail:"Scannen: öffnet auf dem Handy eine fertige Mail.",
+   fehler_qr_bericht:"Scannen: lädt den Fehlerbericht aufs Handy, zum "
+     +"Anhängen.",
+   fehler_offline:"Die Mail geht raus, sobald das Handy wieder Internet "
+     +"hat. Im Saalnetz bleibt sie im Postausgang liegen.",
+   fehler_laden:"Fehlerbericht herunterladen",
+   fehler_inhalt:"Der Bericht enthält nur technische Angaben: Fassung, "
+     +"Rechner, Systemcheck, Meldungen ab Warnstufe. Keine Mitschriften, "
+     +"keine Zuschriften aus dem Saal, kein WLAN-Passwort.",
    protokoll_an:"Mitschrift im Protokoll (nur zur Fehlersuche)",
    protokoll_hin:"Aus. Der gesprochene Satz steht dann nicht im "
      +"Protokoll – nur seine Länge.",
@@ -5048,6 +5182,17 @@ const TEXTE={
    post_ueber:"From the hall",post_weg:"Done",
    post_neu:"new messages from the hall",
    post_system:"Notice from Devarenu",
+   fehler_ueber:"Report a problem",
+   fehler_text:"Something not working? Send the maintainer an e-mail.",
+   fehler_qr_mail:"Scan: opens a prepared e-mail on your phone.",
+   fehler_qr_bericht:"Scan: downloads the report to your phone, to "
+     +"attach it.",
+   fehler_offline:"The e-mail goes out once the phone has internet "
+     +"again. On the hall network it stays in the outbox.",
+   fehler_laden:"Download the report",
+   fehler_inhalt:"The report contains technical details only: version, "
+     +"computer, system check, messages at warning level and above. No "
+     +"transcripts, no messages from the hall, no wifi password.",
    protokoll_an:"Transcript in the log (for troubleshooting only)",
    protokoll_hin:"Off. The spoken sentence does not go into the log – "
      +"only its length.",
@@ -5127,6 +5272,7 @@ function postZeigen(){
   post.hidden = !zeigen;
   betrieb.hidden = zeigen;
   einrichtung.hidden = true;
+  fehler.hidden = true;
   zahnrad.classList.remove("an");
   document.querySelector("h1").textContent =
     zeigen ? TEXTE[UI].post_ueber : TEXTE[UI].pult;
@@ -5140,6 +5286,7 @@ function einrichtungZeigen(){
   const zeigen = einrichtung.hidden;
   einrichtung.hidden = !zeigen;
   post.hidden = true;
+  fehler.hidden = true;
   betrieb.hidden = zeigen;
   zahnrad.classList.toggle("an", zeigen);
   document.querySelector("h1").textContent =
@@ -5561,6 +5708,34 @@ async function updateLaden(){
     updateknopf.disabled = !!d.live;
     updateknopf.title = d.live ? TEXTE[UI].upd_laeuft : "";
   }catch(e){}
+}
+
+async function fehlerZeigen(){
+  // Wie der Briefkasten eine eigene Ansicht, kein aufspringendes
+  // Fenster: am Pult darf im Gottesdienst nichts aufpoppen.
+  const zeigen = fehler.hidden;
+  fehler.hidden = !zeigen;
+  betrieb.hidden = zeigen;
+  einrichtung.hidden = true;
+  post.hidden = true;
+  zahnrad.classList.remove("an");
+  document.querySelector("h1").textContent =
+    zeigen ? TEXTE[UI].fehler_ueber : TEXTE[UI].pult;
+  if(!zeigen) return;
+  // Erst beim Oeffnen: die QR-Bilder entstehen im Server neu, und beim
+  // Betreuer steht die Adresse aus betreuer.txt.
+  try{
+    const a = await fetch("/api/betreuer");
+    const d = await a.json();
+    betreuername.textContent = d.name || "";
+    betreuermail.textContent = d.mail || "";
+  }catch(e){ /* dann bleibt das Feld leer, der QR geht trotzdem */ }
+  const jetzt = Date.now();
+  qrmail.src = "/fehler-qr.png?was=mail&t=" + jetzt;
+  qrbericht.src = "/fehler-qr.png?was=bericht&t=" + jetzt;
+  // Der Download vom Pult aus darf lange dauern -- wer hier klickt,
+  // sitzt davor. Das Handy bekommt ueber den QR die schnelle Fassung.
+  berichtlink.href = "/fehlerbericht.txt";
 }
 
 async function protokollSetzen(){
