@@ -9,6 +9,11 @@ der Gemeinde: ohne Internet, ohne Konto, ohne laufende Kosten.
 Gemessen im Betrieb: 2,0 Sekunden Verzögerung, kein Nachlaufen über 32
 Minuten.
 
+**Fassung 0.3.0.** Was dazugekommen ist, steht in
+[AENDERUNGEN.md](AENDERUNGEN.md). Devarenu läuft zur Zeit in **einer**
+Gemeinde und wird dort erprobt; an weitere Gemeinden geht es erst mit
+Version 1.0.
+
 ## Einrichten
 
 ```

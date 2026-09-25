@@ -27,14 +27,14 @@ schließen.
 ## 3. Stick einstecken
 
 Eine halbe Minute warten. Am Pult erscheint:
-*Update 0.2.15 liegt bereit.*
+*Update 0.3.0 liegt bereit.*
 
 ## 4. Am Pult
 
 **Einrichtung**, dann **Jetzt einspielen**. Es dauert bis zu drei
 Minuten, der Bildschirm wird dabei kurz leer.
 
-Fertig, wenn dasteht: **Fassung 0.2.15 ist eingespielt und läuft.**
+Fertig, wenn dasteht: **Fassung 0.3.0 ist eingespielt und läuft.**
 Dann den Stick abziehen.
 
 ## Wenn etwas anderes dasteht

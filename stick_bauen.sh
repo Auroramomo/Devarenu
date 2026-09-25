@@ -8,7 +8,7 @@
 #   bash stick_bauen.sh /run/media/name/STICK --ohne-wheels
 #
 # OHNE STICK, als ZIP zum Verschicken:
-#   bash stick_bauen.sh --zip ~/Devarenu-Stick-v0.2.15.zip
+#   bash stick_bauen.sh --zip ~/Devarenu-Stick-v0.3.0.zip
 # Die Dateien liegen im ZIP GANZ OBEN, nicht in einem Unterordner.
 # Windows entpackt es dadurch in einen Ordner, der nach dem ZIP heisst,
 # und dieser eine Ordner darf unveraendert auf den Stick. Mit einem

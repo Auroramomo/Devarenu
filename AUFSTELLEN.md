@@ -556,8 +556,8 @@ und alle Freigaben hängen an der Kabelkarte zum Zugangspunkt.
 
 ## Von 0.2.11 auf 0.2.12 — die Schritte am Gemeinderechner
 
-> **Überholt.** Der Rechner geht in einem Zug auf 0.2.15, siehe
-> [Von 0.2.11 direkt auf 0.2.15](#von-0211-direkt-auf-0215--der-weg-des-helfers).
+> **Überholt.** Der Rechner geht in einem Zug auf 0.3.0, siehe
+> [Von 0.2.11 direkt auf 0.3.0](#von-0211-direkt-auf-030--der-weg-des-helfers).
 > Dieser Abschnitt bleibt stehen, weil er erklärt, **warum** der Ordner
 > verändert ist und was `dienst.sh` tut — beides braucht man, wenn
 > unterwegs etwas klemmt.
@@ -827,7 +827,7 @@ Wenn niemand vor Ort einen Stick bespielen kann — oder der Stick erst
 beim Helfer ankommt:
 
 ```
-bash stick_bauen.sh --zip ~/Devarenu-Stick-v0.2.15.zip
+bash stick_bauen.sh --zip ~/Devarenu-Stick-v0.3.0.zip
 ```
 
 Kein echter Stick nötig. Die Dateien liegen im ZIP **ganz oben**, nicht
@@ -909,7 +909,7 @@ irgendetwas scheitert.
 
 ### Von 0.2.11 direkt auf 0.2.13
 
-> **Nicht mehr der geplante Weg** — es geht direkt auf 0.2.15. Das
+> **Nicht mehr der geplante Weg** — es geht direkt auf 0.3.0. Das
 > Folgende gilt unverändert weiter, nur mit der höheren Zahl.
 
 Geht genauso, mit **denselben** Übergangsschritten. Geprüft:
@@ -928,7 +928,7 @@ Geht genauso, mit **denselben** Übergangsschritten. Geprüft:
 0.2.12 wird dabei übersprungen. Das ist ohne Folgen — sie bringt keine
 Datenänderung mit, die 0.2.13 nicht selbst nachholt.
 
-## Von 0.2.11 direkt auf 0.2.15 — der Weg des Helfers
+## Von 0.2.11 direkt auf 0.3.0 — der Weg des Helfers
 
 Der Gemeinderechner steht auf 0.2.11. Vor Ort ist kein Techniker,
 sondern ein Ehrenamtlicher **ohne Admin-Passwort**. Er soll so wenig wie
@@ -975,7 +975,7 @@ bräche weiter ab — ohne dass jemand sähe, warum.
 
 ### Was mitkommt und was nicht
 
-0.2.15 wird mit dem **alten** Updater von 0.2.11 eingespielt. Der neue
+0.3.0 wird mit dem **alten** Updater von 0.2.11 eingespielt. Der neue
 Kern kommt mit und greift erst beim Update danach. Also bewusst klein:
 `requirements.txt` seit v0.2.11 unverändert, keine großen Teile.
 
@@ -1013,7 +1013,7 @@ FEHLT-Befunde**, allen voran „Der Umbau ist halb". Das ist ein roter
 Alarm für einen Rechner, an dem nichts kaputt ist — und er stand am
 Pult vor jemandem, der ihn nicht einordnen konnte.
 
-Ab 0.2.15 steht dort **ein Hinweis**:
+Ab 0.3.0 steht dort **ein Hinweis**:
 
 > Das Netz läuft noch nach dem Aufbau von 0.2.11. Es funktioniert;
 > nichts ist kaputt. Beim nächsten Wartungsbesuch neu einrichten.
@@ -1081,7 +1081,7 @@ Auspackverzeichnis `logik-0.2.14/` ist danach wieder weg.
 Ohne etwas kaputtzumachen: **die Sicherung ist der Beweis.** Steht sie
 da und ist vollständig, kann der Kern zurück.
 
-Wer es wirklich auslösen will, baut eine 0.2.15, deren
+Wer es wirklich auslösen will, baut eine 0.3.1, deren
 `aktualisierung.sh` am Ende `exit 1` hat. Dann muss dastehen:
 
 ```
@@ -1215,7 +1215,17 @@ Pult liest ohnehin nur die letzten zwei Tage und nur ab Stufe
 
 Bei jeder Fassung:
 
-- [ ] `VERSION` setzen.
+- [ ] `VERSION` setzen. **Jede Stelle mitziehen, die die Zahl nennt** —
+      das Blatt für den Helfer nennt sie zweimal (was bereitliegt, was
+      am Ende dastehen muss), die Beispiele in `stick_bauen.sh` und in
+      dieser Datei ebenso. Gegenprobe:
+      ```
+      grep -rn "0\.2\.14" --include='*.sh' --include='*.py' --include='*.md' .
+      ```
+- [ ] **In `AENDERUNGEN.md` einen Abschnitt anlegen** — erst für
+      Nicht-Techniker, darunter kurz für Techniker, und am Ende, was
+      offen ist. Solange der Stick-Weg auf dem Gemeinderechner nicht
+      gelaufen ist, gehört der Vorbehalt ganz nach oben.
 - [ ] **Bei jeder größeren Fassung:** die Anleitung überarbeiten
       (`anleitung/*.md`), dann neu bauen:
       ```
