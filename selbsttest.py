@@ -24,17 +24,31 @@ from pathlib import Path
 
 # Der Satz fuer die Durchlaufprobe. Kurz und deutsch.
 #
-# MERKPOSTEN, noch nicht erledigt: der Satz ist NICHT robust genug.
-# Gemessen ueber acht Laeufe hintereinander hoerte Whisper "mangeln"
-# fuenfmal als "manneln" oder "mannen" -- die Probe meldete dann "Nur
-# teilweise verstanden (2 von 3 Woertern)". Am Rechner ist nichts
-# falsch; das Wort ist zu selten und endet auf eine Silbe, die leicht
-# verschluckt wird. Ein Selbsttest, der ohne Grund gelb wird, gewoehnt
-# einem das Hinsehen ab -- das ist schlimmer als gar keine Probe.
+# Er stand lange im Verdacht, unzuverlaessig zu sein: der Selbsttest
+# wurde in fuenf von acht Laeufen gelb, immer an demselben Wort
+# ("mangeln" kam als "manneln" zurueck). Nachgemessen war es aber
+# nicht der Satz, sondern zweierlei an der Sprachausgabe:
 #
-# Zu tun: einen Satz waehlen, dessen Woerter alle haeufig und klar
-# getrennt sind, und ihn ueber mehrere Laeufe gegenmessen, statt ihn
-# wieder nur fuer robust zu HALTEN.
+#   1. Gesprochen wurde mit TEMPO_VORGABE (1.15) -- dem Rueckfall fuer
+#      UNGEMESSENE Stimmen. Die deutsche Stimme ist gemessen, mit
+#      1.00. Die Probe lief also 15 Prozent zu schnell.
+#   2. Pipers Dauervorhersage ist stochastisch. Zweimal derselbe Satz
+#      klingt verschieden, und Whisper versteht ihn dann auch mal
+#      anders.
+#
+# Gemessen, je zehn Laeufe:
+#
+#   Tempo 1.15, Zufall an    9/10
+#   Tempo 1.00, Zufall an   10/10
+#   Tempo 1.00, Zufall aus  10/10, und achtmal hintereinander gruen
+#
+# Beides ist behoben (siehe sprich_probe und die Tempowahl weiter
+# unten). Der Satz bleibt, wie er ist -- er war nie das Problem.
+#
+# Sieben Kandidaten wurden dabei mitgemessen. Zwei taugen grundsaetzlich
+# nicht, und das ist lehrreich: "zehn Uhr" kommt als "10 Uhr" zurueck
+# und "hoerst" als "hörst" -- ein Pruefwort muss so geschrieben sein,
+# wie Whisper es ausgibt.
 PROBESATZ = "Der Herr ist mein Hirte, mir wird nichts mangeln."
 PRUEFWOERTER = ("herr", "hirte", "mangeln")
 
@@ -197,8 +211,21 @@ def sprich_probe(stimme, ziel, tempo):
 
     try:
         from piper import SynthesisConfig
+        # noise_w_scale=0 schaltet den Zufall in der Dauervorhersage
+        # ab. Piper baut auf VITS, und dessen Vorhersager ist
+        # stochastisch: derselbe Satz, dieselbe Stimme, zweimal
+        # gesprochen, klingt verschieden -- und Whisper versteht ihn
+        # dann auch mal anders. Fuer eine PRUEFUNG ist das falsch: sie
+        # soll dasselbe Ergebnis liefern, solange sich nichts geaendert
+        # hat, sonst ist ein gelber Lauf keine Auskunft, sondern ein
+        # Wuerfelwurf.
+        #
+        # Im BETRIEB bleibt der Zufall an -- er macht die Stimme
+        # lebendiger. Dieselbe Unterscheidung trifft laengenfaktor.py,
+        # und aus demselben Grund.
         versuche.append(("syn_config", lambda w: stimme.synthesize_wav(
-            PROBESATZ, w, syn_config=SynthesisConfig(length_scale=skala))))
+            PROBESATZ, w, syn_config=SynthesisConfig(
+                length_scale=skala, noise_w_scale=0))))
     except ImportError:
         pass
     versuche.append(("length_scale", lambda w: stimme.synthesize_wav(
@@ -259,10 +286,27 @@ def pruefe_piper(ziel):
     t0 = time.perf_counter()
     try:
         stimme = PiperVoice.load(str(datei))
-        # Irgendein gueltiges Tempo: geprueft wird, OB Piper einen
-        # Wert entgegennimmt, nicht welchen. Im Betrieb entscheidet das
-        # tempo_fuer() je Stimme.
-        art = sprich_probe(stimme, ziel, config.TEMPO_VORGABE)
+        # Das GEMESSENE Tempo dieser Stimme, nicht die Vorgabe.
+        #
+        # Vorher stand hier TEMPO_VORGABE (1.15) mit der Begruendung,
+        # es komme nur darauf an, OB Piper einen Wert annimmt. Das
+        # stimmt fuer die Sprachausgabe -- aber dieselbe Datei geht
+        # danach durch Whisper, und 15 Prozent zu schnell gesprochen
+        # versteht der nicht mehr zuverlaessig.
+        #
+        # Gemessen, je zehn Laeufe mit demselben Satz:
+        #     Tempo 1.15   9/10   "mir wird nichts manneln"
+        #     Tempo 1.00  10/10
+        #
+        # Das war die Ursache des gelben Selbsttests, nicht der Satz.
+        # 1.00 ist der gemessene Wert von de_DE-thorsten-medium und
+        # steht in TEMPO_STIMME; die Kette hier ist dieselbe wie im
+        # Server.
+        name = datei.stem
+        tempo = (config.TEMPO_STIMME.get(name)
+                 or config.TEMPO_SPRACHE.get(config.AUSGANGSSPRACHE)
+                 or config.TEMPO_VORGABE)
+        art = sprich_probe(stimme, ziel, tempo)
     except Exception as e:
         fehler(f"Sprachausgabe fehlgeschlagen: {kurz(e)}")
         return False
