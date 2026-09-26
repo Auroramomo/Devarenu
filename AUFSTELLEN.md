@@ -888,17 +888,24 @@ bash stick_bauen.sh /run/media/<name>/STICK --voll         alles
 Ohne `--von` oder `--voll` sind **keine** großen Teile dabei. Das ist
 der Normalfall — die meisten Updates ändern nur Code.
 
-**FAT32 und große Teile gehen nicht zusammen.** Auf FAT32 passt keine
-Datei über 4 GB; das Sprachmodell allein ist größer. Mit `--von` oder
-`--voll` bricht der Bau auf einem FAT32-Stick ab und sagt, was zu tun
-ist. Ohne große Teile ist FAT32 unproblematisch.
+**FAT32 und große Teile gehen jetzt zusammen.** Auf FAT32 passt keine
+Datei über 4 GB; das Sprachmodell allein ist größer. Seit 0.3.1 wird
+gestückelt: `teile.py` schreibt alles über 3,5 GB in mehrere Dateien
+(`…​.teil00`, `.teil01`, …), und der Gemeinderechner setzt sie beim
+Einspielen zusammen.
 
-> **Noch nicht gebaut, für später vorgemerkt.** Statt FAT32 abzulehnen,
-> große Dateien immer in Stücke unter 4 GB teilen, sie auf dem
-> Zielrechner wieder zusammensetzen und gegen die `sha256` aus der
-> Teileliste prüfen. Dann ist das Dateisystem des Sticks egal, und ein
-> halb kopierter Stick fällt beim Prüfen auf statt vor Ort. Solange das
-> nicht da ist, gilt der Abbruch oben.
+**Geprüft wird gegen die `sha256` aus `teile.json`** — und zwar bevor
+etwas ersetzt wird. Stimmt sie nicht, bleibt das alte Modell liegen,
+wo es liegt, und das Beiseitegelegte wird nicht aufgeräumt. Ein halb
+eingespieltes Modell ist schlimmer als ein altes.
+
+Erkannt werden zwei Fälle getrennt: ein **fehlendes** Stück an der
+Länge, ein **verfälschtes** an der Prüfsumme. Die Unterscheidung
+spart beim Suchen — das eine ist ein abgebrochener Kopiervorgang, das
+andere ein defekter Stick.
+
+Der Bau sagt es, wenn er stückelt. Wer die Wahl hat, nimmt trotzdem
+exFAT: ein Stück weniger ist ein Fehler weniger.
 
 ### Einen Stick als ZIP verschicken
 
@@ -910,11 +917,21 @@ bash stick_bauen.sh --zip ~/Devarenu-Stick-v0.3.0.zip
 ```
 
 Kein echter Stick nötig. Die Dateien liegen im ZIP **ganz oben**, nicht
-in einem Unterordner. Das ist Absicht: Windows entpackt in einen Ordner,
-der wie das ZIP heißt, und genau dieser eine Ordner darf unverändert auf
-den Stick. Der Rechner sucht `upd-dev.txt` eine Ebene tief und findet
-ihn dort. Läge im ZIP schon ein Unterordner, wären es zwei Ebenen — und
-der Rechner meldete „kein Update-Stick".
+in einem Unterordner.
+
+**Auf den Stick gehören die vier Dateien, nicht der Ordner.** Windows
+entpackt in einen Ordner, der wie das ZIP heißt; dieser Ordner wird
+geöffnet, und sein Inhalt wandert direkt oben auf den Stick.
+
+> **Kerne vor 0.2.13 suchen `upd-dev.txt` NUR ganz oben** (`maxdepth 1`).
+> Der Gemeinderechner läuft noch auf 0.2.11 — liegen die Dateien in
+> einem Ordner, findet er sie nicht und tut gar nichts, ohne Meldung.
+> **Genau daran ist ein Versuch schon gescheitert.**
+>
+> Ab 0.2.13 sucht der Kern eine Ebene tief, ein Ordner ginge dort also
+> auch. Oben geht **immer** — deshalb nennt das Helferblatt nur diesen
+> einen Weg und erwähnt die Ausnahme nicht. Wer zwei Wege liest,
+> wählt den falschen.
 
 **Auf dem Stick darf nur ein Update-Ordner liegen.** Sind es zwei — ein
 alter vom letzten Mal —, entschiede die Reihenfolge des Dateisystems,

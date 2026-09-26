@@ -252,24 +252,25 @@ else
 fi
 
 # FAT32 kann keine Datei ueber 4 GB. Das Sprachmodell allein ist
-# groesser. Der Fehler faellt sonst erst nach einer Viertelstunde
-# Kopieren auf, als abgebrochene Datei -- und die merkt niemand, bis der
-# Gemeinderechner sie auspackt und dabei scheitert. Also vorher.
+# groesser. Bis 0.3.0 wurde deshalb abgebrochen und ein anderes
+# Dateisystem verlangt -- eine Zumutung fuer jemanden, der nur einen
+# Stick bringen soll, und Sticks kommen nun einmal formatiert an.
+#
+# Seit 0.3.1 wird gestueckelt: teile.py schreibt Dateien ueber 3,5 GB
+# in mehrere, und der Gemeinderechner setzt sie zusammen und prueft
+# gegen die sha256 aus teile.json. Stimmt sie nicht, bleibt das Alte
+# liegen.
+#
+# Gesagt wird es trotzdem: wer die Wahl hat, nimmt exFAT. Ein Stueck
+# weniger ist ein Fehler weniger.
 if [ "$VOLL" = ja ] || [ -n "$VON" ]; then
   case "$DATEISYSTEM" in
     vfat|msdos|fat|fat32)
-      fehl "Dieser Stick ist mit $DATEISYSTEM formatiert (FAT32)."
-      echo "   Darauf passt KEINE Datei ueber 4 GB -- und mit --voll oder"
-      echo "   --von sind genau solche dabei (Sprachmodell, Stimmen)."
-      echo "   Das Kopieren liefe durch und lieferte abgeschnittene"
-      echo "   Dateien; auffallen wuerde es erst vor Ort."
-      echo
-      echo "   Entweder den Stick neu formatieren:"
-      echo "     exFAT  -- Windows, Mac und Linux lesen es"
-      echo "     NTFS   -- ebenso, aber unter Mac nur lesend"
-      echo "   oder ohne --voll/--von bauen: dann sind es nur Code und"
-      echo "   Pakete, und FAT32 reicht."
-      exit 1 ;;
+      warn "Dieser Stick ist mit $DATEISYSTEM formatiert (FAT32)."
+      warn "Dateien ueber 4 GB werden gestueckelt und auf dem"
+      warn "Gemeinderechner wieder zusammengesetzt, gegen sha256"
+      warn "geprueft. Das geht -- exFAT waere trotzdem einfacher."
+      ;;
   esac
 fi
 
@@ -391,14 +392,17 @@ PYCODE
 
    So kommt es auf den Stick:
      1. ZIP auf den Windows-Rechner kopieren.
-     2. Rechtsklick -> "Alle extrahieren". Windows legt dabei einen
-        Ordner an, der wie das ZIP heisst.
-     3. DIESEN EINEN ORDNER auf den Stick ziehen. Der Stick muss nicht
-        leer sein -- aber es darf kein aelterer Update-Ordner mehr
-        darauf liegen.
+     2. Rechtsklick -> "Alle extrahieren".
+     3. Den entstandenen Ordner OEFFNEN und die vier Dateien darin
+        DIREKT OBEN auf den Stick ziehen -- nicht den Ordner selbst.
 
-   Der Gemeinderechner sucht upd-dev.txt eine Ebene tief; der Ordner
-   auf dem Stick ist also genau richtig. Zwei Ebenen findet er nicht.
+   Warum nicht der Ordner: Kerne vor 0.2.13 suchen upd-dev.txt NUR
+   ganz oben. Der Gemeinderechner laeuft noch auf 0.2.11, findet die
+   Dateien in einem Ordner also nicht und tut gar nichts. Genau daran
+   ist ein Versuch schon gescheitert.
+
+   Ab 0.2.13 ginge ein Ordner auch. Oben geht IMMER -- deshalb steht
+   im Helferblatt nur dieser eine Weg.
 ENDE
   exit 0
 fi

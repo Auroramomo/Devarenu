@@ -377,6 +377,14 @@ class Anleitung(FPDF):
             # Backticks standen im PDF, und die Anfuehrungszeichen im
             # Befehl wurden zu deutschen. Genau so ist es beim Blatt
             # fuer den Helfer passiert.
+            # Ein Blockzitat. Der Bauer kannte es nicht, und das ">"
+            # stand danach mitten im Satz -- dieselbe Falle wie bei
+            # den ```-Zaeunen. Der Text wird als eigener Absatz
+            # gesetzt, die Marke faellt weg.
+            if nackt.startswith(">"):
+                leeren()
+                bloecke.append(("text", nackt.lstrip("> ").strip()))
+                continue
             if nackt.startswith("```"):
                 leeren()
                 im_zaun = not im_zaun
@@ -449,12 +457,19 @@ class Anleitung(FPDF):
             self.multi_cell(0, 6.5, "".join(teile), align="R",
                             new_x="LMARGIN", new_y="NEXT")
         else:
-            for i, stueck in enumerate(teile):
-                if not stueck:
-                    continue
-                self.set_font("s", "B" if i % 2 else "", 11)
-                self.write(6, stueck)
-            self.ln(6)
+            # multi_cell mit markdown=True statt write() je Stueck.
+            #
+            # Vorher wurde abwechselnd normal und fett geschrieben,
+            # jedes Stueck mit write(). Das bricht die Zeile aber
+            # innerhalb eines Stuecks -- und wenn ein fettes Wort nicht
+            # mehr in den Rest der Zeile passt, mitten im Wort. Auf dem
+            # Helferblatt stand "Konsol e".
+            #
+            # markdown=True kennt **fett** selbst und umbricht ueber
+            # die Auszeichnung hinweg richtig.
+            self.set_font("s", "", 11)
+            self.multi_cell(0, 6, zeile, markdown=True, align="L",
+                            new_x="LMARGIN", new_y="NEXT")
 
         if marke:
             if self.rtl:

@@ -169,6 +169,115 @@ def lage():
     return fehlend, abweichend, da
 
 
+# ----------------------------------------------------- Stueckeln
+#
+# FAT32 kann keine Datei ueber 4 GB. Das Sprachmodell allein ist
+# groesser. Bis 0.3.0 hiess die Antwort darauf: FAT32 ablehnen und den
+# Stick neu formatieren lassen. Das ist eine Zumutung fuer jemanden,
+# der nur einen Stick bringen soll -- und Sticks kommen nun einmal
+# formatiert an.
+#
+# Also stueckeln. Die Grenze liegt bei 3,5 GB und nicht bei 4: FAT32
+# kann 4 GiB minus ein Byte, und ein Rest von einer halben Milliarde
+# Byte kostet nichts ausser einer weiteren Datei.
+#
+# Zusammengesetzt wird gegen die sha256 aus teile.json geprueft. Passt
+# sie nicht, wird NICHTS angefasst -- weder das alte Modell noch das
+# halbe neue. Ein halb eingespieltes Modell ist schlimmer als ein
+# altes, und das galt hier schon vorher.
+STUECK = 3_500_000_000
+
+
+def stueckname(pfad, nummer):
+    return Path(f"{pfad}.teil{nummer:02d}")
+
+
+def stueckeln(quelle, zielpfad, groesse=STUECK):
+    """Schreibt quelle in Stuecke. Gibt die Anzahl zurueck.
+
+    Bleibt die Datei unter der Grenze, wird sie schlicht kopiert und 0
+    zurueckgegeben -- der Normalfall soll nicht teurer werden, nur
+    weil der Ausnahmefall abgedeckt ist.
+
+    Der Lesepuffer ist hoechstens so gross wie ein Stueck. Der erste
+    Anlauf las feste 1 MiB und zaehlte danach: bei einer Stueckgrenze
+    unter 1 MiB landete damit die ganze Datei in einem Stueck. Im
+    Betrieb waere das nie aufgefallen -- dort ist die Grenze 3,5 GB --,
+    im Pruefstand mit kleinen Attrappen sofort."""
+    quelle = Path(quelle)
+    zielpfad = Path(zielpfad)
+    if quelle.stat().st_size <= groesse:
+        shutil.copy2(quelle, zielpfad)
+        return 0
+
+    puffer = min(1 << 20, groesse)
+    n = 0
+    with open(quelle, "rb") as ein:
+        while True:
+            erstes = ein.read(puffer)
+            if not erstes:
+                break
+            geschrieben = 0
+            with open(stueckname(zielpfad, n), "wb") as aus:
+                aus.write(erstes)
+                geschrieben += len(erstes)
+                while geschrieben < groesse:
+                    weiter = ein.read(min(puffer, groesse - geschrieben))
+                    if not weiter:
+                        break
+                    aus.write(weiter)
+                    geschrieben += len(weiter)
+            n += 1
+    return n
+
+
+def stuecke_von(pfad):
+    """Alle Stuecke einer Datei, in der richtigen Reihenfolge."""
+    pfad = Path(pfad)
+    gefunden = sorted(pfad.parent.glob(pfad.name + ".teil[0-9][0-9]"))
+    return gefunden
+
+
+def zusammensetzen(quellpfad, zielpfad, erwartet_sha, erwartet_bytes):
+    """Setzt Stuecke zusammen und prueft. (gelungen, grund).
+
+    Geschrieben wird zuerst NEBEN das Ziel und erst nach bestandener
+    Pruefung umbenannt. Bricht der Strom mittendrin aus, liegt ein
+    Bruchstueck mit fremdem Namen da -- und nicht ein halbes Modell an
+    der Stelle, an der der Dienst eines erwartet."""
+    stuecke = stuecke_von(quellpfad)
+    if not stuecke:
+        return False, "keine Stuecke"
+    zielpfad = Path(zielpfad)
+    zwischen = zielpfad.with_name(zielpfad.name + ".halb")
+    h = hashlib.sha256()
+    gesamt = 0
+    try:
+        with open(zwischen, "wb") as aus:
+            for st in stuecke:
+                with open(st, "rb") as ein:
+                    while True:
+                        b = ein.read(1 << 20)
+                        if not b:
+                            break
+                        aus.write(b)
+                        h.update(b)
+                        gesamt += len(b)
+    except OSError as e:
+        zwischen.unlink(missing_ok=True)
+        return False, f"nicht schreibbar: {str(e)[:70]}"
+
+    if gesamt != erwartet_bytes:
+        zwischen.unlink(missing_ok=True)
+        return False, (f"Laenge {gesamt} statt {erwartet_bytes} -- "
+                       f"ein Stueck fehlt oder ist abgeschnitten")
+    if h.hexdigest() != erwartet_sha:
+        zwischen.unlink(missing_ok=True)
+        return False, "sha256 stimmt nicht"
+    zwischen.replace(zielpfad)
+    return True, ""
+
+
 def einspielen(quelle, sicherung):
     """Holt Fehlendes und Abweichendes aus quelle. Erst pruefen, dann tun."""
     erg = lage()
@@ -189,10 +298,18 @@ def einspielen(quelle, sicherung):
     braucht = 0
     for e in noetig:
         herkunft = quelle / e["art"] / e["pfad"]
-        if not herkunft.is_file() or herkunft.stat().st_size != e["bytes"]:
-            nicht_auf_stick.append(f"{e['art']}/{e['pfad']}")
-        else:
+        if herkunft.is_file() and herkunft.stat().st_size == e["bytes"]:
             braucht += e["bytes"]
+            continue
+        # Nicht als ganze Datei da? Dann vielleicht in Stuecken --
+        # ein Stick mit FAT32 kann nichts ueber 4 GB tragen.
+        stuecke = stuecke_von(herkunft)
+        if stuecke and sum(st.stat().st_size for st in stuecke) == e["bytes"]:
+            braucht += e["bytes"]
+            continue
+        nicht_auf_stick.append(f"{e['art']}/{e['pfad']}"
+                               + (f" ({len(stuecke)} Stuecke, Laenge "
+                                  f"stimmt nicht)" if stuecke else ""))
     if nicht_auf_stick:
         print("  FEHLT auf dem Stick:")
         for x in nicht_auf_stick[:8]:
@@ -232,7 +349,22 @@ def einspielen(quelle, sicherung):
             beiseite.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(str(ziel), str(beiseite))
             ersetzt.append(f"{e['art']}/{e['pfad']}")
-        shutil.copy2(quelle / e["art"] / e["pfad"], ziel)
+        herkunft = quelle / e["art"] / e["pfad"]
+        if herkunft.is_file():
+            shutil.copy2(herkunft, ziel)
+        else:
+            # In Stuecken vom Stick. Zusammengesetzt wird gegen die
+            # sha256 aus teile.json geprueft; stimmt sie nicht, bleibt
+            # das Alte liegen, wo es liegt.
+            gelungen, grund = zusammensetzen(herkunft, ziel, e["sha256"],
+                                             e["bytes"])
+            if not gelungen:
+                print(f"  {e['art']}/{e['pfad']}: {grund}")
+                print("  ABGEBROCHEN. Das Beiseitegelegte liegt unter "
+                      f"{sicherung} und wird NICHT aufgeraeumt.")
+                return 1
+            print(f"    {e['art']}/{e['pfad']}: aus "
+                  f"{len(stuecke_von(herkunft))} Stuecken, sha256 stimmt")
     if ersetzt:
         (sicherung / "ersetzt.txt").write_text(
             "\n".join(ersetzt) + "\n", encoding="utf-8")
@@ -301,6 +433,7 @@ def auf_stick(ziel, von="", voll=False):
     o = orte()
     ziel = Path(ziel)
     gesamt = 0
+    gestueckelt = 0
     for e in noetig:
         wurzel = o.get(e["art"])
         if wurzel is None:
@@ -312,9 +445,20 @@ def auf_stick(ziel, von="", voll=False):
             return 1
         zielpfad = ziel / e["art"] / e["pfad"]
         zielpfad.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(quelle, zielpfad)
+        # Alte Stuecke aus einem frueheren Lauf zuerst weg: sonst
+        # haengen sie an das neue an, und zusammengesetzt kommt
+        # Unsinn heraus -- mit richtiger Laenge, falls die Fassungen
+        # zufaellig gleich gross sind.
+        for st in stuecke_von(zielpfad):
+            st.unlink()
+        n = stueckeln(quelle, zielpfad)
+        if n:
+            gestueckelt += 1
+            print(f"    {e['art']}/{e['pfad']}: {n} Stuecke "
+                  f"(zu gross fuer FAT32)")
         gesamt += e["bytes"]
-    print(f"  {len(noetig)} Teile, {gesamt / 1e9:.2f} GB")
+    print(f"  {len(noetig)} Teile, {gesamt / 1e9:.2f} GB"
+          + (f", davon {gestueckelt} gestueckelt" if gestueckelt else ""))
     return 0
 
 
