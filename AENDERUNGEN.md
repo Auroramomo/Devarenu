@@ -6,6 +6,110 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.3.1 — Aufnahme nur mit Einwilligung
+
+*26.09.2026.*
+
+### Für alle
+
+**Eine Aufnahme wird jetzt gefragt, nicht vorausgesetzt.** Der
+Schalter steht neben „Übersetzung starten". Wer ihn drückt, bekommt
+zwei Häkchen: die predigende Person wurde gefragt, und es wird nur
+die Predigt aufgenommen. **Beide sind Pflicht** — auch für ein
+Programm, das den Server direkt anspricht.
+
+**Was läuft, sieht man.** Roter Punkt, „Aufnahme läuft", die Dauer —
+am Pult und auf jedem Handy im Saal.
+
+**Sie hört von selbst auf.** Wenn die Übersetzung angehalten wird
+(dann kommen Gebet und Abkündigungen), und bei jedem Neustart. Von
+selbst wieder an geht sie nie.
+
+**Sie verschwindet von selbst.** Nach sieben Tagen, einstellbar.
+Aufnahmen, die es vor diesem Update schon gab, werden **nicht**
+sofort gelöscht: die Frist läuft ab dem Update, und das Pult sagt,
+wie viele es sind und wann sie gehen.
+
+**Sie bleibt auf dem Rechner.** Liste und Download gehen nur am
+Gemeinde-PC selbst — unabhängig davon, ob ein Pult-Passwort gesetzt
+ist. Aus dem Saal steht dort: „Nur am Gemeinde-PC abrufbar."
+
+**Die Meldefunktion ist gegen Unfug gesichert.** Höchstens eine
+Meldung alle fünf Sekunden je Gerät, 200 Zeichen, zwanzig am Tag. Ein
+normaler Zuhörer merkt davon nichts. Wer abgewiesen wird, bekommt
+einen freundlichen Satz in seiner Sprache statt stiller Ablehnung.
+
+**Reißt die Verbindung ab, bleibt die Seite ruhig.** Statt „keine
+Verbindung" steht dort jetzt „Warte auf das Devarenu-WLAN … die
+Übersetzung geht gleich weiter" — und sie holt sie sich selbst
+zurück, ohne dass jemand neu lädt.
+
+### Für Techniker
+
+**Aufnahme.** `aufnahme.py` — Einwilligung, Frist, Rechte (700/600),
+Platzgrenze. Neben jeder Aufnahme liegt ein Vermerk mit dem Zeitpunkt
+der Bestätigung, **ohne Namen**: er belegt, dass gefragt wurde, nicht
+wer geantwortet hat. Stündlicher Aufräumlauf, Stopp bei unter 2 GB
+freiem Platz mit Meldung ins Pult.
+
+**Drossel.** `drossel.py`, je Schreibweg aus dem Saal eine eigene.
+Dazu höchstens acht offene Datenströme je Gerät — ein Skript, das
+Verbindungen aufmacht, bis die Dateizeiger ausgehen, legte sonst den
+ganzen Gottesdienst still.
+
+**Kein Service Worker.** Geprüft und verworfen: Browser erlauben ihn
+nur in einem *secure context*, und `http://10.0.0.1` ist keiner. Das
+Wiederverbinden läuft im normalen Skript, mit wachsendem Abstand und
+einem Zufallsanteil — ohne den klopfen vierzig Handys gleichzeitig an,
+sobald der Zugangspunkt zurückkommt.
+
+**Selbsttest.** Er wurde in fünf von acht Läufen gelb. Nachgemessen
+lag es **nicht** am Prüfsatz, sondern an der Sprachausgabe: gesprochen
+wurde mit dem Tempo-Rückfall 1,15 statt dem gemessenen 1,00 dieser
+Stimme, und Pipers Dauervorhersage ist stochastisch. Beides behoben,
+acht Läufe hintereinander grün.
+
+**`start.sh`** prüft jetzt die Glossardatei aus `config.GLOSSAR_CSV`
+statt eines festen Namens — ein fehlendes Glossar fällt damit beim
+Start auf und nicht mitten im Gottesdienst.
+
+**FAT32 geht jetzt auch mit großen Teilen.** `teile.py` stückelt alles
+über 3,5 GB, der Zielrechner setzt zusammen und prüft gegen die
+`sha256` aus `teile.json` — **bevor** etwas ersetzt wird. Fehlendes
+Stück und verfälschtes Stück werden getrennt gemeldet: das eine ist
+ein abgebrochener Kopiervorgang, das andere ein defekter Stick.
+
+**Das Helferblatt sagt nur noch einen Weg:** die vier Dateien direkt
+oben auf den Stick, in keinen Ordner. Kerne vor 0.2.13 suchen
+`upd-dev.txt` nur ganz oben, und der Gemeinderechner läuft auf 0.2.11
+— liegen die Dateien in einem Ordner, tut er gar nichts, ohne Meldung.
+Genau daran ist ein Versuch schon gescheitert.
+
+**Der Systemcheck sieht nach, welche Sitzung wirklich läuft.** Bisher
+las er nur, was in der automatischen Anmeldung *eingestellt* ist. Auf
+dem Gemeinderechner stand dort `plasmax11` und es lief trotzdem
+Wayland — gemeldet wurde nichts. Jetzt fragt er `loginctl`, und wenn
+beides auseinandergeht, sagt er es und nennt die wahrscheinliche
+Ursache: eine Sitzung `plasmax11` gibt es auf dem Rechner gar nicht,
+also nimmt der Anmeldemanager wortlos die, die er hat. Am
+Anmeldeverfahren ändert sich **nichts** — es wird nur geprüft und
+gemeldet.
+
+### Was offen ist
+
+- Der Stick-Weg auf dem echten Gemeinde-PC. **Das ist der Grund für
+  0.3.x** — siehe `FAHRPLAN-1.0.md`, wo alles steht, was vor einer
+  zweiten Gemeinde erfüllt sein muss.
+- Das Glossar mit Polnisch ist nicht aktiv geschaltet.
+- `fr_FR-upmc-medium` ist ohne gemessenes Tempo. Der Wert 0,447 ist
+  nicht plausibel; die Stimme hat zwei Sprecher, und
+  `laengenfaktor.py` kennt `--speaker` noch nicht. Die Schritte zum
+  Nachmessen stehen in `AUFSTELLEN.md`.
+- Das Pult ist per Vorgabe offen im Saalnetz. Das Passwort ist
+  freiwillig und bleibt es.
+
+---
+
 ## 0.3.0 — der erste Meilenstein
 
 *25.09.2026. Fasst alles zusammen, was seit 0.2.0 entstanden ist.*
