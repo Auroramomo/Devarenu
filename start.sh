@@ -50,6 +50,20 @@ for datei in server.py config.py zustand.py grafikkarte.py glossar.py \
              tonhelfer.py client.html; do
   [ -f "$datei" ] || FEHLEND="$FEHLEND $datei"
 done
+
+# Die aktive Glossardatei -- aus config.py gelesen, NICHT als fester
+# Name hier. Welche Fassung gilt, aendert sich: v0.4 heute, v0.8
+# morgen. Ein fester Name hier waere beim naechsten Wechsel falsch,
+# ohne dass es jemand merkt -- und ein fehlendes Glossar faellt dann
+# erst mitten im Gottesdienst auf, an einer Uebersetzung ohne
+# Terminologie.
+#
+# Schlaegt das Auslesen fehl, wird NICHT geraten: dann ist config.py
+# ohnehin kaputt, und das meldet der Server selbst deutlicher.
+GLOSSAR="$("$PY" -c "import config,os; print(os.path.basename(config.GLOSSAR_CSV))" 2>/dev/null || true)"
+if [ -n "$GLOSSAR" ] && [ ! -f "$GLOSSAR" ]; then
+  FEHLEND="$FEHLEND $GLOSSAR"
+fi
 # Das Logo ist kein Grund abzubrechen, sein Fehlen faellt aber sofort auf.
 [ -f logo.png ] || echo "Hinweis: logo.png fehlt, die Seiten laufen ohne Bildmarke."
 

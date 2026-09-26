@@ -475,6 +475,44 @@ Zwei Dinge, die man dabei falsch machen kann:
   abgeleiteten Wert steckt. Im Betrieb bleibt der Zufall an; er ist
   einer der Gründe für den Aufschlag von sechs Prozent.
 
+### Merkposten: `fr_FR-upmc` mit `--speaker` neu messen
+
+Eine Stimme steht in `messungen/laengenfaktor_stimmen.json`, aber
+**nicht** in der Tempotabelle von `config.py`: `fr_FR-upmc-medium`,
+gemessen mit 0,447. Alle anderen Stimmen liegen zwischen 0,99 und 1,67,
+und Französisch ist gegenüber Deutsch eher länger als kürzer — halb so
+lang ist die Übersetzung sicher nicht. Der Wert ist nicht plausibel,
+und ein unplausibler Wert in der Tabelle wäre schlimmer als gar keiner:
+er gälte als gemessen. Bis das geklärt ist, bekommt die Stimme den
+Sprachrückfall 1,04.
+
+Die wahrscheinliche Ursache steht in `voices.json`: die Stimme hat
+**zwei Sprecher**. Piper nimmt ohne `--speaker` den ersten, und was
+gemessen wurde, ist dann nicht das, was man meinte.
+
+Nachgemessen ist das **nicht**, und es geht im Moment auch nicht ohne
+Vorarbeit: `laengenfaktor.py` reicht gar kein `--speaker` an Piper
+weiter (`argumente` in `sprechen()` kennt nur `--length-scale` und
+`--noise-w-scale`). Wer das aufgreift, braucht drei Schritte:
+
+1. In `sprechen()` ein `--speaker` durchreichen, und in `--je-stimme`
+   je Sprecher einmal messen statt einmal je Stimme.
+2. Die Stimme laden und den Lauf wiederholen — mit `--noise-w-scale 0`,
+   sonst würfelt Piper die Längen um bis zu 10 %:
+
+   ```
+   python laengenfaktor.py --stimmen-laden --ziel-ordner ergebnisse/stimmprobe/voices
+   python laengenfaktor.py --je-stimme --nur fr
+   ```
+
+   `--nur fr` misst nur Französisch nach; die übrigen Messungen in der
+   Datei bleiben stehen.
+3. Kommt ein Wert im Bereich der anderen französischen Stimmen heraus
+   (siwis 1,04, tom 1,24), die Stimme in `config.py` eintragen. Kommt
+   wieder etwas um 0,45 heraus, liegt es nicht am Sprecher — dann
+   bleibt sie draußen, und der Kommentar in `config.py` wird um den
+   Befund ergänzt.
+
 ## Sprachen ohne geprüftes Fachwortverzeichnis
 
 Eine Sprache hat drei Zustände, und sie sehen am Pult verschieden aus:

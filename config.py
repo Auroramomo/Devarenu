@@ -250,6 +250,26 @@ TEMPO_STIMME = {
     "fa_IR-amir-medium": 1.16,  # Persisch (Farsi)
     "fr_FR-siwis-medium": 1.04,  # Französisch
     "fr_FR-tom-medium": 1.24,  # Französisch, nicht ausgeliefert
+    # fr_FR-upmc-medium steht hier ABSICHTLICH nicht, obwohl es in
+    # messungen/laengenfaktor_stimmen.json einen Wert hat: 0.447. Alle
+    # anderen Stimmen liegen zwischen 0.99 und 1.67, und Französisch
+    # ist gegenüber Deutsch eher länger, nicht halb so lang. Der Wert
+    # ist also nicht plausibel.
+    #
+    # Die Stimme hat laut voices.json ZWEI Sprecher. Ein
+    # Mehrsprecher-Modell braucht --speaker; ohne den Schalter ist die
+    # Ausgabe nicht die, die man meint. Das ist die wahrscheinliche
+    # Ursache, aber nicht nachgemessen -- dafür müsste die Stimme neu
+    # geladen und der Lauf wiederholt werden.
+    #
+    # Ein falscher Wert hier wäre schlimmer als keiner: er gälte als
+    # gemessen. Solange das nicht geklärt ist, bleibt die Stimme
+    # draußen, und wer sie einsetzt, bekommt den Sprachrückfall 1.04.
+    #
+    # Die Schritte zum Nachmessen stehen in AUFSTELLEN.md unter
+    # "Merkposten: fr_FR-upmc mit --speaker neu messen". Kurz:
+    # laengenfaktor.py reicht --speaker noch gar nicht an Piper
+    # weiter, das kommt zuerst.
     "hu_HU-anna-medium": 1.09,  # Ungarisch
     "it_IT-paola-medium": 1.05,  # Italienisch
     "ka_GE-natia-medium": 1.29,  # Georgisch

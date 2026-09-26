@@ -109,15 +109,84 @@ def _dienst_an(name):
 
 # ------------------------------------------------------ Die Pruefungen
 
-def _autologin(befunde):
+def laufende_sitzung():
+    """Welcher Sitzungstyp laeuft gerade: "x11", "wayland" oder "".
+
+    Aus loginctl und nicht aus XDG_SESSION_TYPE: der Dienst laeuft als
+    System-Unit und erbt die Umgebung der grafischen Sitzung nicht.
+    Gefragt wird nach der aktiven Sitzung der Klasse "user" -- daneben
+    steht immer noch eine "manager"-Sitzung ohne Typ."""
+    zeilen = _lauf(["loginctl", "list-sessions", "--no-legend"]) or ""
+    for zeile in zeilen.splitlines():
+        teile = zeile.split()
+        if not teile:
+            continue
+        angaben = _lauf(["loginctl", "show-session", teile[0],
+                         "-p", "Type", "-p", "Class", "-p", "Active"]) or ""
+        werte = dict(z.split("=", 1) for z in angaben.splitlines()
+                     if "=" in z)
+        if werte.get("Class") != "user":
+            continue
+        typ = (werte.get("Type") or "").lower()
+        if typ in ("x11", "wayland"):
+            # Eine aktive Sitzung schlaegt eine inaktive; gibt es nur
+            # eine inaktive, ist sie immer noch die Auskunft.
+            if werte.get("Active") == "yes":
+                return typ
+            _merke = typ
+    return locals().get("_merke", "")
+
+
+def sitzungsdatei(name):
+    """Der Pfad zur Sitzung <name>, oder "" wenn es sie nicht gibt.
+
+    Session=plasmax11 ist keine Zusage, sondern ein Wunsch: der
+    Anmeldemanager sucht plasmax11.desktop, und findet er sie nicht,
+    nimmt er wortlos die einzige, die da ist. Auf einem Arch ohne
+    plasma-x11-session ist das Wayland -- die Einstellung steht
+    richtig da und bewirkt nichts."""
+    for ordner in ("/usr/share/xsessions", "/usr/local/share/xsessions",
+                   "/usr/share/wayland-sessions",
+                   "/usr/local/share/wayland-sessions"):
+        p = Path(ordner) / f"{name}.desktop"
+        if p.is_file():
+            return str(p)
+    return ""
+
+
+ANMELDE_ORDNER = ("/etc/plasmalogin.conf.d", "/etc/sddm.conf.d")
+
+
+def sitzungsart(name):
+    """Ist das eine X11- oder eine Wayland-Sitzung? "" heisst unbekannt.
+
+    Am Namen ist es nicht zu erkennen: plasmax11 ist X11, plasma ist
+    Wayland, und beide sagen es nicht. Entschieden wird am Ordner, in
+    dem die .desktop-Datei liegt -- genau so entscheidet es der
+    Anmeldemanager auch.
+
+    Gibt es die Datei nicht, bleibt der Name als schwacher Hinweis.
+    Nur wenn auch der nichts hergibt, wird "" zurueckgegeben: eine
+    Vermutung ist keine Auskunft."""
+    if not name:
+        return ""
+    pfad = sitzungsdatei(name)
+    if pfad:
+        return "wayland" if "wayland-sessions" in pfad else "x11"
+    return "x11" if "x11" in name else ""
+
+
+def _autologin(befunde, ordner_liste=ANMELDE_ORDNER):
     """Meldet sich der Rechner nach dem Einschalten von selbst an?
 
     Ohne das steht er am Anmeldebildschirm, und ohne angemeldete
     Sitzung gibt es keinen PulseAudio-Server -- also keinen Ton. Genau
-    daran hing der Rollout monatelang."""
+    daran hing der Rollout monatelang.
+
+    ordner_liste ist nur fuer den Pruefstand da: die Faelle, um die es
+    geht, lassen sich auf einem laufenden Rechner nicht herstellen."""
     gefunden = {}
-    for ordner in (Path("/etc/plasmalogin.conf.d"),
-                   Path("/etc/sddm.conf.d")):
+    for ordner in (Path(o) for o in ordner_liste):
         if not ordner.is_dir():
             continue
         for datei in sorted(ordner.glob("*.conf")):
@@ -144,16 +213,58 @@ def _autologin(befunde):
             tun_en="bash rechner_einrichten.sh"))
         return
     sitzung = (gefunden.get("session") or "").lower()
-    if sitzung and "wayland" in sitzung:
+    gewollt = sitzungsart(sitzung)
+    laeuft = laufende_sitzung()
+
+    # Entschieden wird am IST-Zustand, nicht am Eintrag. Bis 0.3.1 las
+    # der Systemcheck nur, was eingestellt war, und meldete gruen,
+    # solange dort nicht "wayland" im Namen stand. Auf dem
+    # Gemeinderechner stand plasmax11 -- und es lief Wayland.
+    #
+    # Am Namen laesst sich das ohnehin nicht ablesen: plasmax11 ist
+    # X11, plasma ist Wayland, und keiner der beiden sagt es.
+    if laeuft == "x11":
+        return
+    if laeuft == "wayland" and gewollt == "x11":
+        fehlt_datei = not sitzungsdatei(sitzung)
+        grund = (f" Eine Sitzung {gefunden['session']} gibt es auf "
+                 "diesem Rechner naemlich nicht -- der Anmeldemanager "
+                 "nimmt dann die, die er hat." if fehlt_datei else "")
+        befunde.append(Befund(
+            "sitzung_abweichend", HINWEIS,
+            f"Eingestellt ist {gefunden['session']}, es laeuft aber "
+            f"Wayland: die Einstellung hat nicht gegriffen.{grund} "
+            f"Geprueft ist X11; unter Wayland ist der Tonweg nicht "
+            f"gemessen -- er kann laufen, nur weiss es niemand.",
+            "Fehlt das X11-Sitzungspaket (Arch: plasma-x11-session), "
+            "nachinstallieren -- oder bei Wayland bleiben und den Ton "
+            "nachmessen."
+            if fehlt_datei else
+            "Nach dem naechsten Neustart nachsehen: "
+            "loginctl show-session $XDG_SESSION_ID -p Type",
+            was_en=f"Configured is {gefunden['session']}, but Wayland "
+                   f"is running: the setting did not take effect. Only "
+                   f"X11 has been tested.",
+            tun_en="Install the X11 session package, or stay on "
+                   "Wayland and re-measure the sound path."))
+    elif laeuft == "wayland" or (not laeuft and gewollt == "wayland"):
+        # Entweder es laeuft Wayland und niemand wollte etwas anderes,
+        # oder es ist so eingetragen und der Rechner sagt nichts dazu.
+        wie = ("Es laeuft Wayland" if laeuft
+               else f"Die automatische Anmeldung waehlt "
+                    f"{gefunden['session']}")
         befunde.append(Befund(
             "autologin_wayland", HINWEIS,
-            f"Die automatische Anmeldung waehlt {gefunden['session']}. "
-            f"Geprueft ist X11 (plasmax11); unter Wayland ist der "
-            f"Tonweg nicht gemessen.",
-            "In /etc/plasmalogin.conf.d/ Session=plasmax11 setzen.",
-            was_en=f"Autologin uses {gefunden['session']}. Only X11 "
-                   f"(plasmax11) has been tested.",
-            tun_en="Set Session=plasmax11 in /etc/plasmalogin.conf.d/."))
+            f"{wie}. Geprueft ist X11 (plasmax11); unter Wayland ist "
+            f"der Tonweg nicht gemessen.",
+            "In /etc/plasmalogin.conf.d/ Session=plasmax11 setzen und "
+            "nachsehen, ob es die Sitzung ueberhaupt gibt."
+            if not sitzung else
+            "Bei Wayland bleiben und den Ton nachmessen, oder "
+            "Session=plasmax11 setzen.",
+            was_en=f"{wie}. Only X11 (plasmax11) has been tested.",
+            tun_en="Stay on Wayland and re-measure the sound path, or "
+                   "set Session=plasmax11."))
 
 
 def _energie(befunde):

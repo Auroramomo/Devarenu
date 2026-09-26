@@ -32,8 +32,10 @@ from pathlib import Path
 
 WURZEL = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(WURZEL))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import pultschutz  # noqa: E402
+from hilfe import eigene_adresse  # noqa: E402
 
 GRUEN, ROT, AUS = "\033[32m", "\033[31m", "\033[0m"
 FEHLER = 0
@@ -149,26 +151,6 @@ def aufraeumen(lauf):
             lauf.kill()
     shutil.rmtree(ARBEIT, ignore_errors=True)
 
-
-def eigene_adresse():
-    """Eine Adresse dieses Rechners, die NICHT Loopback ist.
-
-    Ueber 127.0.0.1 gilt jeder Aufruf als "am Rechner selbst" und wird
-    nie gefragt. Der wichtigste Fall -- ein Handy im Saal wird
-    abgewiesen -- liesse sich darueber gar nicht pruefen. Zur Laufzeit
-    ermittelt und nicht eingetragen: die Adresse dieses Arbeitsrechners
-    hat in einem oeffentlichen Repo nichts verloren."""
-    import socket
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # Verbindet nichts, fragt nur das Betriebssystem, welche
-        # Adresse es fuer einen Weg nach draussen nehmen wuerde.
-        s.connect(("192.0.2.1", 9))          # TEST-NET-1, geht nirgendwohin
-        adresse = s.getsockname()[0]
-        s.close()
-        return None if adresse.startswith("127.") else adresse
-    except OSError:
-        return None
 
 
 def holen(weg, keks=None, daten=None, gastgeber="127.0.0.1"):
