@@ -661,7 +661,9 @@ const TEXTE = {
       ton:"Ton", tonAus:"Ton aus", text:"Text", textAus:"Text aus", sprache:"Sprache",
       warten:"Sobald gesprochen wird, erscheint hier der erste Abschnitt.",
       neu:"Neue Abschnitte", verbinde:"verbindet", live:"live", pause:"Pause",
-      getrennt:"getrennt", wechseln:"Sprache wechseln", abbrechen:"Abbrechen",
+      getrennt:"getrennt",
+      warte:"Warte auf das Devarenu-WLAN … die Übersetzung geht gleich weiter",
+      wechseln:"Sprache wechseln", abbrechen:"Abbrechen",
       aufnahme:"Von dieser Predigt wird eine Tonaufnahme gemacht.",
       stumm:"Kein Ton? Am iPhone den seitlichen Schalter umlegen, sonst bleibt es still.",
       bildschirm:"Bildschirm anlassen, sonst stoppt die Wiedergabe.",
@@ -687,7 +689,9 @@ const TEXTE = {
       ton:"Sound", tonAus:"Sound off", text:"Text", textAus:"Text off", sprache:"Language",
       warten:"The first section appears once the speaker begins.",
       neu:"New sections", verbinde:"connecting", live:"live", pause:"paused",
-      getrennt:"disconnected", wechseln:"Change language", abbrechen:"Cancel",
+      getrennt:"disconnected",
+      warte:"Waiting for the Devarenu wi-fi … the translation continues shortly",
+      wechseln:"Change language", abbrechen:"Cancel",
       aufnahme:"This sermon is being recorded.",
       stumm:"No sound? Flip the side switch on your iPhone.",
       bildschirm:"Keep the screen on, otherwise playback stops.",
@@ -713,7 +717,9 @@ const TEXTE = {
       ton:"Звук", tonAus:"Звук выкл.", text:"Текст", textAus:"Текст выкл.", sprache:"Язык",
       warten:"Первый отрывок появится, как только начнётся проповедь.",
       neu:"Новые отрывки", verbinde:"соединение", live:"эфир", pause:"пауза",
-      getrennt:"нет связи", wechseln:"Сменить язык", abbrechen:"Отмена",
+      getrennt:"нет связи",
+      warte:"Ждём вай-фай Devarenu … перевод сейчас продолжится",
+      wechseln:"Сменить язык", abbrechen:"Отмена",
       aufnahme:"Эта проповедь записывается.",
       stumm:"Нет звука? Переключите боковой переключатель на iPhone.",
       bildschirm:"Не гасите экран, иначе воспроизведение остановится.",
@@ -739,7 +745,9 @@ const TEXTE = {
       ton:"صدا", tonAus:"صدا خاموش", text:"متن", textAus:"متن خاموش", sprache:"زبان",
       warten:"به‌محض آغاز سخنرانی، نخستین بخش اینجا نمایان می‌شود.",
       neu:"بخش‌های تازه", verbinde:"در حال اتصال", live:"زنده", pause:"مکث",
-      getrennt:"قطع شد", wechseln:"تغییر زبان", abbrechen:"انصراف",
+      getrennt:"قطع شد",
+      warte:"در انتظار وای‌فای Devarenu … ترجمه به‌زودی ادامه می‌یابد",
+      wechseln:"تغییر زبان", abbrechen:"انصراف",
       aufnahme:"از این موعظه ضبط صوتی تهیه می‌شود.",
       stumm:"صدا ندارید؟ کلید کنار آیفون را جابه‌جا کنید.",
       bildschirm:"صفحه را روشن نگه دارید، وگرنه پخش متوقف می‌شود.",
@@ -1022,7 +1030,12 @@ const Verbindung = {
 
     this.draht.onclose = () => {
       if(!this.gewollt) return;
-      zustandZeigen("getrennt");
+      // NICHT "getrennt": das sagt, dass etwas zu Ende ist, und der
+      // Zuhoerer laedt dann neu oder gibt auf. Hier ist nichts zu
+      // Ende -- das WLAN ist kurz weg, und die Seite holt es sich
+      // selbst zurueck. "getrennt" bleibt fuer den Fall, dass jemand
+      // absichtlich zurueck zur Sprachwahl geht.
+      zustandZeigen("warte");
       this._spaeter(sprache);
     };
 
@@ -1037,14 +1050,23 @@ const Verbindung = {
     zustandZeigen("getrennt");
   },
 
-  // 1s, 2s, 4s ... höchstens 15s. Nicht im Sekundentakt hämmern,
-  // sonst hängen bei einem Serverneustart 40 Handys gleichzeitig dran.
+  // 1s, 2s, 4s … höchstens 15s. Nicht im Sekundentakt hämmern, sonst
+  // hängen bei einem Serverneustart 40 Handys gleichzeitig dran.
+  //
+  // Dazu ein Zufallsanteil von bis zu einer Sekunde. Ohne ihn warten
+  // alle Handys im Saal exakt gleich lang — der Zugangspunkt kommt
+  // zurück, und im selben Augenblick klopfen vierzig gleichzeitig an.
+  // Genau der Moment, in dem er wieder zumacht.
+  _wartezeit(){
+    const grund = Math.min(15000, 1000 * Math.pow(2, this.versuche - 1));
+    return grund + Math.random() * 1000;
+  },
+
   _spaeter(sprache){
     this.versuche++;
-    const wartezeit = Math.min(15000, 1000 * Math.pow(2, this.versuche - 1));
     this._uhr = setTimeout(() => {
       if(this.gewollt) this.verbinden(sprache);
-    }, wartezeit);
+    }, this._wartezeit());
   },
 };
 
