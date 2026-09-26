@@ -366,6 +366,19 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
 .sprachen button.ungeprueft::after{content:"•";position:absolute;top:.35rem;
   right:.45rem;font-size:.7rem;opacity:.5;line-height:1}
 .sprachen button{position:relative}
+/* Der Aufnahmehinweis. Rot und mit Punkt, damit er nicht wie eine
+   weitere Statusmeldung aussieht -- er sagt etwas ueber den Zuhoerer
+   selbst, nicht ueber die Technik. */
+.aufnahmehinweis{display:flex;align-items:center;gap:.5rem;
+  font:.9rem/1.4 system-ui,sans-serif;color:#9c2d22;
+  background:#fdeceb;border:1px solid #e0b4af;border-radius:.4rem;
+  padding:.5rem .7rem;margin:0 0 .8rem}
+.aufnahmehinweis .rotpunkt{width:.6rem;height:.6rem;border-radius:50%;
+  background:#c0392b;flex:0 0 auto}
+@media (prefers-reduced-motion: no-preference){
+  .aufnahmehinweis .rotpunkt{animation:pulsen 1.6s ease-in-out infinite}
+}
+@keyframes pulsen{0%,100%{opacity:1}50%{opacity:.3}}
 /* Derselbe Kasten wie der KI-Hinweis, nur nicht zu uebersehen: an
    diesem einen Satz haengt, ob der Ton im Saal durchhaelt. */
 .hinweis.daten{border-left-color:var(--tinte);color:var(--tinte)}
@@ -467,6 +480,12 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
   </header>
 
   <p class="fahne" id="fahne" role="status"></p>
+
+  <!-- Wer mitgeschnitten wird, soll es sehen, ohne das Pult zu
+       kennen. Der Hinweis steht ueber dem Text und bleibt stehen,
+       solange aufgenommen wird. -->
+  <p class="aufnahmehinweis" id="aufnahmehinweis" role="status" hidden>
+    <span class="rotpunkt"></span><span id="aufnahmetext"></span></p>
 
   <div class="strom" id="strom">
     <p class="leerlauf" id="leerlauf">Sobald gesprochen wird, erscheint hier der erste Abschnitt.</p>
@@ -643,6 +662,7 @@ const TEXTE = {
       warten:"Sobald gesprochen wird, erscheint hier der erste Abschnitt.",
       neu:"Neue Abschnitte", verbinde:"verbindet", live:"live", pause:"Pause",
       getrennt:"getrennt", wechseln:"Sprache wechseln", abbrechen:"Abbrechen",
+      aufnahme:"Von dieser Predigt wird eine Tonaufnahme gemacht.",
       stumm:"Kein Ton? Am iPhone den seitlichen Schalter umlegen, sonst bleibt es still.",
       bildschirm:"Bildschirm anlassen, sonst stoppt die Wiedergabe.",
       kiKurz:"Automatische Übersetzung, Fehler möglich.",
@@ -650,6 +670,10 @@ const TEXTE = {
       anleitung:"Kurzanleitung als PDF",
       postHin:"Fehlt eine Sprache? Ist der Ton zu leise? Kurz schreiben, die Technik sieht es sofort. Eine Antwort kommt nicht, dafür ist während des Gottesdienstes keine Zeit.",
       postSenden:"Senden", postDank:"Angekommen. Danke!",
+      postLangsam:"Einen Moment bitte — kurz warten und noch einmal senden.",
+      postVoll:"Am Pult liegen gerade viele Meldungen. Später noch einmal.",
+      postGekuerzt:"Angekommen, aber gekürzt: nur die ersten 200 Zeichen.",
+      postFehler:"Ließ sich nicht senden. Bitte noch einmal.",
       zurueck:"Zurück", rueckmeldung:"Rückmeldung", schliessen:"Schließen",
       dankText:"Du möchtest mir Rückmeldung geben? Ich arbeite ständig an besseren Fassungen. Schreib mir gern:",
       dankSpende:"Du möchtest das Projekt unterstützen? Nicht nötig, als Pastor werde ich schon durch deinen Zehnten getragen. Wenn du trotzdem etwas geben möchtest, spende gern an die Freikirche. Der Betrag im Code ist nur ein Vorschlag und in der Banking-App änderbar:",
@@ -664,6 +688,7 @@ const TEXTE = {
       warten:"The first section appears once the speaker begins.",
       neu:"New sections", verbinde:"connecting", live:"live", pause:"paused",
       getrennt:"disconnected", wechseln:"Change language", abbrechen:"Cancel",
+      aufnahme:"This sermon is being recorded.",
       stumm:"No sound? Flip the side switch on your iPhone.",
       bildschirm:"Keep the screen on, otherwise playback stops.",
       kiKurz:"Automatic translation, errors possible.",
@@ -671,6 +696,10 @@ const TEXTE = {
       anleitung:"Short guide as PDF",
       postHin:"Missing a language? Sound too quiet? Write a line, the technician sees it right away. There will be no reply, there is no time for that during the service.",
       postSenden:"Send", postDank:"Received. Thank you!",
+      postLangsam:"One moment please — wait a little and send again.",
+      postVoll:"There are many messages at the desk right now. Try later.",
+      postGekuerzt:"Received, but shortened: the first 200 characters only.",
+      postFehler:"Could not be sent. Please try again.",
       zurueck:"Back", rueckmeldung:"Feedback", schliessen:"Close",
       dankText:"Want to give feedback? I keep working on better versions. Write to me:",
       dankSpende:"Want to support the project? No need, as a pastor I am already carried by your tithe. But if you would still like to give something, please donate to the church. The amount in the code is only a suggestion and can be changed in your banking app:",
@@ -685,6 +714,7 @@ const TEXTE = {
       warten:"Первый отрывок появится, как только начнётся проповедь.",
       neu:"Новые отрывки", verbinde:"соединение", live:"эфир", pause:"пауза",
       getrennt:"нет связи", wechseln:"Сменить язык", abbrechen:"Отмена",
+      aufnahme:"Эта проповедь записывается.",
       stumm:"Нет звука? Переключите боковой переключатель на iPhone.",
       bildschirm:"Не гасите экран, иначе воспроизведение остановится.",
       kiKurz:"Автоматический перевод, возможны ошибки.",
@@ -692,6 +722,10 @@ const TEXTE = {
       anleitung:"Краткое руководство в PDF", postTitel:"Сообщение технику",
       postHin:"Не хватает языка? Слишком тихо? Напишите коротко, техник сразу увидит. Ответа не будет, во время богослужения на это нет времени.",
       postSenden:"Отправить", postDank:"Получено. Спасибо!",
+      postLangsam:"Минутку — подождите немного и отправьте ещё раз.",
+      postVoll:"Сейчас за пультом много сообщений. Попробуйте позже.",
+      postGekuerzt:"Получено, но сокращено: только первые 200 знаков.",
+      postFehler:"Не удалось отправить. Попробуйте ещё раз.",
       zurueck:"Назад", rueckmeldung:"Отзыв", schliessen:"Закрыть",
       dankText:"Хотите оставить отзыв? Я постоянно работаю над улучшениями. Напишите мне:",
       dankSpende:"Хотите поддержать проект? Не нужно: как пастор я уже получаю поддержку через вашу десятину. Если вы всё же хотите что-то дать, пожертвуйте церкви. Сумма в коде — только предложение, её можно изменить в банковском приложении:",
@@ -706,6 +740,7 @@ const TEXTE = {
       warten:"به‌محض آغاز سخنرانی، نخستین بخش اینجا نمایان می‌شود.",
       neu:"بخش‌های تازه", verbinde:"در حال اتصال", live:"زنده", pause:"مکث",
       getrennt:"قطع شد", wechseln:"تغییر زبان", abbrechen:"انصراف",
+      aufnahme:"از این موعظه ضبط صوتی تهیه می‌شود.",
       stumm:"صدا ندارید؟ کلید کنار آیفون را جابه‌جا کنید.",
       bildschirm:"صفحه را روشن نگه دارید، وگرنه پخش متوقف می‌شود.",
       kiKurz:"ترجمهٔ خودکار، احتمال خطا وجود دارد.",
@@ -713,6 +748,10 @@ const TEXTE = {
       anleitung:"راهنمای کوتاه به صورت PDF",
       postHin:"زبانی کم است؟ صدا کم است؟ کوتاه بنویسید، مسئول فنی فوراً می‌بیند. پاسخی داده نمی‌شود؛ در حین مراسم فرصت آن نیست.",
       postSenden:"ارسال", postDank:"دریافت شد. سپاسگزاریم!",
+      postLangsam:"لحظه‌ای صبر کنید و دوباره بفرستید.",
+      postVoll:"اکنون پیام‌های زیادی روی میز است. بعداً دوباره تلاش کنید.",
+      postGekuerzt:"دریافت شد، اما کوتاه شد: تنها ۲۰۰ نویسهٔ نخست.",
+      postFehler:"ارسال نشد. لطفاً دوباره تلاش کنید.",
       zurueck:"بازگشت", rueckmeldung:"بازخورد", schliessen:"بستن",
       dankText:"می‌خواهید بازخورد بدهید؟ من پیوسته روی نسخه‌های بهتر کار می‌کنم. برایم بنویسید:",
       dankSpende:"می‌خواهید از پروژه حمایت کنید؟ لازم نیست؛ به عنوان شبان از طریق ده‌یک شما پشتیبانی می‌شوم. اگر باز هم مایل به کمک هستید، لطفاً به کلیسا کمک کنید. مبلغ در کد فقط پیشنهاد است و در برنامهٔ بانکی قابل تغییر است:",
@@ -977,6 +1016,7 @@ const Verbindung = {
         if(d.audio) Ton.einreihen(d.audio, d.id);
       }else if(d.typ === "zustand"){
         zustandZeigen(d.live ? "live" : "pause");
+        if(d.aufnahme !== undefined) aufnahmeHinweis(d.aufnahme);
       }
     };
 
@@ -1193,6 +1233,7 @@ function spracheWechseln(neu){
   while(strom.firstChild) strom.removeChild(strom.firstChild);
 
   beschriftungenSetzen();
+  if(!$("aufnahmehinweis").hidden) aufnahmeHinweis(true);
   Verbindung.verbinden(neu);
   systemleisteSetzen();
 }
@@ -1269,6 +1310,13 @@ function zustandZeigen(art){
   const x = t();
   $("zustand").textContent = x[art] ?? "";
   $("puls").classList.toggle("still", art !== "live");
+}
+
+function aufnahmeHinweis(an){
+  const p = $("aufnahmehinweis");
+  if(!p) return;
+  p.hidden = !an;
+  if(an) $("aufnahmetext").textContent = t().aufnahme;
 }
 
 function fahneZeigen(text){
@@ -1518,12 +1566,23 @@ $("post-senden").addEventListener("click", async () => {
   const text = $("post-text").value.trim();
   if(!text) return;
   try{
-    await fetch("/api/nachricht", {
+    const a = await fetch("/api/nachricht", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({text: text, sprache: zustand.sprache || ""}),
     });
-    fahneZeigen(t().postDank);
+    const d = await a.json().catch(() => ({}));
+    // Eine abgelehnte Meldung wird GESAGT, nicht verschluckt. Wer
+    // nichts hört, schickt noch einmal -- und das ist genau der Fall,
+    // den die Drossel verhindern soll.
+    if(a.status === 429){
+      fahneZeigen(d.grund === "briefkasten_voll"
+        ? t().postVoll : t().postLangsam);
+    }else if(!a.ok){
+      fahneZeigen(t().postFehler);
+    }else{
+      fahneZeigen(d.gekuerzt ? t().postGekuerzt : t().postDank);
+    }
   }catch(e){ /* still: eine misslungene Meldung darf nichts kaputtmachen */ }
   $("postblatt").close();
 });

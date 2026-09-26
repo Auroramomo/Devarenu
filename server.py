@@ -49,6 +49,8 @@ import grafikkarte
 # Funktion zustand() steht. Die wuerde das Modul im ganzen Namensraum von
 # app_bauen verdecken, und zwar still: der Zugriff schluege erst zur
 # Laufzeit fehl, beim ersten Speichern am Pult.
+import aufnahme
+import drossel
 import pultschutz
 import qr_texte
 import zustand as zustandsdatei
@@ -997,69 +999,9 @@ class Satzsammler:
         return self.abholen()[0]
 
 
-class Mitschnitt:
-    """Schreibt den eingehenden Ton in eine Datei.
-
-    Der Ton laeuft ohnehin durch, die Aufnahme kostet also nichts ausser
-    Speicherplatz: eine Stunde belegt rund 115 MB. Sie ist zugleich der
-    Ersatz fuer die Aufnahme auf USB-Stick, die am Mischpult nicht mehr
-    moeglich ist, sobald der Rechner ueber USB angeschlossen ist. Beides
-    zugleich unterstuetzt das Pult nicht.
-
-    Geschrieben wird fortlaufend, nicht erst am Ende. Faellt der Strom aus
-    oder stuerzt etwas ab, ist alles bis zu diesem Zeitpunkt erhalten."""
-
-    def __init__(self, ordner):
-        self.ordner = Path(ordner)
-        self.datei = None
-        self.griff = None
-        self.rahmen = 0
-
-    @property
-    def laeuft(self):
-        return self.griff is not None
-
-    def starten(self):
-        if self.griff:
-            return self.datei
-        self.ordner.mkdir(parents=True, exist_ok=True)
-        self.datei = self.ordner / f"predigt_{time.strftime('%Y-%m-%d_%H-%M')}.wav"
-        self.griff = wave.open(str(self.datei), "wb")
-        self.griff.setnchannels(1)
-        self.griff.setsampwidth(2)
-        self.griff.setframerate(MIKRO_RATE)
-        self.rahmen = 0
-        print(f"Mitschnitt laeuft: {self.datei.name}")
-        return self.datei
-
-    def schreiben(self, block):
-        if not self.griff:
-            return
-        try:
-            self.griff.writeframes(
-                (np.clip(block, -1.0, 1.0) * 32767).astype(np.int16).tobytes())
-            self.rahmen += len(block)
-        except Exception:
-            pass
-
-    def beenden(self):
-        if not self.griff:
-            return None
-        try:
-            self.griff.close()
-        except Exception:
-            pass
-        self.griff = None
-        dauer = self.rahmen / MIKRO_RATE
-        print(f"Mitschnitt beendet: {self.datei.name}, {dauer/60:.1f} min")
-        return {"datei": self.datei.name, "minuten": round(dauer / 60, 1)}
-
-    def lage(self):
-        if not self.griff:
-            return None
-        return {"datei": self.datei.name,
-                "minuten": round(self.rahmen / MIKRO_RATE / 60, 1)}
-
+# Die Aufnahme steckt in aufnahme.py: Einwilligung, Frist und Loeschung
+# lassen sich dort ohne laufenden Server pruefen, und genau das war
+# vorher nicht moeglich. Hier bleibt nur die Verdrahtung.
 
 class Lauf:
     def __init__(self, werk, segmentierer=None):
@@ -1112,7 +1054,10 @@ class Lauf:
         # gibt. Steht hier, damit sie nicht an drei Stellen neu geraten
         # wird: das Pult, die QR-Notloesung und dienst.sh lesen dasselbe.
         self.adresse = None
-        self.mitschnitt = Mitschnitt(config.ERGEBNIS_ORDNER / "predigten")
+        self.mitschnitt = aufnahme.Aufnahme(
+            config.ERGEBNIS_ORDNER / "predigten", MIKRO_RATE,
+            zustandsdatei.laden()[0].get("aufnahme_tage",
+                                         aufnahme.TAGE_VORGABE))
         self.schleife = None
         self.pool = ThreadPoolExecutor(max_workers=len(SPRACHEN) + 1)
         # Beim Start aus der damaligen Sprachzahl bestimmt und danach nie
@@ -1130,7 +1075,8 @@ class Lauf:
     async def anmelden(self, ws, sprache):
         self.hoerer[sprache].add(ws)
         await self._senden(ws, {"typ": "zustand", "live": self.laeuft,
-                                "gesendet": self.n})
+                                "gesendet": self.n,
+                                "aufnahme": self.mitschnitt.laeuft})
 
     def abmelden(self, ws, sprache):
         self.hoerer[sprache].discard(ws)
@@ -1179,11 +1125,22 @@ class Lauf:
         if not self.laeuft:
             self.laeuft = True
             self.begonnen = self.begonnen or time.time()
-        await self._streuen_alle({"typ": "zustand", "live": True})
+        await self._streuen_alle({"typ": "zustand", "live": True,
+                                  "aufnahme": self.mitschnitt.laeuft})
 
     async def anhalten(self):
         self.laeuft = False
-        await self._streuen_alle({"typ": "zustand", "live": False})
+        # Die Aufnahme geht mit. Wer die Uebersetzung anhaelt, hat den
+        # Predigtteil hinter sich -- was danach kommt, ist Gebet oder
+        # Abkuendigung, und genau davon sollte nichts mitlaufen. Das
+        # ist der zweite Haken im Einwilligungsdialog, und er wird
+        # hier eingeloest statt dem Techniker aufgebuerdet.
+        if self.mitschnitt.laeuft:
+            e = self.mitschnitt.beenden("uebersetzung_angehalten")
+            print(f"Aufnahme beendet (Uebersetzung angehalten): "
+                  f"{e['datei']}, {e['minuten']} min")
+        await self._streuen_alle({"typ": "zustand", "live": False,
+                                  "aufnahme": self.mitschnitt.laeuft})
 
     async def zuruecksetzen(self):
         await self.anhalten()
@@ -1544,7 +1501,7 @@ def mikrofon_thread(lauf, geraet, segmentierer, stoppen, rate, blockgroesse,
         # Strom ist dann einkanalig aufgemacht, spalte ist 0. Ein
         # Grossmembranmikrofon liefert ohnehin mono.
         block = auf_16k(daten[:, spalte].copy(), rate)
-        lauf.mitschnitt.schreiben(block)
+        lauf.mitschnitt.schreiben(block, np)
         segment = segmentierer.schub(block)
         if segment is not None and lauf.laeuft:
             lauf.warteschlange.put((segment, None, time.perf_counter()))
@@ -3249,9 +3206,89 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
     from html import escape as html_escape
 
     @asynccontextmanager
+    def systemhinweis_legen(text, text_en=""):
+        """Ein Systemhinweis in den Briefkasten, wie der Systemcheck.
+
+        Dieselbe Form wie glossar_nachricht(): als Systemhinweis
+        gekennzeichnet, bleibt stehen, bis jemand ihn geoeffnet hat."""
+        lauf.nachrichten.append({
+            "text": text, "text_en": text_en or text,
+            "zeit": time.strftime("%H:%M"), "art": "system",
+            "absender": "Devarenu", "gelesen": False})
+
+    def aufnahmen_aufraeumen(beim_start=False):
+        """Loescht abgelaufene Aufnahmen. Gibt die Nachricht zurueck.
+
+        Beim ERSTEN Start dieser Fassung wird nichts geloescht, was es
+        schon vorher gab -- stattdessen beginnt die Frist. Eine
+        Fassung, die beim Hochfahren ungefragt Tondateien wegraeumt,
+        waere das Gegenteil dessen, wofuer die Einwilligung da ist."""
+        stand = zustandsdatei.laden()[0]
+        tage = stand.get("aufnahme_tage", aufnahme.TAGE_VORGABE)
+        if tage <= 0:
+            return None
+        ab = stand.get("aufnahme_frist_ab") or 0
+        nachricht = None
+
+        if beim_start and not ab:
+            alt_liste = aufnahme.altbestand(lauf.mitschnitt.ordner,
+                                            time.time())
+            ab = time.time()
+            stand["aufnahme_frist_ab"] = ab
+            zustandsdatei.speichern(stand)
+            if alt_liste:
+                wann = aufnahme.faellig_am(alt_liste[0], tage, ab)
+                nachricht = (
+                    f"Es liegen {len(alt_liste)} Aufnahmen aus der Zeit vor "
+                    f"diesem Update. Sie werden NICHT sofort geloescht -- "
+                    f"die Frist von {tage} Tagen laeuft ab heute, sie gehen "
+                    f"also am {wann}. Wer eine davon behalten will, sichert "
+                    f"sie vorher. Abrufen nur am Gemeinde-PC selbst.")
+                print(warnung(nachricht))
+
+        weg = aufnahme.aufraeumen(lauf.mitschnitt.ordner, tage, ab)
+        if weg:
+            print(f"Aufnahmen geloescht (aelter als {tage} Tage): "
+                  + ", ".join(a["name"] for a in weg))
+        return nachricht
+
+    async def aufnahme_huetten():
+        """Stuendlich nachsehen: abgelaufen? Platte voll?
+
+        Ein Rechner, der von Freitag bis Sonntag laeuft, soll die
+        Frist nicht erst beim naechsten Neustart bemerken."""
+        while True:
+            await asyncio.sleep(aufnahme.AUFRAEUMEN_ALLE)
+            try:
+                aufnahmen_aufraeumen()
+                frei = lauf.mitschnitt.platz_pruefen()
+                if frei is not None:
+                    text = (f"Die Aufnahme wurde gestoppt: nur noch "
+                            f"{frei / 1024**3:.1f} GB frei. Platz schaffen, "
+                            f"bevor wieder aufgenommen wird.")
+                    print(fehler(text))
+                    systemhinweis_legen(
+                        text,
+                        f"Recording stopped: only {frei / 1024**3:.1f} GB "
+                        f"left. Free up space before recording again.")
+            except Exception as e:
+                print(warnung(f"Aufnahmen aufraeumen misslang: "
+                              f"{str(e)[:100]}"))
+
     async def lebenszyklus(app):
         aufgabe = asyncio.create_task(lauf.verarbeiten())
+        # Eine laufende Aufnahme ueberlebt einen Neustart NICHT. Nach
+        # einem Absturz gibt es keinen Menschen, der eingewilligt hat
+        # -- also faengt nichts von selbst wieder an. Das ist hier
+        # nichts zu tun, sondern etwas zu lassen: die Aufnahme ist
+        # beim Start immer aus, und der Zettel daneben bleibt bei der
+        # abgebrochenen Datei liegen.
+        alt_nachricht = aufnahmen_aufraeumen(beim_start=True)
+        if alt_nachricht:
+            systemhinweis_legen(alt_nachricht)
+        huete = asyncio.create_task(aufnahme_huetten())
         yield
+        huete.cancel()
         aufgabe.cancel()
         # Der Aufseher ist ein Daemon-Thread und wuerde auch so mit dem
         # Prozess enden. Ihm hier Bescheid zu sagen erspart beim Neustart
@@ -3280,6 +3317,12 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
     # gar nichts: die Wache winkt jeden durch, und es kostet einen
     # stat auf zustand.json.
     wache = pultschutz.Wache(zustandsdatei.DATEI)
+
+    # Eine Drossel je Schreibweg aus dem Saal. Getrennt, weil eine
+    # gemeinsame bedeutete, dass eine Zuschrift die Sprachwahl bremst
+    # -- zwei Dinge, die nichts miteinander zu tun haben.
+    saaldrossel = drossel.Drossel()
+    wahldrossel = drossel.Drossel(abstand=1.0, je_geraet=200)
 
     @app.middleware("http")
     async def pult_schuetzen(request, weiter):
@@ -3436,12 +3479,29 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         return FileResponse(datei, media_type="audio/wav",
                             headers={"Cache-Control": "no-store"})
 
+    # Offene Stroeme je Adresse. Ein Handy braucht genau einen; beim
+    # Sprachwechsel kurz zwei, weil der alte noch schliesst. Acht ist
+    # das Vielfache davon und trifft niemanden -- ausser einem Skript,
+    # das Verbindungen aufmacht, bis dem Dienst die Dateizeiger
+    # ausgehen. Dann stuende der ganze Gottesdienst.
+    STROEME_JE_GERAET = 8
+    stroeme = {}
+
     @app.websocket("/strom")
     async def strom(ws: WebSocket):
         sprache = ws.query_params.get("sprache", "")
         if sprache not in lauf.sprachen:
             await ws.close(code=1008)
             return
+        adresse = ws.client.host if ws.client else "?"
+        if stroeme.get(adresse, 0) >= STROEME_JE_GERAET:
+            # 1013 heisst "versuch es spaeter". Die Zuhoererseite
+            # verbindet daraufhin mit wachsendem Abstand neu, statt
+            # einen Fehler anzuzeigen.
+            print(warnung(f"Zu viele Stroeme von {adresse}, abgewiesen."))
+            await ws.close(code=1013)
+            return
+        stroeme[adresse] = stroeme.get(adresse, 0) + 1
         await ws.accept()
         if ws.client is not None:
             netzpruefung.beobachten(ws.client.host)
@@ -3453,6 +3513,13 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             pass
         finally:
             lauf.abmelden(ws, sprache)
+            uebrig = stroeme.get(adresse, 1) - 1
+            if uebrig > 0:
+                stroeme[adresse] = uebrig
+            else:
+                # Nicht auf null stehen lassen: der Zaehler waere sonst
+                # eine Adressliste, die nie kleiner wird.
+                stroeme.pop(adresse, None)
 
     @app.get("/api/geraete")
     def geraete():
@@ -3826,13 +3893,33 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 "getrennt": sorted(entfallen)}
 
     @app.post("/api/nachricht")
-    async def nachricht(daten: dict):
-        text = (daten.get("text") or "").strip()
+    async def nachricht(daten: dict, request: Request):
+        """Die Zuschrift aus dem Saal -- der einzige Schreibweg von dort.
+
+        Deshalb gedrosselt. Ein normaler Zuhoerer merkt davon nichts:
+        er meldet einmal, vielleicht zweimal. Die Grenzen und ihre
+        Begruendung stehen in drossel.py.
+
+        Abgelehnt wird mit einem Grund, nicht still. Wer eine Meldung
+        schickt und nichts hoert, schickt sie noch einmal -- und das
+        ist genau der Fall, den die Drossel verhindern soll."""
+        adresse = request.client.host if request.client else "?"
+        darf, grund = saaldrossel.fragen(adresse)
+        if not darf:
+            return JSONResponse({"grund": grund}, status_code=429)
+
+        text, gekuerzt = drossel.kuerzen(daten.get("text"))
         if not text:
-            return JSONResponse({"fehler": "leer"}, status_code=400)
-        # Kurz halten: das Feld ist fuer einen Satz gedacht, nicht fuer
-        # einen Brief, und alles landet ungefiltert vor dem Techniker.
-        eintrag = {"text": text[:200],
+            return JSONResponse({"grund": "leer"}, status_code=400)
+        if len(lauf.nachrichten) >= drossel.INSGESAMT:
+            # Nicht die aelteste hinauswerfen: der Briefkasten ist
+            # voll, weil niemand ihn geleert hat, und genau das
+            # gehoert gesagt statt kaschiert.
+            return JSONResponse({"grund": "briefkasten_voll"},
+                                status_code=429)
+
+        saaldrossel.vermerken(adresse)
+        eintrag = {"text": text,
                    "sprache": (daten.get("sprache") or "")[:5],
                    "zeit": time.strftime("%H:%M"),
                    # Ausdruecklich, nicht durch Abwesenheit: das Pult
@@ -3842,7 +3929,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         lauf.nachrichten.append(eintrag)
         print(f"Nachricht aus dem Saal ({eintrag['sprache'] or '?'}): "
               f"{schutz(eintrag['text'], 200)}")
-        return {"angekommen": True}
+        return {"angekommen": True, "gekuerzt": gekuerzt}
 
     @app.post("/api/nachrichten/leeren")
     async def nachrichten_leeren():
@@ -3909,6 +3996,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 "audio_quelle": (round(time.time() - lauf.audio_quelle, 1)
                                  if lauf.audio_quelle else None),
                 "mitschnitt": lauf.mitschnitt.lage(),
+                # Auch fuer die Zuhoererseite: wer mitgeschnitten
+                # wird, soll es sehen, ohne das Pult zu kennen.
+                "aufnahme": bool(lauf.mitschnitt.laeuft),
                 "protokoll_mitschrift": PROTOKOLL_MITSCHRIFT,
                 # Nur ob eines gesetzt ist, nie der Hash. Das Pult muss
                 # den Schalter richtig anzeigen und sonst nichts.
@@ -3997,13 +4087,98 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
 
     @app.post("/api/mitschnitt")
     async def mitschnitt(daten: dict):
+        """Aufnahme starten oder beenden.
+
+        Starten geht NUR mit beiden Haken. Die Pruefung steht in
+        aufnahme.py und damit im Server, nicht in der Oberflaeche: das
+        Pult haengt im Saalnetz, und eine Pflicht, die sich mit einem
+        curl umgehen laesst, ist keine."""
         if daten.get("beenden"):
-            return lauf.mitschnitt.beenden() or {"lief": False}
-        datei = lauf.mitschnitt.starten()
-        return {"datei": Path(datei).name}
+            e = lauf.mitschnitt.beenden("am Pult beendet")
+            if e:
+                print(f"Aufnahme beendet: {e['datei']}, {e['minuten']} min")
+                await lauf._streuen_alle({"typ": "zustand",
+                                          "live": lauf.laeuft,
+                                          "aufnahme": False})
+            return e or {"lief": False}
+
+        datei, fehler = lauf.mitschnitt.starten(
+            aufnahme.Einwilligung.aus_daten(daten.get("einwilligung")))
+        if fehler == "einwilligung_fehlt":
+            print(warnung("Aufnahme abgelehnt: Einwilligung nicht "
+                          "vollstaendig bestaetigt."))
+            return JSONResponse({"grund": "einwilligung_fehlt"},
+                                status_code=400)
+        if fehler == "platz_knapp":
+            return JSONResponse({"grund": "platz_knapp"}, status_code=507)
+        if fehler:
+            return JSONResponse({"grund": fehler}, status_code=500)
+        print(f"Aufnahme laeuft: {Path(datei).name} "
+              f"(Einwilligung bestaetigt "
+              f"{lauf.mitschnitt.einwilligung.zeit})")
+        # Die Zuhoerer erfahren es sofort, nicht erst beim naechsten
+        # Zustandswechsel. Wer mitgeschnitten wird, soll es sehen.
+        await lauf._streuen_alle({"typ": "zustand", "live": lauf.laeuft,
+                                  "aufnahme": True})
+        return {"datei": Path(datei).name,
+                "einwilligung": lauf.mitschnitt.einwilligung.zeit}
+
+    def nur_am_rechner(request):
+        """Aufnahmen gibt es nur am Gemeinde-PC selbst.
+
+        Unabhaengig vom Pult-Passwort, und das ist Absicht: ein
+        Passwort kann gesetzt sein oder nicht, kann weitergegeben
+        werden oder im Browser gespeichert. Eine Tonaufnahme einer
+        Predigt soll das Geraet gar nicht erst verlassen koennen, auf
+        dem sie liegt."""
+        host = request.client.host if request.client else ""
+        return pultschutz.vom_rechner_selbst(host)
+
+    @app.post("/api/aufnahme/tage")
+    async def aufnahme_tage(daten: dict, request: Request):
+        if not nur_am_rechner(request):
+            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
+        try:
+            tage = int(daten.get("tage"))
+        except (TypeError, ValueError):
+            return JSONResponse({"grund": "keine_zahl"}, status_code=400)
+        if tage < 0 or tage > 365:
+            return JSONResponse({"grund": "ausserhalb"}, status_code=400)
+        stand = zustandsdatei.laden()[0]
+        stand["aufnahme_tage"] = tage
+        if not zustandsdatei.speichern(stand):
+            return JSONResponse({"grund": "nicht_schreibbar"},
+                                status_code=500)
+        lauf.mitschnitt.tage = tage
+        print(f"Aufnahmen werden nach {tage} Tagen geloescht."
+              if tage else warnung("Aufnahmen werden NICHT mehr "
+                                   "geloescht."))
+        aufnahmen_aufraeumen()
+        return {"tage": tage}
+
+    @app.get("/api/aufnahmen")
+    def aufnahmen_liste(request: Request):
+        """Was liegt, wie alt, wann faellig."""
+        if not nur_am_rechner(request):
+            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
+        stand = zustandsdatei.laden()[0]
+        tage = stand.get("aufnahme_tage", aufnahme.TAGE_VORGABE)
+        ab = stand.get("aufnahme_frist_ab") or 0
+        liste = aufnahme.aufnahmen(lauf.mitschnitt.ordner)
+        return {"tage": tage,
+                "liste": [{"name": a["name"],
+                           "mb": round(a["bytes"] / 1024 / 1024, 1),
+                           "tage": round(a["tage"], 1),
+                           "faellig": aufnahme.faellig_am(a, tage, ab)}
+                          for a in liste]}
 
     @app.get("/mitschnitt/{name}")
-    def mitschnitt_holen(name: str):
+    def mitschnitt_holen(name: str, request: Request):
+        if not nur_am_rechner(request):
+            # Kein 404: der Unterschied zwischen "gibt es nicht" und
+            # "nicht fuer dich" gehoert gesagt, sonst sucht jemand im
+            # Saal den Fehler bei sich.
+            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
         # Nur Dateinamen ohne Pfadanteile: sonst liesse sich ueber die
         # Adresse jede Datei des Rechners abrufen.
         datei = lauf.mitschnitt.ordner / Path(name).name
@@ -5159,6 +5334,38 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
       max-height:11rem;overflow:auto}
  .mit div{padding:.25rem 0;border-top:1px solid #eef0f4}
  .hin{font:.8rem/1.5 system-ui,sans-serif;color:#6b7385;margin:1.2rem 0 0}
+ /* Der Aufnahmeschalter steht NEBEN dem Startknopf und nicht unten bei
+    den Einstellungen: er gehoert zum Gottesdienst, nicht zur
+    Einrichtung. Schmaler als der Startknopf -- er ist die Ausnahme,
+    nicht der Normalfall. */
+ .startreihe{display:flex;gap:.5rem;align-items:stretch}
+ .startreihe .start{flex:1}
+ .aufnahmeknopf{flex:0 0 auto;width:auto;padding:.9rem 1.1rem;
+   background:#fff;color:#6b7385;border:2px solid #d9dce4;
+   font:.95rem Georgia,serif;letter-spacing:.04em;cursor:pointer;
+   margin-bottom:.5rem}
+ .aufnahmeknopf[aria-pressed="true"]{background:#c0392b;color:#fff;
+   border-color:#c0392b}
+ /* Was laeuft, muss man sehen, ohne danach zu suchen. Rot, in
+    Bewegung, ueber dem Verlauf. */
+ .laeuftauf{display:flex;align-items:center;gap:.5rem;
+   font:.95rem system-ui,sans-serif;color:#c0392b;
+   background:#fdeceb;border:1px solid #c0392b;border-radius:.4rem;
+   padding:.5rem .7rem;margin:.2rem 0 .6rem}
+ .laeuftauf #aufnahmedauer{margin-left:auto;
+   font-variant-numeric:tabular-nums}
+ .rotpunkt{width:.7rem;height:.7rem;border-radius:50%;
+   background:#c0392b;flex:0 0 auto}
+ @media (prefers-reduced-motion: no-preference){
+   .rotpunkt{animation:pulsen 1.6s ease-in-out infinite}
+ }
+ @keyframes pulsen{0%,100%{opacity:1}50%{opacity:.25}}
+ dialog#einwilligung{max-width:26rem;border:1px solid #d9dce4;
+   border-radius:.5rem;padding:1.4rem}
+ dialog#einwilligung h2{margin:0 0 .4rem}
+ dialog#einwilligung label{display:flex;gap:.5rem;align-items:flex-start;
+   font:.95rem/1.45 system-ui,sans-serif;color:#141f52}
+ dialog#einwilligung input[type=checkbox]{margin-top:.25rem;flex:0 0 auto}
 </style>
 <div class=k>
 <div class=kopfknoepfe>
@@ -5184,7 +5391,15 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
 <button class=briefkasten id=briefkasten onclick=postZeigen() hidden>
   <span class=umschlag>✉</span><span id=postzahl></span>
   <span data-t=post_neu>neue Meldungen aus dem Saal</span></button>
-<button class=start id=bStart onclick=umschalten()>Übersetzung starten</button>
+<div class=startreihe>
+  <button class=start id=bStart onclick=umschalten()>Übersetzung starten</button>
+  <button class=aufnahmeknopf id=bSchnitt onclick=aufnahmeUmschalten()
+          aria-pressed="false" data-t=aufnahme>Aufnahme</button>
+</div>
+<p class=laeuftauf id=aufnahmelaeuft hidden>
+  <span class=rotpunkt></span>
+  <b data-t=aufnahme_laeuft>Aufnahme läuft</b>
+  <span id=aufnahmedauer>0:00</span></p>
 <p class=hin id=anhaltenHin data-t=anhalten_hin hidden>Anhalten stoppt die Auslieferung, ohne die
 Zuhörer zu trennen. Sie bleiben verbunden und hören weiter, sobald es
 weitergeht.</p>
@@ -5237,11 +5452,20 @@ wird, was gesprochen wird.</p>
 
 </div>
 
-<h2 data-t=mitschnitt>Mitschnitt</h2>
-<button class=klein id=bSchnitt onclick=schnitt()>Aufnahme starten</button>
-<p class=hin id=schnittinfo>Nimmt den Ton mit, der ohnehin durchläuft. Ersetzt
-die Aufnahme auf den USB-Stick, die am Mischpult nicht mehr geht, solange der
-Rechner per USB angeschlossen ist.</p>
+<h2 data-t=mitschnitt>Aufnahmen</h2>
+<p class=hin data-t=aufnahme_hin>Nimmt den Ton mit, der ohnehin durchläuft.
+Nur mit Einwilligung der predigenden Person. Der Schalter steht oben neben
+„Übersetzung starten“.</p>
+<p class=hin id=schnittinfo></p>
+<div class=reihe>
+  <span data-t=aufnahme_tage_wort>Löschen nach</span>
+  <input type=number id=aufnahmetage min=0 max=365 style="width:5rem"
+    onchange=aufnahmeTageSetzen()>
+  <span data-t=aufnahme_tage_einheit>Tagen</span>
+</div>
+<p class=hin data-t=aufnahme_tage_hin>0 heißt: nicht löschen. Das ist eine
+Entscheidung, keine Vorgabe — dann sammelt sich an, woran niemand mehr denkt.</p>
+<div class=mit id=aufnahmeliste></div>
 
 
 
@@ -5282,6 +5506,28 @@ wieder Internet hat. Im Saalnetz bleibt sie im Postausgang liegen.</p>
 Angaben: Fassung, Rechner, Systemcheck, Meldungen ab Warnstufe. Keine
 Mitschriften, keine Zuschriften aus dem Saal, kein WLAN-Passwort.</p>
 </div>
+
+<dialog id=einwilligung>
+  <form method=dialog>
+    <h2 data-t=ew_titel>Aufnahme starten?</h2>
+    <p class=hin data-t=ew_hin>Es wird eine Tonaufnahme der Predigt
+    angelegt. Beides muss zutreffen.</p>
+    <p><label><input type=checkbox id=ewPerson>
+      <span data-t=ew_person>Die predigende Person wurde gefragt und ist
+      einverstanden.</span></label></p>
+    <p><label><input type=checkbox id=ewNur>
+      <span data-t=ew_nur>Ich nehme nur die Predigt auf und schalte vor
+      Gebet und Abkündigungen aus.</span></label></p>
+    <p class=hin data-t=ew_vermerk>Der Zeitpunkt der Bestätigung wird neben
+    der Aufnahme vermerkt. Kein Name.</p>
+    <p class=warnung id=ewfehler hidden></p>
+    <div class=reihe>
+      <button class=klein id=ewStart onclick=aufnahmeBestaetigen()
+        data-t=ew_start>Aufnahme starten</button>
+      <button class="klein knopf-still" id=ewAb data-t=abbrechen>Abbrechen</button>
+    </div>
+  </form>
+</dialog>
 
 <div id=einrichtung hidden>
 <p class=hin data-t=einrichtung_hin>Einmal je Gemeinde einstellen, danach
@@ -5393,7 +5639,33 @@ const TEXTE={
    tonlaeuft:"Nimmt auf, {hz} Hz.",tonaus:"Kein Gerät offen, es kommt "
      +"kein Ton.",tonwechsel:"Wird umgestellt …",
    ziele:"Übersetzt nach",lautstaerke:"Mindestlautstärke",
-   mitschnitt:"Mitschnitt",wlan:"WLAN für die Zuhörer",
+   mitschnitt:"Aufnahmen",wlan:"WLAN für die Zuhörer",
+   aufnahme:"Aufnahme",
+   aufnahme_laeuft:"Aufnahme läuft",
+   aufnahme_hin:"Nimmt den Ton mit, der ohnehin durchläuft. Nur mit "
+     +"Einwilligung der predigenden Person. Der Schalter steht oben neben "
+     +"„Übersetzung starten“.",
+   aufnahme_fertig:"{m} Minuten aufgenommen.",
+   aufnahme_abgelehnt:"Abgelehnt: die Einwilligung war nicht vollständig "
+     +"bestätigt.",
+   aufnahme_platz:"Kein Platz mehr. Es wird nicht aufgenommen, bis welcher "
+     +"frei ist.",
+   aufnahme_keine:"Keine Aufnahmen vorhanden.",
+   aufnahme_nur_pc:"Aufnahmen sind nur am Gemeinde-PC selbst abrufbar.",
+   aufnahme_faellig:"wird gelöscht am {d}",
+   aufnahme_tage_wort:"Löschen nach", aufnahme_tage_einheit:"Tagen",
+   aufnahme_tage_hin:"0 heißt: nicht löschen. Das ist eine Entscheidung, "
+     +"keine Vorgabe – dann sammelt sich an, woran niemand mehr denkt.",
+   ew_titel:"Aufnahme starten?",
+   ew_hin:"Es wird eine Tonaufnahme der Predigt angelegt. Beides muss "
+     +"zutreffen.",
+   ew_person:"Die predigende Person wurde gefragt und ist einverstanden.",
+   ew_nur:"Ich nehme nur die Predigt auf und schalte vor Gebet und "
+     +"Abkündigungen aus.",
+   ew_vermerk:"Der Zeitpunkt der Bestätigung wird neben der Aufnahme "
+     +"vermerkt. Kein Name.",
+   ew_start:"Aufnahme starten",
+   ew_beide:"Beide Punkte müssen bestätigt sein.",
    manuskript:"Predigtmanuskript",start:"Übersetzung starten",
    pause:"Übersetzung anhalten",reset:"Von vorn",uebernehmen:"Übernehmen",
    einmessen:"Einmessen: Prediger sprechen lassen",
@@ -5565,7 +5837,31 @@ const TEXTE={
    tonlaeuft:"Recording, {hz} Hz.",tonaus:"No device open, no audio "
      +"arriving.",tonwechsel:"Switching …",
    ziele:"Translated into",lautstaerke:"Minimum volume",
-   mitschnitt:"Recording",wlan:"Wi-Fi for listeners",
+   mitschnitt:"Recordings",wlan:"Wi-Fi for listeners",
+   aufnahme:"Record",
+   aufnahme_laeuft:"Recording",
+   aufnahme_hin:"Records the sound that runs through anyway. Only with the "
+     +"consent of the person preaching. The switch is at the top, next to "
+     +"“Start translation”.",
+   aufnahme_fertig:"{m} minutes recorded.",
+   aufnahme_abgelehnt:"Refused: consent was not fully confirmed.",
+   aufnahme_platz:"No space left. Nothing is recorded until some is freed.",
+   aufnahme_keine:"No recordings.",
+   aufnahme_nur_pc:"Recordings can only be retrieved on the church computer "
+     +"itself.",
+   aufnahme_faellig:"will be deleted on {d}",
+   aufnahme_tage_wort:"Delete after", aufnahme_tage_einheit:"days",
+   aufnahme_tage_hin:"0 means: do not delete. That is a decision, not a "
+     +"default – things then pile up that nobody remembers.",
+   ew_titel:"Start recording?",
+   ew_hin:"A sound recording of the sermon will be made. Both must apply.",
+   ew_person:"The person preaching has been asked and agrees.",
+   ew_nur:"I will record the sermon only and switch off before prayer and "
+     +"announcements.",
+   ew_vermerk:"The time of confirmation is noted next to the recording. No "
+     +"name.",
+   ew_start:"Start recording",
+   ew_beide:"Both points must be confirmed.",
    manuskript:"Sermon manuscript",start:"Start translation",
    pause:"Pause translation",reset:"Start over",uebernehmen:"Apply",
    einmessen:"Calibrate: let the preacher speak",
@@ -5721,7 +6017,11 @@ function uiZeichnen(){
   document.querySelector(".reset").textContent=t.reset;
   bFest.textContent=t.fest; bAuto.textContent=t.auto;
   if(!messlauf) bEinmessen.textContent=t.einmessen;
-  bSchnitt.textContent=schnittLaeuft?t.schnittstop:t.schnittstart;
+  // Der Schalter heisst immer gleich -- gedrueckt oder nicht sagt die
+  // Farbe und aria-pressed, nicht der Text. Ein Knopf, dessen
+  // Beschriftung springt, laesst im Gottesdienst offen, ob er den
+  // Zustand nennt oder die Handlung.
+  bSchnitt.textContent=t.aufnahme;
   sprachknopf.textContent=UI==="de"?"EN":"DE";
   document.documentElement.lang=UI;
 }
@@ -5902,15 +6202,87 @@ async function automatisch(){
   handBetrieb=false;
 }
 let schnittLaeuft=false;
-async function schnitt(){
-  const a=await fetch("/api/mitschnitt",{method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify(schnittLaeuft?{beenden:true}:{})});
-  const d=await a.json();
-  if(schnittLaeuft&&d.datei){
-    schnittinfo.innerHTML=d.minuten+" Minuten aufgenommen. "
-      +'<a href="/mitschnitt/'+encodeURIComponent(d.datei)+'">'+d.datei+"</a>";
+/* ---------- Aufnahme ----------
+   Der Schalter fragt nicht selbst, sondern oeffnet den Dialog. Die
+   beiden Haken sind Pflicht, und zwar auch im Server -- hier werden
+   sie nur erhoben. */
+function aufnahmeUmschalten(){
+  if(schnittLaeuft){ aufnahmeBeenden(); return; }
+  ewPerson.checked = false;
+  ewNur.checked = false;
+  ewfehler.hidden = true;
+  einwilligung.showModal();
+}
+
+async function aufnahmeBestaetigen(){
+  const t = TEXTE[UI];
+  if(!ewPerson.checked || !ewNur.checked){
+    ewfehler.textContent = t.ew_beide;
+    ewfehler.hidden = false;
+    return false;                       // Dialog bleibt offen
   }
+  einwilligung.close();
+  const a = await fetch("/api/mitschnitt",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({einwilligung:{person_gefragt:true,
+                                       nur_predigt:true}})});
+  const d = await a.json().catch(()=>({}));
+  if(!a.ok){
+    schnittinfo.textContent = d.grund==="platz_knapp"
+      ? t.aufnahme_platz : t.aufnahme_abgelehnt;
+    return;
+  }
+  schnittinfo.textContent = "";
+  aufnahmeAnzeigen(true, 0);
+}
+
+async function aufnahmeBeenden(){
+  const a = await fetch("/api/mitschnitt",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({beenden:true})});
+  const d = await a.json().catch(()=>({}));
+  aufnahmeAnzeigen(false, 0);
+  if(d.datei){
+    schnittinfo.textContent =
+      TEXTE[UI].aufnahme_fertig.split("{m}").join(d.minuten);
+    aufnahmenLaden();
+  }
+}
+
+function aufnahmeAnzeigen(an, sekunden){
+  schnittLaeuft = an;
+  bSchnitt.setAttribute("aria-pressed", String(an));
+  aufnahmelaeuft.hidden = !an;
+  if(an) aufnahmedauer.textContent =
+    Math.floor(sekunden/60) + ":" + String(sekunden%60).padStart(2,"0");
+}
+
+async function aufnahmeTageSetzen(){
+  const n = parseInt(aufnahmetage.value, 10);
+  if(isNaN(n) || n < 0) return;
+  await fetch("/api/aufnahme/tage",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({tage:n})});
+  aufnahmenLaden();
+}
+
+async function aufnahmenLaden(){
+  // Nur am Rechner selbst. Aus dem Saal kommt 403, und dann steht da,
+  // warum -- nicht eine leere Liste, die nach "keine Aufnahmen"
+  // aussieht.
+  const a = await fetch("/api/aufnahmen");
+  const t = TEXTE[UI];
+  if(a.status === 403){
+    aufnahmeliste.textContent = t.aufnahme_nur_pc;
+    return;
+  }
+  const d = await a.json().catch(()=>({liste:[]}));
+  if(d.tage !== undefined) aufnahmetage.value = d.tage;
+  if(!d.liste.length){ aufnahmeliste.textContent = t.aufnahme_keine; return; }
+  aufnahmeliste.innerHTML = d.liste.map(a =>
+    '<div><a href="/mitschnitt/' + encodeURIComponent(a.name) + '">'
+    + a.name + "</a> · " + a.mb + " MB · "
+    + t.aufnahme_faellig.split("{d}").join(a.faellig) + "</div>").join("");
 }
 
 let zustandLive=false;
@@ -6419,15 +6791,11 @@ async function lies(){
       +" "+t.segmente+" · "+d.gesamt+" "+t.hoerer+quelle;
     zahlen.innerHTML=Object.entries(d.hoerer||{}).map(([a,b])=>
       `<tr><td>${NAMEN[a]||a}</td><td>${b}</td></tr>`).join("");
-    if(d.mitschnitt){
-      schnittLaeuft=true;
-      bSchnitt.textContent=t.schnittstop;
-      schnittinfo.textContent=d.mitschnitt.minuten+" Minuten · "
-        +d.mitschnitt.datei;
-    }else if(schnittLaeuft){
-      schnittLaeuft=false;
-      bSchnitt.textContent=t.schnittstart;
-    }
+    // Die Wahrheit steht im Server, nicht im Browser: nach einem
+    // Neuladen des Pults, nach einem Dienstneustart oder wenn die
+    // Aufnahme von selbst endete (Uebersetzung angehalten, Platte
+    // voll), muss der Schalter das zeigen.
+    aufnahmeAnzeigen(!!d.mitschnitt, d.mitschnitt ? d.mitschnitt.sekunden : 0);
     if(d.protokoll_mitschrift!==undefined)
       protokollAnzeigen(d.protokoll_mitschrift);
     if(d.pult_passwort!==undefined) pultPasswortAnzeigen(d.pult_passwort);

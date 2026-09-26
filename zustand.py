@@ -146,6 +146,18 @@ def vorgabe():
         # der technische Angaben aus dieser Datei zieht, kann ihn
         # konstruktiv nicht ausplaudern.
         "pult_passwort": "",
+        # Wie lange Aufnahmen liegen bleiben, in Tagen. Vorgabe sieben:
+        # lang genug, um eine Predigt nachzuhoeren oder weiterzugeben,
+        # kurz genug, dass sich nichts ansammelt, was niemand mehr
+        # kennt. 0 heisst: nicht loeschen -- eine ausdrueckliche
+        # Entscheidung, keine Nachlaessigkeit.
+        "aufnahme_tage": 7,
+        # Ab wann die Frist fuer den ALTBESTAND laeuft. Wird beim
+        # ersten Start dieser Fassung gesetzt, wenn schon Aufnahmen
+        # daliegen. Ohne das waere beim ersten Start alles weg, was
+        # aelter als eine Woche ist -- ungefragt, und das ist das
+        # Gegenteil dessen, was die Einwilligung soll.
+        "aufnahme_frist_ab": 0,
     }
 
 
@@ -247,6 +259,21 @@ def _uebernehmen(roh, daten):
         daten["pult_passwort"] = roh["pult_passwort"]
     elif roh.get("pult_passwort") is not None:
         fehlerhaft.append("pult_passwort")
+
+    # Eine Zahl, nicht negativ, kein bool. Unsinn faellt auf die
+    # Vorgabe zurueck -- also auf sieben Tage und nicht auf "nie
+    # loeschen": ein Tippfehler soll keine Sammlung anlegen.
+    wert = roh.get("aufnahme_tage")
+    if isinstance(wert, int) and not isinstance(wert, bool) and wert >= 0:
+        daten["aufnahme_tage"] = wert
+    elif wert is not None:
+        fehlerhaft.append("aufnahme_tage")
+
+    ab = roh.get("aufnahme_frist_ab")
+    if isinstance(ab, (int, float)) and not isinstance(ab, bool) and ab >= 0:
+        daten["aufnahme_frist_ab"] = ab
+    elif ab is not None:
+        fehlerhaft.append("aufnahme_frist_ab")
 
     quittiert = roh.get("glossar_quittiert")
     if isinstance(quittiert, list):
