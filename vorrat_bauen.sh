@@ -269,11 +269,6 @@ if [ "$NUR_SYSTEM" = ja ]; then
   # Pruefsummen und Etikett muessen mit, sonst meldet --pruefen
   # hinterher die neuen Dateien als unbekannt und den Vorrat als
   # verdorben.
-  blau "Pruefsummen"
-  ( cd "$ZIEL" && find . -type f ! -name pruefsummen.sha256 -print0 \
-      | sort -z | xargs -0 sha256sum > pruefsummen.sha256 )
-  gut "$(wc -l < "$ZIEL/pruefsummen.sha256") Dateien"
-
   blau "Beschriftung"
   "$PY" - "$ZIEL" "$VERSION" <<'PYCODE'
 import json, sys
@@ -292,6 +287,18 @@ datei.write_text(json.dumps(d, indent=2, ensure_ascii=False) + "\n",
 print("   ok    vorrat.json ergaenzt (Fassung bleibt %s)"
       % d.get("fassung", "?"))
 PYCODE
+
+  # ZULETZT, nach der Beschriftung. Andersherum stand in der Liste
+  # die Pruefsumme der alten vorrat.json, und "bash vorrat_bauen.sh
+  # --pruefen" meldete gleich darauf "1 Datei stimmt nicht mit ihrer
+  # Pruefsumme ueberein: vorrat.json". Ein Vorrat, der sich nach dem
+  # Bauen selbst beanstandet, ist genau die Meldung, die man kuenftig
+  # ueberliest.
+  blau "Pruefsummen"
+  ( cd "$ZIEL" && find . -type f ! -name pruefsummen.sha256 -print0 \
+      | sort -z | xargs -0 sha256sum > pruefsummen.sha256 )
+  gut "$(wc -l < "$ZIEL/pruefsummen.sha256") Dateien"
+
 
   blau "Fertig"
   info "Nur die Systempakete wurden ergaenzt. Der uebrige Vorrat"

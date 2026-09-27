@@ -770,6 +770,23 @@ nummer, name = stand["geraet"], stand["geraet_name"]
 port = os.environ.get("PRUEF_PORT", "8000")
 
 
+def kern(n):
+    """Der Geraetename ohne den ALSA-Kartenindex.
+
+    Aus dem Server geholt und nicht abgeschrieben: er entscheidet
+    damit, WELCHES Geraet er aufmacht (Tonquelle._aufloesen), und
+    diese Datei soll dasselbe Geraet meinen wie er.
+
+    Hier fehlte die Regel. Hinterlegt war "UMC202HD 192k: USB Audio
+    (hw:0,0)"; ein zweites USB-Mikrofon schob die Karte auf hw:1,0 und
+    liess sie auch nach dem Abziehen dort. Der Server nahm weiter das
+    richtige Geraet -- er kennt _namenskern --, pruefen.sh verglich
+    wortwoertlich und meldete FEHL "Der Server nimmt etwas anderes auf
+    als eingestellt". Ein Fehlalarm auf einen gesunden Rechner ist
+    schlimmer als kein Alarm: beim naechsten Mal glaubt ihn niemand."""
+    return server.Tonquelle._namenskern(n or "")
+
+
 def hinterlegt():
     print("INFO|Hinterlegt in %s:" % woher)
     print("INFO|  Nummer %s, Name %s"
@@ -877,8 +894,15 @@ if nimmt_auf:
         print("WARN|auswaehlen, dann wird der Name mitgeschrieben -- die")
         print("WARN|Nummer allein bezeichnet nach einem Neustart womoeglich")
         print("WARN|ein anderes Geraet.")
-    elif name == offen_name:
+    elif kern(name) == kern(offen_name):
         print("OK|Hinterlegt ist dasselbe Geraet. Passt.")
+        if name != offen_name:
+            print("INFO|Der Kartenindex hat sich verschoben: hinterlegt")
+            print("INFO|\"%s\"," % name)
+            print("INFO|offen      \"%s\"." % offen_name)
+            print("INFO|Das ist dasselbe Geraet. ALSA zaehlt die Karten neu,")
+            print("INFO|sobald ein anderes USB-Audiogeraet dazukommt oder")
+            print("INFO|fehlt -- der Index gehoert nicht zum Geraet.")
         if nummer != offen_nr:
             print("INFO|Gefunden unter Nummer %s, hinterlegt war %s: die"
                   % (offen_nr, nummer))

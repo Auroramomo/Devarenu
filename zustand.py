@@ -19,6 +19,7 @@ Die Datei enthaelt das WLAN-Passwort im Klartext und bekommt deshalb
 
 import json
 import os
+import sys
 import threading
 import time
 from pathlib import Path
@@ -306,6 +307,30 @@ def _uebernehmen(roh, daten):
     return fehlerhaft
 
 
+def melden(*text):
+    """Ein Hinweis dieser Datei -- nach stderr, nicht nach stdout.
+
+    Der Grund steht in einem Pruefstand-Fall und stand vorher im Pult
+    der Gemeinde: stick_update.sh rief
+
+        ohne_stimme="$(als_benutzer "$PY" - <<'PYCODE' ... )"
+
+    und fing damit ALLES ein, was das Skript ausgab. Beim Update von
+    Fassung 2 auf 3 druckte laden() seinen Umzugshinweis dazwischen,
+    und am Pult stand:
+
+        Ohne Stimme, laufen als Untertitel:
+        zustand.json umgezogen: 2->3 (glossar_quittiert ergaenzt)
+
+    Die Meldung war nicht falsch, sie stand nur in der falschen Zeile.
+    Ein Hinweis fuer Menschen gehoert nach stderr; was ein Skript
+    weiterverarbeitet, steht auf stdout. Dann kann keine kuenftige
+    Kommandosubstitution dasselbe noch einmal einsammeln.
+
+    Die Ausgabe von "--zeigen" weiter unten bleibt deshalb print()."""
+    print(*text, file=sys.stderr)
+
+
 def laden():
     """Liest zustand.json. Gibt (daten, herkunft) zurueck.
 
@@ -319,13 +344,13 @@ def laden():
     try:
         roh = json.loads(DATEI.read_text(encoding="utf-8"))
     except Exception as e:
-        print(f"{DATEI.name} ist unlesbar ({str(e)[:90]}). Es gelten die "
+        melden(f"{DATEI.name} ist unlesbar ({str(e)[:90]}). Es gelten die "
               f"Vorgaben aus config.py. Die Datei bleibt unangetastet, bis "
               f"am Pult etwas geaendert wird.")
         return daten, f"Vorgaben aus config.py ({DATEI.name} unlesbar)"
 
     if not isinstance(roh, dict):
-        print(f"{DATEI.name} enthaelt kein Objekt. Es gelten die Vorgaben "
+        melden(f"{DATEI.name} enthaelt kein Objekt. Es gelten die Vorgaben "
               f"aus config.py.")
         return daten, f"Vorgaben aus config.py ({DATEI.name} unbrauchbar)"
 
@@ -342,7 +367,7 @@ def laden():
     hinweis = _umziehen(roh, daten)
 
     if fehlerhaft:
-        print(f"{DATEI.name}: unbrauchbare Eintraege "
+        melden(f"{DATEI.name}: unbrauchbare Eintraege "
               f"({', '.join(fehlerhaft)}), dafuer gilt config.py.")
         return daten, f"{DATEI.name}, teilweise (siehe oben)"
     if hinweis:
@@ -380,7 +405,7 @@ def _umziehen(roh, daten):
             f"NICHT ueberschrieben -- sonst waeren die Einstellungen "
             f"der neueren Fassung weg. Wahrscheinlich ist ein Update "
             f"zurueckgefallen.")
-        print(NUR_LESEN_GRUND)
+        melden(NUR_LESEN_GRUND)
         return f"Fassung {war}, nur gelesen"
 
     if war == FASSUNG:
@@ -396,7 +421,7 @@ def _umziehen(roh, daten):
                                  encoding="utf-8")
             os.chmod(sicherung, 0o600)
     except Exception as e:
-        print(f"Sicherung {sicherung.name} misslang ({str(e)[:70]}). "
+        melden(f"Sicherung {sicherung.name} misslang ({str(e)[:70]}). "
               f"Der Umzug laeuft trotzdem -- die Datei im Speicher ist "
               f"vollstaendig.")
 
@@ -405,13 +430,13 @@ def _umziehen(roh, daten):
     while stand < FASSUNG:
         schritt = UMZUEGE.get(stand)
         if schritt is None:
-            print(f"Kein Umzugsschritt von Fassung {stand} nach "
+            melden(f"Kein Umzugsschritt von Fassung {stand} nach "
                   f"{stand + 1}. Es bleibt bei dem, was gelesen wurde.")
             break
         try:
             was = schritt(daten)
         except Exception as e:
-            print(f"Umzug {stand} -> {stand + 1} misslang "
+            melden(f"Umzug {stand} -> {stand + 1} misslang "
                   f"({str(e)[:70]}). Die Sicherung liegt als "
                   f"{sicherung.name} daneben.")
             break
@@ -420,8 +445,8 @@ def _umziehen(roh, daten):
 
     daten["fassung"] = stand
     if schritte:
-        print(f"{DATEI.name} umgezogen: {', '.join(schritte)}")
-        print(f"  Vorher liegt als {sicherung.name} daneben.")
+        melden(f"{DATEI.name} umgezogen: {', '.join(schritte)}")
+        melden(f"  Vorher liegt als {sicherung.name} daneben.")
         return "umgezogen von Fassung %d" % war
     return ""
 
@@ -441,7 +466,7 @@ def speichern(daten):
     if NUR_LESEN:
         # Nicht schreiben und auch nicht so tun, als waere geschrieben
         # worden: der Aufrufer soll es am Rueckgabewert merken.
-        print(f"{DATEI.name} wird nicht ueberschrieben: {NUR_LESEN_GRUND}")
+        melden(f"{DATEI.name} wird nicht ueberschrieben: {NUR_LESEN_GRUND}")
         return False
     daten["fassung"] = FASSUNG
     neben = DATEI.with_name(DATEI.name + ".neu")
@@ -454,7 +479,7 @@ def speichern(daten):
             os.replace(neben, DATEI)
         return True
     except Exception as e:
-        print(f"{DATEI.name} liess sich nicht schreiben ({str(e)[:90]}). "
+        melden(f"{DATEI.name} liess sich nicht schreiben ({str(e)[:90]}). "
               f"Die Einstellung gilt fuer diesen Lauf, ueberlebt aber den "
               f"Neustart nicht.")
         try:
@@ -482,5 +507,5 @@ def kurzfassung(daten):
 if __name__ == "__main__":
     # Zum Nachsehen von Hand: python zustand.py
     d, woher = laden()
-    print(f"Herkunft: {woher}")
+    melden(f"Herkunft: {woher}")
     print(json.dumps(d, indent=2, ensure_ascii=False))

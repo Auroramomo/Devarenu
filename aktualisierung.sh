@@ -41,6 +41,19 @@ set -u
 ORDNER="${DEV_ORDNER:?fehlt}"
 BENUTZER="${DEV_BENUTZER:?fehlt}"
 ABLAGE="${DEV_ABLAGE:?fehlt}"
+# Wo die Nutzlast vom Stick liegt -- Bundle, Wheels, grosse Teile.
+#
+# Seit 0.3.2 legt der Kern sie in einen eigenen Unterordner, der fuer
+# den Dienstbenutzer lesbar ist; vorher lag alles direkt in $ABLAGE
+# mit 700 root, und genau daran scheiterten pip und teile.py, sobald
+# sie als $BENUTZER liefen. Beide Orte werden gesucht, denn der Kern
+# auf dem Rechner ist der ALTE: eine 0.3.2-Logik kann durchaus von
+# einem 0.3.1-Kern aufgerufen werden.
+if [ -d "$ABLAGE/stick" ]; then
+  NUTZLAST="$ABLAGE/stick"
+else
+  NUTZLAST="$ABLAGE"
+fi
 ALT_SHA="${DEV_ALT_SHA:?fehlt}"
 REF="${DEV_REF:?fehlt}"
 VERSION="${DEV_VERSION:?fehlt}"
@@ -112,7 +125,7 @@ gut "auf $(als_benutzer git rev-parse --short HEAD) vorgespult"
 if [ -f "$ORDNER/teile.json" ]; then
   blau "Grosse Teile"
   if ! als_benutzer "$PY_AKTIV" "$ORDNER/teile.py" --einspielen \
-       --quelle "$ABLAGE/teile" --sicherung "$SICHERUNG/teile"; then
+       --quelle "$NUTZLAST/teile" --sicherung "$SICHERUNG/teile"; then
     fehl "Grosse Teile liessen sich nicht einspielen."
     melden "Update $VERSION braucht Dateien, die der Stick nicht mitbrachte."
     exit 1
@@ -133,7 +146,7 @@ fi
 blau "Pakete"
 VENV_GEWECHSELT=nein
 if ! als_benutzer git diff --quiet "$ALT_SHA" HEAD -- requirements.txt; then
-  if [ ! -d "$ABLAGE/wheels" ]; then
+  if [ ! -d "$NUTZLAST/wheels" ]; then
     fehl "requirements.txt hat sich geaendert, der Stick brachte keine wheels/"
     melden "Das Update braucht neue Pakete, der Stick brachte keine mit."
     exit 1
@@ -162,7 +175,7 @@ if ! als_benutzer git diff --quiet "$ALT_SHA" HEAD -- requirements.txt; then
   # gibt es nicht, und das soll hier scheitern statt in einer
   # Zeitueberschreitung zu haengen.
   if ! als_benutzer "$ORDNER/$NEU/bin/python" -m pip install --quiet \
-       --no-index --find-links "$ABLAGE/wheels" -r "$ORDNER/requirements.txt"; then
+       --no-index --find-links "$NUTZLAST/wheels" -r "$ORDNER/requirements.txt"; then
     fehl "pip konnte nicht alles aus wheels/ installieren"
     als_benutzer rm -rf "$ORDNER/$NEU"
     melden "Die Pakete auf dem Stick reichen nicht aus."
@@ -183,6 +196,7 @@ fi
 # Ordner und wirkte nicht, und niemand sah es.
 blau "Dienste"
 UNITS_GEAENDERT=nein
+NEUE_UNITS=""
 for paar in "devarenu.service:devarenu.service.vorlage" \
             "devarenu-stick@.service:devarenu-stick@.service.vorlage" \
             "devarenu-update.service:devarenu-update.service.vorlage" \
@@ -200,11 +214,63 @@ for paar in "devarenu.service:devarenu.service.vorlage" \
     UNITS_GEAENDERT=ja
   fi
 done
+# Units, die es in dieser Fassung NEU gibt. Die Schleife oben legt
+# nichts an -- sie ueberspringt, was nicht schon dasteht, und das ist
+# richtig: ein Update soll nicht entscheiden, welche Dienste ein
+# Rechner ueberhaupt haben will.
+#
+# Fuer neue Units gilt das nicht. Kaeme das Wartungsfenster erst mit
+# dem naechsten dienst.sh von Hand, waere es genau an dem Donnerstag
+# nicht da, an dem es gebraucht wird -- und niemand kaeme heran, um es
+# nachzuinstallieren.
+#
+# Angelegt wird nur, wenn dieser Rechner ueberhaupt als Dienst laeuft
+# (devarenu.service ist da). Auf einem Arbeitsrechner passiert nichts.
+if [ -f "$UNIT_ORDNER/devarenu.service" ]; then
+  for paar in "devarenu-fenster.service:devarenu-fenster.service.vorlage" \
+              "devarenu-fenster.timer:devarenu-fenster.timer.vorlage" \
+              "devarenu-fenster-wecker.service:devarenu-fenster-wecker.service.vorlage"; do
+    unit="${paar%%:*}"; vorlage="${paar#*:}"
+    ziel="$UNIT_ORDNER/$unit"
+    [ -f "$ORDNER/$vorlage" ] || continue
+    neu="$(sed -e "s|@ORDNER@|$ORDNER|g" -e "s|@BENUTZER@|$BENUTZER|g" \
+               -e "s|@PORT@|${DEVARENU_PORT:-8000}|g" "$ORDNER/$vorlage")"
+    # Ob sie NEU ist, wird vor dem Schreiben festgehalten: nur neue
+    # Units werden gleich scharf gemacht. Wer eine bestehende
+    # absichtlich abgeschaltet hat, soll sie nicht bei jedem Update
+    # zurueckbekommen.
+    frisch=nein; [ -f "$ziel" ] || frisch=ja
+    if [ "$frisch" = ja ] || [ "$neu" != "$(cat "$ziel")" ]; then
+      printf '%s\n' "$neu" > "$ziel"
+      chmod 644 "$ziel"
+      gut "$unit geschrieben"
+      UNITS_GEAENDERT=ja
+      [ "$frisch" = ja ] && NEUE_UNITS="$NEUE_UNITS $unit"
+    fi
+  done
+fi
+
 if [ "$UNITS_GEAENDERT" = ja ]; then
   systemctl daemon-reload && gut "systemd neu geladen"
 else
   gut "Units unveraendert"
 fi
+
+# Scharf machen, was gerade erst entstanden ist. Das Fenster selbst
+# bleibt trotzdem AUS: in netz.json steht per Vorgabe "an": false, und
+# ohne das tut der Lauf nichts und sagt nichts. Ein Update, das von
+# sich aus ein WLAN aufmachte, waere das Gegenteil dessen, wofuer
+# dieser Rechner gebaut ist.
+for unit in $NEUE_UNITS; do
+  case "$unit" in
+    *.timer|devarenu-fenster-wecker.service)
+      if systemctl enable --now "$unit" >/dev/null 2>&1; then
+        gut "$unit scharf gemacht"
+      else
+        warn "$unit liess sich nicht scharf machen."
+      fi ;;
+  esac
+done
 
 # Die udev-Regel ging bis 0.2.14 leer aus. Sie sah nur deshalb richtig
 # aus, weil sie sich seit 0.2.11 nicht geaendert hat -- eine Luecke, die
@@ -228,6 +294,85 @@ if [ -f "$UDEV_REGEL" ] && [ -f "$ORDNER/stick.udev.vorlage" ]; then
     gut "udev-Regel unveraendert"
   fi
 fi
+
+# --------------------------------------------------- Das Sprachmodell
+# models/ steht in .gitignore, das Bundle kennt es also nicht. Traegt
+# das neue config.py ein anderes Sprachmodell ein, fehlt es hier, und
+# ohne Netz laedt nichts nach. Der Dienst startet dann, antwortet auf
+# /api/zustand -- und uebersetzt nicht. Das faellt sonst erst am
+# Sabbat auf.
+#
+# Hier und nicht im Kern: gefragt wird das NEUE config.py, und das
+# gibt es erst nach dem Vorspulen weiter oben. Im Kern stand eine
+# vorpruefung(), die seit 0.3.0 von niemandem mehr aufgerufen wurde --
+# die Warnung war also ersatzlos weg, ohne dass es auffiel.
+#
+# GEFRAGT WIRD UEBER HTTP, NICHT UEBER DIE KOMMANDOZEILE.
+# "ollama list" braucht $HOME. Ein root-Dienst ohne User= bekommt von
+# systemd keines, und der Befehl bricht dann mit
+#   panic: $HOME is not defined
+# ab, bevor er den Ollama-Dienst ueberhaupt fragt. Weil die alte
+# Fassung stderr wegwarf und nur nach einem Treffer in der Ausgabe
+# suchte, wurde daraus "das Sprachmodell liegt hier nicht" -- auf
+# einem Rechner, auf dem es lag. Nachgestellt mit
+#   sudo env -i /usr/local/bin/ollama list
+# Die HTTP-Schnittstelle braucht kein HOME, keinen PATH und keinen
+# Benutzerkontext; selbsttest.py fragt sie seit jeher so.
+blau "Sprachmodell"
+MODELL_LAGE="$(als_benutzer "$PY_AKTIV" - <<'PYCODE' 2>/dev/null
+import sys, time
+sys.path.insert(0, ".")
+import config
+
+try:
+    import requests
+except ImportError:
+    print("unklar|requests fehlt")
+    raise SystemExit
+
+# Dreimal im Abstand von zehn Sekunden. Ein Update laeuft oft kurz
+# nach dem Hochfahren, und Ollama laedt dabei noch. Einmal fragen und
+# aufgeben hiesse, den haeufigsten Fall fuer den schlimmsten zu
+# halten.
+letzter = ""
+for versuch in range(3):
+    if versuch:
+        time.sleep(10)
+    try:
+        a = requests.get(config.OLLAMA_URL + "/api/tags", timeout=10)
+        a.raise_for_status()
+        da = [m["name"] for m in a.json().get("models", [])]
+    except Exception as e:
+        letzter = str(e)[:70]
+        continue
+    stamm = config.LIVE_MODELL.split(":")[0]
+    if any(m == config.LIVE_MODELL or m.startswith(stamm + ":") for m in da):
+        print("da|%s" % config.LIVE_MODELL)
+    else:
+        print("fehlt|%s" % config.LIVE_MODELL)
+    raise SystemExit
+print("unklar|%s" % letzter)
+PYCODE
+)"
+case "${MODELL_LAGE%%|*}" in
+  da)
+    gut "Sprachmodell ${MODELL_LAGE#*|} ist da" ;;
+  fehlt)
+    # KEIN Abbruch. Ein fehlendes Modell ist ein Ausfall der
+    # Uebersetzung, kein Schaden am Rechner -- und ein Update
+    # zurueckzurollen macht das Modell auch nicht wieder da. Gesagt
+    # werden muss es aber deutlich, sonst sucht am Sabbat jemand den
+    # Fehler beim Ton.
+    fehl "Das Sprachmodell ${MODELL_LAGE#*|} liegt hier nicht."
+    info "Ohne Netz laedt es nicht nach. Die Uebersetzung bleibt stumm,"
+    info "bis es da ist:  ollama pull ${MODELL_LAGE#*|}"
+    melden "Achtung: das Sprachmodell ${MODELL_LAGE#*|} fehlt. Bis es geholt ist, laeuft keine Uebersetzung." ;;
+  *)
+    warn "Ollama war dreimal nicht zu erreichen (${MODELL_LAGE#*|})."
+    info "Ob das Sprachmodell da ist, ist damit UNBEKANNT -- nicht"
+    info "geprueft und nicht widerlegt. Nachsehen:  ollama ps"
+    melden "Ollama war beim Update nicht erreichbar; ob das Sprachmodell da ist, wurde nicht geprueft." ;;
+esac
 
 # ------------------------------------------------------------- Dienst
 blau "Neustart"

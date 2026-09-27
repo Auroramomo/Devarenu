@@ -6,6 +6,129 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.3.2 — Fernwartung ohne jemanden vor Ort
+
+*27.09.2026. Nach dem ersten Einspielen auf dem Gemeinderechner — die
+meisten Punkte hier sind Befunde von diesem Tag.*
+
+### Für alle
+
+**Der Rechner ist donnerstags erreichbar.** An einem festen Wochentag,
+in einer festen Stunde, verbindet er sich mit dem Gemeinde-WLAN und
+trennt sich danach wieder. Er weckt sich dafür selbst und fährt am
+Ende von selbst herunter. Dazwischen ist er so offline wie zuvor.
+**Per Vorgabe ist das aus** — es gilt vorerst nur für Rostock.
+
+**Wichtig am Rechner:** normal herunterfahren, und **den Schalter
+hinten am Netzteil anlassen**. Ohne Strom kann die Uhr ihn nicht
+wecken.
+
+Eingeschaltet wird das Fenster mit einem Befehl, nicht von Hand in
+einer Datei: `bash wartungsfenster.sh --einschalten "<WLAN-Profil>" Do
+18:00 22:00`. Er prüft die Werte, bevor er schreibt, stellt das Profil
+auf `autoconnect no` und sagt danach, wie die Lage ist.
+
+**Läuft gerade eine Übersetzung, wartet das Abschalten.** Höchstens
+bis 36 Stunden Laufzeit — danach geht er aus, denn ein Rechner, der
+seit anderthalb Tagen „live" meldet, hat keinen Gottesdienst, sondern
+einen Tonstrom, den niemand abgestellt hat.
+
+**Ein neues Handy ist drei Sekunden schneller im Netz.**
+
+### Für Techniker
+
+**`aktualisieren.sh` prüft jetzt Signaturen.** Bis 0.3.1 stand dort
+`git pull --ff-only`: es galt, worauf `origin/main` gerade zeigte —
+ohne Signatur, ohne Tag, ohne Prüfung. Über den Stick war das seit
+0.2.12 unmöglich, über das Netz blieb es offen. Jetzt gelten dieselben
+vier Regeln: nur Tags, nur mit einem Schlüssel aus der **hier**
+liegenden `schluessel.erlaubt`, nur über die geprüfte Commit-SHA, nur
+aufwärts.
+
+**Und die Units kommen mit.** Der Online-Weg lief nie durch
+`aktualisierung.sh`, deshalb liefen nach dem 27.09. alle Units in
+alter Fassung, bis jemand `dienst.sh` von Hand aufrief. Jetzt
+übergeben beide Wege an dieselbe versionierte Hälfte.
+
+**Die Vorprüfung des Sprachmodells gab es seit 0.3.0 nicht mehr.**
+`vorpruefung()` stand noch im Kern, aber niemand rief sie auf — die
+Warnung war ersatzlos weg, ohne dass es auffiel. Sie steht jetzt in
+`aktualisierung.sh`, wo das **neue** `config.py` schon gilt, und fragt
+Ollama über HTTP statt über die Kommandozeile.
+
+Das war der zweite Fehler: `ollama list` braucht `$HOME`. Ein
+root-Dienst ohne `User=` bekommt von systemd keines, der Befehl bricht
+mit `panic: $HOME is not defined` ab — und weil stderr verworfen wurde,
+stand am Pult „das Sprachmodell liegt hier nicht", auf einem Rechner,
+auf dem es lag. Dreimal wird jetzt im Abstand von zehn Sekunden
+gefragt; ist Ollama dann immer noch stumm, heißt das **unbekannt** und
+nicht „fehlt", und das Update läuft weiter.
+
+**Das Bundle vom Stick war für den Dienstbenutzer nicht lesbar.** Der
+Kern legte die ganze Nutzlast auf `700 root` — mit der Begründung, in
+den Sicherungen stehe das WLAN-Passwort. Das stimmt, nur steht es
+nicht im Bundle. `git bundle verify` läuft als Dienstbenutzer und
+scheiterte; gemeldet wurde „beschädigt oder passt nicht zu diesem
+Rechner". Bundle, Wheels und große Teile liegen jetzt in
+`updates/stick/` mit `640`, die Sicherungen bleiben `700`. Unlesbar,
+beschädigt und „passt nicht" sind drei verschiedene Meldungen, und
+`stderr` von git geht ins Journal.
+
+**Der Prüfstand war bei all dem grün** — er konnte nicht anders: er
+lief als ein einziger Benutzer, `als_benutzer` wechselte nie wirklich,
+und die Umgebung blieb stehen. Jetzt bildet er den Dienstkontext ab
+(`runuser` mit `env -i`) und prüft die Rechte der Nutzlast.
+
+**Fehlalarme, die auf einen gesunden Rechner zeigten:**
+
+- „Diese Dienste laufen mit einer älteren Fassung ihrer Vorlage" —
+  dauerhaft, auch nach zweimal `dienst.sh`. Verglichen wurden die
+  `ExecStart`-Zeilen, aber nur `@ORDNER@` wurde ersetzt; in
+  `devarenu.service.vorlage` steht `--port @PORT@`, in der Unit
+  `--port 8000`. Die restlichen Platzhalter gelten jetzt als „hier
+  steht irgendetwas" — ein anderer Port ist keine veraltete Vorlage.
+- „Der Server nimmt etwas anderes auf als eingestellt" — nach dem
+  Anstecken eines zweiten Mikrofons rutschte die UMC von `hw:0,0` auf
+  `hw:1,0`. Der Server nahm weiter das richtige Gerät, er kennt
+  `_namenskern()`; `pruefen.sh` verglich wortwörtlich. Es benutzt
+  jetzt dieselbe Regel aus dem Server statt einer zweiten Kopie.
+- `vorrat_bauen.sh --nur-systempakete` schrieb erst die Prüfsummen und
+  danach `vorrat.json` — worauf `--pruefen` genau diese Datei
+  beanstandete. Der volle Bau macht es richtig und sagt sogar, warum.
+
+**Wayland ist jetzt der Normalfall.** `rechner_einrichten.sh` schrieb
+`Session=plasmax11`; eine Sitzung dieses Namens gibt es auf dem
+Gemeinderechner gar nicht, der Anmeldemanager nahm wortlos Wayland,
+und die Konfiguration behauptete das Gegenteil. Ton, Übersetzung und
+RustDesk sind dort unter Wayland gemessen. Gemeldet wird nur noch,
+wenn Eingestelltes und Laufendes auseinandergehen.
+
+**Hinweise von `zustand.py` gehen nach stderr.** Eine
+Kommandosubstitution fing sie sonst mit ein, und am Pult stand „Ohne
+Stimme, laufen als Untertitel: zustand.json umgezogen: 2->3". Die
+Meldung war richtig, sie stand nur in der falschen Zeile.
+
+**`no-ping` in der dnsmasq-Konfiguration.** Wirkt erst nach einem
+erneuten `sudo bash netz_einrichten.sh` — ein Update schreibt
+`/etc/devarenu/dnsmasq.conf` nicht neu.
+
+### Was offen ist
+
+- Ein abgelöster HEAD hält den Updater weiterhin an. Kein Weg im Repo
+  hinterlässt ihn so; auf dem Gemeinderechner stand der Ordner
+  trotzdem auf `tags/v0.2.11^0`. Das automatische Wiederanhängen kommt
+  in 0.3.3.
+- Der Hinweis „Ohne Stimme, laufen als Untertitel" fehlt seit 0.3.0
+  am Pult. `stimmen_fehlen()` steht noch im Kern, ruft aber niemand
+  auf. Kommt in 0.3.3 denselben Weg wie die Modellprüfung.
+- Der Rat „mobile Daten ausschalten" ist überholt — mit neuem und
+  älterem iPhone und einem Samsung geprüft, kein Anmeldefenster, Ton
+  läuft durch. Steht noch in der Anleitung, kommt in 0.3.3 heraus.
+- Echte exFAT- und vfat-Sticks im Prüfstand: braucht Wurzelrechte,
+  kommt in 0.3.3 als Abschnitt, der sich ohne `sudo` überspringt.
+
+---
+
 ## 0.3.1 — Aufnahme nur mit Einwilligung
 
 *26.09.2026.*

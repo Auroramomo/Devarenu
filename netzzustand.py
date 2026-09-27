@@ -143,6 +143,23 @@ def _uebernehmen(roh, daten):
     if isinstance(roh.get("rechner"), list):
         daten["rechner"] = [str(x) for x in roh["rechner"] if str(x).strip()]
 
+    # Das Wartungsfenster wird hier nur DURCHGEREICHT, nicht geprueft.
+    # Was darin gilt, entscheidet wartungsfenster.py -- eine Stelle,
+    # und zwar die, die auch danach handelt. Zwei Pruefungen desselben
+    # Blocks liefen frueher oder spaeter auseinander, und dann waere
+    # die Frage, welcher man glaubt.
+    if isinstance(roh.get("wartungsfenster"), dict):
+        daten["wartungsfenster"] = roh["wartungsfenster"]
+
+    # Und alles Uebrige bleibt ebenfalls stehen. Bis 0.3.1 verlor
+    # netz.json bei jedem netz_einrichten.sh, was diese Fassung nicht
+    # kannte -- ein Rueckfall auf eine aeltere Fassung haette damit
+    # das Wartungsfenster geloescht, still. Neue Schluessel sollen
+    # aeltere Fassungen ueberleben, nicht von ihnen aufgeraeumt werden.
+    for schluessel, wert in roh.items():
+        if schluessel not in daten:
+            daten[schluessel] = wert
+
 
 def speichern(daten):
     """Schreibt netz.json. Nur netz_einrichten.sh tut das."""

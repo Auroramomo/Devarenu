@@ -1,0 +1,31 @@
+# Der Takt fuer das Wartungsfenster.
+#
+# Diese Datei ist eine Vorlage. dienst.sh legt sie als
+# /etc/systemd/system/devarenu-fenster.timer ab; ein Platzhalter steckt
+# nicht darin, sie liegt nur der Vollstaendigkeit halber hier.
+#
+# Alle fuenf Minuten. Das ist die Zeit, die das Fenster spaeter aufgeht
+# als eingestellt, und die es laenger offen bleibt als noetig -- bei
+# vier Stunden Fenster ist das vertretbar. Haeufiger zu ticken kostet
+# nichts, gewinnt aber auch nichts.
+#
+# OnBootSec ist der eigentliche Grund: der Rechner wird vom BIOS-Wecker
+# geweckt, faehrt hoch, und dann muss sich jemand verbinden. Ohne diese
+# Zeile staende er wach da und bliebe offline.
+#
+# KEIN Persistent=true. Ein verpasster Termin darf nicht nachgeholt
+# werden: sonst verbaende sich der Rechner am Samstag mit dem WLAN,
+# weil der Donnerstag ausgefallen ist.
+
+[Unit]
+Description=Devarenu, regelmaessig das Wartungsfenster pruefen
+Documentation=https://github.com/Auroramomo/Devarenu
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Unit=devarenu-fenster.service
+
+[Install]
+WantedBy=timers.target

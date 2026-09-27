@@ -71,6 +71,23 @@ ABLAGE="$ORDNER/update"
 # -- sonst bliebe der ganze Leseweg ungeprueft: Signatur, Bundle, der
 # Ordner auf dem Stick. Genau der Weg, den ein Ehrenamtlicher geht.
 DATEN="${DEVARENU_DATEN:-/var/lib/devarenu/updates}"
+# Die Nutzlast vom Stick -- Bundle, Wheels, grosse Teile -- liegt in
+# einem EIGENEN Unterordner, und der ist fuer den Dienstbenutzer
+# lesbar. Bis 0.3.1 lag alles zusammen unter $DATEN mit 700 auf dem
+# Ordner und 600 auf den Dateien, mit der Begruendung, in den
+# Sicherungen stehe das WLAN-Passwort. Das stimmt -- aber es stand nie
+# im Bundle, sondern in $DATEN/vorher-*/zustand.json. Die Rechte
+# trafen also das Falsche: git bundle verify und git fetch laufen als
+# $BENUTZER (der Dienst darf keine root-Objekte in .git hinterlassen),
+# und die scheiterten mit "Konnte ... nicht oeffnen". Weil stderr
+# verworfen wurde, meldete das Pult "Das Bundle auf dem Stick ist
+# beschaedigt oder passt nicht zu diesem Rechner" -- ueber ein
+# Bundle, das in Ordnung war.
+#
+# Bundle, Wheels und grosse Teile sind oeffentliche Artefakte: sie
+# stehen genauso im Repo. Geheim sind die Sicherungen und der
+# ausgepackte Code, und die bleiben 700 root.
+NUTZLAST="$DATEN/stick"
 STAND="$ABLAGE/stand.json"
 BEREIT="$ABLAGE/bereit"
 RUHIG="$ABLAGE/ruhig"
@@ -112,6 +129,17 @@ BENUTZER="$(stat -c %U "$ORDNER" 2>/dev/null || id -un)"
 
 # Alles, was Dateien im Projektordner anlegt, laeuft unter diesem
 # Benutzer. Lesen darf root selbst, das hinterlaesst nichts.
+# root gehoert es, der Dienstbenutzer darf lesen, sonst niemand.
+nutzlast_rechte() {
+  chown -R "root:$BENUTZER" "$NUTZLAST" 2>/dev/null || true
+  chmod 750 "$NUTZLAST" 2>/dev/null || true
+  find "$NUTZLAST" -type d -exec chmod 750 {} + 2>/dev/null || true
+  find "$NUTZLAST" -type f -exec chmod 640 {} + 2>/dev/null || true
+  # $DATEN selbst bleibt fuer andere zu; durchgehen darf der
+  # Dienstbenutzer aber, sonst nuetzt ihm das Leserecht nichts.
+  chmod 710 "$DATEN" 2>/dev/null || true
+}
+
 als_benutzer() {
   if [ "$(id -u)" = "0" ] && [ "$BENUTZER" != "root" ]; then
     runuser -u "$BENUTZER" -- "$@"
@@ -322,23 +350,23 @@ stick_lesen() {
   # laeuft ohne Stick -- wer ihn nach dem Aufleuchten abzieht, soll nichts
   # kaputt machen koennen.
   blau "Kopieren"
-  mkdir -p "$DATEN"
-  chmod 700 "$DATEN"
-  rm -rf "$DATEN/wheels" "$DATEN/devarenu.bundle" "$DATEN/teile"
-  cp "$bundle" "$DATEN/devarenu.bundle" || {
+  mkdir -p "$DATEN" "$NUTZLAST"
+  nutzlast_rechte
+  rm -rf "$NUTZLAST/wheels" "$NUTZLAST/devarenu.bundle" "$NUTZLAST/teile"
+  cp "$bundle" "$NUTZLAST/devarenu.bundle" || {
     fehl "Kopieren fehlgeschlagen. Platte voll?"
     stand_schreiben fehlgeschlagen "$version" \
       "Das Bundle liess sich nicht auf die Platte kopieren. Platte voll?"
     exit 1; }
-  gut "devarenu.bundle ($(du -h "$DATEN/devarenu.bundle" | cut -f1))"
+  gut "devarenu.bundle ($(du -h "$NUTZLAST/devarenu.bundle" | cut -f1))"
 
   if [ -d "$QUELLORDNER/wheels" ]; then
-    cp -r "$QUELLORDNER/wheels" "$DATEN/wheels" || {
+    cp -r "$QUELLORDNER/wheels" "$NUTZLAST/wheels" || {
       fehl "Wheels liessen sich nicht kopieren"
       stand_schreiben fehlgeschlagen "$version" \
         "Die Pakete vom Stick liessen sich nicht auf die Platte kopieren."
       exit 1; }
-    gut "wheels/ ($(find "$DATEN/wheels" -name '*.whl' | wc -l) Pakete)"
+    gut "wheels/ ($(find "$NUTZLAST/wheels" -name '*.whl' | wc -l) Pakete)"
   else
     gut "keine wheels/ dabei (nur noetig, wenn sich requirements.txt aendert)"
   fi
@@ -347,19 +375,17 @@ stick_lesen() {
   # ist der Normalfall und bleibt es -- das Format von 0.2.12 muss
   # weiter funktionieren.
   if [ -d "$QUELLORDNER/teile" ]; then
-    cp -r "$QUELLORDNER/teile" "$DATEN/teile" || {
+    cp -r "$QUELLORDNER/teile" "$NUTZLAST/teile" || {
       fehl "Grosse Teile liessen sich nicht kopieren"
       stand_schreiben fehlgeschlagen "$version" \
         "Die grossen Teile vom Stick liessen sich nicht kopieren. Platte voll?"
       exit 1; }
-    gut "teile/ ($(du -sh "$DATEN/teile" | cut -f1))"
+    gut "teile/ ($(du -sh "$NUTZLAST/teile" | cut -f1))"
   else
     gut "keine teile/ dabei"
   fi
 
-  # Nutzlast gehoert der Wurzel und niemandem sonst: in den Sicherungen
-  # liegt spaeter eine Kopie von zustand.json samt WLAN-Passwort.
-  chmod -R go-rwx "$DATEN" 2>/dev/null || true
+  nutzlast_rechte
   chown -R "$BENUTZER" "$ABLAGE" 2>/dev/null || true
 
   umount "$EINHAENGEPUNKT" 2>/dev/null
@@ -379,13 +405,37 @@ pruefen_und_vormerken() {
   command -v git >/dev/null || { fehl "git fehlt"; exit 1; }
   [ -d .git ] || { fehl "Kein git-Arbeitsverzeichnis"; exit 1; }
 
-  if ! als_benutzer git bundle verify "$DATEN/devarenu.bundle" >/dev/null 2>&1; then
-    fehl "git bundle verify schlaegt fehl"
+  # ERST lesbar, DANN unversehrt. Das ist keine Feinheit: bis 0.3.1
+  # wurde jeder Fehlschlag als "beschaedigt oder passt nicht zu diesem
+  # Rechner" gemeldet, und stderr ging nach /dev/null. Am 27.09. lag
+  # das Bundle unter 700 root, git sagte "Konnte ... nicht oeffnen",
+  # und am Pult stand eine Diagnose ueber ein Bundle, das in Ordnung
+  # war. Wer die liest, sucht am falschen Ende -- oder baut einen
+  # zweiten Stick, der genauso scheitert.
+  if ! als_benutzer test -r "$NUTZLAST/devarenu.bundle"; then
+    fehl "devarenu.bundle ist fuer $BENUTZER nicht lesbar"
+    info "  $(ls -ld "$NUTZLAST" 2>/dev/null)"
+    info "  $(ls -l "$NUTZLAST/devarenu.bundle" 2>/dev/null)"
     stand_schreiben fehlgeschlagen "$version" \
-      "Das Bundle auf dem Stick ist beschaedigt oder passt nicht zu diesem Rechner."
+      "Das Bundle liegt auf der Platte, ist aber fuer den Dienstbenutzer nicht lesbar. Das ist ein Rechtefehler, kein Stick-Fehler."
     exit 1
   fi
-  gut "Bundle ist unversehrt"
+
+  local bundle_fehler
+  bundle_fehler="$(als_benutzer git bundle verify \
+                   "$NUTZLAST/devarenu.bundle" 2>&1 >/dev/null)" || {
+    fehl "git bundle verify schlaegt fehl"
+    # Der Grund gehoert ins Journal. Ohne ihn bleibt nur Raten.
+    printf '%s\n' "$bundle_fehler" | sed 's/^/     /'
+    if printf '%s' "$bundle_fehler" | grep -qi "needs these commits\|erfordert folgende"; then
+      stand_schreiben fehlgeschlagen "$version" \
+        "Das Bundle setzt Staende voraus, die dieser Rechner nicht hat. Der Stick passt nicht zu dieser Fassung."
+    else
+      stand_schreiben fehlgeschlagen "$version" \
+        "Das Bundle auf dem Stick ist beschaedigt. Neu bauen und noch einmal versuchen."
+    fi
+    exit 1; }
+  gut "Bundle ist lesbar und unversehrt"
 
   # Bewusst nach refs/stick/ und nicht nach refs/tags/: ein Stick koennte
   # ein Tag mitbringen, das es hier schon gibt, und dann stuende die
@@ -393,7 +443,7 @@ pruefen_und_vormerken() {
   # kann er nichts ueberschreiben.
   local ref="refs/stick/v$version"
   als_benutzer git update-ref -d "$ref" 2>/dev/null
-  if ! als_benutzer git fetch --quiet "$DATEN/devarenu.bundle" \
+  if ! als_benutzer git fetch --quiet "$NUTZLAST/devarenu.bundle" \
        "refs/tags/v$version:$ref" 2>/dev/null; then
     fehl "Im Bundle steckt kein Tag v$version"
     stand_schreiben unvollstaendig "$version" \
@@ -602,8 +652,12 @@ einspielen() {
   local auszug="$DATEN/logik-$version"
   rm -rf "$auszug"
   mkdir -p "$auszug"
-  chown root:root "$DATEN" "$auszug" 2>/dev/null || true
-  chmod 700 "$DATEN" "$auszug"
+  chown root:root "$auszug" 2>/dev/null || true
+  chmod 700 "$auszug"
+  # $DATEN bleibt 710: fuer andere zu, aber der Dienstbenutzer muss
+  # hindurchgehen koennen, um an $DATEN/stick heranzukommen.
+  chown root:root "$DATEN" 2>/dev/null || true
+  chmod 710 "$DATEN"
 
   # Nachsehen statt hoffen: waere hier etwas fuer Gruppe oder andere
   # beschreibbar, duerfte darin nichts ausgefuehrt werden.
@@ -687,21 +741,15 @@ zustand_pruefsumme() {
                  "$(stat -c %a zustand.json)"
 }
 
-# Laeuft mit dem NEUEN config.py, deshalb erst nach dem Vorspulen. Gibt
-# den Mangel als Satz zurueck oder nichts, wenn alles da ist.
-vorpruefung() {
-  local modell
-  modell="$(als_benutzer "$PY" -c \
-    'import config; print(config.LIVE_MODELL)' 2>/dev/null)"
-  if [ -n "$modell" ] && command -v ollama >/dev/null; then
-    if ! ollama list 2>/dev/null | grep -q "^${modell%%:*}"; then
-      echo "Das Update braucht das Sprachmodell $modell, das hier nicht liegt und ohne Netz nicht nachzuladen ist."
-      return
-    fi
-  fi
-}
-
 # Fehlende Stimmen fuer die eingestellten Sprachen, als Aufzaehlung.
+#
+# RUFT DERZEIT NIEMAND AUF. Bis 0.2.11 tat es einspielen() hier im
+# Kern; seit 0.3.0 ist der Aufruf verschwunden, ohne dass es auffiel,
+# und damit fehlt am Pult die Zeile "Ohne Stimme, laufen als
+# Untertitel". Die Vorpruefung des Sprachmodells hatte dasselbe
+# Schicksal und steht seit 0.3.2 in aktualisierung.sh, wo sie
+# hingehoert -- gefragt wird das NEUE config.py. Diese hier folgt in
+# 0.3.3 auf demselben Weg.
 #
 # Anders als das Sprachmodell ist das KEIN Abbruchgrund: eine Sprache
 # ohne Stimme laeuft als reiner Untertitel weiter, das ist ein Mangel und

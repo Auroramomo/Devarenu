@@ -20,6 +20,7 @@ nicht raten muessen, und wer es liest, hat meistens wenig Zeit.
 
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -216,55 +217,42 @@ def _autologin(befunde, ordner_liste=ANMELDE_ORDNER):
     gewollt = sitzungsart(sitzung)
     laeuft = laufende_sitzung()
 
-    # Entschieden wird am IST-Zustand, nicht am Eintrag. Bis 0.3.1 las
-    # der Systemcheck nur, was eingestellt war, und meldete gruen,
-    # solange dort nicht "wayland" im Namen stand. Auf dem
-    # Gemeinderechner stand plasmax11 -- und es lief Wayland.
+    # Zwei verschiedene Auskuenfte: was EINGESTELLT ist, und was
+    # LAEUFT. Bis 0.3.1 wurde nur die erste gelesen, und gemeldet
+    # wurde, solange nicht "wayland" im Namen stand. Auf dem
+    # Gemeinderechner stand plasmax11 -- und es lief Wayland, weil es
+    # eine Sitzung dieses Namens dort gar nicht gibt.
     #
-    # Am Namen laesst sich das ohnehin nicht ablesen: plasmax11 ist
-    # X11, plasma ist Wayland, und keiner der beiden sagt es.
-    if laeuft == "x11":
-        return
-    if laeuft == "wayland" and gewollt == "x11":
+    # Am Namen ist es ohnehin nicht abzulesen: plasmax11 ist X11,
+    # plasma ist Wayland, und keiner der beiden sagt es. Entschieden
+    # wird am Ordner, in dem die .desktop-Datei liegt -- genau so
+    # entscheidet es der Anmeldemanager auch.
+    #
+    # SEIT 0.3.2 IST WAYLAND DER NORMALFALL. Der Tonweg ist dort
+    # gemessen: Ton, Uebersetzung und RustDesk laufen. Gemeldet wird
+    # nur noch, wenn Eingestelltes und Laufendes auseinandergehen --
+    # nicht, weil das schlimm waere, sondern weil dann niemand weiss,
+    # was nach dem naechsten Neustart gilt.
+    if gewollt and laeuft and gewollt != laeuft:
         fehlt_datei = not sitzungsdatei(sitzung)
         grund = (f" Eine Sitzung {gefunden['session']} gibt es auf "
                  "diesem Rechner naemlich nicht -- der Anmeldemanager "
                  "nimmt dann die, die er hat." if fehlt_datei else "")
         befunde.append(Befund(
             "sitzung_abweichend", HINWEIS,
-            f"Eingestellt ist {gefunden['session']}, es laeuft aber "
-            f"Wayland: die Einstellung hat nicht gegriffen.{grund} "
-            f"Geprueft ist X11; unter Wayland ist der Tonweg nicht "
-            f"gemessen -- er kann laufen, nur weiss es niemand.",
-            "Fehlt das X11-Sitzungspaket (Arch: plasma-x11-session), "
-            "nachinstallieren -- oder bei Wayland bleiben und den Ton "
-            "nachmessen."
-            if fehlt_datei else
-            "Nach dem naechsten Neustart nachsehen: "
-            "loginctl show-session $XDG_SESSION_ID -p Type",
-            was_en=f"Configured is {gefunden['session']}, but Wayland "
-                   f"is running: the setting did not take effect. Only "
-                   f"X11 has been tested.",
-            tun_en="Install the X11 session package, or stay on "
-                   "Wayland and re-measure the sound path."))
-    elif laeuft == "wayland" or (not laeuft and gewollt == "wayland"):
-        # Entweder es laeuft Wayland und niemand wollte etwas anderes,
-        # oder es ist so eingetragen und der Rechner sagt nichts dazu.
-        wie = ("Es laeuft Wayland" if laeuft
-               else f"Die automatische Anmeldung waehlt "
-                    f"{gefunden['session']}")
-        befunde.append(Befund(
-            "autologin_wayland", HINWEIS,
-            f"{wie}. Geprueft ist X11 (plasmax11); unter Wayland ist "
-            f"der Tonweg nicht gemessen.",
-            "In /etc/plasmalogin.conf.d/ Session=plasmax11 setzen und "
-            "nachsehen, ob es die Sitzung ueberhaupt gibt."
-            if not sitzung else
-            "Bei Wayland bleiben und den Ton nachmessen, oder "
-            "Session=plasmax11 setzen.",
-            was_en=f"{wie}. Only X11 (plasmax11) has been tested.",
-            tun_en="Stay on Wayland and re-measure the sound path, or "
-                   "set Session=plasmax11."))
+            f"Eingestellt ist {gefunden['session']} ({gewollt}), es "
+            f"laeuft aber {laeuft}: die Einstellung hat nicht "
+            f"gegriffen.{grund} Devarenu laeuft unter beidem -- aber "
+            f"solange beides auseinandergeht, weiss niemand, was nach "
+            f"dem naechsten Neustart gilt.",
+            "ls /usr/share/wayland-sessions /usr/share/xsessions  -- "
+            "und in /etc/plasmalogin.conf.d/ eine Sitzung eintragen, "
+            "die es dort wirklich gibt.",
+            was_en=f"Configured is {gefunden['session']} ({gewollt}), "
+                   f"but {laeuft} is running: the setting did not take "
+                   f"effect.",
+            tun_en="List the available sessions and configure one that "
+                   "exists."))
 
 
 def _energie(befunde):
@@ -544,6 +532,68 @@ def _netzumbau(befunde, netz, alt=False):
                 tun_en="sudo bash firewall.sh --schnittstelle " + karte))
 
 
+def _fensterlage():
+    """(Einstellung, ob gerade Fenster ist). Faellt auf "aus" zurueck.
+
+    Eigene Funktion, weil zwei Pruefungen sie brauchen und keine von
+    beiden daran scheitern soll, dass es das Modul nicht gibt -- etwa
+    auf einem Rechner, der noch eine aeltere Fassung hat."""
+    try:
+        import wartungsfenster
+        e = wartungsfenster.einstellung()
+        return e, wartungsfenster.im_fenster(e=e)
+    except Exception:
+        return {}, False
+
+
+def _wartungsfenster(befunde):
+    """Ist das Fenster brauchbar eingestellt -- und kann es wecken?
+
+    Gemeldet wird nur, wenn jemand das Fenster eingeschaltet hat. Auf
+    allen anderen Rechnern gibt es hier nichts zu sagen."""
+    fenster, _ = _fensterlage()
+    if not fenster.get("an"):
+        return
+
+    if not shutil.which("rtcwake"):
+        befunde.append(Befund(
+            "wecker_fehlt", FEHLT,
+            "Das Wartungsfenster ist an, aber rtcwake fehlt. Der "
+            "Rechner faehrt am Fensterende herunter und wacht nicht "
+            "wieder auf -- danach kommt niemand mehr aus der Ferne "
+            "heran.",
+            "sudo pacman -S util-linux",
+            was_en="The maintenance window is on, but rtcwake is "
+                   "missing: the computer will shut down and never "
+                   "wake up again.",
+            tun_en="Install util-linux (it provides rtcwake)."))
+
+    _, an = _dienst_an("devarenu-fenster.timer")
+    if not an:
+        befunde.append(Befund(
+            "fenster_timer", FEHLT,
+            "Das Wartungsfenster ist eingestellt, aber sein Timer ist "
+            "aus. Es geht damit nie auf.",
+            "sudo systemctl enable --now devarenu-fenster.timer",
+            was_en="The maintenance window is configured but its "
+                   "timer is off, so it never opens.",
+            tun_en="sudo systemctl enable --now devarenu-fenster.timer"))
+
+    # Gibt es das Profil ueberhaupt? Ein Tippfehler im Namen faellt
+    # sonst erst an dem Donnerstag auf, an dem niemand hereinkommt.
+    profile = _lauf(["nmcli", "-t", "-f", "NAME", "connection", "show"])
+    if profile is not None and fenster["profil"] not in profile.split("\n"):
+        befunde.append(Befund(
+            "fenster_profil", FEHLT,
+            f"Das Wartungsfenster soll \"{fenster['profil']}\" "
+            f"verbinden, aber ein Profil dieses Namens gibt es nicht.",
+            "nmcli connection show  -- und den Namen danach in "
+            "netz.json richtigstellen",
+            was_en=f"The maintenance window wants to connect "
+                   f"\"{fenster['profil']}\", but no such profile exists.",
+            tun_en="nmcli connection show, then fix the name in netz.json."))
+
+
 def _wlan(befunde):
     """Haengt der Rechner dauerhaft in einem WLAN?
 
@@ -558,9 +608,16 @@ def _wlan(befunde):
     aus = _lauf(["nmcli", "-t", "-f", "TYPE,STATE,CONNECTION", "device"])
     if not aus:
         return
+    fenster, im_fenster = _fensterlage()
     for zeile in aus.split("\n"):
         teile = zeile.split(":")
         if len(teile) >= 3 and teile[0] == "wifi" and teile[1] == "connected":
+            # Im Fenster ist das WLAN kein Befund, sondern der Plan.
+            # Sonst stuende an jedem Donnerstagabend eine Warnung da,
+            # die niemanden etwas angeht -- und eine Warnung, die
+            # regelmaessig zu Unrecht kommt, liest bald niemand mehr.
+            if im_fenster and teile[2] == fenster.get("profil"):
+                return
             befunde.append(Befund(
                 "wlan_verbunden", HINWEIS,
                 f"Wartungszugang aktiv: der Rechner haengt im WLAN "
@@ -716,6 +773,34 @@ def _vorrat(befunde):
             tun_en="Next visit with a connection: sudo bash vorrat_bauen.sh"))
 
 
+def _gleiche_befehle(soll, ist, ordner):
+    """Sind das dieselben ExecStart-Zeilen, Platzhalter weggedacht?
+
+    dienst.sh setzt DREI Platzhalter ein -- @ORDNER@, @BENUTZER@ und
+    @PORT@ -- hier wurde bis 0.3.1 nur der erste ersetzt. In
+    devarenu.service.vorlage steht "--port @PORT@", in der
+    installierten Unit "--port 8000", und damit galt eine gerade
+    geschriebene Unit als veraltet. Dauerhaft: zweimal dienst.sh,
+    daemon-reload und Neustart aenderten daran nichts, weil sich
+    nichts aendern konnte.
+
+    Die uebrigen Platzhalter werden nicht nachgebaut, sondern als
+    "hier steht irgendetwas" gelesen. Ihre Werte sind Sache dieses
+    Rechners -- ein anderer Port ist keine veraltete Vorlage. Was
+    auffallen soll, ist der Befehl selbst: ein anderer Pfad, ein
+    hinzugekommener Schalter."""
+    if len(soll) != len(ist):
+        return False
+    for erwartet, wirklich in zip(soll, ist):
+        muster = re.escape(erwartet.replace("@ORDNER@", str(ordner)))
+        # Nach re.escape heissen die Platzhalter immer noch @NAME@:
+        # @ und Grossbuchstaben sind nichts, was escaped wuerde.
+        muster = re.sub(r"@[A-Z]+@", ".+", muster)
+        if not re.fullmatch(muster, wirklich):
+            return False
+    return True
+
+
 def _units_veraltet(befunde):
     """Stimmen die installierten Units noch mit den Vorlagen ueberein?
 
@@ -732,6 +817,8 @@ def _units_veraltet(befunde):
         ("devarenu-stick@.service", "devarenu-stick@.service.vorlage"),
         ("devarenu-update.service", "devarenu-update.service.vorlage"),
         ("devarenu.service", "devarenu.service.vorlage"),
+        ("devarenu-fenster.service", "devarenu-fenster.service.vorlage"),
+        ("devarenu-fenster-wecker.service", "devarenu-fenster-wecker.service.vorlage"),
     ]
     veraltet = []
     for unit, vorlage in paare:
@@ -749,9 +836,7 @@ def _units_veraltet(befunde):
                     and "=" in z]
         soll = befehle(quelle.read_text(encoding="utf-8", errors="replace"))
         ist = befehle(ziel.read_text(encoding="utf-8", errors="replace"))
-        # Die Platzhalter aus der Vorgabe wegdenken.
-        soll = [x.replace("@ORDNER@", str(ordner)) for x in soll]
-        if soll and ist and soll != ist:
+        if soll and ist and not _gleiche_befehle(soll, ist, ordner):
             veraltet.append(unit)
     if veraltet:
         befunde.append(Befund(
@@ -814,6 +899,7 @@ def pruefen():
     _sitzung(befunde)
     _wlan(befunde)
     _ollama_gpu(befunde)
+    _wartungsfenster(befunde)
     _protokoll(befunde)
     _vorrat(befunde)
     _units_veraltet(befunde)

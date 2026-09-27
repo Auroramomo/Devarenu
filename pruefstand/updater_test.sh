@@ -351,6 +351,19 @@ pruefe "die udev-Regel wurde nachgezogen" "0" \
 pruefe "und udev wurde angestossen" "1" \
   "$(grep -c 'udevadm control' "$BASIS/systemctl.log" || true)"
 
+# Units, die es in dieser Fassung NEU gibt, muss ein Update ANLEGEN --
+# nicht nur aktualisieren. Kaeme das Wartungsfenster erst mit dem
+# naechsten dienst.sh von Hand, waere es genau an dem Donnerstag nicht
+# da, an dem es gebraucht wird, und niemand kaeme heran.
+pruefe "der Fenster-Timer wurde angelegt" "ja" \
+  "$([ -f "$UO/devarenu-fenster.timer" ] && echo ja || echo nein)"
+pruefe "die Wecker-Unit wurde angelegt" "ja" \
+  "$([ -f "$UO/devarenu-fenster-wecker.service" ] && echo ja || echo nein)"
+pruefe "und der Platzhalter darin ist ersetzt" "0" \
+  "$(grep -c '@ORDNER@' "$UO/devarenu-fenster.service" || true)"
+pruefe "der Timer wurde scharf gemacht" "1" \
+  "$(grep -c 'enable --now devarenu-fenster.timer' "$BASIS/systemctl.log" || true)"
+
 printf '\n\033[1m== 11) Was auf dem Stick liegt: eine Ebene tief, zweimal, zu tief\033[0m\n'
 # Der Weg des Helfers geht ueber ein ZIP. Windows entpackt es in einen
 # Ordner, und der wandert als Ganzes auf den Stick -- die Dateien liegen
@@ -539,6 +552,110 @@ LES2="$(cd "$R" && DEVARENU_STICK_ORDNER="$STK" DEVARENU_DATEN="$BASIS/daten13b"
         bash "$R/stick_update.sh" --lesen /dev/attrappe 2>&1)" || true
 pruefe "mit dem echten Schluessel geht derselbe Stick durch" "bereit" \
   "$(sed -n 's/.*"lage"[: ]*"\([a-z_]*\)".*/\1/p' "$R/update/stand.json")"
+
+printf '\n\033[1m== 14) Der Dienstkontext: kein HOME, fremder Benutzer, rohe Rechte\033[0m\n'
+# WARUM ES DIESEN FALL GIBT
+#
+# Alles oben laeuft als ein und derselbe Benutzer. als_benutzer() nimmt
+# dann den Else-Zweig, ruft gar kein runuser auf, und die Umgebung des
+# Aufrufers bleibt stehen. Der Gemeinderechner sieht anders aus: dort
+# laeuft der Kern als root aus einer systemd-Unit OHNE User=, und
+# systemd gibt so einer Unit kein $HOME. Genau daran ist am 27.09. die
+# Vorpruefung gescheitert -- "ollama list" brach mit
+#   panic: $HOME is not defined
+# ab, stderr ging nach /dev/null, und daraus wurde "das Sprachmodell
+# liegt hier nicht" auf einem Rechner, auf dem es lag.
+#
+# Der Pruefstand war dabei gruen. Er konnte gar nicht anders.
+#
+# Hier steht deshalb eine Attrappe fuer runuser im PATH, die den
+# Befehl mit env -i startet: keine Umgebung, wie im Dienst. Was sich
+# darauf verlaesst, faellt auf.
+
+STUBS="$BASIS/stubs"; mkdir -p "$STUBS"
+cat > "$STUBS/runuser" <<'RUNUSER'
+#!/bin/sh
+# Tut so, als wechselte sie den Benutzer -- und raeumt dabei die
+# Umgebung ab, wie systemd es bei einem root-Dienst tut.
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -u) shift 2 ;;
+    --) shift; break ;;
+    *)  shift ;;
+  esac
+done
+exec env -i PATH="$PATH_FUER_ATTRAPPE" HOME= "$@"
+RUNUSER
+chmod +x "$STUBS/runuser"
+
+R14="$BASIS/r14"; cp -r "$R" "$R14"
+# BENUTZER != root erzwingen, damit als_benutzer wirklich runuser nimmt.
+DEV14="$BASIS/daten14"
+
+AUS14="$(cd "$R14" && PATH="$STUBS:$PATH" PATH_FUER_ATTRAPPE="$PATH" \
+         DEVARENU_STICK_ORDNER="$STK" DEVARENU_DATEN="$DEV14" \
+         DEVARENU_BENUTZER_TEST=ja \
+         STUB_FASSUNG=0.2.12 STUB_LOG="$BASIS/s14.log" \
+         bash "$R14/stick_update.sh" --lesen /dev/attrappe 2>&1)" || true
+
+pruefe "auch ohne Umgebung kommt der Kern bis zur Signatur" "ja" \
+  "$(printf '%s' "$AUS14" | grep -q 'Signatur von v0.3.0 ist gueltig' \
+     && echo ja || echo nein)"
+pruefe "und nichts meldet ein fehlendes HOME" "nein" \
+  "$(printf '%s' "$AUS14" | grep -qi 'HOME is not defined' && echo ja || echo nein)"
+
+printf '\n\033[1m== 15) Die Nutzlast liegt lesbar, die Geheimnisse nicht\033[0m\n'
+# Der Fall vom 27.09.: das Bundle lag auf der Platte, war in Ordnung,
+# und der Kern kam nicht heran -- er hatte es selbst auf 700 root
+# gelegt, mit der Begruendung, in den Sicherungen stehe das
+# WLAN-Passwort. Das stimmt, nur steht es nicht im Bundle. Gemeldet
+# wurde "beschaedigt oder passt nicht zu diesem Rechner"; wer das
+# liest, baut einen zweiten Stick, und der scheitert genauso.
+#
+# Den ROOT-Anteil kann dieser Lauf nicht herstellen -- dafuer braeuchte
+# er zwei Benutzer und Wurzelrechte. Geprueft wird deshalb, was den
+# Fehler unmoeglich macht: dass die Nutzlast fuer die Gruppe lesbar
+# ist und die Sicherung nicht.
+R15="$BASIS/r15"; cp -r "$R" "$R15"
+DEV15="$BASIS/daten15"
+(cd "$R15" && DEVARENU_STICK_ORDNER="$STK" DEVARENU_DATEN="$DEV15" \
+   STUB_FASSUNG=0.2.12 STUB_LOG="$BASIS/s15.log" \
+   bash "$R15/stick_update.sh" --lesen /dev/attrappe >/dev/null 2>&1) || true
+
+pruefe "das Bundle liegt in der Nutzlast" "ja" \
+  "$([ -f "$DEV15/stick/devarenu.bundle" ] && echo ja || echo nein)"
+pruefe "und ist fuer die Gruppe lesbar" "640" \
+  "$(stat -c %a "$DEV15/stick/devarenu.bundle" 2>/dev/null)"
+pruefe "der Nutzlastordner ist begehbar" "750" \
+  "$(stat -c %a "$DEV15/stick" 2>/dev/null)"
+pruefe "fuer alle anderen bleibt beides zu" "nein" \
+  "$(find "$DEV15/stick" -perm -o=r | grep -q . && echo ja || echo nein)"
+# Und der Grund fuer die alten 700: die Sicherung mit zustand.json.
+# Sie entsteht erst beim Einspielen, liegt aber NEBEN der Nutzlast und
+# darf von der Lockerung nichts abbekommen.
+pruefe "die Nutzlast liegt nicht in der Ablage selbst" "nein" \
+  "$([ -f "$DEV15/devarenu.bundle" ] && echo ja || echo nein)"
+
+printf '\n\033[1m== 16) Ein Umzug von zustand.json redet nicht dazwischen\033[0m\n'
+# Am Pult stand nach einem Update:
+#   Ohne Stimme, laufen als Untertitel:
+#   zustand.json umgezogen: 2->3 (glossar_quittiert ergaenzt)
+# Die Meldung war richtig, sie stand nur in der falschen Zeile: eine
+# Kommandosubstitution fing die Ausgabe eines Python-Schnipsels ein,
+# und laden() druckte seinen Hinweis nach stdout mitten hinein.
+# Hinweise gehoeren nach stderr.
+R16="$BASIS/r16"; mkdir -p "$R16"
+cp "$ECHT/zustand.py" "$ECHT/config.py" "$R16/" 2>/dev/null || true
+printf '{"fassung": 2, "quelle": "de", "ziele": ["en"]}' > "$R16/zustand.json"
+STDOUT16="$(cd "$R16" && "$ECHT/.venv/bin/python" -c \
+            'import sys; sys.path.insert(0,"."); import zustand; zustand.laden()' \
+            2>/dev/null)"
+STDERR16="$(cd "$R16" && "$ECHT/.venv/bin/python" -c \
+            'import sys; sys.path.insert(0,"."); import zustand; zustand.laden()' \
+            2>&1 >/dev/null)"
+pruefe "stdout bleibt leer" "" "$STDOUT16"
+pruefe "der Hinweis steht auf stderr" "ja" \
+  "$(printf '%s' "$STDERR16" | grep -q 'umgezogen: 2->3' && echo ja || echo nein)"
 
 printf '\n'
 if [ "$FEHLER" = 0 ]; then

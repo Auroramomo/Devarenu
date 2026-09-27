@@ -18,6 +18,18 @@ Type=oneshot
 # "Permission denied" -- und niemand sucht dann beim chmod.
 ExecStart=/bin/bash @ORDNER@/stick_update.sh --einspielen
 
+# Diese Unit laeuft als root und hat kein User=. systemd setzt dann
+# KEIN $HOME, und Programme, die eines erwarten, brechen ab -- ollama
+# etwa mit "panic: $HOME is not defined", bevor es ueberhaupt den
+# Dienst fragt. Am 27.09. wurde daraus am Pult "das Sprachmodell liegt
+# hier nicht", auf einem Rechner, auf dem es lag.
+#
+# Die Modellpruefung geht seit 0.3.2 ueber HTTP und braucht das nicht
+# mehr. Die Zeile bleibt trotzdem: sie kostet nichts, und der
+# naechste, der hier ein Kommando einbaut, verliert damit nicht
+# dieselbe Stunde.
+Environment=HOME=/root
+
 # Grosszuegig: im schlimmsten Fall stecken hier ein pip-Lauf aus wheels/,
 # ein Dienstneustart mit 120 Sekunden Gesundheitspruefung und, wenn der
 # scheitert, der Rueckweg samt zweitem Neustart.

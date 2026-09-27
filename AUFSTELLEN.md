@@ -171,6 +171,16 @@ nicht auf. Wer das misst, trägt das Ergebnis hier ein.
 
 ## Der Rechner als Router für das Saalnetz
 
+> **Seit 0.3.2: `no-ping`.** dnsmasq schickte vor jeder Vergabe erst
+> ein ICMP-Echo an die Adresse und wartete auf Antwort. Gemessen an
+> einem neuen Handy im Saal: drei DHCP-Anfragen, alle Antworten erst
+> nach gut drei Sekunden — die Sekunden, in denen der Zuhörer auf eine
+> leere Seite sieht und noch einmal tippt. In diesem Netz vergibt außer
+> dnsmasq niemand Adressen, die Probe kann also nichts finden.
+>
+> **Das wirkt erst nach einem erneuten `sudo bash netz_einrichten.sh`.**
+> Ein Update schreibt `/etc/devarenu/dnsmasq.conf` nicht neu.
+
 **Nur von Hand, nur vor Ort, nur an der Tastatur des Rechners.** Nie über
 `stick_update.sh`, nie über `bootstrap.sh`, nie über eine Fernsitzung:
 Der Umbau stellt die Netzwerkkarte um und kappt damit genau die
@@ -664,12 +674,153 @@ der Wartung wird der Hotspot getrennt.
 aktiv**. Kein Fehler, nur eine Lagemeldung: wer sie sonntags liest,
 weiß, dass der Hotspot noch läuft.
 
+Seit 0.3.2 gibt es dafür auch den Weg ohne jemanden vor Ort, siehe
+[Das Wartungsfenster](#das-wartungsfenster). Innerhalb des Fensters
+ist das verbundene WLAN erwartet und wird nicht gemeldet.
+
 **Auf dem WLAN wird nichts freigegeben** — weder das Pult noch sonst
 etwas. RustDesk baut seine Verbindung selbst nach draußen auf und
 braucht keinen offenen Port.
 
 Zwischen WLAN und Saalnetz wird nie geleitet: `ip_forward` bleibt aus,
 und alle Freigaben hängen an der Kabelkarte zum Zugangspunkt.
+
+## Das Wartungsfenster
+
+Seit 0.3.2 gibt es einen zweiten Weg zur Fernwartung, der **niemanden
+vor Ort braucht**: an einem festen Wochentag, in einer festen Stunde,
+verbindet sich der Rechner mit dem Gemeinde-WLAN und trennt sich
+danach wieder. Dazwischen ist er so unerreichbar wie zuvor.
+
+**Per Vorgabe ist das Fenster aus.** Es gilt vorerst nur für Rostock.
+
+### Einschalten
+
+Ein Befehl, keine Handbearbeitung von `netz.json`:
+
+```fish
+bash wartungsfenster.sh --einschalten "Gemeinde-WLAN" Do 18:00 22:00
+```
+
+Ohne Angaben zeigt er die vorhandenen WLAN-Profile und sagt, wie es
+geht. Was er tut:
+
+1. **Prüft die Werte, bevor er schreibt** — mit derselben Funktion,
+   die sie später auch liest. Was hier durchgeht, gilt auch für den
+   Timer; sonst stünde ein Fenster in `netz.json`, das er wortlos
+   ignoriert, und niemand wüsste warum. Schlägt die Prüfung fehl,
+   bleibt `netz.json` unangetastet.
+2. Trägt den Block in `netz.json` ein (nicht im Repo, gehört diesem
+   einen Rechner). Vorhandene Werte bleiben stehen: wer nur die
+   Uhrzeit ändert, verliert die Laufzeitgrenzen nicht.
+3. Stellt das Profil auf **`autoconnect no`**. Ohne das verbände sich
+   der Rechner auch außerhalb des Fensters, und das Fenster wäre eine
+   Verabredung ohne Wirkung.
+4. Stellt den Wecker und gibt `--zeigen` aus.
+
+Der Wochentag geht kurz oder ausgeschrieben (`Do`, `Donnerstag`,
+Groß- und Kleinschreibung egal), aber nichts darüber hinaus:
+„Donnerstagabend" wird abgewiesen. Wer das schreibt, meint eine
+Uhrzeit und keinen Tag.
+
+Wieder ausschalten:
+
+```fish
+bash wartungsfenster.sh --ausschalten
+```
+
+Das löscht den BIOS-Wecker mit, trennt das WLAN, wenn gerade Fenster
+war, und lässt Profil und Uhrzeit stehen — wer nächste Woche wieder
+einschaltet, tippt sie nicht neu.
+
+Die Laufzeitgrenzen (`hoechstlaufzeit_h`, `hoechstlaufzeit_hart_h`)
+stehen weiter nur in `netz.json`. Sie ändert man selten, und ein
+Befehl mit sechs Stellen wäre einer, den man falsch bedient.
+
+### Was der Rechner dann tut
+
+| Zeitpunkt | Was passiert |
+|---|---|
+| alle 5 Minuten | Im Fenster verbinden, außerhalb trennen |
+| Fensterbeginn | war er aus, hat der BIOS-Wecker ihn 5 Minuten vorher geweckt |
+| Fensterende | herunterfahren |
+| nach 24 h Laufzeit | herunterfahren |
+| nach 36 h Laufzeit | herunterfahren, **auch wenn übersetzt wird** |
+| bei jedem Start und Stopp | Wecker auf den nächsten Fensterbeginn stellen |
+
+**Ausfall heißt zu.** Fällt der Timer aus, bleibt das WLAN getrennt —
+das Profil verbindet sich nicht von selbst. Ein unbrauchbarer Wert in
+`netz.json` schaltet das Fenster ab, nicht auf. Eine verpasste Wartung
+kostet eine Woche; ein vergessenes offenes WLAN ist der Schaden.
+
+**Ein verpasster Termin wird nicht nachgeholt.** Der Timer trägt kein
+`Persistent=true`: sonst verbände sich der Rechner am Samstag, weil
+der Donnerstag ausgefallen ist.
+
+**Nur das eine Profil wird angefasst.** Ein Handy-Hotspot, den jemand
+vor Ort aufgemacht hat, bleibt unberührt — wer davor sitzt, soll nicht
+mitten in der Arbeit ausgesperrt werden.
+
+**Zwischen WLAN und Saalnetz wird auch im Fenster nie geleitet.**
+`ip_forward` bleibt aus, und `pruefen.sh` sieht nach.
+
+### Das Auto-Aus und der Gottesdienst
+
+Läuft eine Übersetzung, **wartet** das Auto-Aus — der Rechner fragt
+`/api/zustand` und sieht `live`. Aber nicht unbegrenzt: bei
+`hoechstlaufzeit_hart_h` (36) geht er aus, Übersetzung hin oder her.
+Ein Rechner, der seit anderthalb Tagen „live" meldet, hat keinen
+Gottesdienst, sondern einen Tonstrom, den niemand abgestellt hat — und
+der hielte ihn sonst für immer wach.
+
+Wer den Rechner absichtlich außerhalb des Fensters hochfährt, wird
+nicht sofort wieder ausgesperrt: das Fensterende schaltet nur in den
+15 Minuten danach ab, nicht den ganzen Abend.
+
+### BIOS
+
+Am ASUS PRIME B760M-A WIFI D4 vor Ort geprüft:
+
+| Einstellung | Wert | Warum |
+|---|---|---|
+| **ErP Ready** | **aus** | Mit ErP wird die RTC im Standby nicht mehr versorgt, und der Wecker zündet nicht |
+| **Power On By RTC** | **aus** | Der Wecker kommt vom Betriebssystem (`rtcwake`), nicht vom BIOS. Beides zugleich ergibt zwei Weckzeiten |
+| **Restore AC Power Loss** | egal | Der Wecker reicht |
+
+Die Hardware-Uhr läuft in **UTC**. Die Umrechnung von Ortszeit passiert
+an genau einer Stelle — in `wartungsfenster.py`, wo die Sommerzeit
+bekannt ist. Über die Zeitumstellung hinweg bleiben es 18:00 Ortszeit;
+der Prüfstand rechnet die 169 echten Stunden zwischen zwei
+Donnerstagen nach.
+
+### Strom
+
+**Der Schalter hinten am Netzteil bleibt an**, und der Stecker bleibt
+drin. Der Rechner wird normal heruntergefahren, über das Menü. Ohne
+Strom am Netzteil kann die RTC nicht wecken — dann kommt bis zum
+nächsten Besuch niemand mehr heran. Das steht auch auf dem Helferblatt.
+
+### Nachsehen
+
+```fish
+bash wartungsfenster.sh --zeigen
+systemctl list-timers devarenu-fenster.timer
+sudo rtcwake -m show
+journalctl -u devarenu-fenster.service -n 20
+```
+
+> **Die Wecker-Unit heißt `devarenu-fenster-wecker.service`**, nicht
+> `devarenu-wecker.service`. Der längere Name ist Absicht: auf dem
+> Gemeinderechner liegt seit dem 27.09. eine von Hand gebaute
+> Übergangslösung unter dem kurzen Namen. Hießen beide gleich,
+> überschriebe das erste Update die alte — und wer sie danach
+> abschaltet, träfe die neue. So liegen sie nebeneinander, bis die
+> alte von Hand abgeschaltet ist.
+
+`pruefen.sh` meldet ein fehlendes `rtcwake`, einen ausgeschalteten
+Fenster-Timer und ein Profil, das es gar nicht gibt. **Im Fenster**
+gilt das verbundene WLAN als erwartet und wird nicht mehr als
+„Wartungszugang aktiv" gemeldet — außerhalb schon.
 
 ## Von 0.2.11 auf 0.2.12 — die Schritte am Gemeinderechner
 
@@ -1608,6 +1759,35 @@ Bei jeder Fassung:
 
 - [ ] `bash aktualisieren.sh` einmal ausführen. `zustand.json` muss danach
       unverändert sein — das Skript prüft und meldet es selbst.
+
+Seit 0.3.2 gelten dabei **dieselben Regeln wie beim Stick**:
+
+- Vorgespult wird nur auf ein **Tag**, nie auf `main`.
+- Das Tag muss mit einem Schlüssel aus `schluessel.erlaubt` signiert
+  sein — der Liste, die **hier** liegt, nie einer geholten.
+- Vorgespult wird über die geprüfte **Commit-SHA**, nie über den
+  Tagnamen: ein gleichnamiges lokales Tag würde sonst etwas
+  Ungeprüftes unterschieben.
+- Die Fassung muss neuer sein. Verglichen wird mit `sort -V`, nicht
+  als Zeichenfolge — sonst käme 0.2.9 nach 0.2.13.
+
+Bis 0.3.1 stand hier `git pull --ff-only`: es galt, worauf
+`origin/main` gerade zeigte, ohne Signatur und ohne Tag. Über den
+Stick war genau das seit 0.2.12 unmöglich — über das Netz blieb es
+offen.
+
+**Und die Units kommen mit.** Der alte Weg startete nur den Dienst neu;
+geschrieben wurden die Units allein von `dienst.sh` bei der
+Ersteinrichtung. Nach dem Einspielen von 0.3.1 am 27.09. liefen sie
+deshalb in alter Fassung, bis jemand `dienst.sh` von Hand aufrief.
+Jetzt übergibt `aktualisieren.sh` an `aktualisierung.sh`, die
+versionierte Hälfte des Updaters — dieselbe Datei, die auch ein Stick
+ausführt. Eine Logik, zwei Wege.
+
+`bash pruefstand/online_test.sh` prüft die vier Fälle, die zusammen
+die Regel ergeben: gültig signiert geht durch, fremd signiert nicht,
+nachträglich umgebogen nicht, und ein `main`, das weiter ist als das
+letzte Tag, zählt nicht.
 
 ## Aktualisieren ohne Netz, per USB-Stick
 

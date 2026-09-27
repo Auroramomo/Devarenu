@@ -1,0 +1,46 @@
+# Stellt den BIOS-Wecker auf den naechsten Fensterbeginn.
+#
+# Diese Datei ist eine Vorlage. dienst.sh setzt den Platzhalter und
+# legt das Ergebnis in
+# /etc/systemd/system/devarenu-fenster-wecker.service ab.
+#
+# DER NAME IST MIT ABSICHT LAENGER. Auf dem Gemeinderechner liegt seit
+# dem 27.09. eine von Hand gebaute Uebergangsloesung namens
+# devarenu-wecker.service. Hiesse diese Unit genauso, ueberschriebe
+# das erste Update die alte -- und wer sie danach abschaltet, traefe
+# die neue. Beide sollen nebeneinander liegen koennen, bis die alte
+# von Hand abgeschaltet ist.
+#
+# Zweimal gestellt: beim Hochfahren (ExecStart) und beim
+# Herunterfahren (ExecStop). Das Herunterfahren ist der wichtigere der
+# beiden -- danach liegt der Rechner aus, und nur der Wecker holt ihn
+# zurueck. Das Hochfahren ist die Sicherung fuer den Fall, dass der
+# Strom weg war und gar kein ordentliches Herunterfahren stattfand.
+#
+# RemainAfterExit=yes, damit systemd die Unit nach dem ExecStart als
+# aktiv fuehrt und beim Herunterfahren ueberhaupt ein ExecStop laeuft.
+
+[Unit]
+Description=Devarenu, BIOS-Wecker auf den naechsten Fensterbeginn stellen
+Documentation=https://github.com/Auroramomo/Devarenu
+# Erst wenn die Uhr steht. Ein Wecker, der aus einer falschen Zeit
+# gerechnet wurde, weckt zur falschen Stunde.
+After=time-sync.target
+
+# KEIN DefaultDependencies=no. Das Before=shutdown.target, auf das es
+# hier ankommt, bringen die Vorgaben von selbst mit -- und mit ihnen
+# das After=sysinit.target und After=basic.target, ohne die diese Unit
+# vor dem Dateisystem liefe und weder Python noch rtcwake faende.
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash @ORDNER@/wartungsfenster.sh --wecker
+ExecStop=/bin/bash @ORDNER@/wartungsfenster.sh --wecker
+TimeoutSec=60
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

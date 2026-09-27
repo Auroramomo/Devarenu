@@ -469,6 +469,16 @@ trap 'rm -f "$ENTWURF"' EXIT
   echo "# DHCP. Ohne Gateway (Option 3 leer) und ohne fremden DNS:"
   echo "# ein Gateway, das nirgendwohin fuehrt, laesst Handys in"
   echo "# Zeitueberschreitungen laufen."
+  echo "# Keine Ping-Probe vor der Vergabe. dnsmasq schickt sonst erst"
+  echo "# ein ICMP-Echo an die Adresse, die es vergeben will, und"
+  echo "# wartet auf Antwort. Gemessen an einem neuen Handy im Saal:"
+  echo "#   drei DHCP-Anfragen, alle Antworten erst nach gut 3 s"
+  echo "# Das sind die Sekunden, in denen der Zuhoerer auf eine leere"
+  echo "# Seite sieht und noch einmal tippt. In diesem Netz vergibt"
+  echo "# ausser dnsmasq niemand Adressen -- es gibt also nichts, was"
+  echo "# die Probe finden koennte."
+  echo "no-ping"
+  echo
   echo "dhcp-range=$VON,$BIS,$MIETE"
   echo "dhcp-option=3"
   echo "dhcp-option=6,$ADRESSE"
@@ -660,6 +670,20 @@ daten["schnittstelle"] = sys.argv[1]
 daten["adresse"] = sys.argv[2]
 daten["maske"] = int(sys.argv[3])
 daten["eingerichtet_am"] = datetime.now().isoformat(timespec="seconds")
+
+# Das Wartungsfenster einmal hinschreiben, damit es in der Datei
+# steht und sich aendern laesst -- aber AUS. Wer es einschaltet, tut
+# das bewusst; ein WLAN, das nach einem Netzumbau von selbst aufgeht,
+# waere das Gegenteil dessen, wofuer dieser Rechner gebaut ist.
+#
+# Die Vorgabewerte kommen aus wartungsfenster.py und stehen nicht
+# hier: zwei Listen von Vorgaben laufen auseinander, und dann gilt
+# eine andere, als in der Datei steht.
+import wartungsfenster
+if "wartungsfenster" not in daten:
+    daten["wartungsfenster"] = dict(wartungsfenster.VORGABE)
+    print("   ok    netz.json: Wartungsfenster angelegt (aus)")
+
 netzzustand.speichern(daten)
 print("   ok    netz.json: Router auf %s (%s)" % (sys.argv[2], sys.argv[1]))
 PYCODE

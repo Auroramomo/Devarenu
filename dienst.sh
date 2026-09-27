@@ -5,6 +5,7 @@
 #   bash dienst.sh --entfernen  wieder abschalten
 #   bash dienst.sh --status     nachsehen, was er macht
 #   bash dienst.sh --stick      nur das Update per USB-Stick einrichten
+#   bash dienst.sh --fenster    nur das Wartungsfenster einrichten
 #
 # Gedacht fuer den Rechner in der Gemeinde: headless, niemand meldet sich
 # an, nach dem Einschalten muss der Server von allein hochkommen. Wer
@@ -25,6 +26,16 @@ STICK_UNIT=/etc/systemd/system/$NAME-stick@.service
 UPDATE_UNIT=/etc/systemd/system/$NAME-update.service
 UPDATE_TIMER=/etc/systemd/system/$NAME-update.timer
 UDEV_REGEL=/etc/udev/rules.d/99-$NAME-stick.rules
+
+# Das Wartungsfenster: WLAN zu festen Zeiten, BIOS-Wecker, Auto-Aus.
+# Die Units werden IMMER eingerichtet, das Fenster selbst ist in
+# netz.json per Vorgabe aus. Ein Timer, der alle fuenf Minuten nach
+# einem ausgeschalteten Fenster sieht und sofort wieder aufhoert,
+# kostet nichts -- und muss nicht nachinstalliert werden, wenn jemand
+# das Fenster spaeter einschaltet.
+FENSTER_UNIT=/etc/systemd/system/$NAME-fenster.service
+FENSTER_TIMER=/etc/systemd/system/$NAME-fenster.timer
+WECKER_UNIT=/etc/systemd/system/$NAME-fenster-wecker.service
 
 blau() { printf '\n\033[1;34m== %s\033[0m\n' "$1"; }
 gut()  { printf '   \033[32mok\033[0m   %s\n' "$1"; }
@@ -109,8 +120,64 @@ stick_einrichten() {
   return 0
 }
 
+# Das Wartungsfenster: WLAN zu festen Zeiten, BIOS-Wecker, Auto-Aus.
+#
+# EIGENE Funktion und nicht Teil der Stick-Einrichtung. Die beiden
+# haben nichts miteinander zu tun, und eine gemeinsame Dateiliste
+# haette bedeutet: fehlt eine Fenster-Vorlage, wird auch das Update
+# per Stick uebersprungen. Genau solche Kopplungen faellt einem erst
+# auf dem Gemeinderechner auf.
+#
+# Die Units werden IMMER eingerichtet, das Fenster selbst ist in
+# netz.json per Vorgabe aus. Ein Timer, der alle fuenf Minuten nach
+# einem ausgeschalteten Fenster sieht und sofort wieder aufhoert,
+# kostet nichts -- und muss nicht nachinstalliert werden, wenn jemand
+# das Fenster spaeter einschaltet.
+fenster_einrichten() {
+  blau "Wartungsfenster"
+
+  local fehlt=""
+  for datei in wartungsfenster.sh wartungsfenster.py \
+               devarenu-fenster.service.vorlage \
+               devarenu-fenster.timer.vorlage \
+               devarenu-fenster-wecker.service.vorlage; do
+    [ -f "$ORDNER/$datei" ] || fehlt="$fehlt $datei"
+  done
+  if [ -n "$fehlt" ]; then
+    warn "Es fehlt:$fehlt"
+    warn "Das Wartungsfenster wird uebersprungen. Alles andere laeuft."
+    return 0
+  fi
+
+  sed "s|@ORDNER@|$ORDNER|g" "$ORDNER/devarenu-fenster.service.vorlage" \
+    | sudo tee "$FENSTER_UNIT" >/dev/null || { fehl "$FENSTER_UNIT"; return 1; }
+  sudo cp "$ORDNER/devarenu-fenster.timer.vorlage" "$FENSTER_TIMER" \
+    || { fehl "$FENSTER_TIMER"; return 1; }
+  sed "s|@ORDNER@|$ORDNER|g" "$ORDNER/devarenu-fenster-wecker.service.vorlage" \
+    | sudo tee "$WECKER_UNIT" >/dev/null || { fehl "$WECKER_UNIT"; return 1; }
+  sudo systemctl daemon-reload
+
+  if sudo systemctl enable --now "$NAME-fenster.timer" 2>/dev/null; then
+    gut "Timer laeuft, sieht alle fuenf Minuten nach"
+  else
+    warn "Der Fenster-Timer liess sich nicht starten."
+  fi
+  if sudo systemctl enable --now "$NAME-fenster-wecker.service" 2>/dev/null; then
+    gut "Wecker eingerichtet"
+  else
+    warn "Die Wecker-Unit liess sich nicht einrichten."
+  fi
+  bash "$ORDNER/wartungsfenster.sh" --zeigen
+  return 0
+}
+
 if [ "${1:-}" = "--stick" ]; then
   stick_einrichten
+  exit $?
+fi
+
+if [ "${1:-}" = "--fenster" ]; then
+  fenster_einrichten
   exit $?
 fi
 
@@ -127,8 +194,18 @@ if [ "${1:-}" = "--entfernen" ]; then
   sudo rm -f "$STICK_UNIT" "$UPDATE_UNIT" "$UPDATE_TIMER" "$UDEV_REGEL"
   sudo udevadm control --reload 2>/dev/null
 
+  # Das Wartungsfenster ebenfalls. Ein Timer, der weiter alle fuenf
+  # Minuten ein Skript aufruft, das es nicht mehr gibt, waere der
+  # sichtbarste Rest eines entfernten Dienstes.
+  sudo systemctl disable --now "$NAME-fenster.timer" 2>/dev/null
+  sudo systemctl disable --now "$NAME-fenster-wecker.service" 2>/dev/null
+  sudo rm -f "$FENSTER_UNIT" "$FENSTER_TIMER" "$WECKER_UNIT"
+  # Ein gestellter BIOS-Wecker bliebe sonst stehen und schaltete den
+  # Rechner einmal grundlos ein. rtcwake ohne -t loescht ihn.
+  command -v rtcwake >/dev/null && sudo rtcwake -m disable >/dev/null 2>&1
+
   sudo systemctl daemon-reload
-  gut "entfernt, samt Update per Stick"
+  gut "entfernt, samt Update per Stick und Wartungsfenster"
   gut "Starten wieder von Hand mit bash start.sh"
   # Was auf der Platte liegt, bleibt liegen: ein vorgemerktes Update ist
   # Arbeit, die jemand hineingesteckt hat, und wegzuwerfen ist es hier
@@ -190,6 +267,7 @@ sudo systemctl enable --now $NAME || { fehl "Start fehlgeschlagen"; exit 1; }
 
 # Gleich mit: dann braucht ein neu aufgesetzter Rechner bootstrap.sh nie.
 stick_einrichten || warn "Ohne Stick-Update. Nachholen mit: bash dienst.sh --stick"
+fenster_einrichten || warn "Ohne Wartungsfenster. Nachholen mit: bash dienst.sh --fenster"
 
 # ---------------------------------------------------------------- nachsehen
 blau "Laeuft er?"

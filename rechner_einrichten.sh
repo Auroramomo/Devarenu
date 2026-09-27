@@ -175,9 +175,22 @@ else
   # zzz- im Namen, damit die Datei zuletzt gelesen wird: der
   # Anmeldemanager liest den Ordner alphabetisch, und was spaeter
   # kommt, gewinnt.
+  # Session=plasma, also Wayland.
+  #
+  # Bis 0.3.1 stand hier plasmax11. Der Grund war, dass der Tonweg nur
+  # unter X11 gemessen war -- nicht, dass unter Wayland etwas
+  # fehlgeschlagen waere. Inzwischen ist er auf dem Gemeinderechner
+  # unter Wayland gemessen: Ton und Uebersetzung laufen, und RustDesk
+  # auch (Freigabe einmal mit "nicht mehr fragen" bestaetigt).
+  #
+  # Dazu kam, dass plasmax11 dort gar nicht zu haben war. Eine Sitzung
+  # dieses Namens gibt es nur mit dem Paket plasma-x11-session; ohne
+  # es zeigt der Eintrag ins Leere, und der Anmeldemanager nimmt
+  # wortlos die einzige, die da ist. Der Rechner lief also ohnehin
+  # unter Wayland, und die Einstellung behauptete das Gegenteil.
   SOLL="[Autologin]
 User=$BENUTZER
-Session=plasmax11
+Session=plasma
 Relogin=false"
   if [ -f "$ANMELDE_DATEI" ] && [ "$(cat "$ANMELDE_DATEI")" = "$SOLL" ]; then
     gut "$ANMELDE_DATEI steht richtig"
@@ -207,27 +220,25 @@ Relogin=false"
     fi
   done
 
-  # Session=plasmax11 hinzuschreiben ist das eine, sie zu bekommen das
-  # andere. Der Anmeldemanager sucht plasmax11.desktop; findet er die
-  # Datei nicht, nimmt er wortlos die einzige Sitzung, die da ist --
-  # auf einem Arch ohne plasma-x11-session ist das Wayland. Die
-  # Einstellung stand dann richtig da, gruen gemeldet, und der Rechner
-  # lief trotzdem unter Wayland. Genau so stand der Gemeinderechner.
+  # Eine Sitzung hinzuschreiben ist das eine, sie zu bekommen das
+  # andere: der Anmeldemanager sucht eine .desktop-Datei dieses
+  # Namens, und findet er sie nicht, nimmt er wortlos die einzige, die
+  # da ist. Bis 0.3.1 stand hier plasmax11, auf dem Gemeinderechner
+  # gab es keine solche Sitzung, und der Rechner lief unter Wayland --
+  # waehrend die Konfiguration das Gegenteil behauptete und der
+  # Systemcheck gruen meldete.
   #
-  # Hier wird nur nachgesehen und gesagt, was ist. Am Anmeldeverfahren
-  # aendert diese Fassung nichts: welche Sitzung laufen soll, ist eine
-  # Entscheidung und kein Versehen.
-  X11_DA=nein
-  for ordner in /usr/share/xsessions /usr/local/share/xsessions; do
-    [ -f "$ordner/plasmax11.desktop" ] && X11_DA=ja
+  # Gibt es die Sitzung ueberhaupt? Ein Eintrag, der ins Leere zeigt,
+  # sieht in der Konfiguration richtig aus und bewirkt nichts.
+  PLASMA_DA=nein
+  for ordner in /usr/share/wayland-sessions /usr/local/share/wayland-sessions; do
+    [ -f "$ordner/plasma.desktop" ] && PLASMA_DA=ja
   done
-  if [ "$X11_DA" = nein ]; then
-    warn "Eine Sitzung plasmax11 gibt es auf diesem Rechner nicht."
+  if [ "$PLASMA_DA" = nein ]; then
+    warn "Eine Sitzung plasma gibt es auf diesem Rechner nicht."
     info "Die Einstellung oben zeigt damit ins Leere -- der"
-    info "Anmeldemanager nimmt die Sitzung, die er hat (Wayland)."
-    info "Fehlt das Paket (Arch: plasma-x11-session), nachinstallieren"
-    info "-- oder bei Wayland bleiben und den Ton nachmessen."
-    info "Diese Einrichtung aendert daran nichts."
+    info "Anmeldemanager nimmt die Sitzung, die er hat."
+    info "Nachsehen:  ls /usr/share/wayland-sessions /usr/share/xsessions"
   fi
 
   # Und was laeuft gerade? Aus loginctl, nicht aus XDG_SESSION_TYPE:
@@ -243,13 +254,14 @@ Relogin=false"
     done
   fi
   if [ -n "$LAEUFT" ]; then
-    if [ "$LAEUFT" = x11 ]; then
-      gut "Es laeuft gerade eine X11-Sitzung"
+    if [ "$LAEUFT" = wayland ]; then
+      gut "Es laeuft gerade eine Wayland-Sitzung"
     else
-      warn "Es laeuft gerade eine $LAEUFT-Sitzung, geprueft ist X11."
-      info "Der Tonweg ist unter Wayland nicht gemessen -- er kann"
-      info "laufen, nur weiss es niemand. Selbsttest gibt Auskunft:"
-      info "  python3 selbsttest.py"
+      warn "Es laeuft gerade eine $LAEUFT-Sitzung, eingestellt ist Wayland."
+      info "Kein Fehler -- unter X11 laeuft Devarenu ebenfalls. Nach dem"
+      info "naechsten Neustart sollte es Wayland sein; wenn nicht, regelt"
+      info "eine andere Datei die Anmeldung. Nachsehen:"
+      info "  ls /etc/plasmalogin.conf.d /etc/sddm.conf.d"
     fi
   fi
 fi

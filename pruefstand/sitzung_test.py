@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Merkt der Systemcheck, dass Wayland laeuft, obwohl X11 dasteht?
+"""Merkt der Systemcheck, wenn Eingestelltes und Laufendes auseinandergehen?
 
     python pruefstand/sitzung_test.py
 
@@ -9,6 +9,10 @@ Session=plasmax11, der Systemcheck meldete gruen, und Plasma lief
 unter Wayland. Geprueft wurde bis 0.3.1 nur, was EINGESTELLT ist --
 nicht, was laeuft. Eine Auskunft, die nur die eigene Konfiguration
 liest, bestaetigt den Wunsch und nicht den Zustand.
+
+Seit 0.3.2 ist Wayland der eingestellte und gemessene Normalfall. Die
+Frage ist damit nicht mehr "laeuft X11?", sondern "stimmt das
+Eingestellte mit dem Laufenden ueberein?".
 
 Alles hier laeuft gegen Wegwerfordner. Die Faelle, um die es geht,
 lassen sich auf einem laufenden Rechner nicht herstellen -- und was
@@ -41,7 +45,7 @@ def titel(t):
     print(f"\n\033[1m== {t}\033[0m")
 
 
-def befunde_fuer(inhalt, laeuft, x11_da=False):
+def befunde_fuer(inhalt, laeuft, x11_da=False, wayland_da=False):
     """Fuehrt _autologin gegen einen erfundenen Rechner aus.
 
     Zurueck kommen nur die Kennungen -- der Wortlaut der Meldung darf
@@ -52,9 +56,13 @@ def befunde_fuer(inhalt, laeuft, x11_da=False):
         alt_lauf = systemcheck.laufende_sitzung
         alt_datei = systemcheck.sitzungsdatei
         systemcheck.laufende_sitzung = lambda: laeuft
-        systemcheck.sitzungsdatei = (
-            lambda name: "/usr/share/xsessions/plasmax11.desktop"
-            if (x11_da and name == "plasmax11") else "")
+        def datei(name):
+            if x11_da and name == "plasmax11":
+                return "/usr/share/xsessions/plasmax11.desktop"
+            if wayland_da and name == "plasma":
+                return "/usr/share/wayland-sessions/plasma.desktop"
+            return ""
+        systemcheck.sitzungsdatei = datei
         try:
             gesammelt = []
             systemcheck._autologin(gesammelt, [ordner])
@@ -68,38 +76,42 @@ X11 = "[Autologin]\nUser=gemeinde\nSession=plasmax11\nRelogin=false\n"
 WAY = "[Autologin]\nUser=gemeinde\nSession=plasma\nRelogin=false\n"
 OHNE = "[Autologin]\nUser=gemeinde\nRelogin=false\n"
 
-titel("1) Der Fall vom Gemeinderechner")
+titel("1) Wayland ist der Normalfall")
 
-# Das ist der Grund fuer diesen Pruefstand: eingestellt X11, es laeuft
-# Wayland. Vor 0.3.1 kam hier eine leere Liste zurueck -- gruen.
-pruefe("eingestellt X11, es laeuft Wayland -> gemeldet",
-       ["sitzung_abweichend"], befunde_fuer(X11, "wayland"))
+# Seit 0.3.2 ist Wayland eingestellt und gemessen. Was frueher ein
+# Hinweis war, ist jetzt die erwartete Lage -- und eine Meldung, die
+# bei jedem Lauf erscheint, obwohl alles stimmt, bringt einem nur bei,
+# den Systemcheck zu ueberblaettern.
+pruefe("eingestellt Wayland, es laeuft Wayland -> still",
+       [], befunde_fuer(WAY, "wayland", wayland_da=True))
 
-pruefe("eingestellt X11, es laeuft X11 -> still",
+pruefe("eingestellt X11, es laeuft X11 -> ebenfalls still",
        [], befunde_fuer(X11, "x11", x11_da=True))
 
-titel("2) Die anderen Lagen")
+titel("2) Wenn Eingestelltes und Laufendes auseinandergehen")
 
-pruefe("eingestellt Wayland (heisst \"plasma\") -> gemeldet",
-       ["autologin_wayland"], befunde_fuer(WAY, "wayland"))
+# Der Fall vom Gemeinderechner: in der Anmeldung stand plasmax11, es
+# lief Wayland, und der Systemcheck schwieg. Nicht weil das schlimm
+# waere -- Devarenu laeuft unter beidem --, sondern weil dann niemand
+# weiss, was nach dem naechsten Neustart gilt.
+pruefe("eingestellt X11, es laeuft Wayland -> gemeldet",
+       ["sitzung_abweichend"], befunde_fuer(X11, "wayland", x11_da=True))
 
-pruefe("keine Sitzung eingetragen, Wayland laeuft",
-       ["autologin_wayland"], befunde_fuer(OHNE, "wayland"))
+pruefe("eingestellt Wayland, es laeuft X11 -> auch gemeldet",
+       ["sitzung_abweichend"], befunde_fuer(WAY, "x11", wayland_da=True))
 
-pruefe("keine Sitzung eingetragen, X11 laeuft -> still",
-       [], befunde_fuer(OHNE, "x11"))
+pruefe("keine Sitzung eingetragen -> nichts zu vergleichen",
+       [], befunde_fuer(OHNE, "wayland"))
 
-# Kein loginctl, ein Rechner ohne systemd, ein Dienst ohne Auskunft:
-# dann ist die laufende Sitzung unbekannt. Unbekannt ist kein Befund.
 pruefe("laufende Sitzung unbekannt -> keine Behauptung",
-       [], befunde_fuer(X11, ""))
+       [], befunde_fuer(X11, "", x11_da=True))
 
 pruefe("gar keine Anmeldung eingerichtet",
        ["autologin"], befunde_fuer("[Autologin]\nRelogin=false\n", "x11"))
 
 titel("3) Die Ursache steht in der Meldung")
 
-# Fehlt plasmax11.desktop, zeigt die Einstellung ins Leere. Das ist
+# Fehlt die .desktop-Datei, zeigt die Einstellung ins Leere. Das ist
 # die eigentliche Auskunft -- ohne sie sucht jemand eine Stunde in
 # einer Konfiguration, die richtig dasteht.
 with tempfile.TemporaryDirectory() as o:
@@ -116,7 +128,8 @@ with tempfile.TemporaryDirectory() as o:
         systemcheck.laufende_sitzung = alt_lauf
         systemcheck.sitzungsdatei = alt_datei
 pruefe("fehlende Sitzungsdatei wird benannt", True, "gibt es" in text)
-pruefe("das Paket wird genannt", True, "plasma-x11-session" in text)
+pruefe("und es wird gesagt, wo man nachsieht", True,
+       "wayland-sessions" in text)
 
 titel("4) Die laufende Sitzung lesen")
 

@@ -1,0 +1,28 @@
+# Sieht nach, ob gerade Wartungsfenster ist.
+#
+# Diese Datei ist eine Vorlage. dienst.sh setzt den Platzhalter und
+# legt das Ergebnis in /etc/systemd/system/devarenu-fenster.service ab.
+#
+# Ist in netz.json kein Fenster eingeschaltet -- die Vorgabe --, endet
+# der Lauf nach Millisekunden und sagt nichts. Deshalb darf der Timer
+# daneben ruhig alle fuenf Minuten ticken.
+
+[Unit]
+Description=Devarenu, Wartungsfenster pruefen
+Documentation=https://github.com/Auroramomo/Devarenu
+# Ohne NetworkManager gibt es nichts zu verbinden.
+After=NetworkManager.service
+
+[Service]
+Type=oneshot
+# Ueber /bin/bash und nicht direkt: das Ausfuehrungsrecht geht
+# verloren, sobald der Ordner ueber einen FAT-Stick oder als ZIP
+# kopiert wird. Naeheres in devarenu-update.service.vorlage.
+ExecStart=/bin/bash @ORDNER@/wartungsfenster.sh --pruefen
+
+# Der Lauf fragt den Dienst, ob gerade uebersetzt wird (5 s), und
+# schaltet im Zweifel das WLAN. Mehr als eine Minute braucht das nie.
+TimeoutStartSec=120
+
+StandardOutput=journal
+StandardError=journal
