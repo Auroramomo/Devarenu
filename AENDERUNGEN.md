@@ -6,6 +6,62 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.3.4 — der Auszug gehört root, und das Update sah nicht hinein
+
+*28.09.2026. Eine Fassung für genau einen Fehler — und für die
+Fehlerart dahinter.*
+
+### Für alle
+
+0.3.3 ließ sich nicht einspielen. Das Update brach ab mit „v0.3.3
+bringt keine aktualisierung.sh mit" und änderte **nichts** — der
+Rechner blieb heil auf 0.3.2. Die Datei lag sehr wohl im Tag; das
+Update durfte nur nicht hinsehen.
+
+### Für Techniker
+
+`aktualisieren.sh` legt den Auszug als `root` mit `700` an — mit
+gutem Grund: darin liegt Code, der gleich ausgeführt wird, und
+zwischen Prüfen und Ausführen soll ihn niemand tauschen können.
+Zwei Zeilen weiter prüfte ein blankes `[ -f "$AUSZUG/…" ]`, ob die
+Logik darin liegt. Das lief als Dienstbenutzer und fand nichts.
+
+**„Nichts gefunden" und „darf nicht hineinsehen" sehen gleich aus.**
+Deshalb zeigte die Meldung in die falsche Richtung — man sucht im
+Tag statt in den Rechten. Jetzt `als_wurzel test -f`.
+
+**Dieselbe Fehlerart ein zweites Mal, an anderer Stelle.** Die
+Sicherung gehörte ebenfalls `root` mit `700`, und `gesundheit.sh
+--vorher` schreibt seine Grundlinie hinein — als Dienstbenutzer. Der
+Schreibversuch scheiterte still (der Aufrufer hängt `|| true` an).
+Ohne Grundlinie zählt hinterher **jeder** vorhandene Befund als neu,
+und ein tadelloses Update wäre zurückgerollt worden. Das betraf auch
+den Stick-Weg, seit es die Sicherung gibt.
+
+Die Sicherung gehört jetzt dem Dienstbenutzer. Sie enthält eine Kopie
+von `zustand.json` samt WLAN-Passwort — aber das Original gehört ihm
+ohnehin, mit denselben `600`. Der Wurzel zu geben schützte nichts und
+kostete die Grundlinie. Der Auszug bleibt `root`-`700`: dort liegt
+ausführbarer Code, das ist etwas anderes.
+
+**Die Fehlerart steht jetzt im Prüfstand**, nicht nur die zwei Fälle.
+`pruefstand/rechtewege_test.py` liest die Skripte: wo ein Pfad auf
+`700` oder `root:root` gesetzt wird, muss jeder spätere Zugriff
+darauf durch `als_wurzel` oder `sudo` gehen. Ob ein Skript selbst
+Wurzelrechte hat, sagt es an seinen Hilfsfunktionen — wer
+`als_wurzel` definiert, muss fragen und hat also keine; wer
+`als_benutzer` definiert, ist die Wurzel und steigt herab.
+
+Dazu ein Laufzeitfall in `online_test.sh` mit einer `sudo`-Attrappe,
+die Rechte wirklich simuliert: was durch sie läuft, darf in den
+Ordner sehen, was daran vorbeigeht, nicht. **Und die `id`-Attrappe
+musste dafür weg** — sie meldet `id -u` als `0`, `als_wurzel` nimmt
+dann den Wurzel-Zweig, ruft `sudo` nie auf, und der Ordner gehört dem
+Prüfbenutzer. Genau so ist der Fehler durch alle bisherigen Läufe
+gekommen. Beide Fälle wurden gegen den alten Code geprüft: rot.
+
+---
+
 ## 0.3.3 — der Rechner hält sich selbst auf Stand
 
 *28.09.2026.*

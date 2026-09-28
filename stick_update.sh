@@ -655,6 +655,13 @@ einspielen() {
     [ -f "$ORDNER/$d" ] && cp -a "$ORDNER/$d" "$sicherung/$d"
   done
   chmod -R go-rwx "$sicherung" 2>/dev/null || true
+  # Dem Dienstbenutzer, nicht der Wurzel: gleich darunter schreibt
+  # gesundheit.sh --vorher als $BENUTZER seine Grundlinie hierher.
+  # In einen root-700-Ordner kann er das nicht -- die Grundlinie
+  # fehlte, und hinterher galt jeder vorhandene Befund als neu.
+  # Die Kopie von zustand.json ist dabei nichts Neues: das Original
+  # gehoert ihm ohnehin, mit denselben 600.
+  chown -R "$BENUTZER" "$sicherung" 2>/dev/null || true
   gut "Stand gesichert: Units, zustand.json, netz.json"
 
   # Welche Fehler gab es SCHON? Ein Rechner, bei dem vorher etwas im

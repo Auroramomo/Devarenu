@@ -2,7 +2,11 @@
 
 Was sich für Gemeinde und Pult geändert hat. Ausführlich: `AENDERUNGEN.md`.
 
-**0.3.3 — 28.09.2026**
+**0.3.3 und 0.3.4 — 28.09.2026**
+
+*0.3.3 ließ sich nicht einspielen — das Update legte einen Ordner an,
+in den es danach selbst nicht hineinsehen durfte. Am Rechner änderte
+sich dabei nichts. 0.3.4 behebt das.*
 
 - Der Rechner kann sich donnerstags **von selbst aktualisieren** und
   meldet aufs Handy, was er getan hat. Geht etwas schief, holt er den
@@ -12,8 +16,8 @@ Was sich für Gemeinde und Pult geändert hat. Ausführlich: `AENDERUNGEN.md`.
 - Spricht jemand eine andere Sprache als eingestellt, warnt das Pult.
 - Ein **Testprotokoll** zeigt, wo die Kette kippt. Nur mit
   Einwilligung, nur am Gemeinde-PC, nach sieben Tagen gelöscht.
-- Fehlerberichte gehen von selbst aufs Handy, statt am Pult liegen
-  zu bleiben. Muss eingeschaltet werden.
+- Fehlerberichte gehen von selbst aufs Handy. Muss eingeschaltet
+  werden.
 - „Mobile Daten ausschalten" ist aus der Anleitung verschwunden.
 
 **0.3.2 — 27.09.2026**

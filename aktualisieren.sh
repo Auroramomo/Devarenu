@@ -361,7 +361,17 @@ if ! als_benutzer git archive "$SHA" | als_wurzel tar -x -C "$AUSZUG"; then
   als_wurzel rm -rf "$AUSZUG"
   exit 1
 fi
-if [ ! -f "$AUSZUG/aktualisierung.sh" ]; then
+# als_wurzel test und NICHT [ -f ].
+#
+# $AUSZUG gehoert root und hat 700 -- das ist Absicht: zwischen
+# Pruefen und Ausfuehren soll niemand die Dateien tauschen koennen.
+# Genau deshalb sieht der Dienstbenutzer nicht hinein. Ein blankes
+# [ -f ] lief als $BENUTZER, fand nichts und meldete
+#   "v0.3.3 bringt keine aktualisierung.sh mit"
+# ueber ein Tag, in dem sie sehr wohl lag. Das Update brach ab, ohne
+# etwas zu aendern -- der Rechner blieb heil, aber auf der alten
+# Fassung, und die Meldung zeigte in die falsche Richtung.
+if ! als_wurzel test -f "$AUSZUG/aktualisierung.sh"; then
   fehl "v$ZIEL bringt keine aktualisierung.sh mit."
   echo "   Diese Fassung laesst sich mit diesem Weg nicht einspielen."
   als_wurzel rm -rf "$AUSZUG"
@@ -384,6 +394,20 @@ for d in zustand.json netz.json; do
   [ -f "$ORDNER/$d" ] && als_wurzel cp -a "$ORDNER/$d" "$SICHERUNG/$d"
 done
 als_wurzel chmod -R go-rwx "$SICHERUNG" 2>/dev/null || true
+# Sie gehoert dem DIENSTBENUTZER, nicht der Wurzel.
+#
+# In ihr liegt eine Kopie von zustand.json samt WLAN-Passwort -- aber
+# das Original gehoert ohnehin ihm, mit denselben 600. Die Kopie der
+# Wurzel zu geben schuetzt also nichts und kostet etwas: gleich
+# darunter schreibt gesundheit.sh --vorher seine Grundlinie hierher,
+# und das laeuft als $BENUTZER. In einen root-700-Ordner kann er
+# nicht schreiben. Die Grundlinie fehlte damit, jeder vorhandene
+# Befund galt hinterher als neu, und ein tadelloses Update waere
+# zurueckgerollt worden.
+#
+# Der Auszug unter $AUSZUG bleibt root-700. Dort liegt Code, der
+# gleich ausgefuehrt wird -- das ist etwas anderes.
+als_wurzel chown -R "$BENUTZER" "$SICHERUNG" 2>/dev/null || true
 gut "Stand gesichert: Units, zustand.json, netz.json"
 
 # Welche Fehler gab es SCHON? Ohne diese Grundlinie zaehlt der

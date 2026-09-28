@@ -368,6 +368,51 @@ pruefe "(3) die Arbeit ist noch da" "ja" \
 pruefe "(3) und es wird erklaert" "ja" \
   "$(printf '%s' "$AUS9C" | grep -q 'kein Zweig zeigt' && echo ja || echo nein)"
 
+titel "8c) Der Auszug gehoert root -- und wird trotzdem gefunden"
+# Der Fehler vom 28.09.: aktualisieren.sh legt $AUSZUG als root mit
+# 700 an und prueft gleich darauf mit einem blanken [ -f ], ob
+# aktualisierung.sh darin liegt. Als Dienstbenutzer sieht es nichts
+# und meldet "v0.3.3 bringt keine aktualisierung.sh mit" -- ueber ein
+# Tag, in dem sie sehr wohl lag. Das Update brach ab, ohne etwas zu
+# aendern.
+#
+# Nachgestellt mit einer sudo-Attrappe, die Rechte wirklich
+# simuliert: was durch sie laeuft, darf in den Ordner sehen, was
+# daran vorbeigeht, nicht. Ohne Wurzelrechte geht es anders nicht --
+# und genau deshalb ist der Fehler durch alle bisherigen Laeufe
+# gekommen.
+R8C="$BASIS/r8c"; neuer_rechner "$R8C"
+D8C="$BASIS/d8c"
+STUBS8C="$BASIS/stubs8c"; mkdir -p "$STUBS8C"
+cat > "$STUBS8C/sudo" <<STUB
+#!/bin/sh
+# Simuliert Wurzelrechte fuer genau einen Ordner: aufmachen,
+# ausfuehren, wieder zumachen.
+A="$D8C/logik-0.9.1"
+[ -d "\$A" ] && chmod 700 "\$A"
+"\$@"; rc=\$?
+[ -d "\$A" ] && chmod 000 "\$A"
+exit \$rc
+STUB
+# Die id-Attrappe muss hier WEG. Sie meldet "id -u" als 0, und
+# damit nimmt als_wurzel seinen Wurzel-Zweig und ruft sudo nie auf --
+# der Ordner gehoerte dann dem Pruefbenutzer und waere lesbar. Genau
+# so ist der Fehler durch alle bisherigen Laeufe gekommen.
+cat > "$STUBS8C/id" <<'STUBID'
+#!/bin/sh
+exec /usr/bin/id "$@"
+STUBID
+chmod +x "$STUBS8C/sudo" "$STUBS8C/id"
+
+AUS8C="$(cd "$R8C" && PATH="$STUBS8C:$PATH" DEVARENU_DATEN="$D8C" \
+         STUB_LOG="$BASIS/s8c.log" bash ./aktualisieren.sh 2>&1)" || true
+chmod -R u+rwX "$D8C" 2>/dev/null || true
+
+pruefe "die Logik wird im root-Ordner gefunden" "nein" \
+  "$(printf '%s' "$AUS8C" | grep -q 'bringt keine aktualisierung.sh mit' \
+     && echo ja || echo nein)"
+pruefe "und das Update laeuft durch" "0.9.1" "$(cat "$R8C/VERSION")"
+
 titel "9) Die drei Unit-Listen laufen nicht auseinander"
 # Kern, versionierte Logik und Online-Weg fuehren dieselbe Liste
 # dreimal -- der Kern darf von keiner versionierten Datei abhaengen.

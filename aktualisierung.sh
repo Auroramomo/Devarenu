@@ -124,6 +124,9 @@ if [ "$SICHERUNG_SELBST" = ja ]; then
     [ -f "$ORDNER/$d" ] && cp -a "$ORDNER/$d" "$SICHERUNG/$d"
   done
   chmod -R go-rwx "$SICHERUNG" 2>/dev/null || true
+  # Dem Dienstbenutzer: gesundheit.sh laeuft als er und liest hier
+  # seine Grundlinie. Siehe stick_update.sh.
+  chown -R "$BENUTZER" "$SICHERUNG" 2>/dev/null || true
   gut "Units, zustand.json und netz.json gesichert"
   info "Ein Rueckweg von Hand findet dort alles, was er braucht."
 fi
