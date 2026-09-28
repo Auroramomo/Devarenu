@@ -96,6 +96,22 @@ SPERRE="$ABLAGE/sperre"
 
 EINHAENGEPUNKT=/run/devarenu-stick
 
+# Welche Units gesichert und im Rueckweg zurueckgeholt werden.
+#
+# Bis 0.3.2 standen hier nur vier, und die drei des Wartungsfensters
+# fehlten -- ein Rueckfall haette ein halb zurueckgerolltes Fenster
+# hinterlassen: neue Timer, alter Code. Aufgefallen ist es erst, als
+# fuer den Online-Weg dasselbe gebraucht wurde.
+#
+# Dieselbe Liste steht in aktualisierung.sh. Zwei Kopien, weil der
+# Kern von keiner versionierten Datei abhaengen darf -- er ist der
+# Rettungsweg. Gegen das Auseinanderlaufen vergleicht
+# pruefstand/online_test.sh die beiden.
+UNITS_GESICHERT="devarenu.service devarenu-stick@.service \
+devarenu-update.service devarenu-update.timer \
+devarenu-fenster.service devarenu-fenster.timer \
+devarenu-fenster-wecker.service"
+
 # Die Kopie der Schluesselliste, gegen die die Signatur geprueft wird.
 # Sie bekommt BEWUSST keinen eigenen Schalter: eine Umgebungsvariable,
 # die bestimmt, welche Schluessel gelten, waere der Hebel, mit dem sich
@@ -140,6 +156,36 @@ nutzlast_rechte() {
   chmod 710 "$DATEN" 2>/dev/null || true
 }
 
+# Ein abgeloester HEAD haelt jedes Update an -- aber nicht immer
+# muss er das. Zeigt ein lokaler Zweig auf GENAU den Commit, auf dem
+# HEAD steht, ist nichts verloren: dann wird nur die Referenz
+# umgehaengt, keine Datei angefasst, und es geht weiter.
+#
+# So stand der Gemeinderechner am 27.09.: HEAD auf tags/v0.2.11^0,
+# main auf demselben Commit. Kein Weg im Repo hinterlaesst das --
+# es muss von Hand entstanden sein --, und der Updater brach ab,
+# obwohl nichts fehlte.
+#
+# Zeigt KEIN Zweig darauf, bleibt es beim Abbruch. Dann liegt dort
+# Arbeit, die ein Anhaengen verlieren wuerde.
+#
+# Rueckgaengig mit:  git checkout --detach
+wieder_anhaengen() {
+  local zweige haupt
+  zweige="$(als_benutzer git for-each-ref --format='%(refname:short)' \
+            refs/heads --points-at HEAD 2>/dev/null)"
+  [ -n "$zweige" ] || return 1
+  if printf '%s\n' "$zweige" | grep -qx main; then
+    haupt=main
+  elif [ "$(printf '%s\n' "$zweige" | wc -l)" = 1 ]; then
+    haupt="$zweige"
+  else
+    return 1
+  fi
+  als_benutzer git symbolic-ref HEAD "refs/heads/$haupt" || return 1
+  return 0
+}
+
 als_benutzer() {
   if [ "$(id -u)" = "0" ] && [ "$BENUTZER" != "root" ]; then
     runuser -u "$BENUTZER" -- "$@"
@@ -162,7 +208,7 @@ als_benutzer() {
 # das JSON ohne Maskierung auskommt. Wer neue Meldungen ergaenzt, haelt
 # sich daran.
 stand_schreiben() {
-  local lage="$1" version="$2" text="$3" vorher="${4:-}" stimmen="${5:-}"
+  local lage="$1" version="$2" text="$3" vorher="${4:-}"
   mkdir -p "$ABLAGE"
 
   # Steht dasselbe schon drin, nicht noch einmal schreiben und vor allem
@@ -179,7 +225,6 @@ stand_schreiben() {
   "lage": "$lage",
   "version": "$version",
   "vorher": "$vorher",
-  "stimmen": "$stimmen",
   "text": "$text",
   "zeit": "$(date '+%Y-%m-%d %H:%M:%S')"
 }
@@ -602,8 +647,7 @@ einspielen() {
   local sicherung="$DATEN/vorher-$version"
   rm -rf "$sicherung"; mkdir -p "$sicherung/units"
   chmod 700 "$sicherung"
-  for u in devarenu.service devarenu-stick@.service \
-           devarenu-update.service devarenu-update.timer; do
+  for u in $UNITS_GESICHERT; do
     [ -f "/etc/systemd/system/$u" ] \
       && cp -a "/etc/systemd/system/$u" "$sicherung/units/$u"
   done
@@ -623,10 +667,18 @@ einspielen() {
   # kein Gegenstueck mehr. Das Vorspulen macht die neue Logik.
   local zweig; zweig="$(als_benutzer git rev-parse --abbrev-ref HEAD)"
   if [ "$zweig" = "HEAD" ]; then
-    fehl "HEAD ist abgeloest. Erst wieder auf einen Zweig stellen."
-    stand_schreiben fehlgeschlagen "$version" \
-      "Der Ordner steht nicht auf einem Zweig. Das Update wurde nicht eingespielt."
-    exit 1
+    if wieder_anhaengen; then
+      warn "HEAD war abgeloest und wurde wieder angehaengt."
+      info "Keine Datei geaendert, nur die Referenz. Zurueck mit:"
+      info "  git checkout --detach"
+    else
+      fehl "HEAD ist abgeloest, und kein Zweig zeigt auf diesen Stand."
+      info "Anhaengen wuerde Arbeit verlieren. Von Hand nachsehen:"
+      info "  git log --oneline -3   und   git branch -a"
+      stand_schreiben fehlgeschlagen "$version" \
+        "Der Ordner steht nicht auf einem Zweig. Das Update wurde nicht eingespielt."
+      exit 1
+    fi
   fi
 
   # ------------------------------------------- die neue Logik holen
@@ -741,38 +793,6 @@ zustand_pruefsumme() {
                  "$(stat -c %a zustand.json)"
 }
 
-# Fehlende Stimmen fuer die eingestellten Sprachen, als Aufzaehlung.
-#
-# RUFT DERZEIT NIEMAND AUF. Bis 0.2.11 tat es einspielen() hier im
-# Kern; seit 0.3.0 ist der Aufruf verschwunden, ohne dass es auffiel,
-# und damit fehlt am Pult die Zeile "Ohne Stimme, laufen als
-# Untertitel". Die Vorpruefung des Sprachmodells hatte dasselbe
-# Schicksal und steht seit 0.3.2 in aktualisierung.sh, wo sie
-# hingehoert -- gefragt wird das NEUE config.py. Diese hier folgt in
-# 0.3.3 auf demselben Weg.
-#
-# Anders als das Sprachmodell ist das KEIN Abbruchgrund: eine Sprache
-# ohne Stimme laeuft als reiner Untertitel weiter, das ist ein Mangel und
-# kein Ausfall. Gesagt werden muss es trotzdem, sonst sucht am Sabbat
-# jemand den Fehler beim Ton.
-stimmen_fehlen() {
-  als_benutzer "$PY" - <<'PYCODE' 2>/dev/null
-import config, zustand
-z = zustand.laden()
-sprachen = [z.get("quelle", config.AUSGANGSSPRACHE)] + list(
-    z.get("ziele", config.ZIELSPRACHEN))
-fehlt = []
-for sp in dict.fromkeys(sprachen):
-    pfad = config.STIMMEN.get(sp)
-    if not pfad:
-        continue
-    name = pfad.rsplit("/", 1)[-1]
-    if not (config.BASIS / "voices" / f"{name}.onnx").exists():
-        fehlt.append(sp)
-print(" ".join(fehlt))
-PYCODE
-}
-
 # Zweites Argument gesetzt heisst: auch wieder starten. Ohne wurde noch
 # nicht neu gestartet, dann laeuft der alte Dienst unberuehrt weiter.
 # Der Rueckweg gehoert in den Kern, nicht in die Update-Logik: wenn die
@@ -806,8 +826,7 @@ zurueck() {
     fi
 
     local u geaendert=nein
-    for u in devarenu.service devarenu-stick@.service \
-             devarenu-update.service devarenu-update.timer; do
+    for u in $UNITS_GESICHERT; do
       [ -f "$sicherung/units/$u" ] || continue
       if ! cmp -s "$sicherung/units/$u" "/etc/systemd/system/$u"; then
         cp -a "$sicherung/units/$u" "/etc/systemd/system/$u"

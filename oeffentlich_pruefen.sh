@@ -171,6 +171,18 @@ suchen "keine Passwoerter im Klartext" \
   '(passwor[dt]|passwd|secret|token|api[_-]?key)[[:space:]]*[:=][[:space:]]*["'"'"'][^"'"'"']{4,}' \
   "Sieht nach einem hinterlegten Zugang aus."
 
+# Der Rueckmeldekanal aus dem Wartungsfenster. Bei ntfy IST die
+# Themenadresse das ganze Geheimnis -- es gibt kein Passwort daneben,
+# wer sie kennt, liest mit. Sie gehoert in meldung.json (600, nicht
+# verfolgt); rutscht sie doch einmal in eine verfolgte Datei, soll es
+# hier auffallen und nicht erst im Netz.
+#
+# Die Beispiele in Kommentaren tragen absichtlich spitze Klammern --
+# ein <lange-zufallszeichen> ist keine Adresse.
+suchen "keine Meldekanaele im Klartext" \
+  'ntfy\.sh/[A-Za-z0-9_-]{6,}' \
+  "Sieht nach einer ntfy-Themenadresse aus. Sie gehoert in meldung.json."
+
 blau "Namen"
 suchen "keine Personennamen ausser den erlaubten" \
   '\b(Gerrit|Gerd|Momo|Wessel)\b' \

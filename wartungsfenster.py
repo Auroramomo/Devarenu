@@ -72,6 +72,27 @@ VORGABE = {
     # ist keine Predigt, sondern ein Tonstrom, den niemand abgestellt
     # hat. Bis hierher wird gewartet, danach nicht mehr.
     "hoechstlaufzeit_hart_h": 36,
+    # Im Fenster von selbst aktualisieren. Vorgabe AUS: ein Rechner,
+    # der sich unbeaufsichtigt neuen Code holt, ist eine Entscheidung
+    # und kein Nebeneffekt des Fensters.
+    #
+    # Es gelten dieselben Regeln wie von Hand -- nur signierte Tags,
+    # nur ueber die geprueufte SHA -- und nie waehrend einer
+    # laufenden Uebersetzung. Scheitert es, holt aktualisieren.sh den
+    # alten Stand zurueck; ohne diesen Rueckweg gaebe es diesen
+    # Schalter nicht.
+    "autoupdate": False,
+    # Nach einem Lauf herunterfahren, auch wenn das Fenster noch
+    # offen waere. Spart Strom und setzt den Wecker sauber -- kostet
+    # aber die Gelegenheit, an diesem Abend noch selbst hineinzusehen.
+    # Wer sich einloggen will, schaltet es fuer diesen Donnerstag aus.
+    "nach_update_aus": True,
+    # Fehlerberichte im Fenster von selbst abschicken. Vorgabe aus.
+    #
+    # Getrennt vom Autoupdate: man kann Berichte wollen, ohne dass
+    # sich der Rechner unbeaufsichtigt neuen Code holt. Der
+    # umgekehrte Fall waere seltsam, ist aber erlaubt.
+    "berichte_senden": False,
 }
 
 
@@ -102,8 +123,10 @@ def einstellung(netz=None):
     if not isinstance(roh, dict):
         return daten
 
-    if isinstance(roh.get("an"), bool):
-        daten["an"] = roh["an"]
+    for feld in ("an", "autoupdate", "nach_update_aus",
+                 "berichte_senden"):
+        if isinstance(roh.get(feld), bool):
+            daten[feld] = roh[feld]
     for feld in ("profil", "wochentag", "von", "bis"):
         if isinstance(roh.get(feld), str):
             daten[feld] = roh[feld]
@@ -125,6 +148,12 @@ def einstellung(netz=None):
     # Die harte Grenze kann nicht vor der weichen liegen.
     if daten["hoechstlaufzeit_hart_h"] < daten["hoechstlaufzeit_h"]:
         daten["hoechstlaufzeit_hart_h"] = daten["hoechstlaufzeit_h"]
+    # Kein Fenster, kein Autoupdate. Sonst stuende in netz.json ein
+    # "autoupdate": true, das nichts tut, und beim naechsten
+    # Einschalten des Fensters liefe unerwartet ein Update mit.
+    if not daten["an"]:
+        daten["autoupdate"] = False
+        daten["berichte_senden"] = False
     return daten
 
 
@@ -296,6 +325,17 @@ def _ausgeben(e, jetzt):
     print(f"wecker_lesbar={wecker.strftime('%Y-%m-%d %H:%M') if wecker else ''}")
     print(f"hoechstlaufzeit_h={e['hoechstlaufzeit_h']}")
     print(f"hoechstlaufzeit_hart_h={e['hoechstlaufzeit_hart_h']}")
+    print(f"autoupdate={'ja' if e['autoupdate'] else 'nein'}")
+    print(f"berichte_senden={'ja' if e['berichte_senden'] else 'nein'}")
+    print(f"nach_update_aus={'ja' if e['nach_update_aus'] else 'nein'}")
+    # Die Kennung des laufenden Fensters -- daran erkennt
+    # wartungsfenster.sh, ob in DIESEM Fenster schon ein Lauf war.
+    # Ohne sie liefe der Updater alle fuenf Minuten neu.
+    if im_fenster(jetzt, e):
+        beginn_heute, _ = _an_tag(jetzt, e, 0)
+        print(f"fensterkennung={beginn_heute.strftime('%Y-%m-%dT%H:%M')}")
+    else:
+        print("fensterkennung=")
     stunden = laufzeit_stunden()
     print(f"laufzeit_h={stunden:.2f}" if stunden is not None else "laufzeit_h=")
 
@@ -312,6 +352,34 @@ if __name__ == "__main__":
         sys.exit(1 if probleme else 0)
     if "--aus" in sys.argv:
         abschalten()
+        sys.exit(0)
+    if "--schalter" in sys.argv:
+        # --schalter autoupdate=ja  /  nach_update_aus=nein
+        werte = {}
+        for a in sys.argv[1:]:
+            if "=" not in a:
+                continue
+            k, v = a.split("=", 1)
+            if k not in ("autoupdate", "nach_update_aus",
+                         "berichte_senden"):
+                print(f"Unbekannter Schalter: {k}", file=sys.stderr)
+                sys.exit(1)
+            if v not in ("ja", "nein"):
+                print(f"{k}: ja oder nein, nicht {v!r}", file=sys.stderr)
+                sys.exit(1)
+            werte[k] = (v == "ja")
+        netz, _ = netzzustand.laden()
+        block = dict(VORGABE)
+        block.update(netz.get("wartungsfenster") or {})
+        if (werte.get("autoupdate") or werte.get("berichte_senden")) \
+                and not block.get("an"):
+            print("Ohne eingeschaltetes Fenster kein Autoupdate. Erst:\n"
+                  "  bash wartungsfenster.sh --einschalten ...",
+                  file=sys.stderr)
+            sys.exit(1)
+        block.update(werte)
+        netz["wartungsfenster"] = block
+        netzzustand.speichern(netz)
         sys.exit(0)
     e = einstellung()
     jetzt = datetime.now()

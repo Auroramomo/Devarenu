@@ -205,7 +205,17 @@ blau "Systempakete"
 # Systempakete werden uebersprungen". Damit fehlte dnsmasq, also genau
 # das Paket, ohne das sich das Saalnetz vor Ort nicht einrichten laesst.
 SYSTEMPAKETE_APT="dnsmasq dnsmasq-base"
-SYSTEMPAKETE_PACMAN="dnsmasq"
+# plasma-x11-session liegt mit im Vorrat, ohne dass es jemand
+# benutzt. Der Grund: unter Wayland fragt KDE nach jedem Neustart
+# wieder, welcher Bildschirm freigegeben wird -- auch wenn RustDesk
+# einen Wiederherstellungsschluessel gespeichert hat. Wer den
+# Rechner deshalb einmal auf X11 stellen muss, braucht dieses Paket,
+# und vor Ort gibt es keine Leitung, ueber die es nachkommen
+# koennte. Ein paar Megabyte gegen eine Fahrt.
+#
+# Umgestellt wird deshalb NICHT aus der Ferne: kommt der Rechner in
+# der neuen Sitzung nicht hoch, hilft bis zur naechsten Fahrt nichts.
+SYSTEMPAKETE_PACMAN="dnsmasq plasma-x11-session"
 if command -v pacman >/dev/null && ! command -v apt-get >/dev/null; then
   # pacman -Sw laedt in einen Zwischenspeicher, ohne zu installieren.
   # --cachedir zeigt in den Vorrat; ohne das landet es unter

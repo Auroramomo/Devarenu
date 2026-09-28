@@ -231,6 +231,60 @@ with tempfile.TemporaryDirectory() as ordner:
     finally:
         netzzustand.DATEI = alt_datei
 
+titel("6) Bei ausgeschaltetem Fenster bleibt der Wecker unangetastet")
+
+# Beobachtung vom 27.09.: nach einem dienst.sh --fenster stand der
+# BIOS-Wecker auf 15:59:59 statt vorher 16:00:00. Aus dieser Fassung
+# kann das nicht kommen -- aber "kann nicht" ist keine Pruefung.
+# Hier zaehlt eine Attrappe jeden rtcwake-Aufruf.
+import subprocess                                          # noqa: E402
+import os                                                  # noqa: E402
+
+with tempfile.TemporaryDirectory() as o:
+    ordner = _P(o)
+    for datei in ("wartungsfenster.sh", "wartungsfenster.py",
+                  "netzzustand.py", "config.py", "meldung.sh"):
+        (ordner / datei).write_bytes((WURZEL / datei).read_bytes())
+    (ordner / ".venv" / "bin").mkdir(parents=True)
+    (ordner / ".venv" / "bin" / "python").symlink_to(
+        WURZEL / ".venv" / "bin" / "python")
+    protokoll = ordner / "rtcwake.log"
+    attrappe = ordner / "rtcwake"
+    attrappe.write_text(
+        f'#!/bin/sh\necho "rtcwake $*" >> "{protokoll}"\n', encoding="utf-8")
+    attrappe.chmod(0o755)
+    leer = ordner / "nichts"
+    leer.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    leer.chmod(0o755)
+
+    def lauf(*args):
+        subprocess.run(["bash", "wartungsfenster.sh", *args],
+                       cwd=str(ordner), capture_output=True,
+                       env={**os.environ,
+                            "DEVARENU_RTCWAKE": str(attrappe),
+                            "DEVARENU_NMCLI": str(leer),
+                            "DEVARENU_POWEROFF": str(leer),
+                            "DEVARENU_UEBERSETZT_TEST": "nein"})
+
+    # Fenster aus (gar keine netz.json): drei Wege, kein Aufruf.
+    for weg in ("--zeigen", "--wecker", "--pruefen"):
+        lauf(weg)
+    pruefe("aus: rtcwake wird gar nicht aufgerufen", False, protokoll.exists())
+
+    # Und mit eingeschaltetem Fenster sehr wohl -- sonst prueft der
+    # Fall oben nur, dass die Attrappe nicht funktioniert.
+    (ordner / "netz.json").write_text(
+        '{"wartungsfenster": {"an": true, "profil": "P", '
+        '"wochentag": "Do", "von": "18:00", "bis": "22:00"}}',
+        encoding="utf-8")
+    lauf("--wecker")
+    pruefe("an: rtcwake wird aufgerufen", True, protokoll.exists())
+    zeilen = protokoll.read_text(encoding="utf-8").strip().splitlines()
+    pruefe("und zwar absolut, mit -t", True,
+           all(" -t " in z for z in zeilen))
+    pruefe("nie relativ, mit -s", True,
+           not any(" -s " in z for z in zeilen))
+
 print()
 if FEHLER:
     print(f"{ROT}{FEHLER} Fehler.{AUS}")

@@ -553,6 +553,39 @@ LES2="$(cd "$R" && DEVARENU_STICK_ORDNER="$STK" DEVARENU_DATEN="$BASIS/daten13b"
 pruefe "mit dem echten Schluessel geht derselbe Stick durch" "bereit" \
   "$(sed -n 's/.*"lage"[: ]*"\([a-z_]*\)".*/\1/p' "$R/update/stand.json")"
 
+printf '\n\033[1m== 13b) Eine Sprache ohne Stimme wird gemeldet\033[0m\n'
+# Bis 0.2.11 sagte das Pult nach einem Update "Ohne Stimme, laufen
+# als Untertitel: ru". Seit 0.3.0 rief niemand mehr die Funktion auf,
+# die das feststellte -- der Hinweis war ersatzlos weg, und niemand
+# merkte es. Seit 0.3.3 sagt es die Update-Logik selbst.
+#
+# Der zweite Teil ist der eigentliche Grund fuer diesen Fall: eine
+# zustand.json in Fassung 2 druckt beim Laden ihren Umzugshinweis.
+# Landet der in derselben Zeile, steht am Pult
+#   Ohne Stimme, laufen als Untertitel: zustand.json umgezogen: 2->3
+R13B="$BASIS/r13b"; bau_repo "$R13B"
+mkdir -p "$R13B/.venv/bin" "$R13B/voices"
+ln -sf "$(command -v python3)" "$R13B/.venv/bin/python"
+cp "$ECHT/zustand.py" "$R13B/" 2>/dev/null || true
+# Fassung 2: der Umzug laeuft beim Laden mit.
+printf '{"fassung": 2, "quelle": "de", "ziele": ["ru"]}' > "$R13B/zustand.json"
+ALT13B="$(git -C "$R13B" rev-parse HEAD)"
+echo "0.3.3" > "$R13B/VERSION"
+git -C "$R13B" add -A >/dev/null; git -C "$R13B" commit -q -m 0.3.3
+git -C "$R13B" tag v0.3.3
+git -C "$R13B" update-ref refs/stick/v0.3.3 "$(git -C "$R13B" rev-parse v0.3.3)"
+git -C "$R13B" reset -q --hard "$ALT13B"
+
+AUS13B="$(lauf "$R13B" refs/stick/v0.3.3 0.3.3 "$ALT13B" "$BASIS/s13b")" || true
+MELDUNGEN="$(printf '%s\n' "$AUS13B" | sed -n 's/^MELDUNG|//p')"
+
+pruefe "die fehlende Stimme wird gemeldet" "ja" \
+  "$(printf '%s' "$MELDUNGEN" | grep -q 'Ohne Stimme' && echo ja || echo nein)"
+pruefe "und die Sprache steht darin" "ja" \
+  "$(printf '%s' "$MELDUNGEN" | grep -q 'Untertitel: .*ru' && echo ja || echo nein)"
+pruefe "der Umzugshinweis steht NICHT darin" "nein" \
+  "$(printf '%s' "$MELDUNGEN" | grep -q 'umgezogen' && echo ja || echo nein)"
+
 printf '\n\033[1m== 14) Der Dienstkontext: kein HOME, fremder Benutzer, rohe Rechte\033[0m\n'
 # WARUM ES DIESEN FALL GIBT
 #
@@ -656,6 +689,76 @@ STDERR16="$(cd "$R16" && "$ECHT/.venv/bin/python" -c \
 pruefe "stdout bleibt leer" "" "$STDOUT16"
 pruefe "der Hinweis steht auf stderr" "ja" \
   "$(printf '%s' "$STDERR16" | grep -q 'umgezogen: 2->3' && echo ja || echo nein)"
+
+printf '\n\033[1m== 17) Echte Sticks: exFAT und vfat\033[0m\n'
+# Alles bisher lief gegen gewoehnliche Ordner. Der Weg des Helfers
+# geht aber ueber einen echten Stick, und dessen Dateisystem bringt
+# eigene Regeln mit: kein Ausfuehrungsrecht, keine Besitzer, keine
+# Symlinks. Ob der Kern damit zurechtkommt, hat bisher niemand
+# geprueft -- und genau dort ist am 27.09. etwas schiefgegangen.
+#
+# Einhaengen braucht Wurzelrechte. Geprueft wird auf id -u und NICHT
+# auf "sudo -n true": auf einem Arbeitsrechner mit passwortlosem sudo
+# wuerde der Abschnitt sonst von selbst losgehen und dort Abbilder
+# einhaengen. Wer ihn will, ruft den ganzen Lauf mit sudo auf -- das
+# ist dann eine Entscheidung.
+# $EUID und nicht "id -u": in pruefstand/attrappen/ liegt eine
+# id-Attrappe, die dem Updater eine Wurzel vorspielt. Sie steht im
+# PATH dieses Laufs -- und haette diesen Abschnitt auf einem
+# gewoehnlichen Arbeitsrechner losgehen lassen. $EUID kommt aus der
+# Shell und laesst sich nicht ueber den PATH austauschen.
+if [ "${EUID:-1000}" != 0 ]; then
+  printf '   \033[33muebersprungen\033[0m  braucht Wurzelrechte (Einhaengen).\n'
+  printf '                  Ganz laufen lassen mit:\n'
+  printf '                    sudo bash pruefstand/updater_test.sh\n'
+elif ! command -v mkfs.vfat >/dev/null || ! command -v mkfs.exfat >/dev/null; then
+  printf '   \033[33muebersprungen\033[0m  mkfs.vfat oder mkfs.exfat fehlt\n'
+  printf '                  (Arch: dosfstools und exfatprogs)\n'
+else
+  for FS in vfat exfat; do
+    printf '\n   -- %s --\n' "$FS"
+    ABBILD="$BASIS/stick.$FS.img"
+    EINHAENG="$BASIS/einhaeng.$FS"
+    mkdir -p "$EINHAENG"
+    # 64 MiB genuegen: Bundle und upd-dev.txt, mehr braucht der Weg
+    # bis zur Signaturpruefung nicht.
+    dd if=/dev/zero of="$ABBILD" bs=1M count=64 status=none
+    if [ "$FS" = vfat ]; then mkfs.vfat -n DEVSTICK "$ABBILD" >/dev/null
+    else mkfs.exfat -n DEVSTICK "$ABBILD" >/dev/null 2>&1; fi
+
+    if ! mount -o loop,rw "$ABBILD" "$EINHAENG" 2>/dev/null; then
+      printf '   \033[33muebersprungen\033[0m  %s liess sich nicht einhaengen\n' "$FS"
+      rmdir "$EINHAENG" 2>/dev/null || true
+      continue
+    fi
+    cp "$STK/upd-dev.txt" "$STK/devarenu.bundle" "$EINHAENG/"
+    umount "$EINHAENG"
+
+    # Und jetzt so, wie der Kern ihn einhaengt: nur lesbar.
+    mount -o loop,ro,noexec,nosuid,nodev "$ABBILD" "$EINHAENG" 2>/dev/null
+
+    R17="$BASIS/r17-$FS"; rm -rf "$R17"; cp -r "$R" "$R17"
+    D17="$BASIS/daten17-$FS"
+    AUS17="$(cd "$R17" && DEVARENU_STICK_ORDNER="$EINHAENG" \
+             DEVARENU_DATEN="$D17" STUB_FASSUNG=0.2.12 \
+             STUB_LOG="$BASIS/s17.log" \
+             bash "$R17/stick_update.sh" --lesen /dev/attrappe 2>&1)" || true
+    umount "$EINHAENG" 2>/dev/null || true
+    rmdir "$EINHAENG" 2>/dev/null || true
+
+    pruefe "$FS: der Stick wird gelesen" "ja" \
+      "$(printf '%s' "$AUS17" | grep -q 'upd-dev.txt nennt Fassung' \
+         && echo ja || echo nein)"
+    pruefe "$FS: das Bundle kommt auf die Platte" "ja" \
+      "$([ -f "$D17/stick/devarenu.bundle" ] && echo ja || echo nein)"
+    pruefe "$FS: und ist dort fuer die Gruppe lesbar" "640" \
+      "$(stat -c %a "$D17/stick/devarenu.bundle" 2>/dev/null)"
+    pruefe "$FS: die Signatur wird angenommen" "ja" \
+      "$(printf '%s' "$AUS17" | grep -q 'Signatur von v0.3.0 ist gueltig' \
+         && echo ja || echo nein)"
+    rm -rf "$D17" 2>/dev/null || true
+  done
+fi
 
 printf '\n'
 if [ "$FEHLER" = 0 ]; then

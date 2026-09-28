@@ -4,6 +4,7 @@
 #   bash wartungsfenster.sh --zeigen       wie die Lage ist
 #   bash wartungsfenster.sh --einschalten  Fenster einrichten
 #   bash wartungsfenster.sh --ausschalten  Fenster abschalten
+#   bash wartungsfenster.sh --autoupdate ja|nein
 #   bash wartungsfenster.sh --pruefen      was jetzt zu tun ist (Timer)
 #   bash wartungsfenster.sh --wecker       nur den BIOS-Wecker stellen
 #
@@ -55,6 +56,11 @@ feld() { printf '%s\n' "$LAGE" | sed -n "s/^$1=//p"; }
 
 AN="$(feld an)"; PROFIL="$(feld profil)"; IM_FENSTER="$(feld im_fenster)"
 WECKER="$(feld wecker)"; WECKER_LESBAR="$(feld wecker_lesbar)"
+AUTOUPDATE="$(feld autoupdate)"; NACH_UPDATE_AUS="$(feld nach_update_aus)"
+BERICHTE="$(feld berichte_senden)"
+FENSTERKENNUNG="$(feld fensterkennung)"
+ABLAGE="${DEVARENU_DATEN:-/var/lib/devarenu/updates}"
+BENUTZER="$(stat -c %U "$ORDNER" 2>/dev/null || id -un)"
 
 # ------------------------------------------------------------- Wecker
 # Bei jedem Hochfahren und jedem Herunterfahren neu gestellt. "-m no"
@@ -63,7 +69,23 @@ WECKER="$(feld wecker)"; WECKER_LESBAR="$(feld wecker_lesbar)"
 # Hardware-Uhr an genau einer Stelle passiert -- in Python, wo die
 # Sommerzeit bekannt ist.
 wecker_stellen() {
-  [ "$AN" = ja ] || { gut "Fenster ist aus -- kein Wecker"; return 0; }
+  # AUSDRUECKLICH: der Wecker wird NICHT angefasst.
+  #
+  # Am 27.09. stand er nach einem dienst.sh --fenster auf 15:59:59
+  # statt vorher 16:00:00 -- war also neu geschrieben worden. Aus
+  # dieser Fassung kann das nicht kommen: rtcwake wird genau an drei
+  # Stellen aufgerufen, und alle drei sind hier unerreichbar, solange
+  # das Fenster aus ist (die beiden anderen stehen in --ausschalten
+  # und in dienst.sh --entfernen). Die eine Sekunde ist die Signatur
+  # einer RELATIVEN Weckzeit: wer "-s $(( ziel - jetzt ))" rechnet,
+  # verliert beim Abschneiden der Sekundenbruchteile regelmaessig
+  # eine. Hier wird absolut gerechnet, mit "-t <Unix-Sekunde>".
+  #
+  # Damit es beim naechsten Mal nachweisbar ist, steht es im Journal.
+  if [ "$AN" != ja ]; then
+    gut "Fenster ist aus -- der Wecker bleibt unangetastet"
+    return 0
+  fi
   [ -n "$WECKER" ] || { warn "Kein naechster Fensterbeginn zu berechnen."; return 0; }
   if ! command -v "${RTCWAKE%% *}" >/dev/null; then
     warn "rtcwake fehlt. Der Rechner wacht nicht von selbst auf."
@@ -106,12 +128,135 @@ trennen() {
   fi
 }
 
+# ------------------------------------------------------- Autoupdate
+# Laeuft nur im Fenster, nur mit Schalter, nur einmal je Fenster und
+# nie waehrend einer Uebersetzung. Die Pruefung der Signatur macht
+# aktualisieren.sh -- hier wird nichts gelockert, was dort gilt.
+autoupdate_laufen() {
+  [ "$AUTOUPDATE" = ja ] || return 1
+  [ "$IM_FENSTER" = ja ] || return 1
+
+  # Einmal je Fenster. Ohne diese Marke liefe der Updater alle fuenf
+  # Minuten neu -- und nach einem Fehlschlag jedes Mal wieder in
+  # denselben Fehlschlag.
+  local marke="$ABLAGE/autoupdate-$FENSTERKENNUNG"
+  if [ -f "$marke" ]; then
+    return 1
+  fi
+
+  if [ "$(uebersetzung_laeuft)" = ja ]; then
+    info "Es wird uebersetzt -- das Autoupdate wartet."
+    return 1
+  fi
+
+  blau "Autoupdate"
+  mkdir -p "$ABLAGE"
+  : > "$marke"
+
+  local vorher; vorher="$(tr -d '[:space:]' < "$ORDNER/VERSION" 2>/dev/null)"
+  local protokoll="$ABLAGE/autoupdate-$FENSTERKENNUNG.log"
+  local t0; t0="$(date +%s)"
+  local rc=0
+
+  # Als BENUTZER, nicht als Wurzel: dem gehoert das Repo. Liefen die
+  # git-Befehle als root, blieben root-eigene Objekte in .git zurueck
+  # und der Dienst kaeme an sein eigenes Repo nicht mehr heran.
+  # aktualisieren.sh holt sich Privilegiertes selbst.
+  if [ "$(id -u)" = 0 ] && [ "$BENUTZER" != root ]; then
+    runuser -u "$BENUTZER" -- bash "$ORDNER/aktualisieren.sh" \
+      > "$protokoll" 2>&1 || rc=$?
+  else
+    bash "$ORDNER/aktualisieren.sh" > "$protokoll" 2>&1 || rc=$?
+  fi
+  chmod 600 "$protokoll" 2>/dev/null || true
+
+  local nachher; nachher="$(tr -d '[:space:]' < "$ORDNER/VERSION" 2>/dev/null)"
+  local dauer=$(( $(date +%s) - t0 ))
+  sed 's/\x1b\[[0-9;]*m//g' "$protokoll" | tail -20 | sed 's/^/   /'
+
+  # Die Rueckmeldung, SOLANGE DAS WLAN NOCH STEHT. Nach dem
+  # Herunterfahren ginge nichts mehr hinaus, und dann wuesste niemand,
+  # dass etwas schiefging.
+  local ergebnis
+  if [ "$rc" = 0 ] && [ "$vorher" != "$nachher" ]; then
+    ergebnis="eingespielt"
+    gut "$vorher -> $nachher in ${dauer}s"
+  elif [ "$rc" = 0 ]; then
+    ergebnis="nichts zu tun"
+    gut "kein neueres Tag, Fassung bleibt $nachher"
+  else
+    ergebnis="GESCHEITERT"
+    warn "Das Autoupdate ist gescheitert (Rueckgabe $rc)."
+  fi
+
+  # Den Reparaturvorrat gleich mitziehen.
+  #
+  # Er traegt die Fassung, zu der er gebaut wurde; nach jedem Update
+  # meldet der Systemcheck sonst "Der Vorrat gehoert zu Fassung X".
+  # Das ist richtig und stand bisher jede Woche da -- und eine
+  # Meldung, die nach jedem Update erscheint und nie etwas aufhaelt,
+  # bringt einem bei, die Liste zu ueberblaettern.
+  #
+  # Nur nach einem gelungenen Update, nur solange das WLAN steht, und
+  # ein Fehlschlag steht bloss in der Rueckmeldung: der Vorrat ist
+  # eine Vorsichtsmassnahme, kein Betriebsmittel. Dass er eine
+  # Fassung hinterherhinkt, hat noch nie einen Gottesdienst
+  # aufgehalten.
+  local vorrat_satz=""
+  if [ "$ergebnis" = "eingespielt" ] && [ -f "$ORDNER/vorrat_bauen.sh" ]; then
+    info "Reparaturvorrat wird nachgezogen ..."
+    if bash "$ORDNER/vorrat_bauen.sh" >> "$protokoll" 2>&1; then
+      gut "Vorrat auf $nachher nachgezogen"
+      vorrat_satz="Vorrat nachgezogen."
+    else
+      warn "Der Vorrat liess sich nicht nachziehen."
+      info "Kein Grund zur Eile -- er ist eine Vorsichtsmassnahme."
+      vorrat_satz="Vorrat NICHT nachgezogen (siehe Protokoll)."
+    fi
+  fi
+
+  # Die Rueckmeldung ZULETZT, damit der Vorrat darin vorkommt --
+  # und solange das WLAN noch steht.
+  if [ -f "$ORDNER/meldung.sh" ]; then
+    bash "$ORDNER/meldung.sh" "Devarenu $(hostname): $ergebnis" \
+"Fassung vorher:  ${vorher:-unbekannt}
+Fassung nachher: ${nachher:-unbekannt}
+Ergebnis:        $ergebnis
+Dauer:           ${dauer}s
+${vorrat_satz:+Vorrat:          $vorrat_satz}
+
+$(sed 's/\x1b\[[0-9;]*m//g' "$protokoll" | tail -25)" >/dev/null 2>&1 \
+      || warn "Die Rueckmeldung ging nicht hinaus, sie liegt vorgemerkt."
+  fi
+
+  # Erfolg oder nichts zu tun -> aus, wenn so eingestellt.
+  # Fehlgeschlagen -> an bleiben. Der Rechner ist zurueckgerollt und
+  # laeuft; bis zum Fensterende kann jemand nachsehen, was war.
+  if [ "$ergebnis" = "GESCHEITERT" ]; then
+    warn "Der Rechner bleibt bis Fensterende an, damit jemand nachsehen kann."
+    info "$protokoll"
+    return 0
+  fi
+  if [ "$NACH_UPDATE_AUS" = ja ]; then
+    info "Nach dem Lauf wird heruntergefahren (nach_update_aus)."
+    wecker_stellen
+    $AUSSCHALTEN
+  fi
+  return 0
+}
+
 # --------------------------------------------------------- Auto-Aus
 # Laeuft gerade eine Uebersetzung? Der Server weiss es; antwortet er
 # nicht, gilt "nein". Ein Dienst, der nicht antwortet, uebersetzt auch
 # nicht -- und ein Rechner, der ewig anbleibt, weil eine Abfrage
 # fehlschlaegt, waere der falsche Ausgang.
 uebersetzung_laeuft() {
+  # Naht fuer den Pruefstand: eine laufende Uebersetzung laesst sich
+  # ohne echten Dienst nicht herstellen, und ausgerechnet sie ist die
+  # Bedingung, die den Gottesdienst schuetzt.
+  if [ -n "${DEVARENU_UEBERSETZT_TEST:-}" ]; then
+    echo "$DEVARENU_UEBERSETZT_TEST"; return 0
+  fi
   "$PY" - <<PYCODE 2>/dev/null
 import json, urllib.request
 try:
@@ -209,6 +354,10 @@ zeigen() {
   info "Wecker:            $WECKER_LESBAR"
   info "Laufzeit:          $(feld laufzeit_h) h von $(feld hoechstlaufzeit_h) h"
   info "                   (hart: $(feld hoechstlaufzeit_hart_h) h)"
+  info "Autoupdate:        $AUTOUPDATE (danach aus: $NACH_UPDATE_AUS)"
+  info "Fehlerberichte:    $BERICHTE"
+  [ "$AUTOUPDATE" = ja ] && bash "$ORDNER/meldung.sh" --zeigen | sed 's/^/        /'
+  return 0
 }
 
 # --------------------------------------------------------------- Lauf
@@ -232,6 +381,31 @@ case "${1:---zeigen}" in
     [ "$IM_FENSTER" = ja ] && [ -n "$PROFIL" ] && trennen
     exit 0 ;;
 
+  --berichte)
+    blau "Fehlerberichte"
+    if ! "$PY" "$ORDNER/wartungsfenster.py" --schalter \
+         "berichte_senden=${2:-}"; then
+      exit 1
+    fi
+    gut "${2:-} -- im Fenster gehen vorgemerkte Berichte hinaus"
+    exit 0 ;;
+
+  --autoupdate)
+    blau "Autoupdate"
+    if ! "$PY" "$ORDNER/wartungsfenster.py" --schalter \
+         "autoupdate=${2:-}"; then
+      exit 1
+    fi
+    if [ "${2:-}" = ja ]; then
+      gut "an -- im Fenster wird von selbst aktualisiert"
+      info "Nur signierte Tags, nie waehrend einer Uebersetzung,"
+      info "und bei einem Fehlschlag geht es von selbst zurueck."
+      bash "$ORDNER/meldung.sh" --zeigen | sed 's/^/        /'
+    else
+      gut "aus"
+    fi
+    exit 0 ;;
+
   --wecker)
     wecker_stellen ;;
 
@@ -244,6 +418,16 @@ case "${1:---zeigen}" in
     fi
     if [ "$IM_FENSTER" = ja ]; then
       verbinden
+      # Erst verbinden, dann aktualisieren: ohne Netz gaebe es nichts
+      # zu holen, und die Rueckmeldung ginge auch nicht hinaus.
+      #
+      # Die Fehlerberichte ZUERST. Geht das Update schief und der
+      # Rechner faehrt herunter, waeren sie sonst eine Woche liegen
+      # geblieben -- und gerade dann will man sie lesen.
+      if [ "$BERICHTE" = ja ] && [ -f "$ORDNER/meldung.sh" ]; then
+        bash "$ORDNER/meldung.sh" --berichte | sed 's/^/   /'
+      fi
+      autoupdate_laufen || true
     else
       trennen
     fi
@@ -254,6 +438,8 @@ case "${1:---zeigen}" in
 
   *)
     echo "Unbekannt: $1"
-    echo "  --zeigen | --einschalten | --ausschalten | --pruefen | --wecker"
+    echo "  --zeigen | --einschalten | --ausschalten"
+    echo "  --autoupdate ja|nein | --berichte ja|nein"
+    echo "  --pruefen | --wecker"
     exit 2 ;;
 esac

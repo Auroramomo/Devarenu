@@ -1049,11 +1049,21 @@ except Exception as e:
 if befunde is not None:
     if not befunde:
         print("OK|Alles eingestellt, wie es sein soll")
+    # Hier steht ALLES. Wer pruefen.sh aufruft, ist die Technik --
+    # das Pult zeigt seit 0.3.3 nur noch, was den Bediener heute
+    # angeht. Damit man weiss, welche Zeile dort fehlt, ist sie
+    # gekennzeichnet.
     for b in befunde:
         art = "FEHL" if b.schwere == systemcheck.FEHLT else "WARN"
-        print("%s|%s" % (art, b.was))
+        marke = "[Wartung] " if getattr(b, "wartung", False) else ""
+        print("%s|%s%s" % (art, marke, b.was))
         if b.tun:
             print("INFO|  %s" % b.tun)
+    wartung = [b for b in befunde if getattr(b, "wartung", False)]
+    if wartung:
+        print("INFO|%d davon mit [Wartung]: am Pult stehen sie nicht im"
+              % len(wartung))
+        print("INFO|Briefkasten, sondern unter Einrichtung -> Wartung.")
 '
 
 blau "Sprechtempo"

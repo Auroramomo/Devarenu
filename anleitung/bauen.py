@@ -561,6 +561,19 @@ def main():
         bauen([(helfer, "")], hier / "Devarenu-Umstellung.pdf",
               "Umstellung", [], einblatt=True)
 
+    # Die Fassungsuebersicht. Sie liegt eine Ebene hoeher, weil sie
+    # ins Repo gehoert und nicht in den Anleitungsordner -- gelesen
+    # wird sie auf GitHub.
+    #
+    # einblatt=True ist hier die eigentliche Regel: die Uebersicht
+    # soll auf EINE Seite passen. Wird sie laenger, bricht der Bau ab,
+    # und dann werden aeltere Fassungen zusammengefasst statt eine
+    # zweite Seite anzufangen.
+    versionen = hier.parent / "VERSIONEN.md"
+    if versionen.exists():
+        bauen([(versionen, "")], hier / "Devarenu-Fassungen.pdf",
+              "Die Fassungen", [], einblatt=True)
+
     # Teil A einzeln, in jeder Sprache, die die Zuhoererseite anbietet.
     # Wer uebersetzt mithoert, spricht ja gerade kein Deutsch.
     for code, spr in SPRACHEN.items():

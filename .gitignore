@@ -65,3 +65,9 @@ netz.json.*
 # Liegt im Repo, damit es ohne Umweg lesbar ist -- und wird nie
 # mitgeliefert.
 .tmp/
+
+# Der Kanal fuer die Rueckmeldung aus dem Wartungsfenster. Das Thema
+# IST das Geheimnis -- es gibt kein Passwort daneben. Und was noch
+# nicht hinausging, steht im Klartext daneben.
+meldung.json
+meldung-offen.txt

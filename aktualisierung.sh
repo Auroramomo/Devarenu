@@ -58,7 +58,22 @@ ALT_SHA="${DEV_ALT_SHA:?fehlt}"
 REF="${DEV_REF:?fehlt}"
 VERSION="${DEV_VERSION:?fehlt}"
 HIER="${DEV_HIER:-unbekannt}"
-SICHERUNG="${DEV_SICHERUNG:?fehlt}"
+# Die Sicherung: Units, zustand.json, netz.json, der alte venv-Name.
+# Aus ihr holt der Aufrufer zurueck, wenn hier etwas schiefgeht.
+#
+# NICHT MEHR PFLICHT, und das ist kein Nachlassen. Der Kern uebergibt
+# DEV_SICHERUNG seit 0.2.12; aktualisieren.sh tat es bis 0.3.2 NICHT,
+# und weil hier ein ${...:?fehlt} stand, brach dieses Skript ab --
+# vor dem Vorspulen, also ohne Schaden, aber auch ohne Update. Der
+# ganze Online-Weg war damit tot, und der Pruefstand sah es nicht: er
+# rief eine Attrappe statt dieser Datei auf.
+#
+# Repariert wird es HIER und nicht nur drueben, weil diese Datei mit
+# dem neuen Tag kommt -- ein aktualisieren.sh aus 0.3.2 kann so ein
+# 0.3.3 einspielen, ohne dass vorher jemand hinfaehrt.
+SICHERUNG="${DEV_SICHERUNG:-$ABLAGE/vorher-$DEV_VERSION}"
+SICHERUNG_SELBST=nein
+[ -n "${DEV_SICHERUNG:-}" ] || SICHERUNG_SELBST=ja
 NAME=devarenu
 
 # Wohin die Units geschrieben werden. Fest verdrahtet war das bis 0.2.14
@@ -66,6 +81,16 @@ NAME=devarenu
 # jahrelang GAR NICHT lief. Die Vorgabe ist der echte Ort; gesetzt wird
 # die Variable nur von den Tests.
 UNIT_ORDNER="${DEVARENU_UNIT_ORDNER:-/etc/systemd/system}"
+
+# Welche Units gesichert und im Rueckweg zurueckgeholt werden. Bis
+# 0.3.2 fehlten hier die drei des Wartungsfensters -- ein Rueckfall
+# haette ein halb zurueckgerolltes Fenster hinterlassen. Dieselbe
+# Liste steht in stick_update.sh; online_test.sh vergleicht die
+# beiden, damit sie nicht auseinanderlaufen.
+UNITS_GESICHERT="devarenu.service devarenu-stick@.service \
+devarenu-update.service devarenu-update.timer \
+devarenu-fenster.service devarenu-fenster.timer \
+devarenu-fenster-wecker.service"
 UDEV_REGEL="${DEVARENU_UDEV_REGEL:-/etc/udev/rules.d/99-$NAME-stick.rules}"
 
 cd "$ORDNER"
@@ -80,6 +105,28 @@ melden() { printf 'MELDUNG|%s\n' "$*"; }
 als_benutzer() { sudo -u "$BENUTZER" -H "$@"; }
 
 PY_AKTIV="$ORDNER/.venv/bin/python"
+
+# ----------------------------------------------------- Die Sicherung
+# Angelegt, bevor irgendetwas angefasst wird. Hat der Aufrufer schon
+# eine mitgebracht (der Kern tut das), wird sie nur ergaenzt: er hat
+# die Units bereits abgelegt, der venv-Name kommt spaeter dazu.
+mkdir -p "$SICHERUNG/units"
+chmod 700 "$SICHERUNG"
+if [ "$SICHERUNG_SELBST" = ja ]; then
+  blau "Sicherung"
+  warn "Der Aufrufer hat keine uebergeben -- eine aeltere Fassung von"
+  warn "aktualisieren.sh. Sie wird hier angelegt:"
+  info "$SICHERUNG"
+  for u in $UNITS_GESICHERT; do
+    [ -f "$UNIT_ORDNER/$u" ] && cp -a "$UNIT_ORDNER/$u" "$SICHERUNG/units/$u"
+  done
+  for d in zustand.json netz.json; do
+    [ -f "$ORDNER/$d" ] && cp -a "$ORDNER/$d" "$SICHERUNG/$d"
+  done
+  chmod -R go-rwx "$SICHERUNG" 2>/dev/null || true
+  gut "Units, zustand.json und netz.json gesichert"
+  info "Ein Rueckweg von Hand findet dort alles, was er braucht."
+fi
 
 # ------------------------------------------------- Lokale Aenderungen
 # Der signierte Stand gewinnt. Was jemand vor Ort an einer versionierten
@@ -374,6 +421,54 @@ case "${MODELL_LAGE%%|*}" in
     melden "Ollama war beim Update nicht erreichbar; ob das Sprachmodell da ist, wurde nicht geprueft." ;;
 esac
 
+# ------------------------------------------------------- Die Stimmen
+# Eine eingestellte Sprache ohne Stimme laeuft als reiner Untertitel
+# weiter. Das ist ein Mangel und kein Ausfall -- also KEIN
+# Abbruchgrund. Gesagt werden muss es trotzdem, sonst sucht am Sabbat
+# jemand den Fehler beim Ton.
+#
+# Bis 0.2.11 tat das der Kern; seit 0.3.0 rief die Funktion niemand
+# mehr auf, und der Hinweis war ersatzlos weg. Jetzt steht sie hier,
+# wo das NEUE config.py schon gilt -- denselben Weg wie die
+# Modellpruefung.
+#
+# UEBER melden UND NICHT UEBER EIN FELD. Das Pult-Feld "stimmen"
+# schreibt der Kern, und der Kern auf dem Rechner ist beim Update
+# immer der ALTE. Eine Meldung von hier erreicht das Pult dagegen
+# sofort -- auch mit einem Kern aus 0.3.2.
+#
+# stderr wird verworfen, stdout NICHT: laden() aus zustand.py druckt
+# seine Hinweise seit 0.3.2 nach stderr, und genau deshalb steht hier
+# nur noch die Aufzaehlung. Vorher landete "zustand.json umgezogen:
+# 2->3" mitten im Satz "Ohne Stimme, laufen als Untertitel: ...".
+blau "Stimmen"
+OHNE_STIMME="$(als_benutzer "$PY_AKTIV" - <<'PYCODE' 2>/dev/null
+import sys
+sys.path.insert(0, ".")
+import config, zustand
+z = zustand.laden()[0] if isinstance(zustand.laden(), tuple) else zustand.laden()
+sprachen = [z.get("quelle", config.AUSGANGSSPRACHE)] + list(
+    z.get("ziele", config.ZIELSPRACHEN))
+fehlt = []
+for sp in dict.fromkeys(sprachen):
+    pfad = config.STIMMEN.get(sp)
+    if not pfad:
+        continue
+    name = pfad.rsplit("/", 1)[-1]
+    if not (config.BASIS / "voices" / f"{name}.onnx").exists():
+        fehlt.append(sp)
+print(" ".join(fehlt))
+PYCODE
+)"
+OHNE_STIMME="$(printf '%s' "$OHNE_STIMME" | tr -s '[:space:]' ' ' \
+               | sed 's/^ //; s/ $//')"
+if [ -n "$OHNE_STIMME" ]; then
+  warn "Ohne Stimme, laufen als Untertitel: $OHNE_STIMME"
+  melden "Ohne Stimme, laufen als Untertitel: $OHNE_STIMME."
+else
+  gut "alle eingestellten Sprachen haben eine Stimme"
+fi
+
 # ------------------------------------------------------------- Dienst
 blau "Neustart"
 systemctl restart "$NAME" || {
@@ -383,7 +478,19 @@ systemctl restart "$NAME" || {
 
 # ------------------------------------------------------ Gesundheit
 blau "Gesundheitscheck"
-if ! als_benutzer "$ORDNER/gesundheit.sh"; then
+# DEV_SICHERUNG und DEV_VERSION ausdruecklich mitgeben, nicht vererben.
+#
+# als_benutzer ist hier "sudo -u ... -H", und sudo raeumt mit
+# env_reset die Umgebung ab. gesundheit.sh suchte seine Grundlinie
+# deshalb unter /tmp/befunde-vorher statt in der Sicherung -- fand
+# sie nie und zaehlte JEDEN vorhandenen Befund als neu. Ein Rechner,
+# auf dem der Autologin schon vorher fehlte, rollte damit jedes
+# tadellose Update zurueck. Dasselbe galt fuer die erwartete Fassung.
+#
+# Im Pruefstand fiel das nie auf: die sudo-Attrappe reicht alles
+# durch. Gefunden, als der Online-Weg gegen die echte Datei lief.
+if ! als_benutzer env DEV_SICHERUNG="$SICHERUNG" DEV_VERSION="$VERSION" \
+     "$ORDNER/gesundheit.sh"; then
   fehl "Der Rechner ist nach dem Update nicht gesund."
   melden "Update $VERSION ist fehlgeschlagen."
   exit 1

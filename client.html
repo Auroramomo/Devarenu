@@ -381,8 +381,6 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
 @keyframes pulsen{0%,100%{opacity:1}50%{opacity:.3}}
 /* Derselbe Kasten wie der KI-Hinweis, nur nicht zu uebersehen: an
    diesem einen Satz haengt, ob der Ton im Saal durchhaelt. */
-.hinweis.daten{border-left-color:var(--tinte);color:var(--tinte)}
-.hinweis.daten span{display:block;margin-top:.5rem;color:var(--tinte-hell)}
 .neuband{margin:.9rem 0 0;padding:.6rem .8rem;font-size:.85rem;line-height:1.45;
   border-left:3px solid var(--akzent,#1fa5d8);background:rgba(31,165,216,.08)}
 .knopf-klein{
@@ -440,15 +438,6 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
     <div class="sprachen" id="sprachwahl" role="group" aria-labelledby="frage-sprache"></div>
 
     <p class="neuband" id="neuband" hidden></p>
-
-    <p class="hinweis daten" id="daten-hinweis" hidden>
-      <b>Mobile Daten ausschalten.</b>
-      Dieses WLAN hat kein Internet. Mit eingeschalteten mobilen Daten
-      verlässt das Handy es wieder, und der Ton bricht ab.
-      <span lang="en"><b>Turn off mobile data.</b> This wifi has no
-      internet. With mobile data on, the phone leaves it again and the
-      sound stops.</span>
-    </p>
 
     <p class="hinweis" id="ki-hinweis">
       <b>Diese Übersetzung erstellt ein Computer.</b>
@@ -647,10 +636,12 @@ async function sprachenHolen(){
         glossar: eintrag.glossar});
     }
     if(Object.keys(neu).length) SPRACHEN = neu;
-    // Nur wenn dieser Rechner selbst das Saalnetz stellt. Haengt das
-    // WLAN am Hausanschluss, hat es Internet und der Satz waere falsch.
-    const dh = document.getElementById("daten-hinweis");
-    if(dh) dh.hidden = !daten.saalnetz;
+    // Der Hinweis "Mobile Daten ausschalten" stand bis 0.3.2 hier.
+    // Geprueft mit einem neuen und einem aelteren iPhone und einem
+    // Samsung, mobile Daten an: kein Anmeldefenster, die Seite laedt,
+    // der Ton laeuft durch. Der Rat war damit ueberholt -- und ein
+    // Rat, den man befolgt und der nichts bewirkt, kostet Vertrauen
+    // in die anderen.
     rueckmeldungSetzen(daten.rueckmeldung || "", daten.spende || null);
   }catch(e){ /* Vorrat behalten */ }
 }

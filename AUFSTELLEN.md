@@ -523,6 +523,99 @@ weiter (`argumente` in `sprechen()` kennt nur `--length-scale` und
    bleibt sie draußen, und der Kommentar in `config.py` wird um den
    Befund ergänzt.
 
+## Bei einem Test sehen, wo die Kette kippt
+
+Zwei Schalter, für zwei verschiedene Fragen.
+
+### „Mitschrift im Protokoll" — der kleine
+
+Gibt es seit 0.2.14. **Pult → Einrichtung → „Mitschrift im Protokoll
+(nur zur Fehlersuche)".** Der Schalter steht in `zustand.json` unter
+`protokoll_mitschrift`, **nicht** in `config.py`: eine Änderung an
+einer versionierten Datei ließe jedes Update abbrechen. Er wirkt
+sofort ohne Neustart und **überlebt einen Neustart** — er bleibt an,
+bis ihn jemand ausschaltet. `pruefen.sh` meldet das, solange er läuft.
+
+Wirkung: statt „42 Z." steht der erkannte Satz im Journal, gekürzt auf
+etwa 60 Zeichen. Von Hand:
+
+```fish
+curl -s -X POST localhost:8000/api/protokoll -H 'Content-Type: application/json' -d '{"an": true}'
+```
+
+### „Testprotokoll" — der große
+
+Neu in 0.3.3. Schreibt **je Abschnitt eine Zeile in eine Datei**, nicht
+ins Journal: Zeitstempel, eingestellte Ausgangssprache, erkannter Satz,
+jede Übersetzung, und die Dauer jedes Schrittes — Whisper, Übersetzung
+je Sprache, Piper. Damit sieht man, wo es kippt: hat Whisper schon
+falsch gehört, oder erst das Modell falsch übersetzt?
+
+**Pult → Einrichtung → „Testprotokoll schreiben".** Der Schalter
+erscheint **nur, wenn das Pult am Gemeinde-PC selbst geöffnet ist** —
+aus dem Saal gibt es ihn nicht.
+
+Es gelten die Regeln der Aufnahme, denn es ist derselbe Inhalt:
+
+- **Ohne Einwilligung fängt nichts an.** Ein Haken, nicht zwei: dass
+  die sprechende Person gefragt wurde. Der zweite Haken der Aufnahme
+  („nur die Predigt") ergibt bei einem Test keinen Sinn. Geprüft wird
+  im Server, nicht im Browser.
+- Daneben liegt ein **Vermerk mit dem Zeitpunkt, ohne Namen**.
+- **Es hört beim Neustart von selbst auf.** Der Schalter steht
+  bewusst *nicht* in `zustand.json` — was den Predigttext mitschreibt,
+  soll nicht aus Versehen über einen Sonntag weiterlaufen.
+- `700` auf dem Ordner, `600` auf den Dateien, **nach sieben Tagen
+  gelöscht** (dieselbe Frist wie die Aufnahme, `aufnahme_tage`).
+- Abrufbar nur am Rechner selbst.
+
+Die Dateien liegen unter `ergebnisse/pruefprotokolle/` und heißen
+`pruefprotokoll_<datum>_<zeit>.jsonl` — eine Zeile JSON je Abschnitt.
+Ansehen zum Beispiel so:
+
+```fish
+jq -r '"\(.nummer)  \(.text)"' ergebnisse/pruefprotokolle/pruefprotokoll_*.jsonl
+```
+
+```fish
+jq -r '.ziele[] | "\(.sprache)  \(.mt_s)s  \(.text)"' ergebnisse/pruefprotokolle/pruefprotokoll_*.jsonl
+```
+
+## Wenn jemand in einer anderen Sprache spricht
+
+Steht die Ausgangssprache auf Deutsch und es spricht jemand Englisch,
+bekommt Whisper die Sprache **vorgegeben**. Es erfindet dann deutsche
+Wörter aus englischen Lauten, der Text sieht plausibel aus, und das
+Modell übersetzt ihn brav weiter — jede Zielsprache bekommt Unsinn,
+und am Pult sieht alles normal aus.
+
+Seit 0.3.3 fällt das auf. Am Pult erscheint eine gelbe Zeile
+„Gesprochen wird vermutlich Englisch, eingestellt ist Deutsch" mit
+einem Knopf, der zur Sprachwahl führt. **Umgeschaltet wird nichts von
+selbst** — eine Automatik, die mitten in der Predigt die
+Ausgangssprache wechselt, wäre schlimmer als das Problem.
+
+Damit keine Fehlalarme entstehen, müssen drei Dinge zusammenkommen:
+das Segment ist mindestens drei Sekunden lang, die Erkennung ist
+mindestens zu 80 % sicher, und **dieselbe** fremde Sprache gewinnt
+dreimal hintereinander. Ein Bibelvers mit hebräischen Namen, ein
+englisches Lied, ein Eigenname — nichts davon kommt dreimal
+hintereinander. Ein einziges sicheres deutsches Segment löscht die
+Warnung wieder.
+
+Geprüft wird nur **jedes vierte** taugliche Segment. Gemessen mit
+`large-v3-turbo`, float16, auf einer RTX 5080:
+
+| | |
+|---|---|
+| `detect_language` | 76 ms (unabhängig von der Tondauer) |
+| `transcribe`, 5 s | 85 ms |
+
+Bei jedem Segment zu prüfen würde den Whisper-Anteil also fast
+verdoppeln. So liegt der Aufschlag bei rund einem Viertel eines
+Durchlaufs, und bis eine Warnung erscheint, vergehen ein bis zwei
+Minuten durchgehend fremder Rede.
+
 ## Sprachen ohne geprüftes Fachwortverzeichnis
 
 Eine Sprache hat drei Zustände, und sie sehen am Pult verschieden aus:
@@ -674,6 +767,32 @@ der Wartung wird der Hotspot getrennt.
 aktiv**. Kein Fehler, nur eine Lagemeldung: wer sie sonntags liest,
 weiß, dass der Hotspot noch läuft.
 
+### Fernwartung unter Wayland: Terminal und Tunnel
+
+**Der Bildschirm ist nach einem Neustart nicht verlässlich
+erreichbar.** Unter Wayland darf kein Programm einfach mitlesen;
+RustDesk geht über xdg-desktop-portal, und KDE fragt bei jeder neuen
+Portal-Sitzung wieder, welcher Bildschirm freigegeben wird. Der
+gespeicherte `wayland-restore-token` überbrückt das nicht — KDE bindet
+ihn an die Sitzung, und die ist nach einem Neustart weg. Das ist kein
+Fehler von RustDesk und mit keiner Einstellung dort zu beheben.
+
+**Der Weg ist deshalb: RustDesk-Terminal und ein TCP-Tunnel auf Port
+8000.** Das Terminal hängt an keiner grafischen Sitzung, der Tunnel
+bringt das Pult in den eigenen Browser. Damit ist alles erreichbar,
+was man aus der Ferne braucht — ohne die Portal-Frage überhaupt zu
+stellen.
+
+Der Umstieg auf X11 bliebe die Alternative, und `plasma-x11-session`
+liegt seit 0.3.3 im Reparaturvorrat bereit. **Aus der Ferne wird er
+nicht gemacht:** kommt der Rechner in der neuen Sitzung nicht hoch,
+hilft bis zur nächsten Fahrt nichts, und dann nützt auch das
+Wartungsfenster nichts.
+
+Eine KDE-Vorabfreigabe über den Berechtigungsspeicher wurde verworfen.
+Sie hinge an einer Stelle, die KDE nicht als Einstellung vorsieht —
+sie hielte vermutlich ein Jahr und dann an einem Sonntag nicht mehr.
+
 Seit 0.3.2 gibt es dafür auch den Weg ohne jemanden vor Ort, siehe
 [Das Wartungsfenster](#das-wartungsfenster). Innerhalb des Fensters
 ist das verbundene WLAN erwartet und wird nicht gemeldet.
@@ -799,6 +918,126 @@ Donnerstagen nach.
 drin. Der Rechner wird normal heruntergefahren, über das Menü. Ohne
 Strom am Netzteil kann die RTC nicht wecken — dann kommt bis zum
 nächsten Besuch niemand mehr heran. Das steht auch auf dem Helferblatt.
+
+### Autoupdate im Fenster
+
+Seit 0.3.3 kann sich der Rechner im Fenster selbst aktualisieren.
+**Vorgabe ist aus.**
+
+```fish
+bash wartungsfenster.sh --autoupdate ja
+```
+
+Es gelten dieselben Regeln wie von Hand — nur signierte Tags, nur über
+die geprüfte SHA — und drei weitere:
+
+- **Nie während einer Übersetzung.** Der Rechner fragt `/api/zustand`;
+  meldet der Dienst `live`, wartet das Update bis zum nächsten Tick.
+- **Einmal je Fenster.** Sonst liefe der Updater alle fünf Minuten neu
+  und nach einem Fehlschlag jedes Mal wieder in denselben.
+- **Scheitert es, geht es von selbst zurück** — Code, Units,
+  `zustand.json`, `netz.json`. Ohne diesen Rückweg gäbe es den
+  Schalter nicht.
+
+Danach: bei Erfolg oder „kein neueres Tag" fährt der Rechner herunter
+(`nach_update_aus`, Vorgabe an). Bei einem Fehlschlag bleibt er bis
+Fensterende an, damit jemand nachsehen kann; das Protokoll des Laufs
+liegt unter `/var/lib/devarenu/updates/autoupdate-*.log`.
+
+Nach einem gelungenen Update wird auch der **Reparaturvorrat**
+nachgezogen, solange das WLAN steht. Scheitert das, steht es nur in der
+Rückmeldung — der Vorrat ist eine Vorsichtsmaßnahme und hat noch nie
+einen Gottesdienst aufgehalten.
+
+Willst du an einem Donnerstag selbst hinein, ohne dass der Rechner
+vorher weggeht:
+
+```fish
+bash wartungsfenster.py --schalter nach_update_aus=nein
+```
+
+### Die Rückmeldung
+
+Ohne sie merkt man ein gescheitertes Update erst am Sabbat. Der Kanal
+ist **ntfy**; die Zugangsdaten stehen in `meldung.json` neben dem
+Projekt, mit `600` und in `.gitignore` — **nicht** in `netz.json`, die
+wird mit `644` geschrieben.
+
+Ein Thema erzeugen und eintragen:
+
+```fish
+echo "devarenu-"(head -c 18 /dev/urandom | base32 | tr -d = | tr 'A-Z' 'a-z')
+```
+
+```fish
+set thema "devarenu-"(head -c 18 /dev/urandom | base32 | tr -d = | tr 'A-Z' 'a-z')
+echo "{\"ntfy\": \"https://ntfy.sh/$thema\"}" > meldung.json
+chmod 600 meldung.json
+bash meldung.sh --pruefen
+```
+
+Das Thema hier nicht ausschreiben: `oeffentlich_pruefen.sh` sucht nach
+fertigen ntfy-Adressen in verfolgten Dateien und schlägt sonst an —
+zu Recht.
+
+Auf dem Handy die ntfy-App installieren und dasselbe Thema abonnieren.
+
+**Das Thema ist das ganze Geheimnis** — es gibt kein Passwort daneben.
+Wer es kennt, liest mit. Deshalb geht nur hinaus, was niemandem
+schadet: Fassung vorher und nachher, Ergebnis, Selbsttest, Dauer.
+Kein Predigttext, kein WLAN-Name, keine Adresse.
+
+Telegram wäre derselbe Aufwand gewesen. Dagegen sprach das Schadensmaß:
+ein Bot-Token ist ein Schlüssel, mit dem jemand den Bot **steuert** —
+ein ntfy-Thema ist eine Adresse, unter der jemand **mitliest**.
+
+Geht eine Meldung nicht hinaus, bleibt sie in `meldung-offen.txt`
+liegen, und der nächste Lauf nimmt sie mit.
+
+### Fehlerberichte, die von selbst kommen
+
+Bis 0.3.2 musste jemand am Pult den Käfer drücken, zwei QR-Codes
+abfotografieren und eine E-Mail abschicken. Ein Dienst, der nachts
+abstürzt und von selbst wieder hochkommt, fällt dabei niemandem auf —
+und genau der wäre interessant.
+
+```fish
+bash wartungsfenster.sh --berichte ja
+```
+
+Gesammelt wird bei vier Anlässen:
+
+| Anlass | wann |
+|---|---|
+| `hand` | jemand hat am Pult den Käfer gedrückt |
+| `neustart` | der Dienst ist beim letzten Mal nicht sauber beendet worden |
+| `systemcheck` | beim Start steht ein **FEHLT** an |
+| `update` | ein Autoupdate ist fehlgeschlagen |
+
+Die Berichte liegen unter `ergebnisse/berichte/` (`700`/`600`, nicht
+im Repo) und gehen im Fenster über denselben Kanal hinaus wie die
+Update-Rückmeldung. **Erst nach der Bestätigung** wird einer als
+gesendet vermerkt; was nicht durchkam, geht im nächsten Fenster noch
+einmal. Höchstens 50 liegen herum, die ältesten fallen weg.
+
+**Inhalt: nur, was `fehlerbericht.bauen()` liefert** — also nur die
+dortige Erlaubnisliste, plus deren zweiten Riegel. Kein eingetippter
+Freitext von Zuhörern oder Bedienern, kein Predigt- oder
+Übersetzungstext, keine Namen, keine IP- oder MAC-Adressen, kein
+WLAN-Name. Hier wird nichts hinzugefügt.
+
+**Warum Text und kein Anhang.** In der ntfy-Dokumentation nachgesehen:
+Nachrichten über **4096 Bytes** macht der Server von selbst zu einem
+Anhang, und **Anhänge verfallen nach drei Stunden**. Ein Bericht von
+Donnerstagabend, den du freitags liest, wäre weg. Jeder Bericht bleibt
+deshalb unter 3500 Bytes — gekürzt an einer Zeilengrenze, mit
+Vermerk; vollständig liegt er weiter auf dem Rechner.
+
+Von Hand abschicken, ohne auf das Fenster zu warten:
+
+```fish
+bash meldung.sh --berichte
+```
 
 ### Nachsehen
 
@@ -1639,6 +1878,23 @@ Update-Stick. Was einmal darin ist, trägt jede Gemeinde für immer mit.
 Die Quellen dagegen gehören hinein: `fallstricke_<sp>.csv`,
 `saetze_auswahl_<sp>.csv`, `vorschlag_<sp>.json` und das Glossar. Aus
 ihnen ist ein Paket in Minuten wieder gebaut.
+
+## Bei jeder Fassung mitzupflegen
+
+- [ ] `VERSION` hochsetzen.
+- [ ] `AENDERUNGEN.md` — ausführlich, mit Begründungen. Das ist das
+      Gedächtnis des Projekts.
+- [ ] **`VERSIONEN.md`** — die kurze Übersicht, neueste oben. Eine
+      Zeile mit Nummer und Datum, darunter ein bis acht kurze Zeilen
+      in einfacher Sprache: was sich für Gemeinde und Bediener
+      ändert. Keine Begründungen, keine Dateinamen, keine
+      Zeilennummern — dafür ist `AENDERUNGEN.md` da.
+      **Die ganze Datei passt auf eine A4-Seite.** Reicht sie nicht,
+      werden ältere Fassungen zusammengefasst (`0.2.1 bis 0.2.9`),
+      nicht eine zweite Seite angefangen. Gebaut wird sie als PDF von
+      `anleitung_bauen.sh` mit; der Bau bricht ab, wenn sie länger
+      wird.
+- [ ] `anleitung/DATUM` und die PDFs neu bauen.
 
 ## Release-Checkliste
 

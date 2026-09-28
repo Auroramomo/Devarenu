@@ -33,12 +33,47 @@ FEHLT = "fehlt"
 HINWEIS = "hinweis"
 
 
+# Welche Befunde NUR die Technik angehen.
+#
+# Am Pult sitzt sonntags jemand, der den Ton fahren soll. Was dort
+# steht, muss heute zu tun sein oder den Betrieb aufhalten. Alles
+# andere -- ein Reparaturvorrat, der zu einer aelteren Fassung
+# gehoert, eine Unit-Vorlage, die sich geaendert hat, ein offener
+# Wartungszugang -- ist richtig und wichtig, aber nicht fuer diese
+# Person und nicht in dieser Stunde. Es stand trotzdem da, jede
+# Woche, und nach der dritten Woche liest man die Liste gar nicht
+# mehr. Dann geht die eine Zeile unter, auf die es ankommt.
+#
+# Seit 0.3.3 also getrennt: hier die Wartung, der Rest bleibt am
+# Pult. pruefen.sh zeigt weiterhin ALLES -- wer es aufruft, ist die
+# Technik.
+#
+# Was hier NICHT hineingehoert: alles, was den Ton, das Saalnetz oder
+# die Uebersetzung betrifft, und alles der Stufe FEHLT, das sich
+# heute beheben laesst.
+WARTUNG = {
+    "wlan_verbunden",       # Wartungszugang offen
+    "vorrat", "vorrat_alt", # Reparaturvorrat
+    "sitzung", "sitzung_abweichend",
+    "units_veraltet",
+    "protokoll_mitschrift", # gehoert der Fehlersuche, nicht dem Sonntag
+    "abmeldefrage", "netzschalter", "sperre", "standby", "bildschirm",
+    "ordner_schmutzig",
+    "wecker_fehlt", "fenster_timer", "fenster_profil",
+    "stick_timer",          # das Update per Stick, nicht der Sonntag
+}
+
+
 class Befund:
     """Ein einzelner Punkt. Kennung bleibt stabil, Text darf sich aendern."""
 
     def __init__(self, kennung, schwere, was, tun="", tun_en="", was_en=""):
         self.kennung = kennung
         self.schwere = schwere
+        # Wartung heisst: nicht ans Pult, nur in die Einrichtung und
+        # in pruefen.sh. Am Befund selbst, damit die Zuordnung an
+        # einer Stelle steht und nicht in jeder Anzeige neu.
+        self.wartung = kennung in WARTUNG
         self.was = was
         self.was_en = was_en or was
         self.tun = tun

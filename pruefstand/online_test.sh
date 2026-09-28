@@ -186,6 +186,302 @@ pruefe "der zweite Lauf sagt es und tut nichts" "ja" \
 pruefe "die Logik lief nur einmal" "1" \
   "$(grep -c LOGIK-LIEF "$R6/logik.log" 2>/dev/null || echo 0)"
 
+titel "7) Gegen die ECHTE aktualisierung.sh, ohne DEV_SICHERUNG"
+# WARUM ES DIESEN FALL GIBT
+#
+# Die Faelle oben rufen eine Attrappe statt der echten Logik auf --
+# und genau deshalb waren sie gruen, waehrend der Online-Weg in
+# Wirklichkeit gar nicht lief: aktualisierung.sh verlangte
+# DEV_SICHERUNG mit ${...:?fehlt}, aktualisieren.sh uebergab es bis
+# 0.3.2 nicht, und das Skript brach in Zeile 61 ab. Vor dem
+# Vorspulen, also ohne Schaden -- aber auch ohne Update.
+#
+# Hier laeuft die echte Datei, und zwar OHNE DEV_SICHERUNG: so ruft
+# sie das aktualisieren.sh aus 0.3.2 auf, mit dem 0.3.3 eingespielt
+# wird. Sie muss sich die Sicherung selbst anlegen und durchlaufen.
+E7="$BASIS/e7"; mkdir -p "$E7"
+git -C "$E7" init -q .
+git -C "$E7" config user.email p@p; git -C "$E7" config user.name P
+git -C "$E7" config commit.gpgsign false
+cp "$ECHT/aktualisierung.sh" "$ECHT/gesundheit.sh" "$E7/"
+cp "$ECHT/systemcheck.py" "$ECHT/netzzustand.py" "$ECHT/config.py" "$E7/" 2>/dev/null
+mkdir -p "$E7/.venv/bin"; ln -sf "$(command -v python3)" "$E7/.venv/bin/python"
+echo "0.9.0" > "$E7/VERSION"; echo fastapi > "$E7/requirements.txt"
+printf '{"wlan": {"ssid": "x"}}' > "$E7/zustand.json"
+git -C "$E7" add -A >/dev/null; git -C "$E7" commit -q -m 0.9.0
+ALT7="$(git -C "$E7" rev-parse HEAD)"
+echo "0.9.1" > "$E7/VERSION"; echo neu > "$E7/dazu.txt"
+git -C "$E7" add -A >/dev/null; git -C "$E7" commit -q -m 0.9.1
+git -C "$E7" tag v0.9.1
+git -C "$E7" update-ref refs/online/v0.9.1 "$(git -C "$E7" rev-parse v0.9.1)"
+git -C "$E7" reset -q --hard "$ALT7"
+
+# Die Grundlinie fuer den Gesundheitscheck, wie sie jeder echte
+# Aufrufer setzt (stick_update.sh seit 0.2.12, aktualisieren.sh seit
+# 0.3.3). Ohne sie zaehlt JEDER vorhandene Befund als neu, und der
+# Lauf rollt ein tadelloses Update zurueck. Genau diesen Fehler hatte
+# der Online-Weg -- gefunden, weil dieser Fall gegen die echte Datei
+# laeuft statt gegen eine Attrappe.
+mkdir -p "$BASIS/d7/vorher-0.9.1"
+(cd "$E7" && DEV_SICHERUNG="$BASIS/d7/vorher-0.9.1" \
+   bash "$E7/gesundheit.sh" --vorher >/dev/null 2>&1) || true
+
+AUS7="$(cd "$E7" && env -u DEV_SICHERUNG \
+  DEV_ORDNER="$E7" DEV_BENUTZER="$(id -un)" DEV_ABLAGE="$BASIS/d7" \
+  DEV_ALT_SHA="$ALT7" DEV_REF=refs/online/v0.9.1 DEV_VERSION=0.9.1 \
+  DEV_HIER=0.9.0 DEVARENU_UNIT_ORDNER="$BASIS/u7" \
+  DEVARENU_UDEV_REGEL="$BASIS/u7.rules" \
+  STUB_FASSUNG=0.9.1 STUB_LOG="$BASIS/s7.log" \
+  bash "$E7/aktualisierung.sh" 2>&1)"; RC7=$?
+
+pruefe "sie bricht NICHT an DEV_SICHERUNG ab" "nein" \
+  "$(printf '%s' "$AUS7" | grep -q 'DEV_SICHERUNG' && echo ja || echo nein)"
+pruefe "sie legt die Sicherung selbst an" "ja" \
+  "$(printf '%s' "$AUS7" | grep -q 'keine uebergeben' && echo ja || echo nein)"
+pruefe "und sagt, wo sie liegt" "ja" \
+  "$([ -d "$BASIS/d7/vorher-0.9.1" ] && echo ja || echo nein)"
+pruefe "zustand.json liegt darin" "ja" \
+  "$([ -f "$BASIS/d7/vorher-0.9.1/zustand.json" ] && echo ja || echo nein)"
+pruefe "der Lauf geht durch" "0" "$RC7"
+pruefe "und die Fassung steht auf 0.9.1" "0.9.1" "$(cat "$E7/VERSION")"
+
+titel "8) Scheitert die Logik mittendrin, kommt alles zurueck"
+# Der Fall, ohne den es kein Autoupdate geben darf: die Logik hat
+# schon vorgespult, aendert eine Unit und zustand.json -- und
+# scheitert dann. Ohne Rueckweg bliebe der Rechner halb neu stehen,
+# und niemand ist vor Ort.
+#
+# EIGENES Gegenstueck. Das obige hat inzwischen ein neu gesetztes Tag,
+# und ein Klon davon weigert sich beim Holen, sein vorhandenes Tag zu
+# ueberschreiben -- zu Recht, aber dann prueft dieser Fall den
+# falschen Fehler.
+FERN8="$BASIS/fern8"; mkdir -p "$FERN8"
+git -C "$FERN8" init -q -b main
+git -C "$FERN8" config user.email p@p; git -C "$FERN8" config user.name P
+git -C "$FERN8" config commit.gpgsign false
+git -C "$FERN8" config gpg.format ssh
+git -C "$FERN8" config user.signingkey "$ECHTER.pub"
+echo "0.9.0" > "$FERN8/VERSION"
+echo ': # Platzhalter' > "$FERN8/aktualisierung.sh"
+git -C "$FERN8" add -A >/dev/null; git -C "$FERN8" commit -q -m 0.9.0
+git -C "$FERN8" tag -s v0.9.0 -m "Devarenu 0.9.0"
+
+echo "0.9.1" > "$FERN8/VERSION"
+# Eine Logik, die alles anfasst und dann scheitert.
+cat > "$FERN8/aktualisierung.sh" <<'KAPUTT'
+#!/usr/bin/env bash
+set -u
+cd "$DEV_ORDNER"
+git merge --ff-only --quiet "$DEV_REF^{commit}" || exit 1
+echo "NEUE UNIT"   > "$DEVARENU_UNIT_ORDNER/devarenu.service"
+echo "NEUER TIMER" > "$DEVARENU_UNIT_ORDNER/devarenu-fenster.timer"
+printf '{"kaputt": true}' > "$DEV_ORDNER/zustand.json"
+echo "SIE-LIEF" >> "$DEV_ORDNER/kaputt.log"
+echo "MELDUNG|mittendrin gescheitert"
+exit 7
+KAPUTT
+git -C "$FERN8" add -A >/dev/null; git -C "$FERN8" commit -q -m 0.9.1
+git -C "$FERN8" tag -s v0.9.1 -m "Devarenu 0.9.1"
+
+R8="$BASIS/r8"
+git clone -q "$FERN8" "$R8"
+git -C "$R8" config user.email p@p; git -C "$R8" config user.name P
+git -C "$R8" config commit.gpgsign false
+git -C "$R8" -c advice.detachedHead=false checkout -q v0.9.0
+git -C "$R8" branch -f main v0.9.0 >/dev/null
+git -C "$R8" checkout -q main
+git -C "$R8" branch --set-upstream-to=origin/main main >/dev/null 2>&1
+echo "pruef@pruefstand $(cat "$ECHTER.pub")" > "$R8/schluessel.erlaubt"
+cp "$ECHT/aktualisieren.sh" "$ECHT/gesundheit.sh" "$R8/"
+printf '{"wlan": {"ssid": "x"}}' > "$R8/zustand.json"
+chmod 600 "$R8/zustand.json"
+
+U8="$BASIS/u8"; mkdir -p "$U8"
+echo "ALTE UNIT"           > "$U8/devarenu.service"
+echo "ALTER FENSTER-TIMER" > "$U8/devarenu-fenster.timer"
+VOR8="$(git -C "$R8" rev-parse HEAD)"
+ZUSTAND_VOR="$(md5sum < "$R8/zustand.json")"
+
+AUS8="$(cd "$R8" && DEVARENU_DATEN="$BASIS/d8" \
+        DEVARENU_UNIT_ORDNER="$U8" STUB_LOG="$BASIS/s8.log" \
+        bash ./aktualisieren.sh 2>&1)" || true
+
+# ZUERST: ist die kaputte Logik ueberhaupt gelaufen? Ohne diese Zeile
+# gingen alle folgenden Pruefungen auch dann durch, wenn das Update
+# gar nicht erst angefangen haette -- der Endzustand saehe gleich aus.
+pruefe "die kaputte Logik lief wirklich" "ja" \
+  "$([ -f "$R8/kaputt.log" ] && echo ja || echo nein)"
+pruefe "das Scheitern wird gemeldet" "ja" \
+  "$(printf '%s' "$AUS8" | grep -q 'gescheitert' && echo ja || echo nein)"
+pruefe "der Code ist zurueck auf dem alten Stand" "$VOR8" \
+  "$(git -C "$R8" rev-parse HEAD)"
+pruefe "die Fassung ist wieder 0.9.0" "0.9.0" "$(cat "$R8/VERSION")"
+pruefe "die Unit ist zurueckgeholt" "ALTE UNIT" "$(cat "$U8/devarenu.service")"
+pruefe "auch die des Wartungsfensters" "ALTER FENSTER-TIMER" \
+  "$(cat "$U8/devarenu-fenster.timer")"
+pruefe "zustand.json ist zurueckgeholt" "$ZUSTAND_VOR" \
+  "$(md5sum < "$R8/zustand.json")"
+pruefe "der Dienst wurde neu gestartet" "1" \
+  "$(grep -c 'restart devarenu' "$BASIS/s8.log" 2>/dev/null || echo 0)"
+
+titel "8b) Abgeloester HEAD -- drei Lagen"
+# Am 27.09. stand der Gemeinderechner auf tags/v0.2.11^0, main zeigte
+# auf denselben Commit, und der Updater brach ab, obwohl nichts
+# fehlte. Kein Weg im Repo hinterlaesst das; entstanden ist es von
+# Hand. Angehaengt wird nur, wenn dabei nichts verlorengeht.
+kopf_lage() { # $1 Ordner -> "main", "HEAD" oder der Zweigname
+  git -C "$1" rev-parse --abbrev-ref HEAD
+}
+
+# (1) main zeigt auf denselben Commit -> anhaengen und weitermachen
+R9A="$BASIS/r9a"; neuer_rechner "$R9A"
+BAUM_VOR="$(cd "$R9A" && find . -path ./.git -prune -o -type f -print | sort | xargs md5sum 2>/dev/null | md5sum)"
+git -C "$R9A" -c advice.detachedHead=false checkout -q --detach HEAD
+AUS9A="$(lauf "$R9A")" || true
+pruefe "(1) HEAD wird wieder angehaengt" "main" "$(kopf_lage "$R9A")"
+pruefe "(1) und es wird gesagt" "ja" \
+  "$(printf '%s' "$AUS9A" | grep -q 'wieder angehaengt' && echo ja || echo nein)"
+pruefe "(1) das Update laeuft danach durch" "0.9.1" "$(cat "$R9A/VERSION")"
+
+# (2) ein anders benannter Zweig zeigt darauf -> ebenfalls anhaengen
+R9B="$BASIS/r9b"; neuer_rechner "$R9B"
+# Erst abloesen, DANN main entfernen -- git weigert sich, den Zweig
+# zu loeschen, auf dem HEAD gerade steht.
+git -C "$R9B" -c advice.detachedHead=false checkout -q --detach HEAD
+git -C "$R9B" branch vor-ort >/dev/null
+git -C "$R9B" branch -D main >/dev/null 2>&1
+lauf "$R9B" >/dev/null 2>&1 || true
+pruefe "(2) der einzige Zweig wird genommen" "vor-ort" "$(kopf_lage "$R9B")"
+
+# (3) kein Zweig zeigt darauf -> Abbruch, nichts angefasst
+R9C="$BASIS/r9c"; neuer_rechner "$R9C"
+git -C "$R9C" -c advice.detachedHead=false checkout -q --detach HEAD
+echo "nur hier" > "$R9C/nur-abgeloest.txt"
+git -C "$R9C" add -A >/dev/null
+git -C "$R9C" -c user.email=p@p -c user.name=P commit -q -m "nur abgeloest"
+SHA9C="$(git -C "$R9C" rev-parse HEAD)"
+AUS9C="$(lauf "$R9C")" || true
+pruefe "(3) kein Zweig darauf -> HEAD bleibt abgeloest" "HEAD" "$(kopf_lage "$R9C")"
+pruefe "(3) der Stand bleibt unangetastet" "$SHA9C" "$(git -C "$R9C" rev-parse HEAD)"
+pruefe "(3) die Arbeit ist noch da" "ja" \
+  "$([ -f "$R9C/nur-abgeloest.txt" ] && echo ja || echo nein)"
+pruefe "(3) und es wird erklaert" "ja" \
+  "$(printf '%s' "$AUS9C" | grep -q 'kein Zweig zeigt' && echo ja || echo nein)"
+
+titel "9) Die drei Unit-Listen laufen nicht auseinander"
+# Kern, versionierte Logik und Online-Weg fuehren dieselbe Liste
+# dreimal -- der Kern darf von keiner versionierten Datei abhaengen.
+# Drei Kopien laufen auseinander, wenn niemand hinsieht.
+liste() {
+  # Erst den Variablennamen weg, DANN zerlegen -- sonst nimmt das
+  # grep die erste Unit mit, die auf derselben Zeile steht.
+  sed -n '/^UNITS_GESICHERT="/,/"$/p' "$1" \
+    | sed 's/^UNITS_GESICHERT="//' \
+    | tr -d '\\"' | tr ' ' '\n' | grep -v '^$' | sort
+}
+pruefe "Kern und versionierte Logik" "$(liste "$ECHT/stick_update.sh")" \
+  "$(liste "$ECHT/aktualisierung.sh")"
+pruefe "Kern und Online-Weg" "$(liste "$ECHT/stick_update.sh")" \
+  "$(liste "$ECHT/aktualisieren.sh")"
+pruefe "und es sind die sieben, die es gibt" "7" \
+  "$(liste "$ECHT/stick_update.sh" | wc -l)"
+
+titel "10) Autoupdate im Fenster: wann es laeuft und wann nicht"
+# Der Schalter darf nur unter allen vier Bedingungen zuenden: Fenster
+# an, Autoupdate an, im Fenster, keine Uebersetzung. Und genau einmal
+# je Fenster -- der Timer tickt alle fuenf Minuten.
+W="$BASIS/w10"; mkdir -p "$W/.venv/bin"
+cp "$ECHT/wartungsfenster.sh" "$ECHT/wartungsfenster.py" \
+   "$ECHT/netzzustand.py" "$ECHT/config.py" "$ECHT/meldung.sh" "$W/"
+ln -sf "$ECHT/.venv/bin/python" "$W/.venv/bin/python"
+echo "0.9.0" > "$W/VERSION"
+
+# Attrappen: nmcli tut nichts, aktualisieren.sh schreibt nur mit,
+# poweroff auch. Der Server wird ueber eine Datei nachgebildet.
+cat > "$W/nmcli" <<'NM'
+#!/bin/sh
+exit 0
+NM
+cat > "$W/aktualisieren.sh" <<'UPD'
+#!/usr/bin/env bash
+echo "LIEF" >> "$(dirname "$0")/updater.log"
+echo "0.9.1" > "$(dirname "$0")/VERSION"
+exit 0
+UPD
+cat > "$W/poweroff" <<'PO'
+#!/bin/sh
+echo "AUS" >> "$(dirname "$0")/poweroff.log"
+PO
+chmod +x "$W/nmcli" "$W/poweroff"
+
+# Das Fenster auf JETZT stellen, damit im_fenster=ja gilt.
+HEUTE="$(LC_ALL=C date +%a | sed 's/Mon/Mo/;s/Tue/Di/;s/Wed/Mi/;s/Thu/Do/;s/Fri/Fr/;s/Sat/Sa/;s/Sun/So/')"
+fenster_setzen() { # $1 autoupdate ja/nein
+  cat > "$W/netz.json" <<ENDE
+{"wartungsfenster": {"an": true, "profil": "P", "wochentag": "$HEUTE",
+ "von": "00:00", "bis": "23:59", "autoupdate": $([ "$1" = ja ] && echo true || echo false),
+ "nach_update_aus": true}}
+ENDE
+}
+w_lauf() { # $1 uebersetzung ja/nein
+  (cd "$W" && DEVARENU_NMCLI="$W/nmcli" DEVARENU_RTCWAKE=/bin/true \
+     DEVARENU_POWEROFF="$W/poweroff" DEVARENU_DATEN="$W/abl" \
+     DEVARENU_PORT=1 DEVARENU_UEBERSETZT_TEST="$1" \
+     bash wartungsfenster.sh --pruefen 2>&1)
+}
+
+fenster_setzen nein
+rm -f "$W/updater.log"; rm -rf "$W/abl"
+w_lauf nein >/dev/null 2>&1 || true
+pruefe "Autoupdate aus: der Updater laeuft nicht" "nein" \
+  "$([ -f "$W/updater.log" ] && echo ja || echo nein)"
+
+fenster_setzen ja
+rm -f "$W/updater.log" "$W/poweroff.log"; rm -rf "$W/abl"
+AUS10="$(w_lauf nein)" || true
+pruefe "Autoupdate an: der Updater laeuft" "ja" \
+  "$([ -f "$W/updater.log" ] && echo ja || echo nein)"
+pruefe "die neue Fassung wird genannt" "ja" \
+  "$(printf '%s' "$AUS10" | grep -q '0.9.0 -> 0.9.1' && echo ja || echo nein)"
+pruefe "danach wird heruntergefahren" "ja" \
+  "$([ -f "$W/poweroff.log" ] && echo ja || echo nein)"
+
+# Zweiter Tick im selben Fenster: nichts mehr.
+rm -f "$W/updater.log"
+w_lauf nein >/dev/null 2>&1 || true
+pruefe "der zweite Tick im selben Fenster laeuft nicht noch einmal" "nein" \
+  "$([ -f "$W/updater.log" ] && echo ja || echo nein)"
+
+# Waehrend einer Uebersetzung wird nicht aktualisiert. Das ist die
+# Bedingung, an der der Gottesdienst haengt: ein Dienstneustart
+# mitten in der Predigt waere der eine Fehler, den niemand erklaeren
+# kann.
+fenster_setzen ja
+rm -f "$W/updater.log" "$W/poweroff.log"; rm -rf "$W/abl"
+AUS10B="$(w_lauf ja)" || true
+pruefe "waehrend einer Uebersetzung laeuft nichts" "nein" \
+  "$([ -f "$W/updater.log" ] && echo ja || echo nein)"
+pruefe "und es wird gesagt, warum" "ja" \
+  "$(printf '%s' "$AUS10B" | grep -q 'Es wird uebersetzt' && echo ja || echo nein)"
+pruefe "und der Rechner bleibt an" "nein" \
+  "$([ -f "$W/poweroff.log" ] && echo ja || echo nein)"
+# Und die Marke darf dabei NICHT gesetzt worden sein -- sonst liefe
+# nach dem Gottesdienst in diesem Fenster gar nichts mehr.
+pruefe "die Marke bleibt frei fuer den naechsten Tick" "nein" \
+  "$(ls "$W/abl"/autoupdate-* >/dev/null 2>&1 && echo ja || echo nein)"
+
+# Fenster ganz aus -- der Schalter faellt mit.
+cat > "$W/netz.json" <<'ENDE'
+{"wartungsfenster": {"an": false, "profil": "P", "autoupdate": true}}
+ENDE
+rm -f "$W/updater.log"; rm -rf "$W/abl"
+w_lauf nein >/dev/null 2>&1 || true
+pruefe "kein Fenster, kein Autoupdate" "nein" \
+  "$([ -f "$W/updater.log" ] && echo ja || echo nein)"
+pruefe "und es steht auch nicht mehr als an da" "False" \
+  "$(cd "$W" && "$ECHT/.venv/bin/python" -c \
+     'import sys; sys.path.insert(0,"."); import wartungsfenster as w; print(w.einstellung()["autoupdate"])')"
+
 printf '\n'
 if [ "$FEHLER" = 0 ]; then
   printf '\033[32mAlle Faelle wie erwartet.\033[0m\n'

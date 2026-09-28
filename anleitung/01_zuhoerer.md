@@ -6,15 +6,11 @@ Sie brauchen nur Ihr eigenes Handy und Kopfhörer.
 
 ## So geht es
 
-1. **Mobile Daten ausschalten.** Das ist der wichtigste Schritt. Das WLAN
-   im Saal hat kein Internet. Ist das mobile Netz an, wechselt das Handy
-   nach ein paar Minuten von selbst dorthin zurück — und der Ton bricht
-   ab, meistens mitten im Satz.
-2. **Ersten QR-Code scannen.** Die Kamera-App genügt. Das Handy verbindet
+1. **Ersten QR-Code scannen.** Die Kamera-App genügt. Das Handy verbindet
    sich mit dem WLAN.
-3. **Zweiten QR-Code scannen.** Damit öffnet sich die Seite.
-4. **Sprache auswählen** und auf *Zuhören* tippen.
-5. **Kopfhörer aufsetzen.**
+2. **Zweiten QR-Code scannen.** Damit öffnet sich die Seite.
+3. **Sprache auswählen** und auf *Zuhören* tippen.
+4. **Kopfhörer aufsetzen.**
 
 ## Beim ersten Mal dauert es
 
@@ -25,16 +21,13 @@ es dauert länger.
 
 ## „Kein Internet“ — das ist in Ordnung
 
+**Oben kann weiterhin *5G* oder *LTE* stehen.** Das ist richtig und kein
+Fehler — die Übersetzung kommt über das WLAN.
+
 Ihr Handy zeigt beim WLAN vielleicht ein Ausrufezeichen oder die Meldung
 *Kein Internet*. Das stimmt: dieses WLAN führt nirgendwohin. Es ist nur
 dafür da, den Ton aus dem Saal an Ihr Handy zu bringen. **Bleiben Sie
 trotzdem verbunden.**
-
-**Wer die mobilen Daten anlässt:** Oben kann weiterhin *5G* oder *LTE*
-stehen. Das ist richtig und kein Fehler — die Übersetzung kommt trotzdem
-über das WLAN. Nur wechselt das Handy nach einigen Minuten von selbst
-zurück ins Mobilnetz, und dann bricht der Ton ab. Deshalb der erste
-Schritt oben.
 
 ## Wenn der Ton stockt
 

@@ -175,8 +175,46 @@ blau "Einspielen"
 
 # Vorspulen und nicht auschecken, damit der Zweig samt Gegenstueck heil
 # bleibt. Naeheres in stick_update.sh.
+# Ein abgeloester HEAD haelt jedes Update an -- aber nicht immer
+# muss er das. Zeigt ein lokaler Zweig auf GENAU den Commit, auf dem
+# HEAD steht, ist nichts verloren: dann wird nur die Referenz
+# umgehaengt, keine Datei angefasst, und es geht weiter.
+#
+# So stand der Gemeinderechner am 27.09.: HEAD auf tags/v0.2.11^0,
+# main auf demselben Commit. Kein Weg im Repo hinterlaesst das --
+# es muss von Hand entstanden sein --, und der Updater brach ab,
+# obwohl nichts fehlte.
+#
+# Zeigt KEIN Zweig darauf, bleibt es beim Abbruch. Dann liegt dort
+# Arbeit, die ein Anhaengen verlieren wuerde.
+#
+# Rueckgaengig mit:  git checkout --detach
+wieder_anhaengen() {
+  local zweige haupt
+  zweige="$(als_benutzer git for-each-ref --format='%(refname:short)' \
+            refs/heads --points-at HEAD 2>/dev/null)"
+  [ -n "$zweige" ] || return 1
+  if printf '%s\n' "$zweige" | grep -qx main; then
+    haupt=main
+  elif [ "$(printf '%s\n' "$zweige" | wc -l)" = 1 ]; then
+    haupt="$zweige"
+  else
+    return 1
+  fi
+  als_benutzer git symbolic-ref HEAD "refs/heads/$haupt" || return 1
+  return 0
+}
+
 ZWEIG="$(als_benutzer git rev-parse --abbrev-ref HEAD)"
-[ "$ZWEIG" != "HEAD" ] || { fehl "HEAD ist abgeloest. Erst auf einen Zweig stellen."; exit 1; }
+if [ "$ZWEIG" = "HEAD" ]; then
+  if wieder_anhaengen; then
+    warn "HEAD war abgeloest und wurde wieder angehaengt."
+  else
+    fehl "HEAD ist abgeloest, und kein Zweig zeigt auf diesen Stand."
+    echo "   Anhaengen wuerde Arbeit verlieren. Nachsehen:  git branch -a"
+    exit 1
+  fi
+fi
 ALT="$(als_benutzer git rev-parse HEAD)"
 als_benutzer git update-ref refs/devarenu/vorher "$ALT"
 

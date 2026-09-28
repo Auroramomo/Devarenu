@@ -6,6 +6,153 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.3.3 — der Rechner hält sich selbst auf Stand
+
+*28.09.2026.*
+
+### Für alle
+
+**Der Rechner kann sich donnerstags von selbst aktualisieren.** Im
+Wartungsfenster, ohne dass jemand dabei ist — und er meldet danach
+aufs Handy, was er getan hat. **Vorgabe ist aus.**
+
+Geht dabei etwas schief, **holt er den alten Stand selbst zurück**:
+Code, Dienste, Einstellungen. Ohne diesen Rückweg gäbe es den
+Schalter nicht.
+
+**Am Pult steht nur noch, was heute jemanden angeht.** Wer sonntags
+den Ton fährt, bekommt keine Meldungen mehr über Reparaturvorräte und
+Dienstvorlagen. Die liegen jetzt unter Einrichtung im eingeklappten
+Abschnitt „Wartung" — und vollständig in `bash pruefen.sh`.
+
+**Spricht jemand in einer anderen Sprache als eingestellt, fällt das
+auf.** Am Pult erscheint eine gelbe Zeile. Umgeschaltet wird nichts
+von selbst.
+
+**„Mobile Daten ausschalten" ist aus der Anleitung verschwunden** — in
+allen vier Sprachen. Mit neuem und älterem iPhone und einem Samsung
+geprüft: kein Anmeldefenster, die Seite lädt, der Ton läuft durch.
+
+### Für Techniker
+
+**Der Online-Weg lief in 0.3.2 gar nicht.** `aktualisierung.sh`
+verlangte `DEV_SICHERUNG` mit `${...:?fehlt}`, `aktualisieren.sh`
+übergab es nicht — das Skript brach ab, bevor es vorspulte. Ohne
+Schaden, aber auch ohne Update. Der Prüfstand sah es nicht: er rief
+eine **Attrappe** statt der echten Datei auf. Jetzt läuft mindestens
+ein Fall gegen die echte, und die Sicherung ist keine Pflicht mehr —
+fehlt sie, legt `aktualisierung.sh` sie selbst an. Nur deshalb lässt
+sich 0.3.3 mit dem Skript aus 0.3.2 überhaupt einspielen.
+
+Zwei weitere Fehler fielen im selben Zug auf, beide nur sichtbar, weil
+gegen die echte Datei geprüft wurde:
+
+- `aktualisieren.sh` setzte **keine Gesundheits-Grundlinie**
+  (`gesundheit.sh --vorher`). Jeder vorhandene Befund galt danach als
+  neu, und ein tadelloses Update wäre zurückgerollt worden.
+- `aktualisierung.sh` reichte `DEV_SICHERUNG` und `DEV_VERSION` nicht
+  an `gesundheit.sh` weiter. `sudo -H` räumt die Umgebung ab; die
+  Grundlinie wurde unter `/tmp` gesucht und nie gefunden. Das betraf
+  auch den Stick-Weg.
+
+**Rückweg auf dem Online-Weg**, Schritt für Schritt wie im Kern: Code
+auf die alte SHA, venv-Symlink, Units aus der Sicherung,
+`zustand.json` und `netz.json` nur, wenn das Update sie verändert hat.
+Danach ein Gesundheitscheck — ein Rückweg, der selbst scheitert, darf
+nicht als „zurückgerollt" durchgehen.
+
+**Die Unit-Listen kannten das Wartungsfenster nicht.** Gesichert und
+zurückgeholt wurden vier Units, seit 0.3.2 gibt es sieben. Ein
+Rückfall hätte ein halb zurückgerolltes Fenster hinterlassen. Jetzt
+führen Kern, versionierte Logik und Online-Weg dieselbe Liste, und der
+Prüfstand vergleicht alle drei.
+
+**`aktualisieren.sh` kennt jetzt `als_benutzer` und `als_wurzel`.** Es
+lief bisher als Besitzer und holte sich Privilegiertes mit `sudo`; der
+Fenster-Timer ruft es aber als Wurzel auf, und dann lägen root-eigene
+Objekte in `.git`.
+
+**Ein abgelöster HEAD hält nicht mehr grundlos an.** Zeigt ein lokaler
+Zweig auf genau denselben Commit, wird wieder angehängt — `main`
+bevorzugt, keine Datei angefasst, rückgängig mit `git checkout
+--detach`. Zeigt keiner darauf, bleibt es beim Abbruch: dort läge
+Arbeit, die ein Anhängen verlöre. Gilt in `stick_update.sh`,
+`bootstrap.sh` und `aktualisieren.sh`.
+
+**„Ohne Stimme, laufen als Untertitel" gibt es wieder.** Der Hinweis
+fehlte seit 0.3.0, weil niemand mehr `stimmen_fehlen()` aufrief. Er
+kommt jetzt aus der versionierten Logik über `melden` — damit erreicht
+er das Pult auch mit einem älteren Kern. Das tote Feld `stimmen` und
+`upd_stimmen` sind entfernt.
+
+**Testprotokoll** (`pruefprotokoll.py`). Je Abschnitt eine Zeile JSON:
+Zeitstempel, Ausgangssprache, erkannter Satz, jede Übersetzung, und
+die Dauer jedes Schrittes. Gemessen wurde das alles längst — es fehlte
+nur jemand, der es aufschreibt. Regeln wie bei der Aufnahme, aber
+**ein** Haken statt zwei; der Schalter steht nur im Arbeitsspeicher
+und hört beim Neustart von selbst auf.
+
+**Sprachwache** (`sprachwache.py`). `detect_language` auf jedem
+vierten tauglichen Segment. Gemessen mit `large-v3-turbo`, float16,
+RTX 5080: 76 ms, unabhängig von der Tondauer — gegen 85 ms für ein
+`transcribe` über fünf Sekunden. Bei jedem Segment zu prüfen würde den
+Whisper-Anteil fast verdoppeln. Drei Bedingungen gegen Fehlalarme:
+mindestens drei Sekunden, mindestens 0,8 Wahrscheinlichkeit, dieselbe
+fremde Sprache dreimal hintereinander.
+
+Beide hängen in der Segmentschleife und sind bei ausgeschaltetem
+Schalter je ein einzelnes `if`. Was darin schiefgeht, wird gefangen —
+ein Protokoll, das den Gottesdienst anhält, wäre schlimmer als keins.
+
+**Nach einem gelungenen Autoupdate wird der Reparaturvorrat
+nachgezogen**, solange das WLAN steht. Sonst meldete der Systemcheck
+nach jedem Update „Der Vorrat gehört zu Fassung X". Scheitert es,
+steht das nur in der Rückmeldung.
+
+**Fehlerberichte gehen von selbst hinaus** (`berichtpost.py`). Vier
+Anlässe: der Käfer am Pult, ein Dienst, der nicht sauber beendet
+wurde, ein FEHLT beim Start, ein fehlgeschlagenes Update. Sie sammeln
+sich lokal (`700`/`600`) und gehen im Fenster über denselben Kanal
+hinaus; als gesendet gilt einer erst nach der Bestätigung. Inhalt nur
+nach der Erlaubnisliste aus `fehlerbericht.py` — hier kommt nichts
+dazu. Eigener Schalter, Vorgabe aus.
+
+Text und kein Anhang, nachgesehen in der ntfy-Dokumentation: über 4096
+Bytes macht der Server selbst einen Anhang daraus, und Anhänge
+verfallen nach drei Stunden. Ein Bericht vom Donnerstagabend wäre
+freitags weg.
+
+**Rückmeldung über ntfy** (`meldung.sh`). Das Thema steht in
+`meldung.json` mit `600`, in `.gitignore`, und
+`oeffentlich_pruefen.sh` sucht nach solchen Adressen in verfolgten
+Dateien. Telegram wäre derselbe Aufwand gewesen; dagegen sprach das
+Schadensmaß — ein Bot-Token ist ein Schlüssel, ein ntfy-Thema eine
+Adresse zum Mitlesen.
+
+**Echte exFAT- und vfat-Sticks im Prüfstand.** Ohne Wurzelrechte wird
+der Abschnitt übersprungen und sagt es. Geprüft wird auf `$EUID` und
+nicht auf `id -u`: in `pruefstand/attrappen/` liegt eine `id`-Attrappe,
+die eine Wurzel vorspielt — sie hätte den Abschnitt auf einem
+Arbeitsrechner losgehen lassen.
+
+`plasma-x11-session` liegt im Reparaturvorrat. Benutzt wird es nicht;
+es liegt da, falls der Rechner einmal auf X11 muss, und vor Ort gibt
+es keine Leitung, über die es nachkäme.
+
+Neu: **`VERSIONEN.md`**, eine Seite, neueste Fassung oben. Sie wird ab
+jetzt mitgepflegt; `AUFSTELLEN.md` führt sie in der Liste „Bei jeder
+Fassung mitzupflegen".
+
+### Was offen ist
+
+- Der erste echte Autoupdate-Lauf ist 0.3.3 nach 0.3.4. Die
+  Änderungen an `aktualisieren.sh` wirken erst dann.
+- Der Bildschirm ist nach einem Neustart unter Wayland nicht
+  verlässlich erreichbar. Der Weg ist RustDesk-Terminal und ein
+  Tunnel auf Port 8000.
+
+---
+
 ## 0.3.2 — Fernwartung ohne jemanden vor Ort
 
 *27.09.2026. Nach dem ersten Einspielen auf dem Gemeinderechner — die

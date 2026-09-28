@@ -50,6 +50,9 @@ import grafikkarte
 # app_bauen verdecken, und zwar still: der Zugriff schluege erst zur
 # Laufzeit fehl, beim ersten Speichern am Pult.
 import aufnahme
+import berichtpost
+import pruefprotokoll
+import sprachwache
 import drossel
 import pultschutz
 import qr_texte
@@ -613,6 +616,25 @@ class Werk:
         r"im auftrag (des|der) (wdr|ndr|zdf|ard|swr|mdr|rbb)|"
         r"mit freundlicher unterst(ü|ue)tzung)", re.IGNORECASE)
 
+    def sprache_raten(self, audio):
+        """(Kennung, Wahrscheinlichkeit) -- welche Sprache klingt das?
+
+        Nur der Encoder und ein Dekoderschritt, kein Transkript.
+        Gemessen mit large-v3-turbo, float16, auf einer RTX 5080: 76 ms,
+        unabhaengig von der Tondauer -- Whisper fuellt ohnehin auf 30 s
+        auf. Zum Vergleich braucht transcribe fuer fuenf Sekunden
+        85 ms. Deshalb ruft die Sprachwache das nur jedes vierte
+        taugliche Segment auf.
+
+        Schlaegt es fehl, gilt "unbekannt". Eine Vermutung ueber die
+        Sprache darf die Uebersetzung nie aufhalten."""
+        try:
+            sprache, wahrscheinlich, _ = self.whisper.detect_language(audio)
+            return sprache, wahrscheinlich
+        except Exception as e:
+            print(f"        Spracherkennung ging nicht: {str(e)[:70]}")
+            return "", None
+
     def hoeren(self, audio):
         kwargs = dict(language=self.quelle, beam_size=1,
                       vad_filter=False, condition_on_previous_text=False)
@@ -1058,6 +1080,22 @@ class Lauf:
             config.ERGEBNIS_ORDNER / "predigten", MIKRO_RATE,
             zustandsdatei.laden()[0].get("aufnahme_tage",
                                          aufnahme.TAGE_VORGABE))
+        # Das Testprotokoll. Nur im Speicher, NICHT in zustand.json:
+        # was den Predigttext mitschreibt, soll nicht aus Versehen
+        # ueber einen Sonntag weiterlaufen. Ein Neustart schaltet es
+        # ab, und das ist der Sinn.
+        self.pruefprotokoll = pruefprotokoll.Protokoll(
+            config.ERGEBNIS_ORDNER / "pruefprotokolle")
+        # Die Sprachwache. Sie warnt nur, sie schaltet nichts um.
+        # Die Warteschlange fuer Fehlerberichte, die im
+        # Wartungsfenster von selbst hinausgehen.
+        self.berichte = berichtpost.Warteschlange(
+            config.ERGEBNIS_ORDNER / "berichte")
+        # Was nur die Technik angeht. Steht getrennt, weil es unter
+        # Einrichtung erscheint und nicht im Briefkasten.
+        self.wartungsbefunde = []
+        self.sprachwache = sprachwache.Sprachwache(
+            zustandsdatei.laden()[0].get("quelle", config.AUSGANGSSPRACHE))
         self.schleife = None
         self.pool = ThreadPoolExecutor(max_workers=len(SPRACHEN) + 1)
         # Beim Start aus der damaligen Sprachzahl bestimmt und danach nie
@@ -1288,6 +1326,30 @@ class Lauf:
         schlange_aus = self.warteschlange.qsize()
         print(f"[{nummer:4}] {audiodauer:4.1f}s Ton, STT {stt:.2f}s, "
               f"gesamt {gesamt:.2f}s | {schutz(text, 60)}")
+
+        # Die Sprachwache. Auch hier: ein einzelnes if, solange sie
+        # aus ist, und alles darin gefangen. Sie warnt nur; umgestellt
+        # wird die Ausgangssprache von einem Menschen am Pult.
+        if self.sprachwache is not None:
+            try:
+                self.sprachwache.quelle_setzen(self.quelle)
+                if self.sprachwache.dran(audiodauer):
+                    erkannt, sicher = self.werk.sprache_raten(audio)
+                    vorher = self.sprachwache.verdacht
+                    if self.sprachwache.melden(erkannt, sicher) and not vorher:
+                        print(warnung(self.sprachwache.satz()))
+            except Exception as e:
+                print(f"        Sprachwache: {str(e)[:70]}")
+
+        # Das Testprotokoll. Ein einzelnes if, solange es aus ist --
+        # und was drinnen schiefgeht, faengt segment() selbst ab. Was
+        # hier haengt, haengt zwischen dem fertigen Satz und dem Ton,
+        # der gleich im Saal ankommt; ein Protokoll, das den
+        # Gottesdienst anhaelt, waere schlimmer als gar keins.
+        if self.pruefprotokoll.laeuft:
+            self.pruefprotokoll.segment(
+                nummer, self.quelle, text, audiodauer, stt, gesamt,
+                ergebnisse)
         if self.segmentierer:
             lage = self.segmentierer.lage()
             if lage["stufe"] == "alarm" and nummer != self._letzte_warnung:
@@ -3216,6 +3278,66 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             "zeit": time.strftime("%H:%M"), "art": "system",
             "absender": "Devarenu", "gelesen": False})
 
+    # ---------------------------------------------- Berichte von selbst
+    # Eine Marke, die beim ordentlichen Herunterfahren verschwindet.
+    # Liegt sie beim Start noch da, ist der Dienst vorher nicht sauber
+    # gegangen -- abgestuerzt, hart neu gestartet oder der Strom weg.
+    # Genau der Fall faellt niemandem auf, und genau er ist
+    # interessant.
+    LAEUFT_MARKE = config.BASIS / "update" / "dienst-laeuft"
+
+    def bericht_ablegen(anlass):
+        """Baut einen Bericht und reiht ihn ein. Faengt alles.
+
+        Ein Bericht ueber einen Fehler darf nie selbst einer werden."""
+        try:
+            import fehlerbericht as fb
+            # pruefen.sh dauert Minuten und gehoert nicht in einen
+            # Lauf, der beim Hochfahren nebenher passiert.
+            vorher = fb._pruefen_zusammen
+            fb._pruefen_zusammen = lambda: ["(uebersprungen)"]
+            try:
+                text = fb.bauen()
+            finally:
+                fb._pruefen_zusammen = vorher
+            pfad = lauf.berichte.einreihen(anlass, text)
+            if pfad:
+                print(f"Fehlerbericht vorgemerkt ({anlass}): {pfad.name}")
+        except Exception as e:
+            print(f"Fehlerbericht liess sich nicht ablegen: {str(e)[:70]}")
+
+    def bericht_beim_start():
+        """Zwei Anlaesse, beide beim Hochfahren zu erkennen."""
+        try:
+            unsauber = LAEUFT_MARKE.exists()
+            LAEUFT_MARKE.parent.mkdir(parents=True, exist_ok=True)
+            LAEUFT_MARKE.write_text(time.strftime("%Y-%m-%d %H:%M:%S"),
+                                    encoding="utf-8")
+            if unsauber:
+                print(warnung("Der Dienst ist beim letzten Mal nicht "
+                              "sauber beendet worden."))
+                bericht_ablegen("neustart")
+        except Exception:
+            pass
+        try:
+            schwer = [b for b in systemcheck.pruefen()
+                      if b.schwere == systemcheck.FEHLT]
+            if schwer:
+                bericht_ablegen("systemcheck")
+        except Exception:
+            pass
+
+    def pruefprotokolle_aufraeumen():
+        """Dieselbe Frist wie die Aufnahmen -- derselbe Inhalt.
+
+        Kein Altbestandsschutz noetig: es gibt nichts aus der Zeit
+        davor, dieses Protokoll ist neu in 0.3.3."""
+        tage = zustandsdatei.laden()[0].get("aufnahme_tage",
+                                            pruefprotokoll.TAGE_VORGABE)
+        weg = pruefprotokoll.aufraeumen(lauf.pruefprotokoll.ordner, tage)
+        if weg:
+            print(f"{len(weg)} abgelaufene Testprotokolle geloescht.")
+
     def aufnahmen_aufraeumen(beim_start=False):
         """Loescht abgelaufene Aufnahmen. Gibt die Nachricht zurueck.
 
@@ -3261,6 +3383,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             await asyncio.sleep(aufnahme.AUFRAEUMEN_ALLE)
             try:
                 aufnahmen_aufraeumen()
+                pruefprotokolle_aufraeumen()
                 frei = lauf.mitschnitt.platz_pruefen()
                 if frei is not None:
                     text = (f"Die Aufnahme wurde gestoppt: nur noch "
@@ -3284,8 +3407,10 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         # beim Start immer aus, und der Zettel daneben bleibt bei der
         # abgebrochenen Datei liegen.
         alt_nachricht = aufnahmen_aufraeumen(beim_start=True)
+        pruefprotokolle_aufraeumen()
         if alt_nachricht:
             systemhinweis_legen(alt_nachricht)
+        bericht_beim_start()
         huete = asyncio.create_task(aufnahme_huetten())
         yield
         huete.cancel()
@@ -3293,6 +3418,10 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         # Der Aufseher ist ein Daemon-Thread und wuerde auch so mit dem
         # Prozess enden. Ihm hier Bescheid zu sagen erspart beim Neustart
         # des Dienstes den halben Takt, in dem er noch einmal nachsieht.
+        try:
+            LAEUFT_MARKE.unlink(missing_ok=True)
+        except OSError:
+            pass
         if tonquelle is not None:
             tonquelle.beenden()
         # Der Scan haelt womoeglich gerade ein fremdes Geraet offen.
@@ -3764,8 +3893,35 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             print(f"Systemcheck fehlgeschlagen ({str(e)[:90]}).")
             return None
         if not befunde:
+            lauf.wartungsbefunde = []
             return None
+        # Die Marke ueber ALLE Befunde: aendert sich etwas an der
+        # Wartungsseite, ist es eine neue Lage, auch wenn der
+        # Briefkasten davon nichts zeigt. Sonst gaelte eine
+        # Quittierung von vorletzter Woche weiter.
         marke = systemcheck.kennung(befunde)
+        lauf.wartungsbefunde = [
+            {"kennung": b.kennung,
+             "schwer": b.schwere == systemcheck.FEHLT,
+             "was": b.was, "was_en": b.was_en,
+             "tun": b.tun, "tun_en": b.tun_en}
+            for b in befunde if b.wartung]
+
+        # In den Briefkasten kommt nur, was den Bediener angeht.
+        #
+        # Am Pult sitzt sonntags jemand, der den Ton fahren soll. Ein
+        # Reparaturvorrat, der zu einer aelteren Fassung gehoert, ist
+        # richtig und wichtig -- aber nicht fuer diese Person und
+        # nicht in dieser Stunde. Stand es trotzdem jede Woche da,
+        # las man die Liste nach der dritten gar nicht mehr, und dann
+        # ging die eine Zeile unter, auf die es ankam.
+        #
+        # Die Wartungspunkte sind nicht weg: sie stehen unter
+        # Einrichtung im eingeklappten Abschnitt "Wartung" und in
+        # pruefen.sh.
+        befunde = [b for b in befunde if not b.wartung]
+        if not befunde:
+            return None
         if lauf.zustand.get("systemcheck_quittiert") == marke:
             return None
 
@@ -3974,7 +4130,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         return {"quittiert": neu}
 
     @app.get("/api/zustand")
-    def zustand():
+    def zustand(request: Request):
         return {"live": lauf.laeuft, "gesendet": lauf.n, "hoerer": lauf.anzahl,
                 # Worauf tatsaechlich gerechnet wird. Stand vorher nur im
                 # Terminal, und das liest im Gottesdienst niemand.
@@ -4000,6 +4156,16 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 # wird, soll es sehen, ohne das Pult zu kennen.
                 "aufnahme": bool(lauf.mitschnitt.laeuft),
                 "protokoll_mitschrift": PROTOKOLL_MITSCHRIFT,
+                "pruefprotokoll": lauf.pruefprotokoll.lage(),
+                # Ob dieses Pult ueberhaupt am Gemeinde-PC selbst
+                # offen ist. Der Schalter wird sonst gar nicht
+                # angezeigt -- ein Knopf, der immer "geht nicht"
+                # sagt, ist schlechter als keiner.
+                "am_rechner": pultschutz.vom_rechner_selbst(
+                    request.client.host if request.client else ""),
+                "wartung": lauf.wartungsbefunde,
+                "sprachverdacht": (lauf.sprachwache.satz()
+                                   if lauf.sprachwache else ""),
                 # Nur ob eines gesetzt ist, nie der Hash. Das Pult muss
                 # den Schalter richtig anzeigen und sonst nichts.
                 "pult_passwort": wache.gesetzt,
@@ -4133,6 +4299,60 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         dem sie liegt."""
         host = request.client.host if request.client else ""
         return pultschutz.vom_rechner_selbst(host)
+
+    @app.post("/api/pruefprotokoll")
+    async def pruefprotokoll_schalten(daten: dict, request: Request):
+        """Schaltet das Testprotokoll an oder aus.
+
+        NUR AM RECHNER SELBST. Darin steht der Predigttext und jede
+        Uebersetzung davon, Wort fuer Wort -- dieselbe Ueberlegung wie
+        bei der Aufnahme: das soll das Geraet gar nicht erst verlassen
+        koennen, auf dem es liegt.
+
+        Die Einwilligung wird HIER geprueft und nicht nur im Browser.
+        Anders als bei der Aufnahme genuegt EIN Haken: dass die
+        sprechende Person gefragt wurde. Der zweite ("nur die
+        Predigt") ergibt bei einem Test keinen Sinn."""
+        if not nur_am_rechner(request):
+            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
+        if not daten.get("an"):
+            lage = lauf.pruefprotokoll.beenden()
+            if lage:
+                print(f"Testprotokoll beendet: {lage['zeilen']} Zeilen "
+                      f"in {lage['minuten']} Minuten.")
+            return {"an": False, "lage": None}
+
+        datei, fehler = lauf.pruefprotokoll.starten(
+            daten.get("einwilligung"))
+        if fehler:
+            return JSONResponse({"grund": fehler}, status_code=400)
+        print(warnung(f"Testprotokoll laeuft: {datei.name}. Darin steht "
+                      f"der gesprochene Text und jede Uebersetzung."))
+        return {"an": True, "lage": lauf.pruefprotokoll.lage()}
+
+    @app.get("/api/pruefprotokolle")
+    def pruefprotokolle_liste(request: Request):
+        if not nur_am_rechner(request):
+            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
+        stand = zustandsdatei.laden()[0]
+        tage = stand.get("aufnahme_tage", pruefprotokoll.TAGE_VORGABE)
+        liste = pruefprotokoll.protokolle(lauf.pruefprotokoll.ordner)
+        return {"tage": tage, "laeuft": lauf.pruefprotokoll.lage(),
+                "dateien": [{"name": a["name"], "bytes": a["bytes"],
+                             "tage": round(a["tage"], 1)} for a in liste]}
+
+    @app.get("/pruefprotokoll/{name}")
+    def pruefprotokoll_holen(name: str, request: Request):
+        if not nur_am_rechner(request):
+            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
+        # Kein Pfad aus dem Namen: nur ein Eintrag aus der eigenen
+        # Liste zaehlt. Ein "../" darf hier nichts finden.
+        for a in pruefprotokoll.protokolle(lauf.pruefprotokoll.ordner):
+            if a["name"] == name:
+                return FileResponse(str(a["pfad"]),
+                                    media_type="application/x-ndjson",
+                                    filename=name)
+        return JSONResponse({"grund": "unbekannt"}, status_code=404)
 
     @app.post("/api/aufnahme/tage")
     async def aufnahme_tage(daten: dict, request: Request):
@@ -4491,6 +4711,12 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         except Exception as e:
             text = (f"Devarenu -- Fehlerbericht\n\nDer Bericht liess "
                     f"sich nicht erzeugen: {type(e).__name__}\n")
+        # Denselben Bericht in die Warteschlange. Wer den Kaefer
+        # drueckt, hat einen Grund -- und soll ihn nicht auch noch
+        # abfotografieren und mailen muessen, damit er ankommt. Die
+        # QR-Codes bleiben: sie funktionieren ohne Wartungsfenster.
+        lauf.berichte.einreihen("hand", text)
+
         name = f"devarenu-{config.VERSION}-fehlerbericht.txt"
         return PlainTextResponse(
             text, headers={"Cache-Control": "no-store",
@@ -5348,6 +5574,17 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
    border-color:#c0392b}
  /* Was laeuft, muss man sehen, ohne danach zu suchen. Rot, in
     Bewegung, ueber dem Verlauf. */
+ /* Die Warnung, dass jemand in einer anderen Sprache spricht als
+    eingestellt. Gelb und nicht rot: es ist eine Vermutung, kein
+    Befund -- und der Knopf daneben macht daraus eine Entscheidung. */
+ .warnzeile{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;
+   background:#fff6d8;border:1px solid #e0c46a;border-radius:.4rem;
+   padding:.5rem .7rem;margin:.6rem 0;font-size:.92rem;color:#6b5210}
+ .wartungliste{list-style:none;padding:0;margin:.4rem 0}
+ .wartungliste li{padding:.4rem 0;border-top:1px solid var(--linie);
+   font-size:.9rem;display:flex;flex-direction:column;gap:.2rem}
+ .wartungliste li.schwer{color:#9c2d22}
+ .wartungliste code{font-size:.85rem;opacity:.8}
  .laeuftauf{display:flex;align-items:center;gap:.5rem;
    font:.95rem system-ui,sans-serif;color:#c0392b;
    background:#fdeceb;border:1px solid #c0392b;border-radius:.4rem;
@@ -5400,6 +5637,10 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
   <span class=rotpunkt></span>
   <b data-t=aufnahme_laeuft>Aufnahme läuft</b>
   <span id=aufnahmedauer>0:00</span></p>
+<p class=warnzeile id=sprachverdacht hidden>
+  <span id=sprachverdachttext></span>
+  <button class=klein id=bSpracheUm onclick=spracheUmstellen()
+          data-t=sprache_umstellen>Ausgangssprache umstellen</button></p>
 <p class=hin id=anhaltenHin data-t=anhalten_hin hidden>Anhalten stoppt die Auslieferung, ohne die
 Zuhörer zu trennen. Sie bleiben verbunden und hören weiter, sobald es
 weitergeht.</p>
@@ -5542,6 +5783,28 @@ bleibt es so.</p>
   Protokoll (nur zur Fehlersuche)</span></label></p>
 <p class="hin" id=protokollhin data-t=protokoll_hin>Aus. Der gesprochene
 Satz steht dann nicht im Protokoll -- nur seine Länge.</p>
+<p class=hin id=pruefprotokollreihe hidden><label><input type=checkbox
+  id=pruefprotokollschalter onchange=pruefprotokollSetzen()>
+  <span data-t=pp_an>Testprotokoll schreiben (nur am Gemeinde-PC)</span></label></p>
+<p class="hin" id=pruefprotokollhin data-t=pp_hin hidden>Schreibt je
+Abschnitt den erkannten Satz, jede Übersetzung und die Dauer jedes
+Schrittes in eine Datei. Nur zur Fehlersuche. Es hört von selbst auf,
+wenn der Dienst neu startet, und wird nach sieben Tagen gelöscht.</p>
+<p class=laeuftauf id=pruefprotokolllaeuft hidden>
+  <span class=rotpunkt></span>
+  <b data-t=pp_laeuft>Testprotokoll läuft</b>
+  <span id=pruefprotokollzeilen></span></p>
+<h2 class=klapp id=wartungKopf onclick=wartungKlappen() hidden>
+  <span data-t=wartung>Wartung</span>
+  <span class=klapptext><span id=wartungZahl></span>
+  <span class="pfeil zu" id=wartungPfeil>▾</span></span></h2>
+<div id=wartungFeld hidden>
+<p class=hin data-t=wartung_hin>Diese Punkte halten den Gottesdienst nicht
+auf. Sie gehören der Technik und stehen deshalb nicht im Briefkasten.
+Vollständig mit: bash pruefen.sh</p>
+<ul id=wartungliste class=wartungliste></ul>
+</div>
+
 <h2 class=klapp id=tonquelleKopf onclick=tonquelleKlappen()>
   <span data-t=tonquelle>Tonquelle</span>
   <span class=klapptext><span id=tonquelleWort>Zuklappen</span>
@@ -5728,7 +5991,6 @@ const TEXTE={
    upd_laeuft:"Erst die Übersetzung anhalten, dann einspielen.",
    upd_nicht_schreibbar:"Die Marke ließ sich nicht schreiben. Platte voll "
      +"oder Rechte falsch — im Journal steht, woran es lag.",
-   upd_stimmen:" Ohne Stimme, laufen als Untertitel: {s}.",
    upd_bereit:"Update {v} liegt bereit. Es wird eingespielt, wenn 20 Minuten "
      +"nichts läuft und niemand verbunden ist, oder sofort unter "
      +"Einrichtung → Jetzt einspielen.",
@@ -5798,6 +6060,19 @@ const TEXTE={
    pw_vergessen:"Vergessen? Am Rechner selbst: "
      +"python werkzeuge/pult_passwort.py --loeschen",
    protokoll_an:"Mitschrift im Protokoll (nur zur Fehlersuche)",
+   sprache_umstellen:"Ausgangssprache umstellen",
+   wartung:"Wartung",
+   wartung_hin:"Diese Punkte halten den Gottesdienst nicht auf. Sie "
+     +"gehören der Technik und stehen deshalb nicht im Briefkasten. "
+     +"Vollständig mit: bash pruefen.sh",
+   pp_an:"Testprotokoll schreiben (nur am Gemeinde-PC)",
+   pp_laeuft:"Testprotokoll läuft",
+   pp_zeilen:"{n} Abschnitte",
+   pp_frage:"Im Testprotokoll steht der gesprochene Text und jede "
+     +"Übersetzung davon, Wort für Wort. Wurde die sprechende Person "
+     +"gefragt und ist sie einverstanden?",
+   pp_nur_rechner:"Nur am Gemeinde-PC selbst zu schalten.",
+   pp_abgelehnt:"Ließ sich nicht einschalten.",
    protokoll_hin:"Aus. Der gesprochene Satz steht dann nicht im "
      +"Protokoll – nur seine Länge.",
    protokoll_warn:"EIN. Der gesprochene Satz steht jetzt im Protokoll. "
@@ -5914,7 +6189,6 @@ const TEXTE={
    upd_laeuft:"Pause the translation first, then install.",
    upd_nicht_schreibbar:"The marker could not be written. Disk full or "
      +"wrong permissions — the journal says which.",
-   upd_stimmen:" No voice, running as subtitles only: {s}.",
    upd_bereit:"Update {v} is ready. It will be installed once nothing has "
      +"run for 20 minutes and nobody is connected, or straight away under "
      +"Setup → Install now.",
@@ -5980,6 +6254,19 @@ const TEXTE={
    pw_vergessen:"Forgotten? On the computer itself: "
      +"python werkzeuge/pult_passwort.py --loeschen",
    protokoll_an:"Transcript in the log (for troubleshooting only)",
+   sprache_umstellen:"Change source language",
+   wartung:"Maintenance",
+   wartung_hin:"These items do not hold up the service. They belong "
+     +"to the technician and are therefore not in the inbox. "
+     +"Full list: bash pruefen.sh",
+   pp_an:"Write a test log (only on the church PC)",
+   pp_laeuft:"Test log is running",
+   pp_zeilen:"{n} sections",
+   pp_frage:"The test log contains the spoken text and every "
+     +"translation of it, word for word. Has the speaker been asked "
+     +"and agreed?",
+   pp_nur_rechner:"Can only be switched on the church PC itself.",
+   pp_abgelehnt:"Could not be switched on.",
    protokoll_hin:"Off. The spoken sentence does not go into the log – "
      +"only its length.",
    protokoll_warn:"ON. The spoken sentence now goes into the log. "
@@ -6335,6 +6622,48 @@ async function scanSchalten(an){
   }
 }
 
+function wartungKlappen(){
+  const zu = wartungFeld.hidden = !wartungFeld.hidden;
+  wartungPfeil.classList.toggle("zu", zu);
+  try{ localStorage.setItem("wartungZu", zu ? "1" : ""); }catch(e){}
+  wartungKopf.setAttribute("aria-expanded", String(!zu));
+}
+
+// Eingeklappt, solange niemand sie aufmacht -- und danach gemerkt.
+// Wer sie einmal offen haben will, hat meistens einen Grund, der
+// laenger dauert als ein Seitenaufruf.
+function wartungAnzeigen(liste){
+  const t = TEXTE[UI];
+  liste = liste || [];
+  wartungKopf.hidden = liste.length === 0;
+  if(!liste.length){ wartungFeld.hidden = true; return; }
+  wartungZahl.textContent = liste.length;
+  // Beim ersten Zeichnen den gemerkten Zustand herstellen.
+  // Vorgabe ist zu.
+  if(wartungFeld.dataset.erst !== "nein"){
+    wartungFeld.dataset.erst = "nein";
+    let zu = true;
+    try{ zu = localStorage.getItem("wartungZu") !== ""; }catch(e){}
+    wartungFeld.hidden = zu;
+    wartungPfeil.classList.toggle("zu", zu);
+  }
+  wartungliste.textContent = "";
+  for(const b of liste){
+    const li = document.createElement("li");
+    if(b.schwer) li.className = "schwer";
+    const was = document.createElement("span");
+    was.textContent = (UI === "de" ? b.was : b.was_en);
+    li.appendChild(was);
+    const tun = (UI === "de" ? b.tun : b.tun_en);
+    if(tun){
+      const code = document.createElement("code");
+      code.textContent = tun;
+      li.appendChild(code);
+    }
+    wartungliste.appendChild(li);
+  }
+}
+
 function tonquelleKlappen(){
   const zu = tonquelleFeld.hidden = !tonquelleFeld.hidden;
   tonquellePfeil.classList.toggle("zu", zu);
@@ -6552,7 +6881,11 @@ function updateSatz(d){
   let s=t[schluessel];
   if(!s) return "";
   s=s.split("{v}").join(d.version||"?").split("{alt}").join(d.vorher||"?");
-  if(d.stimmen) s+=t.upd_stimmen.split("{s}").join(d.stimmen);
+  // Das Feld "stimmen" gab es bis 0.3.2. Gefuellt hat es zuletzt der
+  // Kern von 0.2.11; seit 0.3.0 rief niemand mehr die Funktion auf,
+  // die es fuellte, und der Hinweis erschien nie wieder. Seit 0.3.3
+  // sagt ihn die Update-Logik selbst -- sie haengt ihn als MELDUNG an
+  // den Text, und der steht ohnehin schon in "$d.text".
   return s;
 }
 
@@ -6640,6 +6973,67 @@ async function protokollSetzen(){
     body:JSON.stringify({an:an})});
   protokollAnzeigen(an);
 }
+// --------------------------------------------------- Testprotokoll
+// Eigener Dialog waere zu viel: es genuegt EIN Haken, und der steht
+// in der Bestaetigung selbst. Anders als bei der Aufnahme -- dort
+// sind es zwei, und der zweite ("nur die Predigt") ergibt bei einem
+// Test keinen Sinn.
+async function pruefprotokollSetzen(){
+  const t = TEXTE[UI];
+  const an = pruefprotokollschalter.checked;
+  if(an && !confirm(t.pp_frage)){
+    pruefprotokollschalter.checked = false;
+    return;
+  }
+  const a = await fetch("/api/pruefprotokoll",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(an
+      ? {an:true, einwilligung:{person_gefragt:true}}
+      : {an:false})});
+  const d = await a.json().catch(()=>({}));
+  if(!a.ok){
+    pruefprotokollschalter.checked = false;
+    pruefprotokollhin.textContent = d.grund==="nur_am_rechner"
+      ? t.pp_nur_rechner : t.pp_abgelehnt;
+    pruefprotokollhin.hidden = false;
+    return;
+  }
+  pruefprotokollAnzeigen(d.lage || null);
+}
+
+function pruefprotokollAnzeigen(lage){
+  const t = TEXTE[UI];
+  pruefprotokollschalter.checked = !!lage;
+  pruefprotokolllaeuft.hidden = !lage;
+  pruefprotokollhin.hidden = !!lage;
+  if(lage){
+    pruefprotokollzeilen.textContent =
+      t.pp_zeilen.split("{n}").join(lage.zeilen);
+  }
+}
+
+// --------------------------------------------------- Sprachwache
+// Nur eine Vermutung, also nur ein Hinweis -- und ein Knopf, der
+// daraus eine Entscheidung macht. Umgeschaltet wird NIE von selbst.
+function sprachverdachtAnzeigen(satz){
+  sprachverdacht.hidden = !satz;
+  if(satz) sprachverdachttext.textContent = satz;
+}
+
+function spracheUmstellen(){
+  // Die Sprachwahl steht ohnehin schon in der Einrichtung. Dorthin
+  // fuehren, statt eine zweite Stelle zu bauen, an der dasselbe
+  // eingestellt wird.
+  const ziel = document.getElementById("quellwahl");
+  if(!ziel) return;
+  // Die Einrichtung kann eingeklappt sein -- dann nuetzt ein
+  // Scrollen zu einem unsichtbaren Feld nichts.
+  const kopf = document.getElementById("vorbereitungKopf");
+  if(kopf && ziel.offsetParent === null) kopf.click();
+  ziel.scrollIntoView({behavior:"smooth", block:"center"});
+  ziel.focus();
+}
+
 function protokollAnzeigen(an){
   const t = TEXTE[UI];
   protokollschalter.checked = an;
@@ -6798,6 +7192,10 @@ async function lies(){
     aufnahmeAnzeigen(!!d.mitschnitt, d.mitschnitt ? d.mitschnitt.sekunden : 0);
     if(d.protokoll_mitschrift!==undefined)
       protokollAnzeigen(d.protokoll_mitschrift);
+    wartungAnzeigen(d.wartung);
+    pruefprotokollreihe.hidden = !d.am_rechner;
+    pruefprotokollAnzeigen(d.pruefprotokoll || null);
+    sprachverdachtAnzeigen(d.sprachverdacht || "");
     if(d.pult_passwort!==undefined) pultPasswortAnzeigen(d.pult_passwort);
     const post_=(d.nachrichten||[]);
     briefkasten.hidden = post_.length===0;
