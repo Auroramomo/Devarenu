@@ -156,27 +156,52 @@ def _pruefen_zusammen():
     return ["(pruefen.sh lieferte keine Zusammenzaehlung)"]
 
 
-def _update():
-    """Der juengere von zwei Staenden.
+STAENDE = ("stand.json", "stand-online.json")
 
-    stand.json schreibt der Stick-Kern, stand-online.json schreibt
-    aktualisierung.sh auf dem Netzweg und bei einer Ueberbrueckung.
-    Bis 0.3.4 wurde nur der erste gelesen, und nach einem Update
-    ueber das Netz stand hier weiter die alte Stick-Meldung."""
-    ordner = config.BASIS / "update"
+
+def juengerer_stand(ordner=None):
+    """Der juengere von zwei Update-Staenden, oder {}.
+
+    ZWEI DATEIEN, NICHT EINE. stand.json schreibt der Stick-Kern
+    (stick_update.sh), stand-online.json schreibt aktualisierung.sh
+    auf dem Netzweg und bei einer Ueberbrueckung.
+
+    Diese Funktion steht hier und wird von server.py mitbenutzt --
+    frueher stand sie zweimal da, und beim zweiten Mal war sie nicht
+    mitgewachsen: der Fehlerbericht nahm seit 0.3.5 die juengere,
+    das Pult las bis 0.3.7 nur stand.json und zeigte darum auf einem
+    Rechner, der ueber das Netz aktualisiert wird, dauerhaft den
+    letzten Stick-Versuch.
+
+    Verglichen wird das Feld "zeit" (Format "%Y-%m-%d %H:%M:%S",
+    beide Seiten schreiben es so und es sortiert sich als Text
+    richtig). Fehlt es, gilt der Stand als der aeltere: eine Datei
+    ohne Zeitstempel darf eine mit nicht verdraengen."""
+    ordner = Path(ordner) if ordner else config.BASIS / "update"
     gefunden = []
-    for name in ("stand.json", "stand-online.json"):
+    for name in STAENDE:
+        try:
+            d = json.loads((ordner / name).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(d, dict):
+            gefunden.append((str(d.get("zeit", "")), name, d))
+    return max(gefunden)[2] if gefunden else {}
+
+
+def _update():
+    ordner = config.BASIS / "update"
+    for name in STAENDE:
         pfad = ordner / name
         if not pfad.exists():
             continue
         try:
-            d = json.loads(pfad.read_text(encoding="utf-8"))
+            json.loads(pfad.read_text(encoding="utf-8"))
         except Exception:
             return [f"({name} unlesbar)"]
-        gefunden.append((str(d.get("zeit", "")), d))
-    if not gefunden:
+    d = juengerer_stand(ordner)
+    if not d:
         return ["noch kein Update gelaufen"]
-    d = max(gefunden)[1]
     # Ausdruecklich diese vier Felder, nicht die ganze Datei.
     return [f"{k:14} {d.get(k, '-')}"
             for k in ("was", "version", "vorher", "zeit") if k in d]

@@ -60,6 +60,24 @@ set -u
 cd "$DEV_ORDNER"
 git merge --ff-only --quiet "$DEV_REF^{commit}" || exit 1
 echo "LOGIK-LIEF $DEV_VERSION" >> "$DEV_ORDNER/logik.log"
+# Der neue Dienst schreibt beim ersten Start in zustand.json. Was
+# genau, sagt eine unversionierte Marke im Ordner -- sie ueberlebt
+# das Vorspulen, weil git sie nicht kennt.
+if [ -f "$DEV_ORDNER/zustand-tut" ]; then
+  python3 - "$DEV_ORDNER" "$(cat "$DEV_ORDNER/zustand-tut")" <<'ZUS'
+import json, sys, time
+from pathlib import Path
+d = Path(sys.argv[1]) / "zustand.json"
+z = json.loads(d.read_text())
+if sys.argv[2] == "wachsen":
+    z["gemeinde"] = ""
+    z["nutzung_melden"] = False
+    z["aufnahme_frist_ab"] = time.time()
+else:
+    z["mikro"] = 7
+d.write_text(json.dumps(z))
+ZUS
+fi
 echo "MELDUNG|nichts"
 LOGIK
 git -C "$FERN" add -A >/dev/null
@@ -125,6 +143,49 @@ pruefe "die Hilfsreferenz ist wieder weg" "" \
   "$(git -C "$R" rev-parse -q --verify refs/online/v0.9.1 2>/dev/null || true)"
 pruefe "der Auszug liegt nicht mehr herum" "nein" \
   "$([ -d "$BASIS/daten/logik-0.9.1" ] && echo ja || echo nein)"
+
+titel "1b) zustand.json: Zuwachs ist kein Befund"
+# Nach 0.3.4 -> 0.3.7 meldete der Updater "FEHLT zustand.json hat
+# sich geaendert", weil der neue Dienst beim ersten Start "gemeinde"
+# und "nutzung_melden" angelegt und "aufnahme_frist_ab" von 0 auf
+# einen Zeitstempel gesetzt hatte. Genau dafuer ist das Feld da. Eine
+# Warnung, die bei jedem Update falsch anschlaegt, liest niemand mehr
+# -- und dann wird auch die richtige uebersehen.
+R1B="$BASIS/r1b"; neuer_rechner "$R1B"
+cat > "$R1B/zustand.json" <<'ZJ'
+{"wlan": {"ssid": "x"}, "aufnahme_frist_ab": 0, "mikro": 1,
+ "protokoll_mitschrift": false}
+ZJ
+chmod 600 "$R1B/zustand.json"
+echo wachsen > "$R1B/zustand-tut"
+AUS1B="$(lauf "$R1B")" || true
+pruefe "kein FEHLT wegen zustand.json" "nein" \
+  "$(printf '%s' "$AUS1B" | grep -q 'zustand.json hat sich geaendert' \
+     && echo ja || echo nein)"
+pruefe "der Zuwachs wird als solcher gemeldet" "ja" \
+  "$(printf '%s' "$AUS1B" | grep -q 'nur Zuwachs' && echo ja || echo nein)"
+pruefe "und die neuen Schluessel stehen namentlich da" "ja" \
+  "$(printf '%s' "$AUS1B" | grep -q 'gemeinde, nutzung_melden' \
+     && echo ja || echo nein)"
+pruefe "aufnahme_frist_ab gilt als erstmals gefuellt" "ja" \
+  "$(printf '%s' "$AUS1B" | grep -q 'erstmals gefuellt: *aufnahme_frist_ab' \
+     && echo ja || echo nein)"
+
+# Die Gegenprobe: ein GEAENDERTER Wert bleibt ein Befund. Ohne sie
+# waere die Lockerung eine Abschaltung.
+R1C="$BASIS/r1c"; neuer_rechner "$R1C"
+cat > "$R1C/zustand.json" <<'ZJ'
+{"wlan": {"ssid": "x"}, "mikro": 1}
+ZJ
+chmod 600 "$R1C/zustand.json"
+echo aendern > "$R1C/zustand-tut"
+AUS1C="$(lauf "$R1C")" || true
+pruefe "ein geaenderter Wert bleibt ein Befund" "ja" \
+  "$(printf '%s' "$AUS1C" | grep -q 'zustand.json hat sich geaendert' \
+     && echo ja || echo nein)"
+pruefe "und der Schluessel wird genannt" "ja" \
+  "$(printf '%s' "$AUS1C" | grep -q 'geaenderte Werte: *mikro' \
+     && echo ja || echo nein)"
 
 titel "2) Ein fremd signiertes Tag nicht"
 # Dasselbe Repo, dasselbe Tag -- nur mit einem Schluessel signiert,
@@ -541,6 +602,39 @@ w_lauf nein >/dev/null 2>&1 || true
 pruefe "kein Fenster, kein Autoupdate" "nein" \
   "$([ -f "$W/updater.log" ] && echo ja || echo nein)"
 pruefe "und es steht auch nicht mehr als an da" "False" \
+  "$(cd "$W" && "$ECHT/.venv/bin/python" -c \
+     'import sys; sys.path.insert(0,"."); import wartungsfenster as w; print(w.einstellung()["autoupdate"])')"
+
+# ------------------------------------------------ Schalter und Fenster
+#
+# Bis 0.3.7 brach "wartungsfenster.sh --berichte ja" bei
+# ausgeschaltetem Fenster ab -- mit der Meldung "Ohne eingeschaltetes
+# Fenster kein Autoupdate". Die falsche Sache in der Meldung, und eine
+# Reihenfolge, die nichts schuetzt: gesendet wird ohnehin nur im
+# Fenster. Beide Faelle stehen hier, damit sie nicht wieder
+# zusammenwachsen.
+titel_f() { printf '\n   -- %s --\n' "$*"; }
+titel_f "Schalter bei ausgeschaltetem Fenster"
+
+cat > "$W/netz.json" <<'ENDE'
+{"wartungsfenster": {"an": false, "profil": "P"}}
+ENDE
+SCHALT() { (cd "$W" && bash wartungsfenster.sh "$@" 2>&1); }
+
+AUSB="$(SCHALT --berichte ja)"; RCB=$?
+pruefe "Berichte lassen sich bei aus einschalten" "0" "$RCB"
+pruefe "und der Schalter steht danach auch so da" "True" \
+  "$(cd "$W" && "$ECHT/.venv/bin/python" -c \
+     'import sys; sys.path.insert(0,"."); import wartungsfenster as w; print(w.einstellung()["berichte_senden"])')"
+pruefe "es wird aber gesagt, dass noch nichts hinausgeht" "ja" \
+  "$(printf '%s' "$AUSB" | grep -q 'Fenster ist aus' && echo ja || echo nein)"
+
+AUSA="$(SCHALT --autoupdate ja)"; RCA=$?
+pruefe "das Autoupdate braucht weiter ein Fenster" "1" "$RCA"
+pruefe "und die Meldung nennt das Autoupdate, nicht die Berichte" "ja" \
+  "$(printf '%s' "$AUSA" | grep -q 'Autoupdate braucht ein eingeschaltetes Fenster' \
+     && echo ja || echo nein)"
+pruefe "der Schalter bleibt dabei aus" "False" \
   "$(cd "$W" && "$ECHT/.venv/bin/python" -c \
      'import sys; sys.path.insert(0,"."); import wartungsfenster as w; print(w.einstellung()["autoupdate"])')"
 

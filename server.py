@@ -4606,7 +4606,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         datei = lauf.mitschnitt.ordner / Path(name).name
         if not datei.exists():
             return JSONResponse({"fehler": "nicht gefunden"}, status_code=404)
-        return FileResponse(datei, media_type="audio/wav", filename=datei.name)
+        # Seit 0.3.8 sind es MP3-Dateien; der Altbestand ist WAV. Der
+        # falsche Typ laesst manche Abspieler stumm bleiben, statt zu
+        # sagen, was sie nicht koennen.
+        art = "audio/mpeg" if datei.suffix.lower() == ".mp3" else "audio/wav"
+        return FileResponse(datei, media_type=art, filename=datei.name)
 
     @app.post("/api/kontext")
     async def kontext(daten: dict):
@@ -5146,7 +5150,22 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
     stand_zwischen = {"zeit": 0.0, "wert": {}}
 
     def update_stand():
-        """Liest update/stand.json, hoechstens einmal je Sekunde.
+        """Der juengere von zwei Staenden, hoechstens einmal je Sekunde.
+
+        ZWEI DATEIEN, NICHT EINE. stand.json schreibt der Stick-Kern
+        (stick_update.sh), stand-online.json schreibt aktualisierung.sh
+        auf dem Netzweg. Das Pult las bis 0.3.7 nur die erste -- und
+        zeigte darum auf einem Rechner, der seit Monaten ueber das Netz
+        aktualisiert wird, unverdrossen den letzten Stick-Versuch:
+        "Update 0.3.1 ist fehlgeschlagen", obwohl seitdem mehrere
+        Fassungen sauber eingespielt wurden. pruefen.sh und der
+        Fehlerbericht nehmen schon seit 0.3.5 die juengere; hier fehlte
+        es.
+
+        Ausgewaehlt wird in fehlerbericht.juengerer_stand() -- an EINER
+        Stelle, damit das Pult und der Fehlerbericht nicht wieder
+        auseinanderlaufen. Genau daran lag es: die Auswahl gab es
+        schon, nur hier nicht.
 
         Das Pult fragt /api/zustand mehrmals je Minute ab; ohne den
         Zwischenspeicher laege bei jeder Abfrage ein Dateizugriff dahinter,
@@ -5154,11 +5173,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         jetzt = time.time()
         if jetzt - stand_zwischen["zeit"] < 1.0:
             return stand_zwischen["wert"]
-        try:
-            wert = json.loads(
-                (basis / "update" / "stand.json").read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            wert = {}
+        import fehlerbericht as fb
+        wert = fb.juengerer_stand(basis / "update")
         stand_zwischen.update(zeit=jetzt, wert=wert)
         return wert
 
@@ -7288,7 +7304,12 @@ function pruefprotokollAnzeigen(lage){
   const t = TEXTE[UI];
   pruefprotokollschalter.checked = !!lage;
   pruefprotokolllaeuft.hidden = !lage;
-  pruefprotokollhin.hidden = !!lage;
+  // Der Erklaertext nur, wenn es auch den Schalter gibt. Ist das Pult
+  // nicht am Gemeinderechner offen, ist pruefprotokollreihe versteckt
+  // -- und bis 0.3.7 stand der Text trotzdem da. Dann las jemand drei
+  // Zeilen ueber einen Schalter, der nirgends zu sehen war, und suchte
+  // den Fehler bei sich.
+  pruefprotokollhin.hidden = !!lage || pruefprotokollreihe.hidden;
   if(lage){
     pruefprotokollzeilen.textContent =
       t.pp_zeilen.split("{n}").join(lage.zeilen);

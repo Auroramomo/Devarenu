@@ -169,6 +169,35 @@ with tempfile.TemporaryDirectory() as o:
     pruefe("und es wird nichts mehr geschrieben", vorher,
            datei.read_text(encoding="utf-8"))
 
+titel("6) Am Pult: kein Erklaertext ohne Schalter")
+
+# Der Schalter steht nur da, wenn das Pult am Gemeinderechner selbst
+# offen ist -- ein Knopf, der immer "geht nicht" sagt, waere
+# schlechter als keiner. Der Erklaertext darunter hing bis 0.3.7 nicht
+# mit daran: aus dem Saal oder ueber den Tunnel las man drei Zeilen
+# ueber einen Schalter, den es auf dieser Seite gar nicht gab, und
+# suchte den Fehler bei sich. Genau so gemeldet worden.
+#
+# Statische Pruefung, und zwar in pruefprotokollAnzeigen(): das ist
+# die Funktion, die bei jedem Takt laeuft und den Text von sich aus
+# hinstellt. Die zweite Zuweisung in pruefprotokollSetzen() ist eine
+# Antwort auf einen Klick -- und klicken kann nur, wer den Schalter
+# sieht.
+quelle = (Path(__file__).resolve().parent.parent / "server.py") \
+    .read_text(encoding="utf-8")
+anzeigen = quelle.split("function pruefprotokollAnzeigen(")[-1].split("\n}")[0]
+zuweisungen = [z.strip() for z in anzeigen.splitlines()
+               if "pruefprotokollhin.hidden" in z and "=" in z
+               and "==" not in z]
+pruefe("es gibt ueberhaupt eine Zuweisung", 1, len(zuweisungen))
+for z in zuweisungen:
+    pruefe("sie haengt an der Reihe", True,
+           "pruefprotokollreihe.hidden" in z)
+
+# Und die Reihe selbst haengt weiterhin daran, am Rechner zu sitzen.
+pruefe("die Reihe haengt an am_rechner", True,
+       "pruefprotokollreihe.hidden = !d.am_rechner" in quelle)
+
 print()
 if FEHLER:
     print(f"{ROT}{FEHLER} Fehler.{AUS}")

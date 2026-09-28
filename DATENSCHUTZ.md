@@ -75,12 +75,15 @@ Wartungsfenster nur den, den die Gemeinde einschaltet.
 |---|---|
 | **Zweck** | Das Handy muss eine Adresse bekommen, sonst erreicht es die Seite nicht |
 | **Daten** | Geräteadresse (MAC), zugeteilte Netzwerkadresse, der Name, den das Handy sich selbst gibt |
-| **Empfänger** | Niemand |
+| **Empfänger** | Niemand. Die Mietliste ist `0640` und damit nur für `root` lesbar, nicht für jeden angemeldeten Benutzer |
 | **Speicherdauer** | Die Mietliste liegt unter `/run` **im Arbeitsspeicher** und ist nach dem Ausschalten weg. Ins Journal geht sie **nicht** (`quiet-dhcp`) |
 | **Schalter** | Keiner. Wer kein WLAN stellt, braucht das Gerät nicht |
 
 *Bis 0.3.5 stand die Mietliste auf der Platte und jede Aushandlung im
-Journal — mit Geräteadresse und Handynamen, vier Wochen lang.*
+Journal — mit Geräteadresse und Handynamen, vier Wochen lang. Bis
+0.3.7 lag sie zwar im Arbeitsspeicher, aber mit `0644`: jeder, der
+am Rechner angemeldet war, konnte nachlesen, wessen Handy im Saal
+war.*
 
 ### 3. Rückmeldung aus dem Saal („Melden")
 
@@ -114,7 +117,7 @@ einmal gegen die Muster der Segmentzeilen prüft.
 | | |
 |---|---|
 | **Zweck** | Eine Predigt nachhören oder weitergeben |
-| **Daten** | Der Ton der Predigt. Daneben ein Vermerk mit dem Zeitpunkt der Einwilligung — **ohne Namen** |
+| **Daten** | Der Ton der Predigt, als MP3 (`Predigt_TT_MM_JJJJ.mp3`). Daneben ein Vermerk mit dem Zeitpunkt der Einwilligung — **ohne Namen** |
 | **Empfänger** | Niemand. Abrufbar nur am Gerät selbst, nicht aus dem Saalnetz |
 | **Speicherdauer** | Sieben Tage, einstellbar. Der Aufräumlauf läuft stündlich |
 | **Schalter** | Zwei Häkchen am Pult, beide Pflicht: die predigende Person wurde gefragt, und es läuft nur die Predigt mit. Vorgabe **aus** |

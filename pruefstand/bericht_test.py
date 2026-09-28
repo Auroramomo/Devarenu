@@ -111,6 +111,46 @@ pruefe("der Riegel hat gemeldet, dass er etwas entfernt hat",
        "entfernt" in bericht)
 pruefe("technische Angaben sind trotzdem da", "Fassung" in bericht)
 
+print("\n\033[1m== 4) Der juengere von zwei Update-Staenden\033[0m")
+# Am Gemeinderechner stand im Pult unter Einrichtung monatelang
+# "Update 0.3.1 ist fehlgeschlagen", obwohl seitdem mehrere Fassungen
+# ueber das Netz eingespielt worden waren: das Pult las nur
+# stand.json (der Stick-Kern), nie stand-online.json. Die Auswahl gab
+# es schon im Fehlerbericht -- sie stand nur an der falschen Stelle
+# allein. Seit 0.3.8 nehmen beide dieselbe Funktion.
+import json as _json
+import tempfile as _tempfile
+
+with _tempfile.TemporaryDirectory() as _t:
+    _o = Path(_t)
+    pruefe("gar kein Stand ist ein leerer Stand",
+           fehlerbericht.juengerer_stand(_o) == {})
+    (_o / "stand.json").write_text(_json.dumps(
+        {"lage": "fehlgeschlagen", "version": "0.3.1",
+         "zeit": "2026-05-01 10:00:00"}), encoding="utf-8")
+    pruefe("nur der Stick: der Stick gilt",
+           fehlerbericht.juengerer_stand(_o).get("version") == "0.3.1")
+    (_o / "stand-online.json").write_text(_json.dumps(
+        {"lage": "eingespielt", "version": "0.3.7",
+         "zeit": "2026-09-27 12:00:00"}), encoding="utf-8")
+    pruefe("der juengere Netzstand verdraengt den alten Stick-Versuch",
+           fehlerbericht.juengerer_stand(_o).get("version") == "0.3.7")
+    # Und andersherum -- ein Stick-Update nach dem Netzweg gilt auch.
+    (_o / "stand.json").write_text(_json.dumps(
+        {"lage": "eingespielt", "version": "0.3.9",
+         "zeit": "2026-10-04 09:00:00"}), encoding="utf-8")
+    pruefe("und umgekehrt genauso",
+           fehlerbericht.juengerer_stand(_o).get("version") == "0.3.9")
+    # Ohne Zeitstempel ist ein Stand nicht juenger, sondern aelter.
+    (_o / "stand-online.json").write_text(_json.dumps(
+        {"lage": "eingespielt", "version": "9.9.9"}), encoding="utf-8")
+    pruefe("ein Stand ohne Zeit verdraengt keinen mit",
+           fehlerbericht.juengerer_stand(_o).get("version") == "0.3.9")
+    # Kaputte Datei: der andere Stand bleibt brauchbar.
+    (_o / "stand-online.json").write_text("{kaputt", encoding="utf-8")
+    pruefe("eine unlesbare Datei macht den anderen nicht ungueltig",
+           fehlerbericht.juengerer_stand(_o).get("version") == "0.3.9")
+
 print(f"\n   Bericht: {len(bericht)} Zeichen, "
       f"{len(bericht.splitlines())} Zeilen")
 print()

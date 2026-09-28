@@ -112,6 +112,59 @@ with tempfile.TemporaryDirectory() as t:
     pruefe("beendet", False, a.laeuft)
     pruefe("und nennt die Datei", datei.name, e["datei"])
 
+    # ---- Name und Format (ab 0.3.8)
+    #
+    # Predigt_TT_MM_JJJJ, Datum des BEGINNS, und nie ueberschrieben.
+    # Der zweite Gottesdienst desselben Tages ist der Normalfall.
+    heute = time.strftime("%d_%m_%Y")
+    kann_mp3 = bool(aufnahme.koder_pruefen()[0])
+    pruefe("der Name traegt das Datum von heute", f"Predigt_{heute}",
+           datei.stem)
+    pruefe("und die richtige Endung", ".mp3" if kann_mp3 else ".wav",
+           datei.suffix)
+    b = aufnahme.Aufnahme(ordner, RATE, tage=7)
+    zweite, _ = b.starten(aufnahme.Einwilligung(True, True))
+    pruefe("die zweite am selben Tag heisst _2", f"Predigt_{heute}_2",
+           zweite.stem)
+    pruefe("und die erste ist noch da", True, datei.exists())
+    # Eine Sekunde echten Ton hineinschreiben, sonst bliebe die Datei
+    # leer und "ist es wirklich MP3" pruefte nichts.
+    try:
+        import numpy as _np
+        b.schreiben(_np.zeros(RATE, dtype="float32"), _np)
+    except ImportError:
+        _np = None
+    b.beenden()
+    if kann_mp3 and _np is not None:
+        # Ein MP3-Rahmen faengt mit elf gesetzten Bits an. Kein
+        # ID3-Kopf davor, weil kein Xing-Kopf geschrieben wird -- und
+        # genau darum ist die Datei an jeder Stelle abschneidbar und
+        # trotzdem abspielbar.
+        kopf = zweite.read_bytes()[:2]
+        pruefe("es ist wirklich MP3", True,
+               len(kopf) == 2 and kopf[0] == 0xFF and (kopf[1] & 0xE0) == 0xE0)
+        # 48 kbit/s sind 6 kB/s. Eine Sekunde also rund 6 kB -- nicht
+        # 32 kB wie als WAV. Grosszuegige Grenzen, es geht um die
+        # Groessenordnung.
+        pruefe("und in der richtigen Groessenordnung", True,
+               3000 < zweite.stat().st_size < 12000)
+    c = aufnahme.Aufnahme(ordner, RATE, tage=7)
+    dritte, _ = c.starten(aufnahme.Einwilligung(True, True))
+    pruefe("die dritte _3", f"Predigt_{heute}_3", dritte.stem)
+    c.beenden()
+    # Auch ueber die Endung hinweg: eine WAV von heute belegt den
+    # Namen fuer eine MP3 von heute.
+    (ordner / f"Predigt_{heute}_4.wav").write_bytes(b"RIFF")
+    d = aufnahme.Aufnahme(ordner, RATE, tage=7)
+    fuenfte, _ = d.starten(aufnahme.Einwilligung(True, True))
+    pruefe("belegt ist belegt, auch mit anderer Endung",
+           f"Predigt_{heute}_5", fuenfte.stem)
+    d.beenden()
+    for x in (zweite, dritte, fuenfte):
+        x.unlink(missing_ok=True)
+        x.with_suffix(".einwilligung.txt").unlink(missing_ok=True)
+    (ordner / f"Predigt_{heute}_4.wav").unlink()
+
     # ---- Frist
     for tage, name in ((10, "alt"), (2, "neu")):
         p = ordner / f"predigt_2026-01-{tage:02d}_09-30.wav"
@@ -253,7 +306,7 @@ try:
                                       "nur_predigt": True}})
     pruefe("mit beiden faengt es an", 200, st)
     name = json.loads(roh).get("datei", "")
-    pruefe("und nennt die Datei", True, name.startswith("predigt_"))
+    pruefe("und nennt die Datei", True, name.startswith("Predigt_"))
     pruefe("der Zeitpunkt der Einwilligung steht dabei", True,
            bool(json.loads(roh).get("einwilligung")))
 
@@ -297,8 +350,9 @@ try:
     pruefe("nach dem Neustart laeuft keine", None,
            json.loads(roh).get("mitschnitt"))
     pruefe("aber die Datei ist noch da", True,
-           any(p.name.startswith("predigt_")
-               for p in (ARBEIT / "ergebnisse" / "predigten").glob("*.wav")))
+           any(p.name.startswith("Predigt_")
+               for p in (ARBEIT / "ergebnisse" / "predigten").iterdir()
+               if p.suffix.lower() in (".mp3", ".wav")))
 
     print("\n   -- die Frist laesst sich umstellen --")
     st, roh = holen("/api/aufnahme/tage", {"tage": 3})

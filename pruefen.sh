@@ -319,6 +319,29 @@ else
   info "NETZ_CAPTIVE_API in config.py und erneutem Umbau."
 fi
 
+# Die Mietliste: wer darf sie lesen?
+#
+# Darin stehen MAC-Adressen und die Namen, die die Handys von sich aus
+# melden ("iPhone von ..."). Das ist eine Anwesenheitsliste des Saals.
+# Bis 0.3.7 legte dnsmasq sie mit 0644 an -- lesbar fuer jeden, der am
+# Rechner angemeldet ist. Seit 0.3.8 setzt der systemd-Zusatz
+# UMask=0137, und dann sind es 0640.
+MIETE=/run/devarenu/dnsmasq.leases
+if [ ! -e "$MIETE" ]; then
+  info "Noch keine Mietliste ($MIETE) -- es hat sich niemand verbunden."
+else
+  MIETE_R="$(stat -c %a "$MIETE" 2>/dev/null || echo "?")"
+  case "$MIETE_R" in
+    600|640) gut "Mietliste nur fuer den Besitzer lesbar ($MIETE_R)" ;;
+    *)
+      fehl "Die Mietliste ist $MIETE_R -- darin stehen MAC-Adressen und Geraetenamen."
+      info "Der systemd-Zusatz ist alt. Umbau erneut laufen lassen:"
+      info "  sudo bash netz_einrichten.sh"
+      info "Sofort und nur bis zum naechsten Start von dnsmasq:"
+      info "  sudo chmod 640 $MIETE" ;;
+  esac
+fi
+
 # Antwortet der DNS so, wie er soll? Zwei Fragen, und beide muessen
 # stimmen: die Pruefnamen der Hersteller auf uns, alles andere
 # unaufloesbar. Ein Platzhalter fuer alles waere hier gruen und im Saal

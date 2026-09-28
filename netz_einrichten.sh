@@ -644,6 +644,15 @@ ExecStartPre=
 # koennte sich /run/devarenu nicht selbst anlegen.
 RuntimeDirectory=devarenu
 RuntimeDirectoryMode=0755
+# 0640 statt der 0644, die dnsmasq aus der Vorgabe-umask bekaeme. In
+# der Mietliste stehen MAC-Adressen und die Namen, die die Handys von
+# sich aus melden ("iPhone von ..."). Das ist eine Anwesenheitsliste
+# des Saals, und sie ging bis 0.3.7 jeden an, der am Rechner sass.
+# Gelesen wird sie von niemandem ausser dnsmasq selbst -- der haelt
+# die Datei offen, seit er sie als root angelegt hat, und behaelt sie
+# auch nach dem Wechsel auf seinen eigenen Benutzer.
+# Der Ordner bleibt 0755: darin steht nur ein Dateiname.
+UMask=0137
 ExecStartPre=/usr/bin/dnsmasq --test --conf-file=$CONF
 ExecStart=
 ExecStart=/usr/bin/dnsmasq -k --enable-dbus --user=dnsmasq --pid-file --conf-file=$CONF

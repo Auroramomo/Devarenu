@@ -43,6 +43,9 @@ PORT="${DEVARENU_PORT:-8000}"
 NMCLI="${DEVARENU_NMCLI:-nmcli}"
 RTCWAKE="${DEVARENU_RTCWAKE:-rtcwake}"
 AUSSCHALTEN="${DEVARENU_POWEROFF:-systemctl poweroff}"
+# Die Unit, die den Wecker als root stellt. Der laengere Name ist
+# Absicht, siehe devarenu-fenster-wecker.service.vorlage.
+WECKER_UNIT_NAME="${DEVARENU_WECKER_UNIT:-devarenu-fenster-wecker.service}"
 
 blau() { printf '\n\033[1;34m== %s\033[0m\n' "$*"; }
 gut()  { printf '   \033[32mok\033[0m   %s\n' "$*"; }
@@ -92,13 +95,64 @@ wecker_stellen() {
     info "Nachholen:  sudo pacman -S util-linux"
     return 0
   fi
-  if $RTCWAKE -m no -t "$WECKER" >/dev/null 2>&1; then
-    gut "Wecker steht auf $WECKER_LESBAR"
+  # DER WECKER SITZT IN /dev/rtc0, UND DAS GEHOERT root:clock 0660.
+  #
+  # Wer den Dienstbenutzer nimmt und "wartungsfenster.sh --einschalten"
+  # von Hand aufruft, kommt dort nicht hinein. Bis 0.3.7 stand danach
+  # "rtcwake hat den Wecker nicht angenommen" samt BIOS-Hinweis --
+  # und wer dem folgte, schraubte am falschen Ende: das BIOS war in
+  # Ordnung, es fehlten Rechte.
+  #
+  # Darum drei Wege, in dieser Reihenfolge:
+  #   1. geradeaus. Als root (so laeuft die Wecker-Unit) und fuer
+  #      jeden, der in der Gruppe clock steht, reicht das.
+  #   2. sudo ohne Rueckfrage. Greift, wo eine Regel es erlaubt.
+  #   3. die Wecker-Unit neu starten. Sie laeuft als root und ruft
+  #      genau dieses Skript mit --wecker auf -- dort greift dann
+  #      Weg 1. Das ist der saubere Weg, und er ist es auch dann,
+  #      wenn niemand am Rechner sitzt.
+  # Sitzt jemand davor, darf sudo am Ende noch nach dem Passwort
+  # fragen. Ein Wecker, der schweigend ungestellt bleibt, ist
+  # schlimmer als eine Frage.
+  local aus="" rc=0 weg=""
+  aus="$($RTCWAKE -m no -t "$WECKER" 2>&1)"; rc=$?
+  if [ "$rc" = 0 ]; then
+    weg=geradeaus
+  elif [ "$(id -u)" != 0 ] && command -v sudo >/dev/null; then
+    if aus="$(sudo -n $RTCWAKE -m no -t "$WECKER" 2>&1)"; then
+      rc=0; weg="sudo"
+    elif sudo -n systemctl restart "$WECKER_UNIT_NAME" >/dev/null 2>&1; then
+      rc=0; weg="die Unit $WECKER_UNIT_NAME"
+    elif [ -t 0 ] && [ "${DEVARENU_KEIN_SUDO:-}" != 1 ]; then
+      info "Der Wecker braucht root. sudo fragt gleich nach dem Passwort."
+      if aus="$(sudo $RTCWAKE -m no -t "$WECKER" 2>&1)"; then
+        rc=0; weg="sudo"
+      fi
+    fi
+  fi
+
+  if [ "$rc" = 0 ]; then
+    gut "Wecker steht auf $WECKER_LESBAR${weg:+ (ueber $weg)}"
+    return 0
+  fi
+
+  # Fehlende Rechte oder ein widerspenstiges BIOS -- das sind zwei
+  # verschiedene Befunde mit zwei verschiedenen Abhilfen, und sie
+  # gehoeren auseinandergehalten.
+  if printf '%s' "$aus" | grep -qiE \
+       'permission|berechtigung|not permitted|nicht erlaubt|denied|EACCES|EPERM'; then
+    warn "Der Wecker liess sich nicht stellen: fehlende Rechte, nicht das BIOS."
+    info "Die Uhr /dev/rtc0 gehoert root:clock 0660. Einer von drei Wegen:"
+    info "  sudo systemctl restart $WECKER_UNIT_NAME   (stellt ihn als root)"
+    info "  sudo usermod -aG clock $(id -un)           (danach neu anmelden)"
+    info "  sudo $RTCWAKE -m no -t $WECKER             (einmalig von Hand)"
   else
     warn "rtcwake hat den Wecker nicht angenommen."
     info "Im BIOS: ErP aus, 'Power On By RTC' aus -- der Wecker kommt"
     info "vom Betriebssystem, nicht vom BIOS."
   fi
+  [ -n "$aus" ] && info "rtcwake sagte: $(printf '%s' "$aus" | head -1)"
+  return 0
 }
 
 # ------------------------------------------------------------- WLAN
@@ -433,6 +487,11 @@ case "${1:---zeigen}" in
       exit 1
     fi
     gut "${2:-} -- im Fenster gehen vorgemerkte Berichte hinaus"
+    # Der Schalter laesst sich auch bei ausgeschaltetem Fenster setzen.
+    # Dann ist er vorgemerkt und greift, sobald es ein Fenster gibt --
+    # aber das gehoert gesagt, sonst wartet jemand auf Post.
+    [ "${2:-}" = ja ] && [ "$AN" != ja ] && \
+      info "Das Fenster ist aus -- vorgemerkt, gesendet wird ab dem ersten Fenster."
     exit 0 ;;
 
   --autoupdate)

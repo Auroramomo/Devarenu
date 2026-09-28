@@ -6,6 +6,134 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.3.8 — die Predigt als MP3, und sechs Meldungen, die logen
+
+*28.09.2026.*
+
+### Für alle
+
+**Die Predigtaufnahme ist jetzt eine MP3.** Sie heißt
+`Predigt_03_10_2026.mp3` — mit dem Datum des Tages, an dem sie
+angefangen hat. Gibt es den Namen schon, kommt `_2` dahinter, dann
+`_3`; überschrieben wird nie. Eine Stunde belegt rund 22 MB statt
+bisher 115, sie passt also an eine Mail. Einwilligung, die sieben
+Tage und der Abruf nur am Gemeinde-PC bleiben, wie sie waren.
+
+**Die Fehlerberichte lassen sich einschalten, ohne vorher das
+Wartungsfenster einzuschalten.** Bisher brach der Befehl mit einer
+Meldung über das Autoupdate ab — um das es gar nicht ging.
+
+**Am Pult unter Einrichtung steht jetzt der neueste Update-Stand.**
+Auf dem Gemeinderechner stand dort monatelang „Update 0.3.1 ist
+fehlgeschlagen", obwohl seitdem mehrere Fassungen sauber eingespielt
+worden waren.
+
+**Der Erklärtext zum Testprotokoll erscheint nur noch da, wo es auch
+den Schalter dazu gibt.**
+
+### Für Techniker
+
+**MP3: 48 kbit/s, mono, feste Bitrate.** Der Ton kommt mit 16 kHz vom
+Mikrofon, mehr als 8 kHz Bandbreite steckt nicht darin. LAME arbeitet
+dort im MPEG-2-Modus. 32 kbit/s verschmiert hörbar die Zischlaute,
+64 kbit/s kostet ein Drittel mehr Platz für nichts, was bei dieser
+Bandbreite noch ankäme. Feste Bitrate, damit sich Größe und Dauer
+auseinander ausrechnen lassen.
+
+Geschrieben wird weiter fortlaufend, in einen Koder-Prozess hinein.
+Ohne Xing- und ohne ID3-Kopf: die Datei ist damit nichts als eine
+Folge von MP3-Rahmen, an jeder Stelle abschneidbar und trotzdem
+abspielbar. Fällt der Strom aus, ist alles bis dahin da — das galt
+für WAV und gilt weiter.
+
+**Geprüft wird, nicht angenommen.** `ffmpeg` ist seit jeher eine feste
+Abhängigkeit, MP3 schreibt es aber nur mit `libmp3lame`, und das ist
+eine Übersetzungsoption. `aufnahme.koder_pruefen()` fragt einmal beim
+Start: ffmpeg mit libmp3lame, sonst das Programm `lame`, sonst WAV wie
+bisher. Die Aufnahme fällt nie aus. Der Systemcheck meldet den dritten
+Fall als Hinweis, samt Nachrüstweg ohne Netz
+(`pacman -U lame-*.pkg.tar.zst` vom Stick).
+
+Der Altbestand wird nicht umbenannt: `aufnahme.aufnahmen()` listet
+`.mp3` und `.wav`, groß wie klein geschrieben, und die Frist läuft
+für beide weiter. `/mitschnitt/<name>` liefert den passenden
+Medientyp.
+
+**`wartungsfenster.sh --berichte ja` bei ausgeschaltetem Fenster.**
+Zwei Stellen waren schuld. Die Sperre in `wartungsfenster.py` fragte
+`autoupdate or berichte_senden` ab und gab dazu die Autoupdate-Meldung
+aus; sie fragt jetzt nur noch `autoupdate`. Und `einstellung()` setzte
+`berichte_senden` bei ausgeschaltetem Fenster stumm auf `False`
+zurück — wer den Schalter setzte, bekam ihn kommentarlos aberkannt.
+Das gilt jetzt nur noch fürs Autoupdate. Gesendet wird ohnehin nur im
+Fenster; der Schalter merkt vor, und die Ausgabe sagt das.
+
+**`rtcwake` als Dienstbenutzer.** `/dev/rtc0` gehört `root:clock 0660`
+— von Hand aufgerufen kam `wartungsfenster.sh --einschalten` dort
+nicht hinein und zeigte trotzdem den BIOS-Hinweis. Wer dem folgte,
+schraubte am falschen Ende. Jetzt drei Wege in dieser Reihenfolge:
+geradeaus (als root und für jeden in der Gruppe `clock`), `sudo -n`,
+und ein Neustart von `devarenu-fenster-wecker.service`, die als root
+genau diesen Wecker stellt. Sitzt jemand am Rechner, darf `sudo` am
+Ende nach dem Passwort fragen. Schlägt alles fehl, unterscheidet die
+Meldung fehlende Rechte von einem widerspenstigen BIOS und nennt
+jeweils die passende Abhilfe.
+
+**`zustand.json`: Zuwachs ist kein Befund.** Der Updater verglich eine
+sha256-Summe über die ganze Datei; nach 0.3.4 → 0.3.7 meldete er
+darum `FEHLT zustand.json hat sich geändert`, obwohl nichts Schlimmes
+passiert war. Verglichen wird jetzt Schlüssel für Schlüssel:
+
+* **neue** Schlüssel sind in Ordnung — `gemeinde` und
+  `nutzung_melden` gab es in 0.3.4 noch nicht;
+* ein **erstes Füllen** ist in Ordnung — war der Wert `0`, leer oder
+  `null` und steht jetzt etwas darin. Genau das ist
+  `aufnahme_frist_ab`: `0` heißt „die Frist läuft noch nicht", und der
+  erste Start einer Fassung mit Aufnahmefrist trägt den Zeitpunkt ein,
+  damit der Altbestand nicht sofort gelöscht wird. **Gewollt**, und
+  nur einmal;
+* ein **geänderter** Wert, ein **weggefallener** Schlüssel und andere
+  Rechte als 600 bleiben ein Befund, mit Namen.
+
+`true`/`false` zählt ausdrücklich nicht als „leer": ein Schalter, der
+von selbst umspringt, soll auffallen. Gemerkt wird nur ein Abdruck je
+Schlüssel, nie der Wert — in `zustand.json` steht das WLAN-Passwort im
+Klartext. **Die Sperre sitzt in `aktualisieren.sh`, der stabilen
+Hälfte: sie greift erst beim Update *von* 0.3.8 aus, nicht bei diesem.**
+
+**Der Update-Stand am Pult.** `stand.json` schreibt der Stick-Kern,
+`stand-online.json` schreibt `aktualisierung.sh` auf dem Netzweg. Der
+Fehlerbericht nahm seit 0.3.5 den jüngeren von beiden, das Pult las
+nur den ersten. Die Auswahl steht jetzt einmal, in
+`fehlerbericht.juengerer_stand()`, und beide benutzen sie.
+
+**Der Erklärtext zum Testprotokoll** wurde in `pruefprotokollAnzeigen()`
+unabhängig von `pruefprotokollreihe` ein- und ausgeblendet. Aus dem
+Saal oder über den Tunnel las man drei Zeilen über einen Schalter, den
+es auf dieser Seite nicht gab.
+
+**`/run/devarenu/dnsmasq.leases` ist `0640`** statt `0644`. Darin
+stehen MAC-Adressen und die Namen, die die Handys von sich aus melden.
+`UMask=0137` im systemd-Zusatz; der Ordner bleibt `0755`, darin steht
+nur ein Dateiname. `pruefen.sh` prüft die Rechte mit.
+
+**Nebenbei gefunden.** `abschalten_faellig(..., stunden=None)` hieß
+zugleich „nicht angegeben" und „Laufzeit unbekannt". Der Prüfstandfall
+„Laufzeit unbekannt: keine Behauptung" prüfte dadurch in Wahrheit die
+Betriebszeit des Rechners, auf dem er lief — auf einem eben
+gestarteten ging er durch, nach einem Tag nicht mehr.
+
+**Prüfstand.** Neue Fälle: Name, Endung, `_2`/`_3` und Größenordnung
+der MP3 sowie die Kollision über Endungsgrenzen hinweg
+(`aufnahme_test.py`); Berichte-Schalter bei ausgeschaltetem Fenster
+und die Gegenprobe fürs Autoupdate, dazu `zustand.json`-Zuwachs gegen
+geänderten Wert am echten `aktualisieren.sh` (`online_test.sh`); die
+Auswahl des jüngeren Update-Standes (`bericht_test.py`); und eine
+statische Prüfung, dass der Erklärtext am Schalter hängt
+(`pruefprotokoll_test.py`).
+
+---
+
 ## 0.3.7 — GPLv3, und eine Messung, die zweimal gemacht werden musste
 
 *28.09.2026.*

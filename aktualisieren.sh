@@ -207,15 +207,73 @@ ist_neuer() {
   [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$1" ]
 }
 
+# WAS SICH IN zustand.json AENDERN DARF -- UND WAS NICHT
+#
+# Bis 0.3.7 stand hier eine sha256-Summe ueber die ganze Datei. Die
+# sagte nur "anders", nie was anders ist. Nach 0.3.4 -> 0.3.7 meldete
+# sie darum FEHLT, obwohl nichts Schlimmes passiert war: der neue
+# Dienst hatte beim ersten Start "gemeinde" und "nutzung_melden"
+# angelegt (die gab es in 0.3.4 noch nicht) und "aufnahme_frist_ab"
+# von 0 auf einen Zeitstempel gesetzt -- genau das, wofuer dieses
+# Feld da ist. Eine Warnung, die bei jedem Update falsch anschlaegt,
+# liest nach dem dritten Mal niemand mehr.
+#
+# Jetzt wird Schluessel fuer Schluessel verglichen:
+#
+#   * NEUE Schluessel sind in Ordnung. Eine neue Fassung bringt neue
+#     Einstellungen mit, und sie muessen irgendwann zum ersten Mal in
+#     die Datei.
+#   * Ein ERSTES FUELLEN ist in Ordnung: war der Wert 0, leer oder
+#     null und steht jetzt etwas darin, ist das dasselbe wie ein
+#     neuer Schluessel, nur dass die Vorgabe schon dastand.
+#   * Alles andere ist ein Befund: ein GEAENDERTER Wert, ein
+#     WEGGEFALLENER Schluessel, ein Schalter, der von selbst
+#     umspringt -- und andere Rechte als 600.
+#
+# Gemerkt wird nur ein Abdruck je Schluessel, nie der Wert: in
+# zustand.json steht das WLAN-Passwort im Klartext, und das hat in
+# keiner Vergleichsdatei etwas zu suchen.
+PY_VERGLEICH="$ORDNER/.venv/bin/python"
+[ -x "$PY_VERGLEICH" ] || PY_VERGLEICH="$(command -v python3 || true)"
+
+abdruck() {
+  # je Zeile: schluessel <tab> sha256(wert) <tab> leer|voll
+  [ -f zustand.json ] || return 0
+  [ -n "$PY_VERGLEICH" ] || return 0
+  "$PY_VERGLEICH" - <<'PYENDE' 2>/dev/null || true
+import hashlib, json, sys
+try:
+    d = json.load(open("zustand.json", encoding="utf-8"))
+except Exception:
+    sys.exit(0)
+if not isinstance(d, dict):
+    sys.exit(0)
+def ist_leer(w):
+    # true/false ausdruecklich NICHT. In Python ist False == 0, und
+    # ohne diese Zeile gaelte ein Schalter, der von selbst von nein
+    # auf ja springt, als "erstmals gefuellt" -- also als harmlos.
+    if isinstance(w, bool):
+        return False
+    return w is None or w == 0 or w in ("", [], {})
+
+
+for k in sorted(d):
+    w = d[k]
+    roh = json.dumps(w, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    leer = "leer" if ist_leer(w) else "voll"
+    print(f"{k}\t{hashlib.sha256(roh).hexdigest()[:16]}\t{leer}")
+PYENDE
+}
+
 pruefsumme() {
   [ -f zustand.json ] || { echo "keine"; return; }
-  # Inhalt und Rechte, beides zaehlt: das WLAN-Passwort steht im Klartext
-  # darin und soll 0600 bleiben.
-  printf '%s %s' "$(sha256sum zustand.json | cut -d' ' -f1)" \
-                 "$(stat -c %a zustand.json)"
+  # Nur noch die Rechte: das WLAN-Passwort steht im Klartext darin und
+  # soll 0600 bleiben. Der Inhalt wird ueber abdruck() verglichen.
+  stat -c %a zustand.json
 }
 
 VORHER="$(pruefsumme)"
+ABDRUCK_VORHER="$(abdruck)"
 
 # ---------------------------------------------------------------- pruefen
 blau "Vorher nachsehen"
@@ -474,12 +532,62 @@ gut "Fassung $HIER -> $NEU"
 # ---------------------------------------------------------------- Zustand
 blau "Einstellungen"
 NACHHER="$(pruefsumme)"
-if [ "$VORHER" = "$NACHHER" ]; then
+if [ "$VORHER" != "$NACHHER" ]; then
+  fehl "Die Rechte an zustand.json haben sich geaendert: $VORHER -> $NACHHER."
+  echo "     Zurueck auf 600:  chmod 600 zustand.json"
+fi
+
+ABDRUCK_NACHHER="$(abdruck)"
+if [ -z "$PY_VERGLEICH" ]; then
+  info "Kein Python zum Vergleichen -- zustand.json wurde nicht geprueft."
+elif [ "$ABDRUCK_VORHER" = "$ABDRUCK_NACHHER" ]; then
   gut "zustand.json unveraendert"
 else
-  fehl "zustand.json hat sich geaendert. Das darf ein Update nicht."
-  echo "     vorher:  $VORHER"
-  echo "     nachher: $NACHHER"
+  VERGLEICH="$(ABDRUCK_VORHER="$ABDRUCK_VORHER" ABDRUCK_NACHHER="$ABDRUCK_NACHHER" \
+    "$PY_VERGLEICH" - <<'PYENDE'
+import os
+
+def lesen(text):
+    d = {}
+    for zeile in text.splitlines():
+        teile = zeile.split("\t")
+        if len(teile) == 3:
+            d[teile[0]] = (teile[1], teile[2])
+    return d
+
+vor = lesen(os.environ["ABDRUCK_VORHER"])
+nach = lesen(os.environ["ABDRUCK_NACHHER"])
+
+neu = sorted(k for k in nach if k not in vor)
+# Erstes Fuellen: war leer, ist jetzt gesetzt. aufnahme_frist_ab ist
+# der Regelfall -- 0 heisst "Frist laeuft noch nicht", und der erste
+# Start dieser Fassung traegt den Zeitpunkt ein.
+gefuellt = sorted(k for k in nach
+                  if k in vor and vor[k][1] == "leer" and nach[k][1] == "voll")
+geaendert = sorted(k for k in nach
+                   if k in vor and nach[k] != vor[k] and k not in gefuellt)
+weg = sorted(k for k in vor if k not in nach)
+
+print("NEU\t" + ", ".join(neu))
+print("GEFUELLT\t" + ", ".join(gefuellt))
+print("GEAENDERT\t" + ", ".join(geaendert))
+print("WEG\t" + ", ".join(weg))
+PYENDE
+)"
+  feld() { printf '%s\n' "$VERGLEICH" | awk -F'\t' -v k="$1" '$1==k{print $2}'; }
+  V_NEU="$(feld NEU)"; V_GEF="$(feld GEFUELLT)"
+  V_AEND="$(feld GEAENDERT)"; V_WEG="$(feld WEG)"
+
+  if [ -n "$V_AEND" ] || [ -n "$V_WEG" ]; then
+    fehl "zustand.json hat sich geaendert. Das darf ein Update nicht."
+    [ -n "$V_AEND" ] && echo "     geaenderte Werte: $V_AEND"
+    [ -n "$V_WEG" ]  && echo "     weggefallen:      $V_WEG"
+    echo "     Die Sicherung liegt in $SICHERUNG."
+  else
+    gut "zustand.json: nur Zuwachs von Fassung $NEU (kein Befund)"
+  fi
+  [ -n "$V_NEU" ] && info "neue Schluessel:   $V_NEU"
+  [ -n "$V_GEF" ] && info "erstmals gefuellt: $V_GEF"
 fi
 
 blau "Ergebnis"

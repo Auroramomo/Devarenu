@@ -815,6 +815,35 @@ def _protokoll(befunde):
         tun_en="Switch it off again under Setup on the control desk."))
 
 
+def _mp3(befunde):
+    """Kann dieser Rechner die Predigt als MP3 schreiben?
+
+    Gefragt wird VORHER, nicht am Sonntag. ffmpeg ist eine feste
+    Abhaengigkeit, aber MP3 schreibt es nur mit libmp3lame, und das
+    ist eine Uebersetzungsoption. Fehlt sie und fehlt auch lame, laeuft
+    die Aufnahme als WAV weiter -- sie faellt nicht aus, sie wird nur
+    rund fuenfmal so gross. Das gehoert gesagt, bevor jemand sich
+    ueber eine 700-MB-Datei wundert."""
+    try:
+        import aufnahme
+        weg, hinweis = aufnahme.koder_pruefen()
+    except Exception:
+        return
+    if weg:
+        return
+    befunde.append(Befund(
+        "mp3_koder", HINWEIS,
+        hinweis + " Die Predigt wird darum als WAV aufgenommen: rund "
+        "115 MB je Stunde statt 22, und die Frist von sieben Tagen "
+        "fuellt damit die Platte deutlich schneller.",
+        "Vom Stick nachruesten, ohne Netz:  "
+        "sudo pacman -U lame-*.pkg.tar.zst",
+        was_en="This computer cannot write MP3. Sermons are recorded as "
+               "WAV instead: about 115 MB per hour instead of 22.",
+        tun_en="Install offline from the stick:  "
+               "sudo pacman -U lame-*.pkg.tar.zst"))
+
+
 def _vorrat(befunde):
     """Liegt der Reparaturvorrat da, und passt er zu dieser Fassung?"""
     import json
@@ -974,6 +1003,7 @@ def pruefen():
     _ollama_gpu(befunde)
     _wartungsfenster(befunde)
     _protokoll(befunde)
+    _mp3(befunde)
     _vorrat(befunde)
     _units_veraltet(befunde)
     _stick(befunde)

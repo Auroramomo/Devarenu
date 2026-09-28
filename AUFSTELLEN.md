@@ -821,14 +821,24 @@ Aufruf als „am Rechner selbst"; ein Prüflauf, der nur darüber spricht,
 belegt die Sperre nie. Findet er keine solche Adresse, meldet er das als
 Fehler statt still durchzulaufen.
 
-### Was dabei NICHT entschieden ist
+### Die Aufnahmen
 
-Aufnahmen (`/mitschnitt/…`) werden nur nach ausdrücklichem Druck am Pult
-geschrieben — im normalen Betrieb entsteht nichts. Sie werden aber
-**nie gelöscht**: kein Höchstalter, keine Höchstzahl, kein Hinweis. Wer
-die Aufnahme ein Jahr lang jeden Sabbat benutzt, hat rund fünfzig
-Predigten als Rohton auf der Platte. Das gehört entschieden, ist hier
-aber offen.
+Aufnahmen (`/mitschnitt/…`) entstehen nur nach ausdrücklichem Druck am
+Pult und nur mit zwei Häkchen — im normalen Betrieb entsteht nichts.
+Seit 0.3.0 werden sie nach **sieben Tagen gelöscht** (`aufnahme_tage`,
+am Pult einstellbar), der Aufräumlauf geht stündlich. Abrufbar sind
+sie nur am Gemeinde-PC selbst, nie aus dem Saalnetz.
+
+Seit 0.3.8 ist das Format **MP3**, 48 kbit/s mono, rund 22 MB je
+Stunde. Die Datei heißt `Predigt_TT_MM_JJJJ.mp3` nach dem Tag des
+Aufnahmebeginns; gibt es den Namen schon, kommt `_2`, `_3` dahinter.
+Kann der Rechner kein MP3 schreiben (kein `ffmpeg` mit `libmp3lame`,
+kein `lame`), läuft die Aufnahme als WAV weiter und der Systemcheck
+sagt es.
+
+*Bis 0.2.15 wurden Aufnahmen nie gelöscht: kein Höchstalter, keine
+Höchstzahl, kein Hinweis. Wer die Aufnahme ein Jahr lang jeden Sabbat
+benutzte, hatte rund fünfzig Predigten als Rohton auf der Platte.*
 
 ## Im Betrieb kein Internet, für die Wartung ein Hotspot
 

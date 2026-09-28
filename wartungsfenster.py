@@ -151,9 +151,17 @@ def einstellung(netz=None):
     # Kein Fenster, kein Autoupdate. Sonst stuende in netz.json ein
     # "autoupdate": true, das nichts tut, und beim naechsten
     # Einschalten des Fensters liefe unerwartet ein Update mit.
+    #
+    # DIE BERICHTE STEHEN AUSDRUECKLICH NICHT MEHR HIER. Bis 0.3.7
+    # wurden sie mit abgeraeumt -- wer sie bei ausgeschaltetem Fenster
+    # setzte, bekam sie kommentarlos wieder auf "nein" zurueck, und
+    # --zeigen behauptete danach das Gegenteil dessen, was in
+    # netz.json stand. Der Unterschied zum Autoupdate: ein Bericht
+    # aendert nichts am Rechner. Er geht hinaus oder er geht nicht
+    # hinaus, und ohne Fenster geht er eben nicht -- ueberraschen kann
+    # er dabei niemanden.
     if not daten["an"]:
         daten["autoupdate"] = False
-        daten["berichte_senden"] = False
     return daten
 
 
@@ -214,8 +222,21 @@ def laufzeit_stunden():
         return None
 
 
+# "Nicht angegeben" und "unbekannt" sind zweierlei.
+#
+# stunden=None heisst in diesem Modul UNBEKANNT -- der Rechner weiss
+# nicht, wie lange er schon laeuft, und dann wird darueber nichts
+# behauptet. Solange None zugleich "nicht angegeben" hiess, war das
+# nicht zu unterscheiden: abschalten_faellig(..., stunden=None) fragte
+# die echte Laufzeit ab, und der Pruefstand-Fall "Laufzeit unbekannt:
+# keine Behauptung" prueufte in Wahrheit die Betriebszeit des
+# Rechners, auf dem er gerade lief. Auf einem eben gestarteten
+# Rechner ging er durch, nach einem Tag nicht mehr.
+_NICHT_ANGEGEBEN = object()
+
+
 def abschalten_faellig(uebersetzung_laeuft, jetzt=None, e=None,
-                       stunden=None):
+                       stunden=_NICHT_ANGEGEBEN):
     """("", Grund) -- soll der Rechner jetzt ausgehen, und warum?
 
     Gibt ("", "") zurueck, wenn nicht. Sonst eine der drei Lagen:
@@ -231,7 +252,8 @@ def abschalten_faellig(uebersetzung_laeuft, jetzt=None, e=None,
     e = e if e is not None else einstellung()
     if not e["an"]:
         return "", ""
-    stunden = stunden if stunden is not None else laufzeit_stunden()
+    if stunden is _NICHT_ANGEGEBEN:
+        stunden = laufzeit_stunden()
 
     if stunden is not None and e["hoechstlaufzeit_hart_h"] \
             and stunden >= e["hoechstlaufzeit_hart_h"]:
@@ -371,10 +393,22 @@ if __name__ == "__main__":
         netz, _ = netzzustand.laden()
         block = dict(VORGABE)
         block.update(netz.get("wartungsfenster") or {})
-        if (werte.get("autoupdate") or werte.get("berichte_senden")) \
-                and not block.get("an"):
-            print("Ohne eingeschaltetes Fenster kein Autoupdate. Erst:\n"
-                  "  bash wartungsfenster.sh --einschalten ...",
+        # NUR das Autoupdate haengt am Fenster. Ein Rechner, der sich
+        # von selbst aktualisiert, muss dafuer eine Zeit haben, in der
+        # er es darf -- sonst waere "autoupdate an" eine Zusage ohne
+        # Termin.
+        #
+        # Die BERICHTE haengen ausdruecklich nicht daran. Bis 0.3.7
+        # brach --berichte ja mit "Ohne eingeschaltetes Fenster kein
+        # Autoupdate" ab: die falsche Sache in der Meldung und eine
+        # Reihenfolge, die nichts schuetzt. Gesendet wird ohnehin nur
+        # im Fenster (wartungsfenster.sh --pruefen kommt ausserhalb
+        # gar nicht bis zur Zeile), der Schalter merkt also nur vor.
+        # Wer ihn vor dem Fenster setzen will, soll das koennen.
+        if werte.get("autoupdate") and not block.get("an"):
+            print("Das Autoupdate braucht ein eingeschaltetes Fenster:\n"
+                  "  bash wartungsfenster.sh --einschalten ...\n"
+                  "Danach erneut:  bash wartungsfenster.sh --autoupdate ja",
                   file=sys.stderr)
             sys.exit(1)
         block.update(werte)

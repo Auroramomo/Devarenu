@@ -23,6 +23,22 @@ WAS DIESES MODUL SICHERSTELLT
     daran denkt. Vorgabe sieben Tage.
   * Rechte 700 auf dem Ordner, 600 auf den Dateien. Der Ton gehoert
     dem Dienstbenutzer und sonst niemandem.
+  * Der Name ist der, unter dem die Gemeinde sucht:
+    Predigt_TT_MM_JJJJ.mp3, mit dem Datum des Aufnahmebeginns. Gibt
+    es ihn schon, wird _2, _3 angehaengt -- nie ueberschrieben.
+
+DAS FORMAT
+
+Bis 0.3.7 war es WAV: 115 MB je Stunde, und sieben Tage Aufbewahrung
+fuellten damit auch eine grosse Platte. Seit 0.3.8 ist es MP3 mit
+48 kbit/s mono -- rund 22 MB je Stunde. Warum gerade 48, steht bei
+BITRATE. Geschrieben wird weiter fortlaufend: der Ton geht in einen
+Koder, der Koder schreibt Rahmen fuer Rahmen in die Datei, und faellt
+der Strom aus, ist alles bis dahin da und abspielbar.
+
+Kann dieser Rechner kein MP3 (kein ffmpeg mit libmp3lame, kein lame),
+laeuft die Aufnahme als WAV weiter. Sie faellt NICHT aus. Der
+Systemcheck sagt es, bevor jemand den Knopf drueckt.
 
 DER ALTBESTAND
 
@@ -36,7 +52,9 @@ wann sie gehen.
 
 import json
 import os
+import re
 import shutil
+import subprocess
 import time
 import wave
 from pathlib import Path
@@ -46,11 +64,47 @@ from pathlib import Path
 # ansammelt, was niemand mehr kennt.
 TAGE_VORGABE = 7
 
-# Unter dieser Grenze wird nicht mehr aufgenommen. Eine Stunde belegt
-# rund 115 MB; zwei Gigabyte sind gut siebzehn Stunden Vorlauf und
-# zugleich genug Rest, dass der Rechner nicht an anderer Stelle
-# stehenbleibt.
+# Unter dieser Grenze wird nicht mehr aufgenommen. Eine Stunde MP3
+# belegt rund 22 MB (als WAV waren es 115); zwei Gigabyte sind damit
+# weit mehr Vorlauf als eine Predigt je braucht und zugleich genug
+# Rest, dass der Rechner nicht an anderer Stelle stehenbleibt. Die
+# Grenze bleibt, wo sie war -- sie schuetzt nicht die Aufnahme,
+# sondern alles andere: Protokoll, Update, zustand.json.
 PLATZ_MINDESTENS = 2 * 1024 * 1024 * 1024
+
+# WARUM 48 kbit/s MONO
+#
+# Der Ton kommt mit 16000 Hz vom Mikrofon (config: MIKRO_RATE). Mehr
+# als 8 kHz Bandbreite ist darin nicht enthalten, und mehr braucht
+# Sprache auch nicht -- es ist eine Predigt, kein Konzert.
+#
+# Bei 16 kHz arbeitet LAME im MPEG-2-Modus (MPEG-2 Layer III, "LSF"),
+# und dort sind 8 bis 160 kbit/s erlaubt. Gemessen an dem, was diese
+# Datei transportieren muss:
+#
+#   32 kbit/s  hoerbar: Zischlaute verschmieren, "s" und "f" werden
+#              schwer unterscheidbar. Fuer eine Predigt, die jemand
+#              nachhoert, zu wenig.
+#   48 kbit/s  unauffaellig. Der gewaehlte Wert.
+#   64 kbit/s  ein Drittel mehr Platz fuer nichts, was bei 8 kHz
+#              Bandbreite noch ankaeme.
+#
+# Feste Bitrate, keine variable: die Groesse laesst sich dann aus der
+# Dauer ausrechnen (und umgekehrt), was fuer die Platzpruefung und
+# fuer eine abgeschnittene Datei zaehlt.
+#
+# 48 kbit/s sind 6 kB/s: eine Stunde rund 22 MB, gegenueber 115 MB als
+# WAV. Das ist der eigentliche Gewinn -- sieben Tage Aufbewahrung mit
+# mehreren Aufnahmen passen jetzt in einen Bruchteil des Platzes, und
+# was per Hand weitergegeben wird, passt an eine Mail.
+BITRATE = "48k"
+
+# Der Name, den die Gemeinde erwartet: Predigt_03_10_2026.mp3, mit dem
+# Datum des AUFNAHMEBEGINNS. Laeuft eine Aufnahme ueber Mitternacht,
+# steht der Tag darauf, an dem sie anfing -- danach sucht man.
+NAME_VORNE = "Predigt"
+_NAME_MUSTER = re.compile(r"^predigt[_-]", re.IGNORECASE)
+_ENDUNGEN = (".mp3", ".wav")
 
 # Wie oft nachgesehen wird, ob etwas abgelaufen ist. Beim Start und
 # dann stuendlich -- ein Rechner, der von Freitag bis Sonntag laeuft,
@@ -71,6 +125,125 @@ def _datei_sichern(pfad):
         os.chmod(pfad, 0o600)
     except OSError:
         pass
+
+
+# ------------------------------------------------------- Der Koder
+#
+# MP3 SCHREIBT KEIN PYTHON-MODUL DER STANDARDBIBLIOTHEK.
+#
+# Gebraucht wird ein Koder von aussen. Der ist schon da: ffmpeg steht
+# seit jeher in INSTALLIEREN.sh und in einrichten.sh, weil die
+# Tonausgabe ihn ohnehin braucht. Ob dieses ffmpeg auch MP3 SCHREIBEN
+# kann, ist eine zweite Frage -- das kann es nur mit libmp3lame, und
+# das ist eine Uebersetzungsoption. Alle grossen Distributionen
+# (Arch, Debian, Fedora, Ubuntu) liefern sie mit; eine selbstgebaute
+# oder abgespeckte Fassung womoeglich nicht.
+#
+# Darum wird gefragt, nicht angenommen -- und zwar EINMAL beim Start
+# und nicht erst, wenn jemand am Sonntag den Knopf drueckt.
+#
+# Drei Stufen, alle ohne Netz:
+#   1. ffmpeg mit libmp3lame. Der Normalfall, nichts nachzuinstallieren.
+#   2. lame als eigenes Programm. Winziges Paket, auf vielen Systemen
+#      ohnehin da (es ist die Abhaengigkeit hinter libmp3lame).
+#   3. Kein Koder: dann WAV wie bisher, mit deutlichem Hinweis. Eine
+#      Aufnahme, die gar nicht erst anfaengt, weil ein Koder fehlt,
+#      waere der schlechteste aller Ausgaenge -- der Prediger spricht
+#      trotzdem.
+#
+# Nachzuruesten ist Stufe 2 offline vom selben Stick, der auch das
+# Update bringt: "pacman -U lame-*.pkg.tar.zst". Das steht so in der
+# Meldung, damit niemand erst suchen muss.
+_koder_gemerkt = {}
+
+
+def koder_pruefen(neu_fragen=False):
+    """(weg, hinweis). weg ist "ffmpeg", "lame" oder "".
+
+    Das Ergebnis wird gemerkt: die Frage kostet einen Unterprozess,
+    und die Antwort aendert sich zwischen zwei Neustarts nicht."""
+    if _koder_gemerkt and not neu_fragen:
+        return _koder_gemerkt["weg"], _koder_gemerkt["hinweis"]
+
+    weg, hinweis = "", ""
+    if shutil.which("ffmpeg"):
+        try:
+            aus = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"],
+                                 capture_output=True, text=True, timeout=10)
+            if "libmp3lame" in aus.stdout:
+                weg = "ffmpeg"
+            else:
+                hinweis = ("Das ffmpeg auf diesem Rechner kann kein MP3 "
+                           "schreiben (libmp3lame fehlt).")
+        except Exception as e:
+            hinweis = f"ffmpeg liess sich nicht befragen: {str(e)[:60]}"
+    else:
+        hinweis = "ffmpeg fehlt."
+
+    if not weg and shutil.which("lame"):
+        weg, hinweis = "lame", ""
+
+    # hinweis ist NUR der Grund, nicht die Folge und nicht die
+    # Abhilfe. Wer ihn anzeigt, weiss selbst, in welchen Satz er
+    # gehoert -- der Systemcheck baut daraus einen, das Pult einen
+    # anderen. Zweimal dieselbe Erklaerung hintereinander liest sich
+    # wie ein Fehler.
+    if not weg and not hinweis:
+        hinweis = "Kein MP3-Koder gefunden."
+
+    _koder_gemerkt.update(weg=weg, hinweis=hinweis)
+    return weg, hinweis
+
+
+def _befehl(weg, pfad, rate):
+    if weg == "ffmpeg":
+        return ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                "-f", "s16le", "-ar", str(rate), "-ac", "1", "-i", "pipe:0",
+                "-c:a", "libmp3lame", "-b:a", BITRATE, "-ac", "1",
+                # Kein Xing-Kopf: den schreibt ffmpeg erst am Ende und
+                # muss dafuer an den Dateianfang zurueckspringen. Faellt
+                # der Strom aus, ist das nie passiert -- und mit einem
+                # halb geschriebenen Kopf tun sich manche Abspieler
+                # schwerer als mit gar keinem. Ohne ihn ist die Datei
+                # eine reine Folge von Rahmen: an jeder Stelle
+                # abschneidbar und trotzdem abspielbar.
+                "-write_xing", "0",
+                # Und kein ID3-Kopf. Zusammen mit -write_xing 0 ist die
+                # Datei damit nichts als eine Folge von MP3-Rahmen:
+                # kein Kopf, der nachtraeglich gefuellt werden muss,
+                # nichts, was beim Abschneiden halb dasteht. Nebenbei
+                # steht dann auch nicht "Lavf62.x" als Erzeuger darin.
+                "-id3v2_version", "0",
+                # Jeden Rahmen sofort hinausschreiben, nicht sammeln.
+                "-flush_packets", "1",
+                str(pfad)]
+    return ["lame", "--quiet", "-r", "-s", str(rate / 1000.0),
+            "--bitwidth", "16", "--signed", "--little-endian",
+            "-m", "m", "-b", str(int(BITRATE.rstrip("k"))),
+            "-", str(pfad)]
+
+
+def freier_name(ordner, jetzt=None, endung=".mp3"):
+    """Predigt_TT_MM_JJJJ.mp3 -- und bei Kollision _2, _3, ...
+
+    NIE UEBERSCHREIBEN. Zwei Gottesdienste an einem Tag sind der
+    Normalfall (Predigt und Nachmittagsstunde), und die zweite darf
+    die erste nicht loeschen.
+
+    Belegt gilt ein Name schon dann, wenn es ihn mit IRGENDEINER
+    Endung gibt: liegt Predigt_03_10_2026.wav da, weil damals kein
+    Koder vorhanden war, faengt die naechste bei _2 an. Sonst stuenden
+    zwei verschiedene Aufnahmen unter demselben Namen nebeneinander
+    und nur die Endung unterschiede sie."""
+    ordner = Path(ordner)
+    tag = time.strftime("%d_%m_%Y", time.localtime(jetzt or time.time()))
+    nummer = 1
+    while True:
+        stamm = f"{NAME_VORNE}_{tag}" if nummer == 1 \
+            else f"{NAME_VORNE}_{tag}_{nummer}"
+        if not any(ordner.glob(stamm + ".*")):
+            return ordner / (stamm + endung)
+        nummer += 1
 
 
 class Einwilligung:
@@ -130,6 +303,9 @@ class Aufnahme:
         self.tage = tage
         self.datei = None
         self.griff = None
+        self.prozess = None
+        self.weg = ""
+        self.koder_hinweis = ""
         self.rahmen = 0
         self.seit = 0.0
         self.einwilligung = None
@@ -160,17 +336,38 @@ class Aufnahme:
 
         self.ordner.mkdir(parents=True, exist_ok=True)
         _ordner_sichern(self.ordner)
-        stempel = time.strftime("%Y-%m-%d_%H-%M")
-        self.datei = self.ordner / f"predigt_{stempel}.wav"
+        self.weg, self.koder_hinweis = koder_pruefen()
+        self.datei = freier_name(self.ordner,
+                                 endung=".mp3" if self.weg else ".wav")
+        # Die Datei zuerst anlegen und auf 600 setzen, DANN fuellen.
+        # Sonst stuende sie einen Augenblick lang mit den Rechten da,
+        # die die umask hergibt -- und in dem Augenblick ist schon Ton
+        # darin.
         try:
-            self.griff = wave.open(str(self.datei), "wb")
-            self.griff.setnchannels(1)
-            self.griff.setsampwidth(2)
-            self.griff.setframerate(self.rate)
+            self.datei.touch(mode=0o600, exist_ok=False)
         except OSError as e:
-            self.griff = None
+            self.datei = None
             return None, f"nicht_schreibbar: {str(e)[:80]}"
         _datei_sichern(self.datei)
+        try:
+            if self.weg:
+                self.prozess = subprocess.Popen(
+                    _befehl(self.weg, self.datei, self.rate),
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.PIPE)
+                self.griff = self.prozess.stdin
+            else:
+                self.griff = wave.open(str(self.datei), "wb")
+                self.griff.setnchannels(1)
+                self.griff.setsampwidth(2)
+                self.griff.setframerate(self.rate)
+        except (OSError, ValueError) as e:
+            self.griff = None
+            self.prozess = None
+            self.datei.unlink(missing_ok=True)
+            self.datei = None
+            return None, f"nicht_schreibbar: {str(e)[:80]}"
 
         # Der Vermerk liegt NEBEN der Aufnahme und heisst wie sie. Wer
         # die Datei weitergibt, gibt den Beleg mit; wer sie loescht,
@@ -188,12 +385,17 @@ class Aufnahme:
     def schreiben(self, block, np_modul):
         if not self.griff:
             return
+        roh = (np_modul.clip(block, -1.0, 1.0) * 32767).astype("int16").tobytes()
         try:
-            self.griff.writeframes(
-                (np_modul.clip(block, -1.0, 1.0) * 32767)
-                .astype("int16").tobytes())
+            if self.prozess:
+                self.griff.write(roh)
+            else:
+                self.griff.writeframes(roh)
             self.rahmen += len(block)
         except Exception:
+            # Bricht der Koder weg, bricht nicht der Gottesdienst ab.
+            # Was bis dahin geschrieben ist, bleibt abspielbar -- eine
+            # MP3-Datei ist eine Folge von Rahmen ohne Abschluss.
             pass
 
     def beenden(self, grund=""):
@@ -204,6 +406,19 @@ class Aufnahme:
         except Exception:
             pass
         self.griff = None
+        if self.prozess:
+            # Dem Koder Zeit lassen, den Rest auszuschreiben -- aber
+            # nicht beliebig viel. Haengt er, ist die Datei bis dahin
+            # trotzdem vollstaendig genug, und das Pult darf nicht
+            # stehenbleiben.
+            try:
+                self.prozess.wait(timeout=20)
+            except Exception:
+                try:
+                    self.prozess.kill()
+                except Exception:
+                    pass
+            self.prozess = None
         self.grund_aus = grund
         dauer = self.rahmen / self.rate
         if self.datei and self.datei.exists():
@@ -215,6 +430,7 @@ class Aufnahme:
         if not self.griff:
             return None
         return {"datei": self.datei.name,
+                "koder": self.weg,
                 "minuten": round(self.rahmen / self.rate / 60, 1),
                 "sekunden": int(self.rahmen / self.rate),
                 "seit": self.seit,
@@ -255,7 +471,15 @@ def aufnahmen(ordner):
         return []
     jetzt = time.time()
     liste = []
-    for p in sorted(o.glob("predigt_*.wav")):
+    # Gross und klein, mp3 und wav. Bis 0.3.7 hiessen die Dateien
+    # predigt_2026-01-10_09-30.wav; ab 0.3.8 Predigt_10_01_2026.mp3.
+    # Wer diese Fassung einspielt, hat womoeglich beides liegen -- und
+    # der Altbestand muss weiter aufgelistet werden UND weiter
+    # ablaufen. Eine Umbenennung waere der falsche Weg: sie aenderte
+    # Dateien, die unter der alten Zusage entstanden sind.
+    for p in sorted(x for x in o.iterdir()
+                    if x.is_file() and x.suffix.lower() in _ENDUNGEN
+                    and _NAME_MUSTER.match(x.name)):
         try:
             st = p.stat()
         except OSError:
