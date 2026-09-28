@@ -188,20 +188,96 @@
   ]
  },
  "entscheidung": {
-  "ergebnis": "verworfen -- es und pt behalten das Komma",
-  "warum": "Der Doppelpunkt geht auch an Piper und ist dort ein Pausenzeichen. Gemessen mit es_ES-davefx-medium: +0.27 bis +0.49 s je Bibelstelle. Gesprochen wird er nicht -- der espeak-Phonemisierer macht daraus keine Woerter (\"...tres: cinco\" gegen \"...tres dos puntos cinco\") --, aber die Pause kostet Zeit, und Zeit ist das, woran die Uebersetzung im Gottesdienst knapp ist.",
-  "preis": "Im Untertitel steht damit ein Komma, wo eine spanische oder portugiesische Bibel einen Doppelpunkt setzt.",
-  "weg_falls_doch": "Trennzeichen im Text setzen und fuer Piper ueber SPRECHFORM wieder durch ein Komma ersetzen. Dann kostet es nichts.",
-  "pausenmessung": {
-   "stimme": "es_ES-davefx-medium",
-   "Isaías 53, 5": 2.02,
-   "Isaías 53: 5": 2.29,
-   "Mateo 18, 21 hasta el 35": 2.61,
-   "Mateo 18: 21 hasta el 35": 3.03,
-   "Romanos 8, 28": 1.47,
-   "Romanos 8: 28": 1.96,
-   "ohne Trenner (Isaías 53 5)": 1.82,
-   "ausgeschrieben (53 dos puntos 5)": 2.33
+  "ergebnis": "es und pt bekommen den Doppelpunkt",
+  "geschichte": "In 0.3.6 war die Anweisung kurz verworfen worden. Der Grund war eine fehlerhafte Messung: verglichen wurde '53, 5' gegen '53: 5', beide MIT Leerzeichen. So schreibt das Modell nicht. Es schreibt '53:5', und ohne Leerzeichen behandelt espeak den Doppelpunkt wie ein Leerzeichen -- gar keine Pause. Das Komma macht dort eine.",
+  "nachgemessen": {
+   "wie": "Die echten Modellausgaben unter 'nachher', mit den gewaehlten Stimmen, Doppelpunkt gegen Komma ohne Leerzeichen, --noise-w-scale 0.",
+   "ergebnis": {
+    "es": {
+     "stimme": "es_MX-claude-high",
+     "saetze": 7,
+     "median_s": 0.267,
+     "summe_s": 2.09
+    },
+    "pt": {
+     "stimme": "pt_BR-jeff-medium",
+     "saetze": 7,
+     "median_s": 0.29,
+     "summe_s": 2.1
+    }
+   },
+   "urteil": "Das Komma kostet +0,27 s (es) und +0,29 s (pt) je Satz. Der Doppelpunkt kostet nichts und ist die uebliche Schreibweise. Also eingetragen."
   }
+ },
+ "doppelpunkt_bei_piper": {
+  "wann": "2026-09-28",
+  "frage": "Der Doppelpunkt geht auch an Piper. Kostet er dort Zeit, und wenn ja, in welchen Sprachen?",
+  "erster_anlauf_falsch": {
+   "wie": "53, 5 gegen 53: 5 -- beide MIT Leerzeichen",
+   "ergebnis": {
+    "en": "+0.06 s",
+    "ru": "+0.33 s",
+    "fa": "+0.18 s"
+   },
+   "warum_falsch": "Das Modell schreibt keine Leerzeichen. Es schreibt 53:5, und espeak behandelt das wie 53 5 -- gar keine Pause. Gemessen: 'Исаия 53:5' 1.68 s, 'Исаия 53 5' 1.68 s, 'Исаия 53,5' 2.12 s, 'Исаия 53: 5' 2.68 s. Der erste Anlauf beantwortete eine Frage, die niemand gestellt hatte."
+  },
+  "zweiter_anlauf": {
+   "wie": "Dieselben Saetze wie unter 'vorher' -- also das, was gemma4:12b wirklich schreibt --, Doppelpunkt gegen Komma OHNE Leerzeichen, --noise-w-scale 0.",
+   "ergebnis": {
+    "en": {
+     "saetze": 7,
+     "median_s": 0.0,
+     "summe_s": -0.73,
+     "urteil": "an der Schwelle, keine Regel"
+    },
+    "ru": {
+     "saetze": 5,
+     "median_s": 0.57,
+     "summe_s": 3.08,
+     "urteil": "das Komma KOSTET, keine Regel"
+    },
+    "fa": {
+     "saetze": 4,
+     "median_s": -0.47,
+     "summe_s": -1.79,
+     "urteil": "das Komma spart, Regel eingetragen"
+    }
+   }
+  },
+  "vergleichslauf": {
+   "de": {
+    "stimme": "de_DE-thorsten-medium",
+    "zeilen": 8,
+    "untertitel_gleich": "8/8",
+    "sprechdauer_vorher_s": 29.42,
+    "sprechdauer_nachher_s": 29.42,
+    "diff_s": 0.0
+   },
+   "en": {
+    "stimme": "en_US-lessac-medium",
+    "zeilen": 8,
+    "untertitel_gleich": "8/8",
+    "sprechdauer_vorher_s": 24.33,
+    "sprechdauer_nachher_s": 24.33,
+    "diff_s": 0.0
+   },
+   "ru": {
+    "stimme": "ru_RU-irina-medium",
+    "zeilen": 8,
+    "untertitel_gleich": "8/8",
+    "sprechdauer_vorher_s": 33.98,
+    "sprechdauer_nachher_s": 33.98,
+    "diff_s": 0.0
+   },
+   "fa": {
+    "stimme": "fa_IR-amir-medium",
+    "zeilen": 8,
+    "untertitel_gleich": "8/8",
+    "sprechdauer_vorher_s": 33.79,
+    "sprechdauer_nachher_s": 32.0,
+    "diff_s": -1.79
+   }
+  },
+  "ergebnis": "SPRECHFORM-Eintrag nur fuer fa. Der Untertitel ist in allen vier Sprachen Zeile fuer Zeile unveraendert -- SPRECHFORM greift ausschliesslich vor Piper. Die Sprechdauer bleibt bei de, en und ru gleich und sinkt bei fa um 1,79 s ueber acht Saetze."
  }
 }

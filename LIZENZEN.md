@@ -1,6 +1,10 @@
 # Lizenzen
 
-Der Code von Devarenu steht unter MIT, siehe `LICENSE`.
+Der Code von Devarenu steht unter **GPLv3 oder später**, siehe
+`COPYING`. Bis einschließlich Fassung 0.3.6 stand er unter MIT; der
+Grund für den Wechsel steht weiter unten. Was unter MIT
+veröffentlicht wurde, bleibt unter MIT — eine Lizenz lässt sich
+nicht rückwirkend zurücknehmen. Ab 0.3.7 gilt GPLv3.
 
 Die Modelle und Stimmen sind **nicht** Teil dieses Repos. `einrichten.sh`
 lädt sie von den Anbietern, dort gelten deren Bedingungen.
@@ -40,7 +44,7 @@ mitgeben.
 im Test und ist in `config.py` auskommentiert. Es darf nicht in eine
 Veröffentlichung geraten.
 
-## Piper ist GPLv3 — und das ist ungeklärt
+## Warum GPLv3 — die Entscheidung und ihr Grund
 
 **Der Stand, nachgesehen im installierten Paket:**
 
@@ -70,10 +74,10 @@ dann müsste das Ganze unter GPLv3 stehen, und „MIT" im Repo wäre
 nicht haltbar. Ob Gerichte das genauso sehen, ist seit Jahren
 umstritten und für Python-Importe nirgends entschieden.
 
-> **Das ist keine Rechtsberatung, und es ist nicht entschieden.**
-> Hier steht der Sachverhalt, damit jemand entscheiden kann.
+> **Das ist keine Rechtsberatung.** Hier steht der Sachverhalt und
+> was daraus entschieden wurde.
 
-### Die Wege, und was sie kosten
+### Die drei Wege, die zur Wahl standen
 
 **(a) Das Repo auf GPLv3 umstellen.** Die ehrlichste Lesart, und die
 einfachste: ein Satz in `LIESMICH.md`, eine Datei `COPYING`, fertig.
@@ -96,23 +100,29 @@ läuft.
 eine ungeklärte Frage offen stehen zu lassen und zu hoffen, dass sie
 niemand stellt. Der Eintrag oben stimmt jetzt wenigstens.
 
-### Empfehlung
+### Entschieden: (a), seit Fassung 0.3.7
 
-**(a).** Der Nutzen von MIT ist hier gering — das Programm richtet
-sich an Gemeinden, nicht an Firmen, die es einbauen wollen. Der
-Aufwand ist eine Stunde. (b) löst dieselbe Frage, kostet aber
-Rechenzeit an der einzigen Stelle, an der der Gottesdienst sie
-merkt, und niemand hat gemessen, wie viel.
+Der Nutzen von MIT war hier gering — das Programm richtet sich an
+Gemeinden, nicht an Firmen, die es einbauen wollen. (b) hätte
+dieselbe Frage gelöst, aber Rechenzeit an der einzigen Stelle
+gekostet, an der der Gottesdienst sie merkt, und niemand hatte
+gemessen, wie viel.
+
+Umgesetzt ist: `COPYING` mit dem GPLv3-Text (die Fassung von
+gnu.org, inhaltlich dieselbe, die Piper selbst mitliefert), die
+MIT-Datei `LICENSE` ist entfernt, `LIESMICH.md` und dieser Abschnitt
+sind angepasst. Im Quelltext standen keine MIT-Kopfzeilen, also war
+dort nichts zu ändern.
+
+Alle anderen Bausteine (MIT, BSD, Apache) sind mit GPLv3 verträglich
+und bleiben, wie sie sind.
 
 Die Bitte in `LIESMICH.md`, veränderte Fassungen nicht unter dem
-Namen Devarenu weiterzugeben, ist davon **unberührt**. Sie ist keine
-Lizenzbedingung und wird unter GPLv3 auch keine: die GPL erlaubt das
-Weitergeben ausdrücklich. Es ist eine Bitte, begründet mit dem
-Spendenkonto und der Prüfung, und sie steht unter MIT wie unter GPL
-auf demselben Grund — nämlich auf keinem rechtlichen.
-
-*Entschieden ist nichts. Solange hier nichts anderes steht, gilt für
-den eigenen Code weiter MIT.*
+Namen Devarenu weiterzugeben, wird davon **nicht** zur Bedingung.
+Die GPL erlaubt das Weitergeben ausdrücklich, und daran soll sich
+nichts ändern. Es bleibt eine Bitte, begründet mit dem Spendenkonto
+und der Prüfung — und sie steht unter GPL auf demselben Grund wie
+vorher unter MIT: auf keinem rechtlichen.
 
 ## Piper-Stimmen
 
@@ -129,7 +139,7 @@ Nennung der verwendeten Stimmen bereithalten.
 
 `logo.png` ist das Signet der Siebenten-Tags-Adventisten und eine
 eingetragene Marke der Generalkonferenz. Es fällt **nicht** unter die
-MIT-Lizenz dieses Projekts. Gemeinden anderer Konfessionen ersetzen die
+GPLv3 dieses Projekts. Gemeinden anderer Konfessionen ersetzen die
 Datei durch ihr eigenes Zeichen.
 
 ## Bibelnamen

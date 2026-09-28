@@ -799,16 +799,14 @@ class Werk:
                   f"- Achte auf grammatisch korrekte Endungen und darauf, "
                   f"dass Adjektive und Substantive zusammenpassen.\n"
                   f"- Fuege nichts hinzu und lass nichts weg.")
-        # Bibelstellen. config.STELLEN_TRENNER ist derzeit LEER, also
-        # passiert hier nichts -- die Anweisung auf Doppelpunkt war
-        # gebaut und geprueft und wurde verworfen, weil der
-        # Doppelpunkt auch an Piper geht und dort eine laengere Pause
-        # macht (+0,3 bis +0,5 s je Stelle). Die Begruendung steht
-        # ausfuehrlich in config.py.
+        # Bibelstellen: nur fuer Sprachen in config.STELLEN_TRENNER,
+        # also es und pt -- dort schreibt das Modell von selbst ein
+        # Komma, wo jede spanische und portugiesische Bibel einen
+        # Doppelpunkt setzt.
         #
-        # Der Weg bleibt stehen: wer ein Trennzeichen will, traegt es
-        # dort ein -- und, wenn die Pause nicht sein soll, ersetzt es
-        # ueber SPRECHFORM fuer Piper wieder durch ein Komma.
+        # Der Doppelpunkt geht auch an Piper, kostet dort aber nichts:
+        # ohne Leerzeichen behandelt espeak "53:5" wie "53 5". Das
+        # Komma waere das teurere Zeichen. Messungen in config.py.
         trenner = config.STELLEN_TRENNER.get(sprache)
         if trenner:
             system += (f"\n- Bibelstellen werden mit „{trenner}“ zwischen "

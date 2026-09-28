@@ -2,20 +2,21 @@
 
 Was sich für Gemeinde und Pult geändert hat. Ausführlich: `AENDERUNGEN.md`.
 
-**0.3.5 und 0.3.6 — 28.09.2026**
+**0.3.5 bis 0.3.7 — 28.09.2026**
 
+- Devarenu steht jetzt unter **GPLv3** statt MIT. Für die Gemeinde
+  ändert sich nichts: kostenlos, weitergebbar.
 - Der Rechner **merkt sich weniger von den Zuhörern**: wer welche
   Netzwerkadresse bekam, ist nach dem Ausschalten weg und steht nicht
   mehr im Protokoll. Neu: **DATENSCHUTZ.md** mit einem Textbaustein
   für die eigene Datenschutzerklärung.
 - Der **Name der Gemeinde** steht auf der QR-Seite, wenn man ihn
   einträgt. Dazu ein Schalter **„Nutzung an den Entwickler melden"**:
-  Name, Fassung, Datum, sonst nichts. Vorgabe aus.
-- `AUFSTELLEN.md` listet vollständig auf, **was der Rechner nach
-  draußen sendet**. Nichts davon läuft ohne Schalter.
-- Das **Spendenkonto** wird beim Start geprüft.
-- **Spanisch und Portugiesisch** haben ihre Stimme. Beide bleiben
-  aus.
+  Name, Fassung, Datum, sonst nichts. Vorgabe aus. `AUFSTELLEN.md`
+  listet vollständig auf, **was der Rechner nach draußen sendet** —
+  nichts davon läuft ohne Schalter.
+- **Spanisch und Portugiesisch** haben ihre Stimme; Bibelstellen
+  stehen dort mit Doppelpunkt.
 
 **0.3.3 und 0.3.4 — 28.09.2026**
 
@@ -27,7 +28,6 @@ Was sich für Gemeinde und Pult geändert hat. Ausführlich: `AENDERUNGEN.md`.
 - Spricht jemand eine andere Sprache als eingestellt, warnt das Pult.
 - Ein **Testprotokoll** zeigt, wo die Kette kippt; Fehlerberichte
   gehen von selbst aufs Handy. Beides muss eingeschaltet werden.
-- „Mobile Daten ausschalten" ist aus der Anleitung verschwunden.
 
 **0.3.0 bis 0.3.2 — 26. bis 27.09.2026**
 

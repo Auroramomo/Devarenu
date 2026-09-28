@@ -6,6 +6,108 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.3.7 — GPLv3, und eine Messung, die zweimal gemacht werden musste
+
+*28.09.2026.*
+
+### Für alle
+
+**Devarenu steht jetzt unter GPLv3.** Bis 0.3.6 war es MIT. Der
+Grund: Piper, das die Stimmen erzeugt, ist selbst GPL und läuft im
+selben Prozess. Für eine Gemeinde ändert sich dadurch nichts — das
+Programm bleibt kostenlos und darf weitergegeben werden.
+
+**Persisch spricht Bibelstellen etwas flüssiger.** Der Doppelpunkt
+in „۳:۱۶" machte dort eine unnötige Pause.
+
+**Spanisch und Portugiesisch schreiben Bibelstellen wieder mit
+Doppelpunkt** — so, wie es in spanischen und portugiesischen Bibeln
+üblich ist. In 0.3.6 war das aus einem falschen Grund
+zurückgenommen worden.
+
+### Für Techniker
+
+**Die Lizenz.** `COPYING` mit dem GPLv3-Text (Fassung von gnu.org;
+inhaltlich dieselbe, die Piper mitliefert — Unterschied nur `http`
+gegen `https`). Die MIT-Datei `LICENSE` ist entfernt, `LIESMICH.md`
+und `LIZENZEN.md` sind angepasst. Im Quelltext standen keine
+MIT-Kopfzeilen. Was bis 0.3.6 unter MIT veröffentlicht wurde, bleibt
+unter MIT — das lässt sich nicht rückwirkend ändern, und es steht so
+in `LIZENZEN.md`.
+
+**Der Doppelpunkt bei Piper — und warum ich zweimal messen musste.**
+
+Der erste Anlauf verglich `53, 5` gegen `53: 5`, beide **mit**
+Leerzeichen, und fand den Doppelpunkt überall teurer: ru +0,33 s,
+fa +0,18 s, en +0,06 s.
+
+Nur schreibt das Modell keine Leerzeichen. Es schreibt `53:5`, und
+in dieser Form ist der Doppelpunkt etwas ganz anderes:
+
+```
+Исаия 53:5   1,68 s        Исаия 53 5    1,68 s
+Исаия 53,5   2,12 s        Исаия 53: 5   2,68 s
+```
+
+Ohne Leerzeichen behandelt espeak `53:5` wie `53 5` — **gar keine
+Pause**. Das Komma macht dort eine. Der erste Anlauf hat also eine
+Frage beantwortet, die niemand gestellt hatte.
+
+Zweiter Anlauf, auf den **echten Modellausgaben** aus
+`messungen/bibelstellen_trenner.json`:
+
+| Sprache | Sätze | Median | Summe | |
+|---|---|---|---|---|
+| en | 7 | ±0,00 s | −0,73 s | an der Schwelle |
+| ru | 5 | **+0,57 s** | +3,08 s | das Komma **kostet** |
+| fa | 4 | **−0,47 s** | −1,79 s | das Komma spart |
+
+Also **nur Persisch**. Bei Russisch wäre es eine Verschlechterung
+gewesen — genau das Gegenteil dessen, was der erste Anlauf nahelegte.
+
+Der `SPRECHFORM`-Eintrag ersetzt `Zahl:Zahl` durch `Zahl,Zahl`, ohne
+Leerzeichen (mit wäre es langsamer als vorher), und deckt
+lateinische, arabisch-indische und persische Ziffern ab. Persische
+und lateinische Ziffern verhalten sich identisch, ebenso arabisches
+und lateinisches Komma — espeak normalisiert beides, auf die
+Millisekunde. Das Muster deckt sie trotzdem alle ab.
+
+Mitgetroffen wird eine Uhrzeit (`18:30`). Auch dort wird der
+Doppelpunkt nicht gesprochen, es entstehen keine falschen Wörter —
+nur eine andere Pause. Hingenommen. Ein Doppelpunkt nach einem Wort
+bleibt unberührt.
+
+**Vergleichslauf** über die acht Sätze je Sprache:
+
+| | Untertitel | Sprechdauer vorher | nachher | |
+|---|---|---|---|---|
+| de | 8/8 gleich | 29,42 s | 29,42 s | ±0 |
+| en | 8/8 gleich | 24,33 s | 24,33 s | ±0 |
+| ru | 8/8 gleich | 33,98 s | 33,98 s | ±0 |
+| fa | 8/8 gleich | 33,79 s | **32,00 s** | −1,79 s |
+
+Der Untertitel ist in allen vier Sprachen Zeile für Zeile
+unverändert — `SPRECHFORM` greift ausschließlich vor Piper.
+
+**Und dieselbe Fehlmessung hatte noch etwas gekostet.** Die
+Entscheidung von 0.3.6, es und pt beim Komma zu lassen, beruhte auf
+genau demselben Vergleich mit Leerzeichen. Nachgemessen auf den
+echten Modellausgaben, mit den gewählten Stimmen:
+
+| Sprache | Stimme | Sätze | Median | Summe |
+|---|---|---|---|---|
+| es | es_MX-claude-high | 7 | **+0,27 s** | +2,09 s |
+| pt | pt_BR-jeff-medium | 7 | **+0,29 s** | +2,10 s |
+
+Das **Komma** ist dort das teurere Zeichen, nicht der Doppelpunkt.
+`STELLEN_TRENNER` steht für es und pt wieder auf `:` — die
+Schreibweise, die Reina-Valera und Almeida ohnehin verwenden. Die
+falsche Begründung ist in `config.py`, in der Messdatei und im
+Eintrag zu 0.3.6 richtiggestellt; der alte Absatz bleibt stehen,
+damit nachvollziehbar ist, was schiefging.
+
+---
+
 ## 0.3.6 — weniger speichern, und aufschreiben, was bleibt
 
 *28.09.2026.*
@@ -25,7 +127,8 @@ Verzeichnis aller elf Verarbeitungen. Auf der Zuhörerseite und am
 Pult steht dazu bewusst nichts.
 
 **Spanisch und Portugiesisch** haben ihre Stimme bekommen. Beide
-Sprachen bleiben aus.
+Sprachen bleiben aus. *(Bibelstellen dort seit 0.3.7 mit
+Doppelpunkt.)*
 
 ### Für Techniker
 
@@ -56,7 +159,10 @@ statt gegen eine feste Erwartung — er meldet jetzt auch den Fall,
 dass Anmeldung und Lauf zwar zusammenpassen, aber nicht zu dem, was
 eingetragen ist. Umgestellt wird nur vor Ort.
 
-**Bibelstellen-Trennzeichen: geprüft und verworfen.** Gemessen mit
+**Bibelstellen-Trennzeichen: geprüft und verworfen** — *und in 0.3.7
+zurückgenommen, weil die Messung unten falsch war. Der Absatz bleibt
+stehen, damit nachvollziehbar ist, was entschieden wurde und warum es
+nicht trug.* Gemessen mit
 `gemma4:12b`, acht Sätzen, `temperature 0.1`, `seed 7`, ohne jede
 Anweisung: en `:` (7/7), fa `:` (4/4), ru gemischt (5× `:`, 2× `,`),
 es und pt durchweg `,` — obwohl Reina-Valera und Almeida den
@@ -74,10 +180,13 @@ die Pause kostet Zeit, und Zeit ist das, woran die Übersetzung im
 Gottesdienst knapp ist. Der Preis: im Untertitel steht ein Komma, wo
 eine spanische Bibel einen Doppelpunkt setzt.
 
-Beide Messungen und die Entscheidung stehen in
-`messungen/bibelstellen_trenner.json`. Wer es doch will, ohne die
-Pause zu zahlen: Trennzeichen im Text setzen und für Piper über
-`SPRECHFORM` wieder durch ein Komma ersetzen.
+Beide Messungen stehen in `messungen/bibelstellen_trenner.json`.
+
+> **Diese Begründung trägt nicht.** Gemessen wurde `53, 5` gegen
+> `53: 5`, beide **mit** Leerzeichen — das Modell schreibt aber
+> `53:5`, und ohne Leerzeichen kostet der Doppelpunkt gar nichts.
+> Nachgemessen in 0.3.7: das *Komma* ist dort das teurere Zeichen.
+> Die Anweisung ist seit 0.3.7 wieder da.
 
 **`laengenfaktor.py` reicht `--speaker` durch** und misst jeden
 Sprecher einzeln. Damit ist `fr_FR-upmc-medium` geklärt: der alte
@@ -123,8 +232,7 @@ dreiviertel Stunde wächst, wo die Untergrenze liegt.
 
 - Russisch schreibt Bibelstellen uneinheitlich (5× Doppelpunkt,
   2× Komma). Das zu vereinheitlichen wäre eine Verbesserung — aber
-  eine Änderung am laufenden Betrieb, die niemand verlangt hat, und
-  der Doppelpunkt kostet dort dieselbe Pause wie bei es und pt.
+  eine Änderung am laufenden Betrieb, die niemand verlangt hat.
 - Die Lizenzfrage ist dargestellt, nicht entschieden.
 - Die Erstinstallation hat noch niemand abgearbeitet, der das
   Projekt nicht kennt.

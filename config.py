@@ -84,7 +84,61 @@ PROMPT_EINLEITUNG = ("Mitschrift einer Predigt im Gottesdienst der "
 #
 # HIER STEHEN NUR SPRACHEN, DIE ES BRAUCHEN. Fuer de, en, ru und fa
 # steht nichts, und es aendert sich nichts.
+# Zahl:Zahl -> Zahl,Zahl. Fuer Bibelstellen wie "Johannes 3:16".
+#
+# Der Doppelpunkt wird NICHT gesprochen -- der espeak-Phonemisierer
+# macht daraus keine Woerter --, aber er ist ein Pausenzeichen. Ob
+# das Zeit kostet oder spart, haengt an der Sprache UND an der
+# Schreibweise, und das ist der ganze Witz dieser Messung.
+#
+# ERSTER ANLAUF, UND WARUM ER FALSCH WAR
+#
+# Gemessen wurde zuerst "53, 5" gegen "53: 5" -- beide MIT Leerzeichen
+# nach dem Trennzeichen. Danach kostete der Doppelpunkt ueberall
+# Zeit: ru +0,33 s, fa +0,18 s, en +0,06 s.
+#
+# Nur schreibt das Modell gar keine Leerzeichen. Es schreibt "53:5",
+# und in dieser Form ist der Doppelpunkt etwas voellig anderes:
+#
+#   Исаия 53:5    1,68 s      Исаия 53 5    1,68 s
+#   Исаия 53,5    2,12 s      Исаия 53: 5   2,68 s
+#
+# Ohne Leerzeichen behandelt espeak "53:5" wie "53 5" -- gar keine
+# Pause. Das KOMMA macht dort eine. Der erste Anlauf hat also die
+# Frage beantwortet, die niemand gestellt hatte.
+#
+# ZWEITER ANLAUF, AUF DEN ECHTEN MODELLAUSGABEN
+#
+# Dieselben Saetze, die in messungen/bibelstellen_trenner.json unter
+# "vorher" stehen -- also das, was gemma4:12b wirklich schreibt --,
+# einmal so und einmal mit Komma statt Doppelpunkt:
+#
+#   Sprache  Saetze  Median     Summe    Ergebnis
+#   en          7    +0,00 s   -0,73 s   an der Schwelle
+#   ru          5    +0,57 s   +3,08 s   das Komma KOSTET
+#   fa          4    -0,47 s   -1,79 s   das Komma spart
+#
+# Also nur Persisch. Russisch waere eine Verschlechterung gewesen,
+# und bei Englisch aendert sich in der Haelfte der Saetze gar nichts.
+#
+# Persische Ziffern (۵۳) und lateinische (53) verhalten sich gleich,
+# ebenso das arabische Komma und das lateinische -- auf die
+# Millisekunde, espeak normalisiert beides. Das Muster deckt trotzdem
+# alle drei Ziffernreihen ab: darauf zu bauen, dass die
+# Normalisierung so bleibt, waere eine Wette.
+#
+# WAS DAS MUSTER SONST NOCH TRIFFT: eine Uhrzeit, "18:30". Auch dort
+# wird der Doppelpunkt nicht gesprochen, und es entstehen keine
+# falschen Woerter -- nur eine andere Pause. Hingenommen. Ein
+# Doppelpunkt nach einem Wort ("Er sagte: Kommt her") passt nicht
+# auf Zahl:Zahl und bleibt unberuehrt.
+#
+# OHNE Leerzeichen ersetzt. Mit waere es langsamer als vorher.
+_ZIFFER = r"[0-9\u0660-\u0669\u06F0-\u06F9]"
+_STELLE_ZU_KOMMA = (rf"({_ZIFFER})\s*:\s*({_ZIFFER})", r"\1,\2")
+
 SPRECHFORM = {
+    "fa": [_STELLE_ZU_KOMMA],
     "es": [(r"\bElena\s+G\.\s+de\s+White\b", "Elena de White"),
            (r"\bEllen\s+G\.\s+White\b", "Elena de White")],
     "pt": [(r"\bEllen\s+G\.\s+White\b", "Ellen White")],
@@ -110,9 +164,6 @@ PAUSE_KOMMA_MS = {
 
 # Wie eine Bibelstelle zwischen Kapitel und Vers getrennt wird.
 #
-# LEER, UND DAS IST EINE ENTSCHEIDUNG. Ohne Eintrag bekommt das
-# Modell keine Anweisung und schreibt, was es von selbst schreibt.
-#
 # GEMESSEN, mit gemma4:12b, acht deutschen Saetzen mit Bibelstellen,
 # temperature 0.1, seed 7, ohne jede Anweisung:
 #
@@ -121,29 +172,38 @@ PAUSE_KOMMA_MS = {
 #   en       :   7 von 7               :   KJV, NIV: John 3:16
 #   ru       :   5 von 7, sonst ,      :   Synodale: Иоанна 3:16
 #   fa       :   4 von 4               :
-#   es       ,   7 von 7               :   Reina-Valera: Juan 3:16
-#   pt       ,   7 von 7               :   Almeida: Joao 3:16
+#   es       ,   7 von 7   FALSCH      :   Reina-Valera: Juan 3:16
+#   pt       ,   7 von 7   FALSCH      :   Almeida: Joao 3:16
 #
-# Fuer es und pt war eine Anweisung auf Doppelpunkt gebaut und
-# geprueft: sie wirkt (7 von 7), und an de, en, ru und fa aendert
-# sich dabei nichts -- der Vergleichslauf war Zeile fuer Zeile
+# Die Anweisung fuer es und pt wirkt (7 von 7 auf Doppelpunkt), und
+# der Vergleichslauf zeigte de, en, ru und fa Zeile fuer Zeile
 # identisch. Belege in messungen/bibelstellen_trenner.json.
 #
-# SIE IST TROTZDEM WIEDER DRAUSSEN. Der Doppelpunkt geht auch an
-# Piper, und dort ist er ein Pausenzeichen: gemessen +0,27 bis
-# +0,49 Sekunden je Bibelstelle (es_ES-davefx). Gesprochen wird er
-# nicht -- der Phonemisierer macht daraus keine Woerter, sondern
-# "...tɾˈes: θˈinko" --, aber die Pause kostet Zeit, und Zeit ist
-# das, woran die Uebersetzung im Gottesdienst knapp ist.
+# IN 0.3.6 WAR SIE KURZ DRAUSSEN, AUS EINEM FALSCHEN GRUND.
 #
-# Damit steht im Untertitel ein Komma, wo eine spanische Bibel einen
-# Doppelpunkt setzt. Das ist der Preis, und er ist bewusst gezahlt.
+# Gemessen worden war "53, 5" gegen "53: 5" -- beide MIT Leerzeichen
+# nach dem Trennzeichen. Danach schien der Doppelpunkt bei Piper
+# teurer zu sein, und die Anweisung wurde verworfen.
 #
-# Wer es doch will, ohne die Pause zu bezahlen: das Trennzeichen im
-# TEXT setzen und es fuer Piper wieder durch ein Komma ersetzen --
-# SPRECHFORM weiter unten kann genau das. Dann braucht es einen
-# Eintrag hier UND einen dort.
-STELLEN_TRENNER = {}
+# Nur schreibt das Modell keine Leerzeichen. Es schreibt "53:5", und
+# in dieser Form ist der Doppelpunkt etwas anderes: espeak behandelt
+# ihn wie ein Leerzeichen, also gar keine Pause. Das KOMMA macht
+# dort eine. Nachgemessen auf den echten Modellausgaben, mit den
+# gewaehlten Stimmen, Doppelpunkt gegen Komma:
+#
+#   es  es_MX-claude-high   7 Saetze  Median +0,27 s  Summe +2,09 s
+#   pt  pt_BR-jeff-medium   7 Saetze  Median +0,29 s  Summe +2,10 s
+#
+# Das Komma kostet also Zeit, nicht der Doppelpunkt. Die Entscheidung
+# von 0.3.6 beruhte auf einer Messung, die eine Frage beantwortete,
+# die niemand gestellt hatte -- und ist seit 0.3.7 zurueckgenommen.
+#
+# Die uebrigen Sprachen sind NICHT geprueft. Wer eine dazunimmt,
+# misst erst und traegt dann ein.
+STELLEN_TRENNER = {
+    "es": ":",
+    "pt": ":",
+}
 
 # ---------------------------------------------------------------- Uebersetzung
 # Die Ausgangssprache. Sie wird nicht uebersetzt: der Text kommt direkt aus

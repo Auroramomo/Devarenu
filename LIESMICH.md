@@ -205,7 +205,7 @@ nur Tags ein, die damit signiert sind — über USB-Stick wie über das
 Netz. Prüfen lässt sich das jederzeit selbst:
 
 ```
-git -c gpg.ssh.allowedSignersFile=schluessel.erlaubt verify-tag v0.3.5
+git -c gpg.ssh.allowedSignersFile=schluessel.erlaubt verify-tag v0.3.7
 ```
 
 **Wenn du etwas änderst, gib es bitte nicht unter dem Namen Devarenu
@@ -217,8 +217,13 @@ gehört dir.
 
 ## Lizenz
 
-Der Code steht unter MIT. Modelle, Stimmen und das Logo haben eigene
-Bedingungen, siehe [LIZENZEN.md](LIZENZEN.md).
+Der Code steht unter **GPLv3 oder später**, siehe `COPYING`. Bis
+einschließlich 0.3.6 war es MIT; gewechselt wurde, weil Piper als
+GPL-Bibliothek im selben Prozess läuft. Was unter MIT veröffentlicht
+wurde, bleibt unter MIT.
+
+Modelle, Stimmen und das Logo haben eigene Bedingungen, siehe
+[LIZENZEN.md](LIZENZEN.md).
 
 Das Programm kostet nichts. Wer etwas zurückgeben möchte, findet in der
 Zuhörer-Oberfläche einen Spendenknopf.
