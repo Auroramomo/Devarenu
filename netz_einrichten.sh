@@ -479,6 +479,28 @@ trap 'rm -f "$ENTWURF"' EXIT
   echo "# die Probe finden koennte."
   echo "no-ping"
   echo
+  echo "# DATENSPARSAMKEIT. Beides ist kein Nebenzweck, sondern der"
+  echo "# Grund, warum dieser Rechner ueberhaupt das Netz stellt:"
+  echo "# im Saal sitzen Gemeindeglieder und Gaeste, und von ihnen"
+  echo "# soll nichts liegenbleiben, was niemand braucht."
+  echo "#"
+  echo "# quiet-dhcp: ohne diese Zeile schreibt dnsmasq jede"
+  echo "# Aushandlung ins Journal, mit MAC-Adresse und dem Namen, den"
+  echo "# das Handy sich gibt -- oft der Vorname des Besitzers."
+  echo "# Beispiel aus dem Saal:"
+  echo "#   DHCPACK(enp5s0) 10.0.0.57 a4:83:e7:xx:xx:xx iPhone-von-..."
+  echo "# Das Journal haelt vier Wochen. Gebraucht wird davon nichts."
+  echo "quiet-dhcp"
+  echo "quiet-dhcp6"
+  echo "quiet-ra"
+  echo
+  echo "# Die Mietliste NICHT dauerhaft: /run liegt im Arbeitsspeicher"
+  echo "# und ist nach dem Ausschalten weg. Sonst stuende auf der"
+  echo "# Platte, welches Geraet wann im Saal war -- ueber Monate."
+  echo "# Kosten: nach einem Neustart bekommt ein Handy womoeglich"
+  echo "# eine andere Adresse. Im Saal merkt das niemand."
+  echo "dhcp-leasefile=/run/devarenu/dnsmasq.leases"
+  echo
   echo "dhcp-range=$VON,$BIS,$MIETE"
   echo "dhcp-option=3"
   echo "dhcp-option=6,$ADRESSE"
@@ -616,6 +638,12 @@ StartLimitIntervalSec=0
 
 [Service]
 ExecStartPre=
+# Der Ordner fuer die Mietliste. systemd legt ihn beim Start an und
+# raeumt ihn beim Stoppen weg -- mehr Aufwand waere es nicht wert,
+# und weniger reichte nicht: dnsmasq laeuft als eigener Benutzer und
+# koennte sich /run/devarenu nicht selbst anlegen.
+RuntimeDirectory=devarenu
+RuntimeDirectoryMode=0755
 ExecStartPre=/usr/bin/dnsmasq --test --conf-file=$CONF
 ExecStart=
 ExecStart=/usr/bin/dnsmasq -k --enable-dbus --user=dnsmasq --pid-file --conf-file=$CONF

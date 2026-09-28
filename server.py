@@ -23,6 +23,7 @@ import argparse
 import asyncio
 import io
 import json
+import hashlib
 import os
 import queue
 import re
@@ -90,6 +91,37 @@ PROTOKOLL_MITSCHRIFT = False
 # Warum das Spendenkonto beanstandet wird, oder "" wenn alles stimmt.
 # Beim Start gesetzt, siehe spendenkonto_pruefen().
 KONTO_GRUND = ""
+
+
+# Ein Salz, das mit dem Prozess entsteht und mit ihm verschwindet.
+# Damit ist dieselbe Adresse innerhalb eines Laufs dieselbe Kennung
+# -- und nach einem Neustart eine andere. Wer zwei Journale
+# vergleicht, kann nichts zusammenfuehren.
+_KENNUNG_SALZ = os.urandom(16)
+
+
+def geraetekennung(adresse):
+    """Vier Zeichen statt einer Adresse -- fuer das Journal.
+
+    Im Saal sitzen Gemeindeglieder und Gaeste. Eine Zeile wie
+
+        Zu viele Stroeme von 10.0.0.57, abgewiesen.
+
+    sagt der Technik nichts, was diese Zeile nicht auch sagt:
+
+        Zu viele Stroeme von Geraet a3f1, abgewiesen.
+
+    Was man braucht, ist die Unterscheidung -- ein Geraet, das
+    zwanzigmal auftaucht, oder zwanzig verschiedene. Dafuer genuegt
+    eine Kennung. Die Adresse selbst gehoert nicht ins Journal, das
+    vier Wochen haelt.
+
+    Nicht umkehrbar: gesalzen, und das Salz steht nirgends."""
+    if not adresse:
+        return "Geraet ?"
+    kurz = hashlib.blake2s(str(adresse).encode("utf-8"),
+                           key=_KENNUNG_SALZ, digest_size=2).hexdigest()
+    return f"Geraet {kurz}"
 
 
 def schutz(text, laenge=60):
@@ -767,6 +799,21 @@ class Werk:
                   f"- Achte auf grammatisch korrekte Endungen und darauf, "
                   f"dass Adjektive und Substantive zusammenpassen.\n"
                   f"- Fuege nichts hinzu und lass nichts weg.")
+        # Bibelstellen. config.STELLEN_TRENNER ist derzeit LEER, also
+        # passiert hier nichts -- die Anweisung auf Doppelpunkt war
+        # gebaut und geprueft und wurde verworfen, weil der
+        # Doppelpunkt auch an Piper geht und dort eine laengere Pause
+        # macht (+0,3 bis +0,5 s je Stelle). Die Begruendung steht
+        # ausfuehrlich in config.py.
+        #
+        # Der Weg bleibt stehen: wer ein Trennzeichen will, traegt es
+        # dort ein -- und, wenn die Pause nicht sein soll, ersetzt es
+        # ueber SPRECHFORM fuer Piper wieder durch ein Komma.
+        trenner = config.STELLEN_TRENNER.get(sprache)
+        if trenner:
+            system += (f"\n- Bibelstellen werden mit „{trenner}“ zwischen "
+                       f"Kapitel und Vers geschrieben, zum Beispiel "
+                       f"Juan 3{trenner}16.")
         if kontext:
             system += (f"\n\nDavor wurde bereits gesprochen und uebersetzt:"
                        f"\n---\n{kontext}\n---\n"
@@ -808,6 +855,72 @@ class Werk:
                           .astype(np.int16).tobytes())
         return datei, len(audio) / MIKRO_RATE
 
+    def _mit_kommapausen(self, text, sprache, datei, ms):
+        """Spricht Teilsatz fuer Teilsatz und legt Stille dazwischen.
+
+        Teile ohne Buchstaben werden uebersprungen -- sonst erzeugte
+        ein Satz, der mit einem Komma beginnt, ein leeres Stueck, und
+        Piper macht daraus eine Fehlermeldung statt einer Datei.
+
+        Faellt hier etwas aus, wird der Satz am Stueck gesprochen:
+        eine zu kurze Pause ist ein Schoenheitsfehler, ein
+        ausgefallener Abschnitt nicht."""
+        import re as _re
+        teile = [t.strip() for t in text.split(",")]
+        teile = [t for t in teile if _re.search(r"\w", t)]
+        if len(teile) < 2:
+            return self._am_stueck(text, sprache, datei)
+        try:
+            from piper import SynthesisConfig
+            skala = 1.0 / self.tempo_fuer(sprache)
+            stimme = self.stimmen[sprache]
+            rahmen, kopf = [], None
+            for i, teil in enumerate(teile):
+                stueck = datei.with_name(f"{datei.stem}_{i}.wav")
+                with wave.open(str(stueck), "wb") as ziel:
+                    if self.synth_art == "syn_config":
+                        stimme.synthesize_wav(
+                            teil, ziel,
+                            syn_config=SynthesisConfig(length_scale=skala))
+                    elif self.synth_art == "length_scale":
+                        stimme.synthesize_wav(teil, ziel, length_scale=skala)
+                    else:
+                        stimme.synthesize_wav(teil, ziel)
+                with wave.open(str(stueck)) as w:
+                    if kopf is None:
+                        kopf = (w.getnchannels(), w.getsampwidth(),
+                                w.getframerate())
+                    rahmen.append(w.readframes(w.getnframes()))
+                stueck.unlink(missing_ok=True)
+            stille = b"\x00" * int(kopf[2] * kopf[1] * kopf[0] * ms / 1000)
+            with wave.open(str(datei), "wb") as ziel:
+                ziel.setnchannels(kopf[0])
+                ziel.setsampwidth(kopf[1])
+                ziel.setframerate(kopf[2])
+                ziel.writeframes(stille.join(rahmen))
+            with wave.open(str(datei)) as w:
+                return datei, w.getnframes() / w.getframerate()
+        except Exception as e:
+            print(f"        Kommapausen gingen nicht ({str(e)[:60]}), "
+                  f"der Satz wird am Stueck gesprochen.")
+            return self._am_stueck(text, sprache, datei)
+
+    def _am_stueck(self, text, sprache, datei):
+        """Der gewoehnliche Weg: ein Aufruf, ein Stueck."""
+        from piper import SynthesisConfig
+        skala = 1.0 / self.tempo_fuer(sprache)
+        stimme = self.stimmen[sprache]
+        with wave.open(str(datei), "wb") as ziel:
+            if self.synth_art == "syn_config":
+                stimme.synthesize_wav(
+                    text, ziel, syn_config=SynthesisConfig(length_scale=skala))
+            elif self.synth_art == "length_scale":
+                stimme.synthesize_wav(text, ziel, length_scale=skala)
+            else:
+                stimme.synthesize_wav(text, ziel)
+        with wave.open(str(datei)) as w:
+            return datei, w.getnframes() / w.getframerate()
+
     def sprechen(self, text, sprache, nummer):
         if self.nur_text or sprache not in self.stimmen:
             return None, 0.0
@@ -816,7 +929,27 @@ class Werk:
             # Compliance-Messung arbeiten mit der unvokalisierten Form.
             text = vokalisieren(self.glossar, text)
 
+        # Sprechform: nur fuer Piper, nicht fuer den Untertitel.
+        # Geschrieben gehoert der volle Name, gesprochen nicht das
+        # Initial -- Piper liest ein einzelnes "G." als Buchstaben.
+        for muster, ersatz in config.SPRECHFORM.get(sprache, ()):
+            text = re.sub(muster, ersatz, text)
+
         datei = self.tmp / f"{sprache}_{nummer:05d}.wav"
+
+        # Laengere Pausen an Kommas -- nur fuer Stimmen, die in
+        # config.PAUSE_KOMMA_MS stehen. Piper 1.7 kennt dafuer keine
+        # Einstellung, also wird der Satz geteilt, jedes Stueck
+        # gesprochen und dazwischen Stille eingelegt.
+        #
+        # Steht die Stimme nicht in der Tabelle -- und fuer de, en,
+        # ru und fa steht dort nichts --, laeuft alles wie bisher:
+        # ein Aufruf, ein Stueck. Der Zweig darunter wird gar nicht
+        # betreten.
+        ms = config.PAUSE_KOMMA_MS.get(self.stimmennamen.get(sprache, ""))
+        if ms and self.piper == "modul" and "," in text:
+            return self._mit_kommapausen(text, sprache, datei, ms)
+
         if self.piper == "modul":
             # Piper rechnet umgekehrt: kleinere length_scale bedeutet
             # kuerzere Phoneme, also schnelleres Sprechen.
@@ -3525,7 +3658,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             return RedirectResponse(ziel, status_code=303)
         if not pultschutz.stimmt(passwort, wache.hash):
             host = request.client.host if request.client else "?"
-            print(warnung(f"Pult: Anmeldung abgelehnt (von {host})."))
+            print(warnung("Pult: Anmeldung abgelehnt "
+                          f"({geraetekennung(host)})."))
             return HTMLResponse(
                 ANMELDUNG.format(ziel=html_escape(ziel),
                                  fehler=ANMELDUNG_FEHLER),
@@ -3670,7 +3804,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             # 1013 heisst "versuch es spaeter". Die Zuhoererseite
             # verbindet daraufhin mit wachsendem Abstand neu, statt
             # einen Fehler anzuzeigen.
-            print(warnung(f"Zu viele Stroeme von {adresse}, abgewiesen."))
+            print(warnung(f"Zu viele Stroeme von "
+                          f"{geraetekennung(adresse)}, abgewiesen."))
             await ws.close(code=1013)
             return
         stroeme[adresse] = stroeme.get(adresse, 0) + 1

@@ -6,6 +6,131 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.3.6 — weniger speichern, und aufschreiben, was bleibt
+
+*28.09.2026.*
+
+### Für alle
+
+**Der Rechner merkt sich weniger von den Zuhörern.** Die Liste, wer
+wann welche Netzwerkadresse bekommen hat, lag auf der Platte und
+jede Aushandlung im Journal — mit Geräteadresse und dem Namen, den
+das Handy sich gibt, oft ein Vorname. Jetzt liegt die Liste im
+Arbeitsspeicher und ist nach dem Ausschalten weg, und ins Journal
+kommt davon nichts mehr.
+
+**Neu: `DATENSCHUTZ.md`** — ein Textbaustein, den eine Gemeinde in
+ihre eigene Datenschutzerklärung übernehmen kann, und darunter das
+Verzeichnis aller elf Verarbeitungen. Auf der Zuhörerseite und am
+Pult steht dazu bewusst nichts.
+
+**Spanisch und Portugiesisch** haben ihre Stimme bekommen. Beide
+Sprachen bleiben aus.
+
+### Für Techniker
+
+**Datensparsamkeit** (`netz_einrichten.sh`): `quiet-dhcp`,
+`quiet-dhcp6`, `quiet-ra`, und die Mietliste unter
+`/run/devarenu/dnsmasq.leases` statt auf der Platte — `systemd` legt
+den Ordner über `RuntimeDirectory` an. **Wirkt erst nach einem
+erneuten `sudo bash netz_einrichten.sh`.**
+
+Im Server gehen zwei Zeilen, die eine Zuhöreradresse nannten, jetzt
+über `geraetekennung()`: `Geraet a3f1` statt `10.0.0.57`, mit einem
+Salz, das mit dem Prozess entsteht und mit ihm verschwindet. Was die
+Technik braucht — ein Gerät zwanzigmal oder zwanzig Geräte — steht
+weiter da. Die Zugriffsprotokolle von uvicorn waren schon aus
+(`log_level="warning"`).
+
+**Piper ist GPLv3, nicht MIT.** In `LIZENZEN.md` stand „MIT"; das war
+einmal richtig (`rhasspy/piper`), das installierte Paket ist der
+Nachfolger `OHF-voice/piper1-gpl` und trägt die GPL im eigenen
+`COPYING`. Benutzt wird es als Python-Modul im selben Prozess — der
+Fall, den die GPL streng sieht. Der Sachverhalt, drei Wege und eine
+Empfehlung stehen jetzt dort. **An der Lizenz ist nichts geändert.**
+
+**Die Sitzung steht je Rechner in `netz.json`** (`wayland` oder
+`x11`, Vorgabe `wayland`). `rechner_einrichten.sh` schreibt danach
+die passende Zeile, und der Systemcheck vergleicht gegen diesen Wert
+statt gegen eine feste Erwartung — er meldet jetzt auch den Fall,
+dass Anmeldung und Lauf zwar zusammenpassen, aber nicht zu dem, was
+eingetragen ist. Umgestellt wird nur vor Ort.
+
+**Bibelstellen-Trennzeichen: geprüft und verworfen.** Gemessen mit
+`gemma4:12b`, acht Sätzen, `temperature 0.1`, `seed 7`, ohne jede
+Anweisung: en `:` (7/7), fa `:` (4/4), ru gemischt (5× `:`, 2× `,`),
+es und pt durchweg `,` — obwohl Reina-Valera und Almeida den
+Doppelpunkt setzen.
+
+Die Anweisung für es und pt war gebaut und geprüft: sie wirkt (7/7),
+und der Vergleichslauf zeigte **de, en, ru und fa Zeile für Zeile
+identisch** (8/8), Trennzeichen unverändert.
+
+Sie ist trotzdem wieder draußen. Der Doppelpunkt geht auch an Piper,
+und dort ist er ein **Pausenzeichen**: gemessen **+0,27 bis +0,49 s
+je Bibelstelle**. Gesprochen wird er nicht — der Phonemisierer macht
+daraus keine Wörter (`…tɾˈes: θˈinko` gegen `…ðˈos pˈuntos`) —, aber
+die Pause kostet Zeit, und Zeit ist das, woran die Übersetzung im
+Gottesdienst knapp ist. Der Preis: im Untertitel steht ein Komma, wo
+eine spanische Bibel einen Doppelpunkt setzt.
+
+Beide Messungen und die Entscheidung stehen in
+`messungen/bibelstellen_trenner.json`. Wer es doch will, ohne die
+Pause zu zahlen: Trennzeichen im Text setzen und für Piper über
+`SPRECHFORM` wieder durch ein Komma ersetzen.
+
+**`laengenfaktor.py` reicht `--speaker` durch** und misst jeden
+Sprecher einzeln. Damit ist `fr_FR-upmc-medium` geklärt: der alte
+Wert 0,447 war Sprecher 0, und dieser Sprecher spricht mit **46
+Zeichen je Sekunde** — rund doppelt so schnell wie jede andere Stimme
+(siwis 20,7, Sprecher 1 21,3). Das ist keine Rede mehr. Sprecher 1
+läge bei 1,091 und wäre brauchbar, lässt sich aber nicht eintragen:
+die Tempotabelle kennt nur Stimmnamen, und der Server wählt beim
+Sprechen keinen Sprecher. Die Stimme bleibt draußen — jetzt aus
+einem gemessenen Grund statt aus einer Vermutung.
+
+**es und pt:** Stimme B aus den Prüfpaketen ist
+`es_MX-claude-high` und `pt_BR-jeff-medium` (A/B/C sind die drei
+gemessenen Stimmen, nach Faktor sortiert). Für `pt_BR-jeff-medium`
+steht das Tempo jetzt auf **1,15 statt der gemessenen 1,366** — der
+Prüfer sagt zu schnell, Wörter verschluckt. Wenn Stoppuhr und Ohr
+auseinandergehen, gewinnt das Ohr; die Zahl ist eine Entscheidung
+und keine Messung und gehört beim nächsten Rücklauf bestätigt.
+
+Dazu **Kommapausen**: Piper 1.7 kennt dafür keine Einstellung —
+`SynthesisConfig` hat nur `length_scale`, `noise_*` und `volume`.
+Der Satz wird deshalb an den Kommas geteilt, stückweise gesprochen
+und mit Stille verbunden, 180 ms für diese eine Stimme. Steht eine
+Stimme nicht in `PAUSE_KOMMA_MS`, läuft alles wie bisher.
+
+**Ellen G. White** heißt auf Spanisch „Elena G. de White" (Glossar
+D010, nur diese eine Zeile geändert). Gesprochen wird das Initial
+nicht: Piper liest ein einzelnes „G." als Buchstaben vor. Dafür gibt
+es `SPRECHFORM` — Ersetzungen, die **nur** vor Piper greifen, nicht
+im Untertitel. Die vier Glossarbegriffe, die auf den Prüfer warten,
+sind unberührt.
+
+**`FAHRPLAN-1.0.md`** hat drei neue Abschnitte: die
+Erstinstallation Schritt für Schritt (Punkt 4), was beim Kaltstart
+passieren soll und was davon geprüft wird (Punkt 3), und die
+Hardware-Untergrenze aus den 26 Messläufen im Repo (Punkt 8) —
+Median 1,1 bis 1,4 s Verzögerung, kein Drift, Warteschlange
+durchgehend 0. Was unbekannt ist, steht als unbekannt da: auf
+welcher Karte die Läufe entstanden, ob der Rückstand über eine
+dreiviertel Stunde wächst, wo die Untergrenze liegt.
+
+### Was offen ist
+
+- Russisch schreibt Bibelstellen uneinheitlich (5× Doppelpunkt,
+  2× Komma). Das zu vereinheitlichen wäre eine Verbesserung — aber
+  eine Änderung am laufenden Betrieb, die niemand verlangt hat, und
+  der Doppelpunkt kostet dort dieselbe Pause wie bei es und pt.
+- Die Lizenzfrage ist dargestellt, nicht entschieden.
+- Die Erstinstallation hat noch niemand abgearbeitet, der das
+  Projekt nicht kennt.
+
+---
+
 ## 0.3.5 — die Ablage war zu, und das Programm sagt jetzt, was es sendet
 
 *28.09.2026.*

@@ -199,8 +199,21 @@ pruefe "kein venv getauscht (requirements unveraendert)" "nein" \
   "$([ -f "$BASIS/s8/venv-vorher" ] && echo ja || echo nein)"
 pruefe "keine grossen Teile noetig" "1" \
   "$(printf '%s' "$AUS" | grep -c 'keine grossen Teile')"
-pruefe "der Gesundheitscheck lief" "1" \
+# Zweimal: einmal fuer die Grundlinie davor, einmal fuer die
+# Pruefung danach. Bis 0.3.5 war es einer -- und die Grundlinie
+# fehlte, ohne dass es auffiel.
+pruefe "der Gesundheitscheck lief davor und danach" "2" \
   "$(printf '%s' "$AUS" | grep -c 'Gesundheitscheck')"
+# Seit 0.3.6 traegt aktualisierung.sh die Grundlinie nach, wenn sie
+# fehlt -- ein Aufrufer aus 0.3.4 oder aelter legt die Sicherung als
+# root an, und gesundheit.sh --vorher scheitert dort still an den
+# Rechten. Ohne Grundlinie zaehlt hinterher jeder vorhandene Befund
+# als neu, und ein tadelloses Update rollt zurueck.
+pruefe "die Grundlinie wurde nachgetragen" "ja" \
+  "$(printf '%s' "$AUS" | grep -q 'Grundlinie fuer den Gesundheitscheck nachgetragen' \
+     && echo ja || echo nein)"
+pruefe "und sie liegt in der Sicherung" "ja" \
+  "$([ -f "$BASIS/s8/befunde-vorher" ] && echo ja || echo nein)"
 
 printf '\n\033[1m== 9) Der echte Weg des Helfers: 0.2.11 -> 0.3.0 mit dem ALTEN Kern\033[0m\n'
 # Zuerst die Sortierung, denn daran haengt alles Weitere. Der Kern

@@ -1,0 +1,207 @@
+{
+ "wozu": "Vergleichslauf zum Bibelstellen-Trennzeichen (0.3.6)",
+ "wann": "2026-09-28",
+ "modell": "gemma4:12b",
+ "temperature": 0.1,
+ "seed": 7,
+ "saetze": 8,
+ "sprachen": {
+  "de": {
+   "zeilen_gleich": 8,
+   "trenner_vorher": {
+    ",": 7
+   },
+   "trenner_nachher": {
+    ",": 7
+   }
+  },
+  "en": {
+   "zeilen_gleich": 8,
+   "trenner_vorher": {
+    ":": 7
+   },
+   "trenner_nachher": {
+    ":": 7
+   }
+  },
+  "ru": {
+   "zeilen_gleich": 8,
+   "trenner_vorher": {
+    ",": 2,
+    ":": 5
+   },
+   "trenner_nachher": {
+    ",": 2,
+    ":": 5
+   }
+  },
+  "fa": {
+   "zeilen_gleich": 8,
+   "trenner_vorher": {
+    ":": 4
+   },
+   "trenner_nachher": {
+    ":": 4
+   }
+  },
+  "es": {
+   "zeilen_gleich": 1,
+   "trenner_vorher": {
+    ",": 7
+   },
+   "trenner_nachher": {
+    ":": 7
+   }
+  },
+  "pt": {
+   "zeilen_gleich": 0,
+   "trenner_vorher": {
+    ",": 7
+   },
+   "trenner_nachher": {
+    ":": 7
+   }
+  }
+ },
+ "vorher": {
+  "de": [
+   "Wir lesen heute aus Matthäus 18, 21 bis 35.",
+   "Der Predigttext steht in Jesaja 53, 5.",
+   "Paulus schreibt in Römer 8, 28, dass alle Dinge zum Besten dienen.",
+   "Schlagt bitte auf: 1. Samuel 15, 22.",
+   "In Psalm 23 heißt es: Der Herr ist mein Hirte.",
+   "Vergleicht dazu Offenbarung 14, 6 bis 12.",
+   "Jesus sagt in Johannes 3, 16, dass Gott die Welt geliebt hat.",
+   "Wir beginnen mit einem Gebet und lesen dann 2. Korinther 5, 17."
+  ],
+  "en": [
+   "We are reading today from Matthew 18:21 to 35.",
+   "The sermon text is in Isaiah 53:5.",
+   "Paul writes in Romans 8:28 that all things work together for good.",
+   "Please turn to 1 Samuel 15:22.",
+   "In Psalm 23 it says: The Lord is my shepherd.",
+   "Compare this with Revelation 14:6-12.",
+   "Jesus says in John 3:16 that God loved the world.",
+   "We begin with a prayer and then read 2 Corinthians 5:17."
+  ],
+  "ru": [
+   "Сегодня мы читаем из Матфея 18, 21–35.",
+   "Текст проповеди находится в Исаии 53:5.",
+   "Павел пишет в Римлянам 8:28, что всё служит во благо.",
+   "Пожалуйста, откройте: 1 Царств 15:22.",
+   "В Псалме 23 говорится: Господь — Пастырь мой.",
+   "Сравните с этим Откровение 14, 6–12.",
+   "Иисус говорит в Иоанна 3:16, что Бог возлюбил мир.",
+   "Мы начнем с молитвы, а затем прочтем 2 Коринфянам 5:17."
+  ],
+  "fa": [
+   "ما امروز از متیوش ۱۸، ۲۱ تا ۳۵ می‌خوانیم.",
+   "متن موعظه در اشعیا ۵۳، ۵ است.",
+   "پولس در رومیان ۸:۲۸ می‌نویسد که همه چیز به خیر است.",
+   "لطفاً به اول ساموئیل ۱۵:۲۲ توجه کنید.",
+   "در مزمور ۲۳ آمده است: خداوند چوپان من است.",
+   "در مقابل، مکاشفه ۱۴: ۶ تا ۱۲ را مقایسه کنید.",
+   "عیسی در یوحانّا ۳:۱۶ می‌گوید که خدا جهان را دوست داشت.",
+   "ما با یک دعا شروع می‌کنیم و سپس دومین رساله به کورنتز، فصل ۵، آیه ۱۷ را می‌خوانیم."
+  ],
+  "es": [
+   "Leemos hoy de Mateo 18, 21 hasta el 35.",
+   "El texto de la predicción se encuentra en Isaías 53, 5.",
+   "Pablo escribe en Romanos 8, 28, que todas las cosas contribuyen para bien.",
+   "Por favor, abran sus Biblias en 1 Samuel 15, 22.",
+   "En el Salmo 23 dice: El Señor es mi pastor.",
+   "Compare con esto Apocalipsis 14, 6 al 12.",
+   "Jesús dice en Juan 3, 16 que Dios amó al mundo.",
+   "Comenzamos con una oración y luego leemos 2 Corintios 5, 17."
+  ],
+  "pt": [
+   "Lemos hoje de Mateus 18, 21 a 35.",
+   "O texto da pregação está em Isaías 53, 5.",
+   "Paulo escreve em Romanos 8, 28, que todas as coisas cooperam para o bem.",
+   "Por favor, abram em: 1 Samuel 15, 22.",
+   "No Salmo 23 diz-se: O Senhor é o meu pastor.",
+   "Compare com isso Apocalipse 14, 6 a 12.",
+   "Jesus diz em João 3,16 que Deus amou o mundo.",
+   "Começamos com uma oração e depois lemos 2 Coríntios 5, 17."
+  ]
+ },
+ "nachher": {
+  "de": [
+   "Wir lesen heute aus Matthäus 18, 21 bis 35.",
+   "Der Predigttext steht in Jesaja 53, 5.",
+   "Paulus schreibt in Römer 8, 28, dass alle Dinge zum Besten dienen.",
+   "Schlagt bitte auf: 1. Samuel 15, 22.",
+   "In Psalm 23 heißt es: Der Herr ist mein Hirte.",
+   "Vergleicht dazu Offenbarung 14, 6 bis 12.",
+   "Jesus sagt in Johannes 3, 16, dass Gott die Welt geliebt hat.",
+   "Wir beginnen mit einem Gebet und lesen dann 2. Korinther 5, 17."
+  ],
+  "en": [
+   "We are reading today from Matthew 18:21 to 35.",
+   "The sermon text is in Isaiah 53:5.",
+   "Paul writes in Romans 8:28 that all things work together for good.",
+   "Please turn to 1 Samuel 15:22.",
+   "In Psalm 23 it says: The Lord is my shepherd.",
+   "Compare this with Revelation 14:6-12.",
+   "Jesus says in John 3:16 that God loved the world.",
+   "We begin with a prayer and then read 2 Corinthians 5:17."
+  ],
+  "ru": [
+   "Сегодня мы читаем из Матфея 18, 21–35.",
+   "Текст проповеди находится в Исаии 53:5.",
+   "Павел пишет в Римлянам 8:28, что всё служит во благо.",
+   "Пожалуйста, откройте: 1 Царств 15:22.",
+   "В Псалме 23 говорится: Господь — Пастырь мой.",
+   "Сравните с этим Откровение 14, 6–12.",
+   "Иисус говорит в Иоанна 3:16, что Бог возлюбил мир.",
+   "Мы начнем с молитвы, а затем прочтем 2 Коринфянам 5:17."
+  ],
+  "fa": [
+   "ما امروز از متیوش ۱۸، ۲۱ تا ۳۵ می‌خوانیم.",
+   "متن موعظه در اشعیا ۵۳، ۵ است.",
+   "پولس در رومیان ۸:۲۸ می‌نویسد که همه چیز به خیر است.",
+   "لطفاً به اول ساموئیل ۱۵:۲۲ توجه کنید.",
+   "در مزمور ۲۳ آمده است: خداوند چوپان من است.",
+   "در مقابل، مکاشفه ۱۴: ۶ تا ۱۲ را مقایسه کنید.",
+   "عیسی در یوحانّا ۳:۱۶ می‌گوید که خدا جهان را دوست داشت.",
+   "ما با یک دعا شروع می‌کنیم و سپس دومین رساله به کورنتز، فصل ۵، آیه ۱۷ را می‌خوانیم."
+  ],
+  "es": [
+   "Leemos hoy de Mateo 18:21-35.",
+   "El texto de la predicción se encuentra en Isaías 53:5.",
+   "Pablo escribe en Romanos 8:28 que todas las cosas contribuyen al bien.",
+   "Por favor, abran: 1 Samuel 15:22.",
+   "En el Salmo 23 dice: El Señor es mi pastor.",
+   "Compare con esto Apocalipsis 14:6-12.",
+   "Jesús dice en Juan 3:16 que Dios amó al mundo.",
+   "Comenzamos con una oración y luego leemos 2 Corintios 5:17."
+  ],
+  "pt": [
+   "Lemos hoje em Mateus 18:21-35.",
+   "O texto da pregação está em Isaías 53:5.",
+   "Paulo escreve em Romanos 8:28 que todas as coisas cooperam para o bem.",
+   "Por favor, abram em: 1 Samuel 15:22.",
+   "Em Salmo 23 diz-se: O Senhor é o meu pastor.",
+   "Compare com isso Apocalipse 14:6-12.",
+   "Jesus diz em João 3:16 que Deus amou o mundo.",
+   "Começamos com uma oração e depois lemos 2 Coríntios 5:17."
+  ]
+ },
+ "entscheidung": {
+  "ergebnis": "verworfen -- es und pt behalten das Komma",
+  "warum": "Der Doppelpunkt geht auch an Piper und ist dort ein Pausenzeichen. Gemessen mit es_ES-davefx-medium: +0.27 bis +0.49 s je Bibelstelle. Gesprochen wird er nicht -- der espeak-Phonemisierer macht daraus keine Woerter (\"...tres: cinco\" gegen \"...tres dos puntos cinco\") --, aber die Pause kostet Zeit, und Zeit ist das, woran die Uebersetzung im Gottesdienst knapp ist.",
+  "preis": "Im Untertitel steht damit ein Komma, wo eine spanische oder portugiesische Bibel einen Doppelpunkt setzt.",
+  "weg_falls_doch": "Trennzeichen im Text setzen und fuer Piper ueber SPRECHFORM wieder durch ein Komma ersetzen. Dann kostet es nichts.",
+  "pausenmessung": {
+   "stimme": "es_ES-davefx-medium",
+   "Isaías 53, 5": 2.02,
+   "Isaías 53: 5": 2.29,
+   "Mateo 18, 21 hasta el 35": 2.61,
+   "Mateo 18: 21 hasta el 35": 3.03,
+   "Romanos 8, 28": 1.47,
+   "Romanos 8: 28": 1.96,
+   "ohne Trenner (Isaías 53 5)": 1.82,
+   "ausgeschrieben (53 dos puntos 5)": 2.33
+  }
+ }
+}

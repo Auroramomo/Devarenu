@@ -174,6 +174,12 @@ Dienst neu und lässt den Selbsttest laufen. Lokale Änderungen werden
 nicht überschrieben: gibt es welche, bricht es ab und zeigt sie.
 `zustand.json` bleibt unangetastet.
 
+## Datenschutz
+
+Was das Programm über Zuhörer speichert — und was nicht — steht in
+[DATENSCHUTZ.md](DATENSCHUTZ.md), mit einem Textbaustein zum
+Übernehmen in die eigene Datenschutzerklärung.
+
 ## Spenden und offizielle Fassung
 
 **Es gibt genau ein Spendenkonto.** Es steht fest in `config.py` unter

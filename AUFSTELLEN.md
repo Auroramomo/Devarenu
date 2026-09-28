@@ -646,6 +646,29 @@ versteht, rund eine Stunde Zeit für eine Liste mit 93 Begriffen. Das
 ist der einzige Weg, wie aus einer experimentellen Sprache eine
 geprüfte wird.
 
+## Datenschutz
+
+Das Verzeichnis der Verarbeitungstätigkeiten und ein Textbaustein für
+die Gemeinde stehen in [DATENSCHUTZ.md](DATENSCHUTZ.md).
+
+**Auf der Zuhörerseite und am Pult steht dazu bewusst nichts.** Ein
+Hinweis dort wäre ein Text des Entwicklers über eine Verarbeitung,
+für die die Gemeinde verantwortlich ist — und ein Link ins Leere,
+solange niemand ihn pflegt. Die Gemeinde übernimmt den Baustein in
+ihre eigene Erklärung, dorthin, wo ihre Leute ohnehin nachsehen.
+
+Seit 0.3.6 speichert der Rechner weniger:
+
+| | vorher | jetzt |
+|---|---|---|
+| DHCP-Mietliste | auf der Platte, dauerhaft | `/run`, weg beim Ausschalten |
+| DHCP im Journal | jede Aushandlung mit MAC und Handyname | nichts (`quiet-dhcp`) |
+| Zuhöreradressen im Journal | `10.0.0.57` | `Geraet a3f1`, gesalzen |
+
+**Die ersten beiden wirken erst nach einem erneuten
+`sudo bash netz_einrichten.sh`** — ein Update schreibt
+`/etc/devarenu/dnsmasq.conf` nicht neu.
+
 ## Was dieser Rechner nach draußen sendet
 
 **Vollständig, und es gibt nichts daneben.** Ohne Wartungsfenster und
@@ -825,6 +848,30 @@ der Wartung wird der Hotspot getrennt.
 `bash pruefen.sh` meldet ein verbundenes WLAN als **Wartungszugang
 aktiv**. Kein Fehler, nur eine Lagemeldung: wer sie sonntags liest,
 weiß, dass der Hotspot noch läuft.
+
+### Die Sitzung je Rechner wählen
+
+Seit 0.3.6 steht sie in `netz.json`, Vorgabe `wayland`:
+
+```json
+"sitzung": "x11"
+```
+
+`rechner_einrichten.sh` schreibt danach `Session=plasmax11` statt
+`plasma`, und der Systemcheck vergleicht gegen diesen Wert. Das Paket
+`plasma-x11-session` liegt im Reparaturvorrat.
+
+> **Umgestellt wird nur VOR ORT.** Kommt der Rechner in der neuen
+> Sitzung nicht hoch, hilft bis zur nächsten Fahrt nichts — und dann
+> nützt auch das Wartungsfenster nichts, denn es setzt einen
+> laufenden Rechner voraus. Wer es aus der Ferne versucht, hat im
+> schlechtesten Fall bis zum nächsten Besuch gar nichts.
+
+Nach der Umstellung: `sudo bash rechner_einrichten.sh`, neu starten,
+und `loginctl show-session $XDG_SESSION_ID -p Type` muss das Neue
+sagen. Meldet der Systemcheck weiter eine Abweichung, hat die
+Einstellung nicht gegriffen — dann steht die Sitzung nicht zur
+Verfügung, und man schaltet besser zurück.
 
 ### Fernwartung unter Wayland: Terminal und Tunnel
 

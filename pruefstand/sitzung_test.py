@@ -45,7 +45,8 @@ def titel(t):
     print(f"\n\033[1m== {t}\033[0m")
 
 
-def befunde_fuer(inhalt, laeuft, x11_da=False, wayland_da=False):
+def befunde_fuer(inhalt, laeuft, x11_da=False, wayland_da=False,
+                 gewuenscht=None):
     """Fuehrt _autologin gegen einen erfundenen Rechner aus.
 
     Zurueck kommen nur die Kennungen -- der Wortlaut der Meldung darf
@@ -55,6 +56,12 @@ def befunde_fuer(inhalt, laeuft, x11_da=False, wayland_da=False):
             inhalt, encoding="utf-8")
         alt_lauf = systemcheck.laufende_sitzung
         alt_datei = systemcheck.sitzungsdatei
+        alt_wunsch = systemcheck._sitzung_gewuenscht
+        # Was netz.json vorsieht. Ohne Angabe: dasselbe, was laeuft --
+        # dann schweigt die Pruefung darauf, und die Faelle unten
+        # pruefen weiter nur das, wofuer sie gedacht sind.
+        systemcheck._sitzung_gewuenscht = lambda: (
+            gewuenscht if gewuenscht is not None else laeuft)
         systemcheck.laufende_sitzung = lambda: laeuft
         def datei(name):
             if x11_da and name == "plasmax11":
@@ -70,6 +77,7 @@ def befunde_fuer(inhalt, laeuft, x11_da=False, wayland_da=False):
         finally:
             systemcheck.laufende_sitzung = alt_lauf
             systemcheck.sitzungsdatei = alt_datei
+            systemcheck._sitzung_gewuenscht = alt_wunsch
 
 
 X11 = "[Autologin]\nUser=gemeinde\nSession=plasmax11\nRelogin=false\n"
@@ -108,6 +116,32 @@ pruefe("laufende Sitzung unbekannt -> keine Behauptung",
 
 pruefe("gar keine Anmeldung eingerichtet",
        ["autologin"], befunde_fuer("[Autologin]\nRelogin=false\n", "x11"))
+
+titel("2b) Was netz.json vorsieht")
+
+# Seit 0.3.6 steht die Sitzung je Rechner in netz.json, Vorgabe
+# wayland. x11 ist die Ausnahme fuer Rechner, auf denen die
+# Fernwartung den Bildschirm braucht.
+pruefe("netz.json sagt x11, es laeuft x11 -> still",
+       [], befunde_fuer(X11, "x11", x11_da=True, gewuenscht="x11"))
+
+# Der Fall, den es zu melden gilt: Anmeldung und Lauf passen
+# zusammen, aber nicht zu dem, was eingetragen ist. Dann hat jemand
+# von Hand umgestellt -- oder netz.json ist neu und die Einrichtung
+# lief seither nicht.
+pruefe("netz.json sagt wayland, es laeuft durchweg x11 -> gemeldet",
+       ["sitzung_anders_gewollt"],
+       befunde_fuer(X11, "x11", x11_da=True, gewuenscht="wayland"))
+
+pruefe("und umgekehrt genauso",
+       ["sitzung_anders_gewollt"],
+       befunde_fuer(WAY, "wayland", wayland_da=True, gewuenscht="x11"))
+
+# Geht ohnehin schon etwas auseinander, wird nicht doppelt gemeldet:
+# die eine Meldung sagt schon, dass es zu klaeren ist.
+pruefe("bei einer Abweichung nur EINE Meldung",
+       ["sitzung_abweichend"],
+       befunde_fuer(X11, "wayland", x11_da=True, gewuenscht="wayland"))
 
 titel("3) Die Ursache steht in der Meldung")
 

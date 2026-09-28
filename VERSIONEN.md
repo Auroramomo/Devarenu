@@ -2,15 +2,20 @@
 
 Was sich für Gemeinde und Pult geändert hat. Ausführlich: `AENDERUNGEN.md`.
 
-**0.3.5 — 28.09.2026**
+**0.3.5 und 0.3.6 — 28.09.2026**
 
+- Der Rechner **merkt sich weniger von den Zuhörern**: wer welche
+  Netzwerkadresse bekam, ist nach dem Ausschalten weg und steht nicht
+  mehr im Protokoll. Neu: **DATENSCHUTZ.md** mit einem Textbaustein
+  für die eigene Datenschutzerklärung.
 - Der **Name der Gemeinde** steht auf der QR-Seite, wenn man ihn
-  einträgt.
-- Schalter **„Nutzung an den Entwickler melden"**: Name, Fassung,
-  Datum, sonst nichts. Vorgabe aus.
+  einträgt. Dazu ein Schalter **„Nutzung an den Entwickler melden"**:
+  Name, Fassung, Datum, sonst nichts. Vorgabe aus.
 - `AUFSTELLEN.md` listet vollständig auf, **was der Rechner nach
   draußen sendet**. Nichts davon läuft ohne Schalter.
 - Das **Spendenkonto** wird beim Start geprüft.
+- **Spanisch und Portugiesisch** haben ihre Stimme. Beide bleiben
+  aus.
 
 **0.3.3 und 0.3.4 — 28.09.2026**
 

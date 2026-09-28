@@ -71,6 +71,80 @@ PROMPT_RAHMEN = ("Mitschrift einer Predigt im Gottesdienst der "
 PROMPT_EINLEITUNG = ("Mitschrift einer Predigt im Gottesdienst der "
                      "Siebenten-Tags-Adventisten.")
 
+# Was VOR dem Sprechen im Text ersetzt wird, je Sprache.
+#
+# Der Untertitel bleibt unberuehrt -- ersetzt wird nur, was an Piper
+# geht. Beides auseinanderzuhalten ist der ganze Zweck: geschrieben
+# gehoert "Elena G. de White", gesprochen gehoert das Initial nicht.
+#
+# Piper liest ein einzelnes "G." als Buchstaben vor, auf Spanisch
+# also "ge". Mitten in einem Namen klingt das wie ein Versprecher,
+# und der Pruefer hat es angemerkt. Weglassen ist die uebliche
+# Sprechweise: im Spanischen heisst sie "Elena de White".
+#
+# HIER STEHEN NUR SPRACHEN, DIE ES BRAUCHEN. Fuer de, en, ru und fa
+# steht nichts, und es aendert sich nichts.
+SPRECHFORM = {
+    "es": [(r"\bElena\s+G\.\s+de\s+White\b", "Elena de White"),
+           (r"\bEllen\s+G\.\s+White\b", "Elena de White")],
+    "pt": [(r"\bEllen\s+G\.\s+White\b", "Ellen White")],
+}
+
+# Zusaetzliche Pause an Kommas, in Millisekunden -- je Stimme.
+#
+# Der Pruefer zu pt_BR-jeff-medium: "Kommapausen zu kurz". Piper 1.7
+# kennt dafuer keine Einstellung; SynthesisConfig hat nur
+# length_scale, noise_scale, noise_w_scale und volume. Die Pause
+# entsteht deshalb NACH der Synthese: der Satz wird an den Kommas
+# geteilt, jedes Stueck einzeln gesprochen, und dazwischen kommt
+# Stille.
+#
+# HIER STEHEN NUR STIMMEN, DIE ES BRAUCHEN. Fehlt eine, laeuft die
+# Synthese genau wie bisher -- ein Stueck, ein Aufruf. Fuer die vier
+# Sprachen in Rostock steht hier nichts, und es aendert sich nichts.
+#
+# Kosten: ein Piper-Aufruf je Teilsatz statt einem je Satz.
+PAUSE_KOMMA_MS = {
+    "pt_BR-jeff-medium": 180,
+}
+
+# Wie eine Bibelstelle zwischen Kapitel und Vers getrennt wird.
+#
+# LEER, UND DAS IST EINE ENTSCHEIDUNG. Ohne Eintrag bekommt das
+# Modell keine Anweisung und schreibt, was es von selbst schreibt.
+#
+# GEMESSEN, mit gemma4:12b, acht deutschen Saetzen mit Bibelstellen,
+# temperature 0.1, seed 7, ohne jede Anweisung:
+#
+#   Sprache  was das Modell schreibt   ueblich
+#   de       ,   (Ausgangssprache)     ,   Luther, Elberfelder: Joh 3,16
+#   en       :   7 von 7               :   KJV, NIV: John 3:16
+#   ru       :   5 von 7, sonst ,      :   Synodale: Иоанна 3:16
+#   fa       :   4 von 4               :
+#   es       ,   7 von 7               :   Reina-Valera: Juan 3:16
+#   pt       ,   7 von 7               :   Almeida: Joao 3:16
+#
+# Fuer es und pt war eine Anweisung auf Doppelpunkt gebaut und
+# geprueft: sie wirkt (7 von 7), und an de, en, ru und fa aendert
+# sich dabei nichts -- der Vergleichslauf war Zeile fuer Zeile
+# identisch. Belege in messungen/bibelstellen_trenner.json.
+#
+# SIE IST TROTZDEM WIEDER DRAUSSEN. Der Doppelpunkt geht auch an
+# Piper, und dort ist er ein Pausenzeichen: gemessen +0,27 bis
+# +0,49 Sekunden je Bibelstelle (es_ES-davefx). Gesprochen wird er
+# nicht -- der Phonemisierer macht daraus keine Woerter, sondern
+# "...tɾˈes: θˈinko" --, aber die Pause kostet Zeit, und Zeit ist
+# das, woran die Uebersetzung im Gottesdienst knapp ist.
+#
+# Damit steht im Untertitel ein Komma, wo eine spanische Bibel einen
+# Doppelpunkt setzt. Das ist der Preis, und er ist bewusst gezahlt.
+#
+# Wer es doch will, ohne die Pause zu bezahlen: das Trennzeichen im
+# TEXT setzen und es fuer Piper wieder durch ein Komma ersetzen --
+# SPRECHFORM weiter unten kann genau das. Dann braucht es einen
+# Eintrag hier UND einen dort.
+STELLEN_TRENNER = {}
+
 # ---------------------------------------------------------------- Uebersetzung
 # Die Ausgangssprache. Sie wird nicht uebersetzt: der Text kommt direkt aus
 # der Spracherkennung, der Ton ist die Originalaufnahme des Predigers. Das
@@ -131,9 +205,16 @@ STIMMEN = {
     "uk": "uk/uk_UA/ukrainian_tts/medium/uk_UA-ukrainian_tts-medium",
     "pl": "pl/pl_PL/darkman/medium/pl_PL-darkman-medium",
     "ro": "ro/ro_RO/mihai/medium/ro_RO-mihai-medium",
-    "es": "es/es_ES/davefx/medium/es_ES-davefx-medium",
+    # Vom Pruefer gewaehlt: Stimme B aus pruefung/paket_es.
+    # A war es_ES-davefx-medium (1.025), B es_MX-claude-high (1.268),
+    # C es_MX-ald-medium (1.306) -- sortiert nach gemessenem Faktor,
+    # so baut werkzeuge/sprachpaket.py die Buchstaben.
+    "es": "es/es_MX/claude/high/es_MX-claude-high",
     "fr": "fr/fr_FR/siwis/medium/fr_FR-siwis-medium",
-    "pt": "pt/pt_BR/faber/medium/pt_BR-faber-medium",
+    # Vom Pruefer gewaehlt: Stimme B aus pruefung/paket_pt.
+    # A war pt_BR-faber-medium (1.039), B pt_BR-jeff-medium (1.366),
+    # C pt_BR-cadu-medium (1.454).
+    "pt": "pt/pt_BR/jeff/medium/pt_BR-jeff-medium",
     "it": "it/it_IT/paola/medium/it_IT-paola-medium",
     "tr": "tr/tr_TR/dfki/medium/tr_TR-dfki-medium",
     "ar": "ar/ar_JO/kareem/medium/ar_JO-kareem-medium",
@@ -250,37 +331,58 @@ TEMPO_STIMME = {
     "fa_IR-amir-medium": 1.16,  # Persisch (Farsi)
     "fr_FR-siwis-medium": 1.04,  # Französisch
     "fr_FR-tom-medium": 1.24,  # Französisch, nicht ausgeliefert
-    # fr_FR-upmc-medium steht hier ABSICHTLICH nicht, obwohl es in
-    # messungen/laengenfaktor_stimmen.json einen Wert hat: 0.447. Alle
-    # anderen Stimmen liegen zwischen 0.99 und 1.67, und Französisch
-    # ist gegenüber Deutsch eher länger, nicht halb so lang. Der Wert
-    # ist also nicht plausibel.
+    # fr_FR-upmc-medium steht hier ABSICHTLICH nicht -- und seit
+    # 0.3.6 wissen wir auch genau, warum.
     #
-    # Die Stimme hat laut voices.json ZWEI Sprecher. Ein
-    # Mehrsprecher-Modell braucht --speaker; ohne den Schalter ist die
-    # Ausgabe nicht die, die man meint. Das ist die wahrscheinliche
-    # Ursache, aber nicht nachgemessen -- dafür müsste die Stimme neu
-    # geladen und der Lauf wiederholt werden.
+    # NACHGEMESSEN, mit --speaker, sechs Satzpaaren, noise-w-scale 0:
     #
-    # Ein falscher Wert hier wäre schlimmer als keiner: er gälte als
-    # gemessen. Solange das nicht geklärt ist, bleibt die Stimme
-    # draußen, und wer sie einsetzt, bekommt den Sprachrückfall 1.04.
+    #   fr_FR-siwis-medium          1.066   20.7 Zeichen/s
+    #   fr_FR-upmc-medium  Sprecher 0   0.473   46.0 Zeichen/s
+    #   fr_FR-upmc-medium  Sprecher 1   1.091   21.3 Zeichen/s
     #
-    # Die Schritte zum Nachmessen stehen in AUFSTELLEN.md unter
-    # "Merkposten: fr_FR-upmc mit --speaker neu messen". Kurz:
-    # laengenfaktor.py reicht --speaker noch gar nicht an Piper
-    # weiter, das kommt zuerst.
+    # Der alte Wert 0.447 war Sprecher 0. Die Vermutung von 0.3.1 --
+    # "ohne --speaker misst man nicht das, was man meint" -- stimmte
+    # nur halb: Piper nimmt ohne Angabe Sprecher 0, und DIESER
+    # Sprecher ist wirklich so. 46 Zeichen je Sekunde sind rund das
+    # Doppelte jeder anderen Stimme; das ist keine Rede mehr,
+    # sondern unbrauchbar.
+    #
+    # Sprecher 1 (pierre) waere brauchbar und liegt genau dort, wo
+    # man Franzoesisch erwartet. Eintragen laesst er sich trotzdem
+    # nicht: die Tempotabelle kennt nur Stimmnamen, und der Server
+    # waehlt beim Sprechen keinen Sprecher aus -- er bekaeme also
+    # wieder Sprecher 0. Wer die Stimme will, muss zuerst den
+    # Sprecher durch den Server reichen.
+    #
+    # Belege: messungen/laengenfaktor_stimmen.json unter
+    # "nachgemessen".
     "hu_HU-anna-medium": 1.09,  # Ungarisch
     "it_IT-paola-medium": 1.05,  # Italienisch
     "ka_GE-natia-medium": 1.29,  # Georgisch
     "nl_NL-mls-medium": 1.63,  # Niederländisch
+    # KORRIGIERT nach der Rueckmeldung des Pruefers, nicht gemessen.
+    #
+    # Gemessen wurden 1.366 -- das ist der Faktor, der die
+    # portugiesische Ausgabe auf die Laenge des deutschen Originals
+    # bringt. Der Pruefer sagt dazu: zu schnell, Woerter werden
+    # verschluckt. Wenn Stoppuhr und Ohr auseinandergehen, gewinnt
+    # das Ohr: eine Uebersetzung, die mitlaeuft und die niemand
+    # versteht, ist keine.
+    #
+    # 1.15 statt 1.366. Die Zahl ist eine Entscheidung, keine
+    # Messung, und sie kostet Gleichlauf -- bei einer halben Stunde
+    # Predigt laeuft Portugiesisch damit sichtbar hinterher. Beim
+    # naechsten Ruecklauf gehoert sie bestaetigt oder korrigiert.
+    #
+    # pt ist nicht ausgeliefert; im Betrieb in Rostock aendert das
+    # nichts.
     "pl_PL-bass-high": 1.36,  # Polnisch, nicht ausgeliefert
     "pl_PL-darkman-medium": 1.25,  # Polnisch
     "pl_PL-gosia-medium": 1.25,  # Polnisch, nicht ausgeliefert
     "pl_PL-mc_speech-medium": 1.01,  # Polnisch, nicht ausgeliefert
     "pt_BR-cadu-medium": 1.45,  # Portugiesisch, nicht ausgeliefert
+    "pt_BR-jeff-medium": 1.15,  # Portugiesisch, AUSGELIEFERT, siehe oben
     "pt_BR-faber-medium": 1.04,  # Portugiesisch
-    "pt_BR-jeff-medium": 1.37,  # Portugiesisch, nicht ausgeliefert
     "ro_RO-mihai-medium": 1.23,  # Rumänisch
     "ru_RU-irina-medium": 1.22,  # Russisch
     "sr_RS-serbski_institut-medium": 1.67,  # Serbisch

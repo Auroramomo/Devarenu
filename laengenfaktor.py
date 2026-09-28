@@ -115,7 +115,26 @@ def piper_pfad():
     return None
 
 
-def sprich(befehl, modell, text, ziel, tempo=1.0, fest=False):
+def sprecher_anzahl(modell):
+    """Wie viele Sprecher diese Stimme hat. 1, wenn unbekannt.
+
+    Steht in der .onnx.json neben dem Modell. Ein Mehrsprecher-Modell
+    ohne --speaker nimmt Sprecher 0 -- und was dabei herauskommt, ist
+    nicht das, was man meint. Genau daran hing der unplausible Wert
+    0,447 fuer fr_FR-upmc-medium."""
+    import json as _json
+    p = Path(str(modell) + ".json")
+    if not p.exists():
+        return 1
+    try:
+        d = _json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return 1
+    n = d.get("num_speakers") or len(d.get("speaker_id_map") or {}) or 1
+    return max(1, int(n))
+
+
+def sprich(befehl, modell, text, ziel, tempo=1.0, fest=False, sprecher=None):
     """Synthetisiert und gibt die Audiodauer in Sekunden zurueck.
 
     Der Text geht ueber eine UTF-8-Datei und den Schalter -i, NICHT ueber
@@ -155,6 +174,13 @@ def sprich(befehl, modell, text, ziel, tempo=1.0, fest=False):
         argumente += ["--length-scale", f"{1.0/tempo:.4f}"]
     if fest:
         argumente += ["--noise-w-scale", "0"]
+    # Ohne --speaker nimmt Piper bei einem Mehrsprecher-Modell den
+    # ersten. Das ist nicht falsch, aber es ist eine Annahme -- und
+    # bei fr_FR-upmc-medium war sie es, die den Messwert 0,447
+    # erzeugte, also eine franzoesische Uebersetzung, die angeblich
+    # halb so lang spricht wie das deutsche Original.
+    if sprecher is not None:
+        argumente += ["--speaker", str(sprecher)]
 
     try:
         r = subprocess.run(argumente, capture_output=True, timeout=180)
@@ -590,6 +616,25 @@ def stimmen_auf_platte():
     return gefunden
 
 
+def _eine_stimme_messen(befehl, st, texte_sp, ordner, name, sprecher,
+                        deutsch_dauer, saetze):
+    """Misst eine Stimme (oder einen Sprecher davon). ([gd], [go])."""
+    gd, go = [], []
+    for i, text in enumerate(texte_sp):
+        try:
+            dauer = sprich(befehl, st["pfad"], text,
+                           ordner / f"{name.replace('#', '_s')}_{i}.wav",
+                           fest=True, sprecher=sprecher)
+        except Exception as e:
+            print(f"    {name}: {type(e).__name__}")
+            return [], []
+        if deutsch_dauer[i] > 0:
+            gd.append(dauer / deutsch_dauer[i])
+        if saetze[i]["dauer"] > 0:
+            go.append(dauer / saetze[i]["dauer"])
+    return gd, go
+
+
 def je_stimme(anzahl, modell, tondatei, nur=None):
     """Misst jede Stimme einzeln gegen dieselbe deutsche Referenz."""
     befehl = piper_pfad()
@@ -658,32 +703,34 @@ def je_stimme(anzahl, modell, tondatei, nur=None):
     ergebnis = {}
     for sp in [s for s in sorted(alle)]:
         for st in alle[sp]:
-            gd, go = [], []
-            for i, text in enumerate(texte[sp]):
-                try:
-                    dauer = sprich(befehl, st["pfad"], text,
-                                   ordner / f"{st['name']}_{i}.wav",
-                                   fest=True)
-                except Exception as e:
-                    print(f"    {st['name']}: {type(e).__name__}")
-                    break
-                if deutsch_dauer[i] > 0:
-                    gd.append(dauer / deutsch_dauer[i])
-                if saetze[i]["dauer"] > 0:
-                    go.append(dauer / saetze[i]["dauer"])
-            if not gd:
-                continue
-            ergebnis[st["name"]] = {
-                "sprache": sp,
-                "ausgeliefert": st["ausgeliefert"],
-                "gegen_deutsch": round(statistics.median(gd), 3),
-                "gegen_original": round(statistics.median(go), 3) if go else None,
-                "streuung": round(statistics.pstdev(gd), 3) if len(gd) > 1 else 0.0,
-                "saetze": len(gd),
-            }
-            marke = " <- ausgeliefert" if st["ausgeliefert"] else ""
-            print(f"  {st['name']:34} {ergebnis[st['name']]['gegen_deutsch']:5.2f}x"
-                  f"  (Streuung {ergebnis[st['name']]['streuung']:.2f}){marke}")
+            # Mehrsprecher-Modelle: JEDEN Sprecher einzeln messen.
+            # Ohne --speaker nimmt Piper den ersten, und der Wert
+            # gilt dann fuer eine Stimme, die so niemand hoert.
+            anzahl = sprecher_anzahl(st["pfad"])
+            for sprecher in (range(anzahl) if anzahl > 1 else [None]):
+                name = (st["name"] if sprecher is None
+                        else f"{st['name']}#{sprecher}")
+                gd, go = _eine_stimme_messen(
+                    befehl, st, texte[sp], ordner, name, sprecher,
+                    deutsch_dauer, saetze)
+                if not gd:
+                    continue
+                ergebnis[name] = {
+                    "sprache": sp,
+                    "ausgeliefert": st["ausgeliefert"] and sprecher is None,
+                    "sprecher": sprecher,
+                    "sprecher_gesamt": anzahl,
+                    "gegen_deutsch": round(statistics.median(gd), 3),
+                    "gegen_original": (round(statistics.median(go), 3)
+                                       if go else None),
+                    "streuung": (round(statistics.pstdev(gd), 3)
+                                 if len(gd) > 1 else 0.0),
+                    "saetze": len(gd),
+                }
+                marke = (" <- ausgeliefert"
+                         if ergebnis[name]["ausgeliefert"] else "")
+                print(f"    {name:34} {ergebnis[name]['gegen_deutsch']:.3f}"
+                      f"{marke}")
 
     print("\nJe Sprache, nur die ausgelieferte Stimme:")
     for sp in sorted(alle):

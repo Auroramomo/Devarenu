@@ -54,7 +54,7 @@ HINWEIS = "hinweis"
 WARTUNG = {
     "wlan_verbunden",       # Wartungszugang offen
     "vorrat", "vorrat_alt", # Reparaturvorrat
-    "sitzung", "sitzung_abweichend",
+    "sitzung", "sitzung_abweichend", "sitzung_anders_gewollt",
     "units_veraltet",
     "protokoll_mitschrift", # gehoert der Fehlersuche, nicht dem Sonntag
     "abmeldefrage", "netzschalter", "sperre", "standby", "bildschirm",
@@ -193,6 +193,20 @@ def sitzungsdatei(name):
 ANMELDE_ORDNER = ("/etc/plasmalogin.conf.d", "/etc/sddm.conf.d")
 
 
+def _sitzung_gewuenscht():
+    """Welche Sitzung netz.json fuer diesen Rechner vorsieht.
+
+    Eigene Funktion und mit try: auf einem Rechner mit aelterem
+    netzzustand.py gibt es das Feld nicht, und daran soll der
+    Systemcheck nicht scheitern."""
+    try:
+        import netzzustand
+        return netzzustand.laden()[0].get("sitzung",
+                                          netzzustand.SITZUNG_VORGABE)
+    except Exception:
+        return ""
+
+
 def sitzungsart(name):
     """Ist das eine X11- oder eine Wayland-Sitzung? "" heisst unbekannt.
 
@@ -263,11 +277,35 @@ def _autologin(befunde, ordner_liste=ANMELDE_ORDNER):
     # wird am Ordner, in dem die .desktop-Datei liegt -- genau so
     # entscheidet es der Anmeldemanager auch.
     #
-    # SEIT 0.3.2 IST WAYLAND DER NORMALFALL. Der Tonweg ist dort
-    # gemessen: Ton, Uebersetzung und RustDesk laufen. Gemeldet wird
-    # nur noch, wenn Eingestelltes und Laufendes auseinandergehen --
-    # nicht, weil das schlimm waere, sondern weil dann niemand weiss,
-    # was nach dem naechsten Neustart gilt.
+    # SEIT 0.3.2 IST WAYLAND DER NORMALFALL, seit 0.3.6 steht die
+    # Wahl je Rechner in netz.json. Der Tonweg ist unter Wayland
+    # gemessen; x11 ist die Ausnahme fuer Rechner, auf denen die
+    # Fernwartung den Bildschirm braucht.
+    #
+    # Gemeldet wird, wenn Eingestelltes und Laufendes
+    # auseinandergehen -- nicht, weil das schlimm waere, sondern weil
+    # dann niemand weiss, was nach dem naechsten Neustart gilt. Und
+    # wenn beides zwar zusammenpasst, aber nicht zu dem, was in
+    # netz.json steht: dann hat jemand die Anmeldung von Hand
+    # geaendert, oder netz.json ist neu und rechner_einrichten.sh
+    # lief seither nicht.
+    gewuenscht = _sitzung_gewuenscht()
+    if gewuenscht and laeuft and gewuenscht != laeuft \
+            and gewollt == laeuft:
+        befunde.append(Befund(
+            "sitzung_anders_gewollt", HINWEIS,
+            f"In netz.json steht {gewuenscht}, es laeuft aber "
+            f"{laeuft} -- und die Anmeldung ist auch auf {laeuft} "
+            f"eingestellt. Entweder wurde sie von Hand geaendert, "
+            f"oder netz.json ist neu und die Einrichtung lief "
+            f"seither nicht.",
+            "sudo bash rechner_einrichten.sh  -- danach neu starten. "
+            "Umgestellt wird nur VOR ORT.",
+            was_en=f"netz.json says {gewuenscht}, but {laeuft} is "
+                   f"running and configured.",
+            tun_en="sudo bash rechner_einrichten.sh, then reboot. "
+                   "Only do this on site."))
+
     if gewollt and laeuft and gewollt != laeuft:
         fehlt_datei = not sitzungsdatei(sitzung)
         grund = (f" Eine Sitzung {gefunden['session']} gibt es auf "

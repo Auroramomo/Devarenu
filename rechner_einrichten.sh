@@ -69,9 +69,12 @@ info "Benutzer $BENUTZER, Heimat $HEIM"
 #
 # --trocken darf ueberall laufen: es aendert nichts und beantwortet
 # genau die Frage "was waere zu tun?".
+# Der Interpreter steht AUSSERHALB der Abfrage: seit 0.3.6 liest auch
+# der Anmeldeblock netz.json, und der laeuft im Trockenlauf mit.
+PY="$ORDNER/.venv/bin/python"
+[ -x "$PY" ] || PY="$(command -v python3)"
+
 if [ "$TROCKEN" != ja ]; then
-  PY="$ORDNER/.venv/bin/python"
-  [ -x "$PY" ] || PY="$(command -v python3)"
   RECHNER="$(hostname 2>/dev/null || cat /etc/hostname 2>/dev/null)"
   PASST="$("$PY" - "$RECHNER" 2>/dev/null <<'PYCODE'
 import fnmatch, sys
@@ -175,6 +178,24 @@ else
   # zzz- im Namen, damit die Datei zuletzt gelesen wird: der
   # Anmeldemanager liest den Ordner alphabetisch, und was spaeter
   # kommt, gewinnt.
+  # Welche Sitzung -- aus netz.json, Vorgabe wayland.
+  #
+  # Seit 0.3.6 je Rechner waehlbar. In Rostock laeuft Wayland; ein
+  # Rechner, auf dem die Fernwartung den Bildschirm braucht, kann auf
+  # x11 stehen. Umgestellt wird NUR VOR ORT: kommt er in der neuen
+  # Sitzung nicht hoch, hilft bis zur naechsten Fahrt nichts.
+  SITZUNG_ART="$("$PY" -c '
+import sys; sys.path.insert(0, ".")
+import netzzustand as nz
+print(nz.laden()[0].get("sitzung", nz.SITZUNG_VORGABE))' 2>/dev/null)"
+  [ -n "$SITZUNG_ART" ] || SITZUNG_ART=wayland
+  SITZUNG_NAME="$("$PY" -c "
+import sys; sys.path.insert(0, '.')
+import netzzustand as nz
+print(nz.SITZUNGEN.get('$SITZUNG_ART', 'plasma'))" 2>/dev/null)"
+  [ -n "$SITZUNG_NAME" ] || SITZUNG_NAME=plasma
+  info "Sitzung laut netz.json: $SITZUNG_ART ($SITZUNG_NAME)"
+
   # Session=plasma, also Wayland.
   #
   # Bis 0.3.1 stand hier plasmax11. Der Grund war, dass der Tonweg nur
@@ -190,7 +211,7 @@ else
   # unter Wayland, und die Einstellung behauptete das Gegenteil.
   SOLL="[Autologin]
 User=$BENUTZER
-Session=plasma
+Session=$SITZUNG_NAME
 Relogin=false"
   if [ -f "$ANMELDE_DATEI" ] && [ "$(cat "$ANMELDE_DATEI")" = "$SOLL" ]; then
     gut "$ANMELDE_DATEI steht richtig"
@@ -231,11 +252,12 @@ Relogin=false"
   # Gibt es die Sitzung ueberhaupt? Ein Eintrag, der ins Leere zeigt,
   # sieht in der Konfiguration richtig aus und bewirkt nichts.
   PLASMA_DA=nein
-  for ordner in /usr/share/wayland-sessions /usr/local/share/wayland-sessions; do
-    [ -f "$ordner/plasma.desktop" ] && PLASMA_DA=ja
+  for ordner in /usr/share/wayland-sessions /usr/local/share/wayland-sessions \
+                /usr/share/xsessions /usr/local/share/xsessions; do
+    [ -f "$ordner/$SITZUNG_NAME.desktop" ] && PLASMA_DA=ja
   done
   if [ "$PLASMA_DA" = nein ]; then
-    warn "Eine Sitzung plasma gibt es auf diesem Rechner nicht."
+    warn "Eine Sitzung $SITZUNG_NAME gibt es auf diesem Rechner nicht."
     info "Die Einstellung oben zeigt damit ins Leere -- der"
     info "Anmeldemanager nimmt die Sitzung, die er hat."
     info "Nachsehen:  ls /usr/share/wayland-sessions /usr/share/xsessions"

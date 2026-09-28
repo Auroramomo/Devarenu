@@ -48,10 +48,29 @@ DNSMASQ_KONF_ALT = Path("/etc/dnsmasq.d/devarenu.conf")   # bis 0.2.11
 NM_PROFIL = "devarenu-lan"
 
 
+# Welche grafische Sitzung. Wayland ist die Vorgabe: dort ist der
+# Tonweg gemessen, und Plasma bringt sie ohne Zusatzpaket mit.
+#
+# x11 ist die Ausnahme fuer Rechner, auf denen die Fernwartung den
+# Bildschirm braucht -- unter Wayland fragt KDE nach jedem Neustart
+# wieder, welcher Bildschirm freigegeben wird. Das Paket dafuer
+# (plasma-x11-session) liegt im Reparaturvorrat.
+#
+# UMGESTELLT WIRD NUR VOR ORT. Kommt der Rechner in der neuen Sitzung
+# nicht hoch, hilft bis zur naechsten Fahrt nichts -- und dann nuetzt
+# auch das Wartungsfenster nichts.
+SITZUNG_VORGABE = "wayland"
+SITZUNGEN = {
+    "wayland": "plasma",        # /usr/share/wayland-sessions/plasma.desktop
+    "x11": "plasmax11",         # braucht plasma-x11-session
+}
+
+
 def vorgabe():
     """Was gilt, solange nichts eingerichtet wurde."""
     return {
         "router": False,
+        "sitzung": SITZUNG_VORGABE,
         "adresse": "",
         "maske": 0,
         "schnittstelle": "",
@@ -150,6 +169,13 @@ def _uebernehmen(roh, daten):
     # die Frage, welcher man glaubt.
     if isinstance(roh.get("wartungsfenster"), dict):
         daten["wartungsfenster"] = roh["wartungsfenster"]
+
+    # Welche Sitzung dieser Rechner fahren soll. Nur "wayland" oder
+    # "x11" -- alles andere faellt auf die Vorgabe zurueck.
+    if str(roh.get("sitzung", "")).strip().lower() in ("wayland", "x11"):
+        daten["sitzung"] = roh["sitzung"].strip().lower()
+    elif roh.get("sitzung") is not None:
+        daten["sitzung"] = SITZUNG_VORGABE
 
     # Und alles Uebrige bleibt ebenfalls stehen. Bis 0.3.1 verlor
     # netz.json bei jedem netz_einrichten.sh, was diese Fassung nicht

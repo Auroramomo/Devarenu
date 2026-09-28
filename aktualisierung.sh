@@ -134,6 +134,36 @@ if [ "$SICHERUNG_SELBST" = ja ]; then
   info "Ein Rueckweg von Hand findet dort alles, was er braucht."
 fi
 
+# Die Sicherung gehoert dem Dienstbenutzer -- IMMER, auch wenn der
+# Aufrufer sie mitgebracht hat.
+#
+# Ein Aufrufer aus 0.3.4 oder aelter legt sie als root mit 700 an.
+# gesundheit.sh laeuft als $BENUTZER und kommt dann weder an seine
+# Grundlinie heran noch kann er sie schreiben. Diese Datei kommt aus
+# dem NEUEN Tag und laeuft auch dann, wenn der Aufrufer alt ist --
+# also wird es hier geradegezogen.
+chown -R "$BENUTZER" "$SICHERUNG" 2>/dev/null || true
+
+# Und die Grundlinie, falls sie fehlt.
+#
+# Sie gehoert VOR das Vorspulen: hier gilt noch der alte Code, und
+# genau dessen Befunde sind der Vergleichsmassstab. Hinterher prueft
+# gesundheit.sh gegen diese Liste; fehlt sie, zaehlt JEDER Befund als
+# neu und ein tadelloses Update rollt zurueck.
+#
+# Ein alter Aufrufer hat es versucht und ist an den Rechten
+# gescheitert -- still, denn er haengt ein "|| true" an.
+if [ ! -s "$SICHERUNG/befunde-vorher" ]; then
+  if als_benutzer env DEV_SICHERUNG="$SICHERUNG" \
+       "$ORDNER/gesundheit.sh" --vorher >/dev/null 2>&1; then
+    gut "Grundlinie fuer den Gesundheitscheck nachgetragen"
+  else
+    warn "Die Grundlinie liess sich nicht anlegen."
+    info "Der Gesundheitscheck zaehlt dann jeden vorhandenen Befund"
+    info "als neu. Steht keiner an, macht es nichts."
+  fi
+fi
+
 # ------------------------------------------------- Lokale Aenderungen
 # Der signierte Stand gewinnt. Was jemand vor Ort an einer versionierten
 # Datei geaendert hat, wird gesichert und dann ueberschrieben -- nicht
