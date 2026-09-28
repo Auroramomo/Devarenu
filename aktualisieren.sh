@@ -352,6 +352,14 @@ als_benutzer git update-ref refs/devarenu/vorher "$ALT_SHA"
 blau "Einspielen"
 ABLAGE="${DEVARENU_DATEN:-/var/lib/devarenu/updates}"
 AUSZUG="$ABLAGE/logik-$ZIEL"
+# Die Ablage durchgehbar machen, BEVOR irgendetwas darin angelegt
+# wird. 711 und nicht 710: 710 gibt das Durchgehen der Gruppe, und
+# $ABLAGE gehoert root:root -- der Dienstbenutzer ist dort "andere".
+# Er kam damit nicht an seine eigene Sicherung, und gesundheit.sh
+# --vorher scheiterte still. Hindurchgehen ja, hineinsehen nein.
+als_wurzel mkdir -p "$ABLAGE"
+als_wurzel chown root:root "$ABLAGE" 2>/dev/null || true
+als_wurzel chmod 711 "$ABLAGE" 2>/dev/null || true
 als_wurzel rm -rf "$AUSZUG"
 als_wurzel mkdir -p "$AUSZUG"
 als_wurzel chown root:root "$AUSZUG"
@@ -418,8 +426,29 @@ gut "Stand gesichert: Units, zustand.json, netz.json"
 #
 # Aufgefallen erst, als der Pruefstand gegen die ECHTE
 # aktualisierung.sh lief statt gegen eine Attrappe.
-DEV_SICHERUNG="$SICHERUNG" als_benutzer bash "$ORDNER/gesundheit.sh" --vorher \
-  >/dev/null 2>&1 || true
+# Kein "|| true" mehr, und die Ausgabe geht nicht nach /dev/null.
+#
+# Beides zusammen hat den Fehler zwei Fassungen lang zugedeckt: das
+# Schreiben scheiterte an den Rechten, gesundheit.sh sagte trotzdem
+# "gemerkt", und was es wirklich sagte, sah niemand. Schlaegt es
+# jetzt fehl, wird das Update ANGEHALTEN -- ohne Grundlinie zaehlt
+# hinterher jeder vorhandene Befund als neu, und dann rollt ein
+# tadelloses Update zurueck. Lieber gar nicht einspielen als das.
+# Erst auffangen, dann ausgeben: der Rueckgabewert einer Pipeline
+# ist der des LETZTEN Glieds, also der von sed -- und sed gelingt
+# immer. Dieselbe Falle, die hier schon zweimal zugeschlagen hat.
+GRUND_AUS=""
+GRUND_RC=0
+GRUND_AUS="$(DEV_SICHERUNG="$SICHERUNG" als_benutzer bash \
+             "$ORDNER/gesundheit.sh" --vorher 2>&1)" || GRUND_RC=$?
+printf '%s\n' "$GRUND_AUS" | sed 's/^/   /'
+if [ "$GRUND_RC" != 0 ]; then
+  fehl "Die Grundlinie fuer den Gesundheitscheck fehlt."
+  echo "   Ohne sie gilt hinterher jeder Befund als neu, und das"
+  echo "   Update wuerde grundlos zurueckgerollt. Nichts geaendert."
+  als_wurzel rm -rf "$AUSZUG"
+  exit 1
+fi
 
 # Von hier an tut aktualisierung.sh die Arbeit: vorspulen, grosse
 # Teile, Pakete, UNITS, Neustart, Gesundheitscheck. Dieselbe Datei,

@@ -157,13 +157,26 @@ def _pruefen_zusammen():
 
 
 def _update():
-    stand = config.BASIS / "update" / "stand.json"
-    if not stand.exists():
-        return ["noch kein Update ueber Stick gelaufen"]
-    try:
-        d = json.loads(stand.read_text(encoding="utf-8"))
-    except Exception:
-        return ["(stand.json unlesbar)"]
+    """Der juengere von zwei Staenden.
+
+    stand.json schreibt der Stick-Kern, stand-online.json schreibt
+    aktualisierung.sh auf dem Netzweg und bei einer Ueberbrueckung.
+    Bis 0.3.4 wurde nur der erste gelesen, und nach einem Update
+    ueber das Netz stand hier weiter die alte Stick-Meldung."""
+    ordner = config.BASIS / "update"
+    gefunden = []
+    for name in ("stand.json", "stand-online.json"):
+        pfad = ordner / name
+        if not pfad.exists():
+            continue
+        try:
+            d = json.loads(pfad.read_text(encoding="utf-8"))
+        except Exception:
+            return [f"({name} unlesbar)"]
+        gefunden.append((str(d.get("zeit", "")), d))
+    if not gefunden:
+        return ["noch kein Update gelaufen"]
+    d = max(gefunden)[1]
     # Ausdruecklich diese vier Felder, nicht die ganze Datei.
     return [f"{k:14} {d.get(k, '-')}"
             for k in ("was", "version", "vorher", "zeit") if k in d]

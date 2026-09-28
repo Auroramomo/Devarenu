@@ -85,6 +85,23 @@ neuer_rechner() {
   git -C "$ziel" branch --set-upstream-to=origin/main main >/dev/null 2>&1
   echo "pruef@pruefstand $(cat "$ECHTER.pub")" > "$ziel/schluessel.erlaubt"
   cp "$ECHT/aktualisieren.sh" "$ziel/"
+  # Eine Kurzfassung von gesundheit.sh. Die echte braucht ein venv
+  # und einen laufenden Dienst; hier geht es um den Updater. Die
+  # ECHTE laeuft in Fall 7 mit -- und genau dort ist aufgefallen,
+  # dass ihr die Grundlinie fehlte.
+  #
+  # --vorher schreibt wirklich etwas: seit 0.3.5 bricht der Updater
+  # ab, wenn die Grundlinie nicht entsteht, und das ist der Sinn.
+  cat > "$ziel/gesundheit.sh" <<'GES'
+#!/usr/bin/env bash
+set -u
+if [ "${1:-}" = "--vorher" ]; then
+  mkdir -p "$(dirname "${DEV_SICHERUNG:-/tmp}/befunde-vorher")" || exit 1
+  echo "keine" > "${DEV_SICHERUNG:-/tmp}/befunde-vorher" || exit 1
+  exit 0
+fi
+exit 0
+GES
   printf '{"wlan": {"ssid": "x"}}' > "$ziel/zustand.json"
   chmod 600 "$ziel/zustand.json"
 }

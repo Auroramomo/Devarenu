@@ -128,6 +128,50 @@ trennen() {
   fi
 }
 
+# --------------------------------------------------- Nutzungsmeldung
+# Dem Entwickler sagen, dass es hier laeuft. Gemeindename, Fassung,
+# Datum -- SONST NICHTS.
+#
+# Der Schalter steht in zustand.json und wird am Pult gesetzt, wo
+# auch steht, was gesendet wird. Vorgabe aus. Hoechstens einmal je
+# Fenster, sonst ginge sie alle fuenf Minuten hinaus.
+#
+# Das Ziel ist derselbe Kanal wie alles andere: meldung.json auf
+# diesem Rechner. Es steht kein Meldeziel im Code.
+nutzung_melden() {
+  [ -f "$ORDNER/meldung.sh" ] || return 0
+  [ -f "$ORDNER/meldung.json" ] || return 0
+
+  local an gemeinde
+  an="$("$PY" - <<'PYCODE' 2>/dev/null
+import sys
+sys.path.insert(0, ".")
+import zustand
+z = zustand.laden()[0]
+print("ja" if z.get("nutzung_melden") else "nein")
+print(z.get("gemeinde") or "")
+PYCODE
+)"
+  gemeinde="$(printf '%s\n' "$an" | sed -n 2p)"
+  an="$(printf '%s\n' "$an" | sed -n 1p)"
+  [ "$an" = ja ] || return 0
+
+  local marke="$ABLAGE/nutzung-$FENSTERKENNUNG"
+  [ -f "$marke" ] && return 0
+  mkdir -p "$ABLAGE"; chmod 711 "$ABLAGE" 2>/dev/null || true
+  : > "$marke"
+
+  local fassung; fassung="$(tr -d '[:space:]' < "$ORDNER/VERSION" 2>/dev/null)"
+  if bash "$ORDNER/meldung.sh" "Devarenu: Nutzung" \
+"Gemeinde: ${gemeinde:-(ohne Namen)}
+Fassung:  ${fassung:-unbekannt}
+Datum:    $(date '+%Y-%m-%d')" >/dev/null 2>&1; then
+    gut "Nutzungsmeldung abgeschickt"
+  else
+    warn "Die Nutzungsmeldung ging nicht hinaus, sie liegt vorgemerkt."
+  fi
+}
+
 # ------------------------------------------------------- Autoupdate
 # Laeuft nur im Fenster, nur mit Schalter, nur einmal je Fenster und
 # nie waehrend einer Uebersetzung. Die Pruefung der Signatur macht
@@ -151,6 +195,7 @@ autoupdate_laufen() {
 
   blau "Autoupdate"
   mkdir -p "$ABLAGE"
+  chmod 711 "$ABLAGE" 2>/dev/null || true
   : > "$marke"
 
   local vorher; vorher="$(tr -d '[:space:]' < "$ORDNER/VERSION" 2>/dev/null)"
@@ -427,6 +472,7 @@ case "${1:---zeigen}" in
       if [ "$BERICHTE" = ja ] && [ -f "$ORDNER/meldung.sh" ]; then
         bash "$ORDNER/meldung.sh" --berichte | sed 's/^/   /'
       fi
+      nutzung_melden
       autoupdate_laufen || true
     else
       trennen

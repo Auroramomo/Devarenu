@@ -145,15 +145,32 @@ BENUTZER="$(stat -c %U "$ORDNER" 2>/dev/null || id -un)"
 
 # Alles, was Dateien im Projektordner anlegt, laeuft unter diesem
 # Benutzer. Lesen darf root selbst, das hinterlaesst nichts.
+# Die Ablage selbst: durchgehbar fuer JEDEN, lesbar fuer niemanden.
+#
+# 711 und nicht 710. Der Unterschied hat auf dem Gemeinderechner
+# zwei Stunden gekostet: 710 gibt das Durchgehen der GRUPPE, und
+# $DATEN gehoert root:root. Der Dienstbenutzer ist dort "andere" und
+# bekam nichts -- der Ordner war fuer ihn so zu wie mit 700. Er kam
+# damit nicht einmal an seine eigene Sicherung, gesundheit.sh
+# --vorher scheiterte mit "Keine Berechtigung", und weil der
+# Aufrufer ein "|| true" anhaengte, meldete es trotzdem Erfolg.
+#
+# 711 heisst: hindurchgehen ja, hineinsehen nein. Wer den Namen
+# einer Datei darunter kennt UND sie selbst lesen darf, kommt an
+# sie; auflisten kann niemand. Genau das ist gewollt -- was geheim
+# ist, liegt ohnehin in Unterordnern mit eigenen Rechten.
+ablage_rechte() {
+  chown root:root "$DATEN" 2>/dev/null || true
+  chmod 711 "$DATEN" 2>/dev/null || true
+}
+
 # root gehoert es, der Dienstbenutzer darf lesen, sonst niemand.
 nutzlast_rechte() {
   chown -R "root:$BENUTZER" "$NUTZLAST" 2>/dev/null || true
   chmod 750 "$NUTZLAST" 2>/dev/null || true
   find "$NUTZLAST" -type d -exec chmod 750 {} + 2>/dev/null || true
   find "$NUTZLAST" -type f -exec chmod 640 {} + 2>/dev/null || true
-  # $DATEN selbst bleibt fuer andere zu; durchgehen darf der
-  # Dienstbenutzer aber, sonst nuetzt ihm das Leserecht nichts.
-  chmod 710 "$DATEN" 2>/dev/null || true
+  ablage_rechte
 }
 
 # Ein abgeloester HEAD haelt jedes Update an -- aber nicht immer
@@ -396,6 +413,7 @@ stick_lesen() {
   # kaputt machen koennen.
   blau "Kopieren"
   mkdir -p "$DATEN" "$NUTZLAST"
+  ablage_rechte
   nutzlast_rechte
   rm -rf "$NUTZLAST/wheels" "$NUTZLAST/devarenu.bundle" "$NUTZLAST/teile"
   cp "$bundle" "$NUTZLAST/devarenu.bundle" || {
@@ -644,6 +662,7 @@ einspielen() {
   # Alles, was das Update anfassen koennte und was sich nicht aus git
   # zurueckholen laesst. Ohne diese Sicherung ist "zurueck" nur ein
   # halber Rueckweg.
+  ablage_rechte
   local sicherung="$DATEN/vorher-$version"
   rm -rf "$sicherung"; mkdir -p "$sicherung/units"
   chmod 700 "$sicherung"
@@ -666,8 +685,21 @@ einspielen() {
 
   # Welche Fehler gab es SCHON? Ein Rechner, bei dem vorher etwas im
   # Argen lag, soll deshalb kein Update zurueckrollen.
-  DEV_SICHERUNG="$sicherung" als_benutzer bash "$ORDNER/gesundheit.sh" --vorher \
-    >/dev/null 2>&1 || true
+  # Kein "|| true": ohne Grundlinie gilt hinterher jeder vorhandene
+  # Befund als neu, und ein tadelloses Update rollt zurueck. Siehe
+  # dieselbe Stelle in aktualisieren.sh.
+  # Erst auffangen, dann ausgeben: der Rueckgabewert einer Pipeline
+  # ist der des LETZTEN Glieds -- sed gelingt immer.
+  local grund_aus grund_rc=0
+  grund_aus="$(DEV_SICHERUNG="$sicherung" als_benutzer bash \
+               "$ORDNER/gesundheit.sh" --vorher 2>&1)" || grund_rc=$?
+  printf '%s\n' "$grund_aus" | sed 's/^/   /'
+  if [ "$grund_rc" != 0 ]; then
+    fehl "Die Grundlinie fuer den Gesundheitscheck fehlt."
+    stand_schreiben fehlgeschlagen "$version" \
+      "Die Grundlinie fuer den Gesundheitscheck liess sich nicht anlegen. Nichts geaendert."
+    exit 1
+  fi
 
   # Vorspulen statt Auschecken -- aber nicht hier. Ein ausgecheckter Tag
   # laesst HEAD abgeloest zurueck, und aktualisieren.sh findet danach
@@ -713,10 +745,7 @@ einspielen() {
   mkdir -p "$auszug"
   chown root:root "$auszug" 2>/dev/null || true
   chmod 700 "$auszug"
-  # $DATEN bleibt 710: fuer andere zu, aber der Dienstbenutzer muss
-  # hindurchgehen koennen, um an $DATEN/stick heranzukommen.
-  chown root:root "$DATEN" 2>/dev/null || true
-  chmod 710 "$DATEN"
+  ablage_rechte
 
   # Nachsehen statt hoffen: waere hier etwas fuer Gruppe oder andere
   # beschreibbar, duerfte darin nichts ausgefuehrt werden.

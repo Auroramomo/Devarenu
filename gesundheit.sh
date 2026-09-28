@@ -47,8 +47,34 @@ PYCODE
 }
 
 if [ "${1:-}" = "--vorher" ]; then
-  mkdir -p "$(dirname "$MERKDATEI")"
-  befunde_jetzt | sort > "$MERKDATEI"
+  # "Gemerkt" wird nur gemeldet, wenn wirklich etwas dasteht.
+  #
+  # Vorher lief das durch, egal was passierte: mkdir und die
+  # Umleitung scheiterten mit "Keine Berechtigung" -- die Ablage
+  # gehoerte root und war nicht durchgehbar --, und die naechste
+  # Zeile meldete trotzdem "Befunde vor dem Update gemerkt". Der
+  # Aufrufer haengt ein "|| true" an, also fiel auch dort nichts auf.
+  #
+  # Es ist der schlimmere der beiden Fehler gewesen. Ohne Grundlinie
+  # zaehlt hinterher JEDER vorhandene Befund als neu, und ein
+  # tadelloses Update waere zurueckgerollt worden -- auf einem
+  # Rechner, auf dem nichts kaputt war.
+  ORDNER_MERK="$(dirname "$MERKDATEI")"
+  if ! mkdir -p "$ORDNER_MERK" 2>/dev/null; then
+    fehl "$ORDNER_MERK laesst sich nicht anlegen."
+    info "Ohne Grundlinie gilt hinterher jeder Befund als neu."
+    exit 1
+  fi
+  if ! befunde_jetzt | sort > "$MERKDATEI" 2>/dev/null; then
+    fehl "$MERKDATEI laesst sich nicht schreiben."
+    info "$(ls -ld "$ORDNER_MERK" 2>/dev/null)"
+    info "Ohne Grundlinie gilt hinterher jeder Befund als neu."
+    exit 1
+  fi
+  if [ ! -f "$MERKDATEI" ]; then
+    fehl "$MERKDATEI ist nach dem Schreiben nicht da."
+    exit 1
+  fi
   info "$(wc -l < "$MERKDATEI") Befunde vor dem Update gemerkt"
   exit 0
 fi

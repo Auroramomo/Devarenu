@@ -1166,12 +1166,32 @@ if [ "$SYSTEMD" = ja ]; then
   fi
 fi
 
-if [ -s update/stand.json ]; then
+# Zwei Staende koennen daliegen: der vom Stick (update/stand.json,
+# geschrieben vom Kern) und der vom Netz oder einer Ueberbrueckung
+# (update/stand-online.json, geschrieben von aktualisierung.sh).
+# Gezeigt wird der JUENGERE.
+#
+# Vorher gab es nur den ersten. Nach zwei Updates ueber das Netz
+# stand hier weiter die Stick-Meldung vom 27.09.
+STAND_NEU=""
+STAND_ZEIT=""
+for d in update/stand.json update/stand-online.json; do
+  [ -s "$d" ] || continue
+  z="$(sed -n 's/.*"zeit"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+       "$d" | head -1)"
+  # Zeitstempel im Format JJJJ-MM-TT hh:mm:ss -- die vergleicht man
+  # als Zeichenkette richtig.
+  if [ -z "$STAND_ZEIT" ] || [ "$z" \> "$STAND_ZEIT" ]; then
+    STAND_ZEIT="$z"; STAND_NEU="$d"
+  fi
+done
+if [ -n "$STAND_NEU" ]; then
   # [^"]* und nicht .*: mit .* frisst der Ausdruck bis zum letzten
   # Anfuehrungszeichen der Zeile und nimmt den Zeitstempel mit.
   info "Letztes Update:"
   sed -n 's/.*"text"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/   \1/p' \
-      update/stand.json | head -1
+      "$STAND_NEU" | head -1
+  info "   ($STAND_ZEIT)"
 fi
 if [ -s update/bereit ]; then
   warn "Vorgemerkt: Fassung $(tr -d '\r\n ' < update/bereit). Wird"

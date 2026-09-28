@@ -139,6 +139,15 @@ def vorgabe():
         # Hier und nicht in config.py: ein geaenderter Wert in einer
         # versionierten Datei laesst jedes Update abbrechen.
         "protokoll_mitschrift": False,
+        # Der Name der Gemeinde. Erscheint auf der QR-Seite als
+        # "Devarenu . <Name>". Leer heisst: nichts anzeigen -- und
+        # das ist die Vorgabe, denn dieser Rechner weiss nicht, wo er
+        # steht, bis es ihm jemand sagt.
+        "gemeinde": "",
+        # Dem Entwickler melden, dass es hier laeuft: Gemeindename,
+        # Fassung, Datum. Sonst nichts. Vorgabe AUS -- und es steht
+        # am Pult, was gesendet wird.
+        "nutzung_melden": False,
         # Das freiwillige Pult-Passwort, als Hash. Leer heisst: keines,
         # und das ist die Vorgabe -- das Pult bleibt offen wie bisher.
         #
@@ -251,6 +260,18 @@ def _uebernehmen(roh, daten):
         daten["protokoll_mitschrift"] = roh["protokoll_mitschrift"]
     elif roh.get("protokoll_mitschrift") is not None:
         fehlerhaft.append("protokoll_mitschrift")
+
+    if isinstance(roh.get("nutzung_melden"), bool):
+        daten["nutzung_melden"] = roh["nutzung_melden"]
+    elif roh.get("nutzung_melden") is not None:
+        fehlerhaft.append("nutzung_melden")
+
+    if isinstance(roh.get("gemeinde"), str):
+        # Gekuerzt und einzeilig: er geht auf die QR-Seite und in die
+        # Nutzungsmeldung. Ein Name mit Zeilenumbruch zerlegt beides.
+        daten["gemeinde"] = " ".join(roh["gemeinde"].split())[:60]
+    elif roh.get("gemeinde") is not None:
+        fehlerhaft.append("gemeinde")
 
     # Eine Zeichenkette oder gar nichts. Steht dort Unsinn, faellt sie
     # auf leer zurueck -- also auf ein offenes Pult. Andersherum waere

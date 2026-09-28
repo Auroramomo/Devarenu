@@ -174,6 +174,41 @@ Dienst neu und lässt den Selbsttest laufen. Lokale Änderungen werden
 nicht überschrieben: gibt es welche, bricht es ab und zeigt sie.
 `zustand.json` bleibt unangetastet.
 
+## Spenden und offizielle Fassung
+
+**Es gibt genau ein Spendenkonto.** Es steht fest in `config.py` unter
+`SPENDE` und lässt sich am Pult nicht ändern. Die Spenden gehen an die
+Freikirche, nicht an eine Person: der Pastor wird über den Zehnten
+getragen, das Programm selbst kostet nichts.
+
+Welches Konto das richtige ist, steht auf der Seite des Betreuers.
+*(Adresse folgt.)* Wer eine Fassung von Devarenu mit einem anderen
+Spendenkonto findet, sollte dort nachsehen, bevor er überweist. Das
+Programm rechnet beim Start die Prüfziffer der eingetragenen IBAN nach
+und sagt es am Pult und auf der QR-Seite, wenn sie nicht stimmt.
+
+**Offizielle Fassungen sind signiert.** Jedes veröffentlichte Tag
+trägt eine SSH-Signatur mit dem Schlüssel
+
+```
+SHA256:EklvDQh9QDDh7a5z9PhdUKXTcH0N+4aNcycsFYQnu+Q
+```
+
+Derselbe Schlüssel steht in `schluessel.erlaubt`; der Updater spielt
+nur Tags ein, die damit signiert sind — über USB-Stick wie über das
+Netz. Prüfen lässt sich das jederzeit selbst:
+
+```
+git -c gpg.ssh.allowedSignersFile=schluessel.erlaubt verify-tag v0.3.5
+```
+
+**Wenn du etwas änderst, gib es bitte nicht unter dem Namen Devarenu
+weiter.** Nicht aus Besitzanspruch — die Lizenz erlaubt es. Aber in
+den Gemeinden steht der Name für etwas, das geprüft wurde und dessen
+Spendenkonto bekannt ist. Eine veränderte Fassung unter demselben
+Namen macht beides wertlos. Nimm einen eigenen Namen, und der Code
+gehört dir.
+
 ## Lizenz
 
 Der Code steht unter MIT. Modelle, Stimmen und das Logo haben eigene

@@ -211,6 +211,80 @@ with tempfile.TemporaryDirectory() as o:
            "GEFUNDEN", lauf('als_wurzel test -f "$AUSZUG/aktualisierung.sh"'))
     (ordner / "scharf").chmod(0o700)
 
+titel("4) Der Elternordner, durch den niemand hindurchkommt")
+
+# Der Fehler vom 28.09., zweiter Teil. Die Rechte der Datei selbst
+# waren richtig -- sie gehoerte dem Dienstbenutzer mit 600. Nur lag
+# sie unter /var/lib/devarenu/updates, und das war root mit 710.
+#
+# 710 sieht aus, als duerfte jemand hindurch. Es gibt das Durchgehen
+# aber der GRUPPE, und der Ordner gehoert root:root -- der
+# Dienstbenutzer ist dort "andere" und bekommt nichts. Fuer ihn war
+# der Ordner so zu wie mit 700.
+#
+# Es genuegt also nicht, die Rechte einer Datei zu pruefen. Jeder
+# Ordner auf dem Weg dorthin muss durchgehbar sein.
+with tempfile.TemporaryDirectory() as o:
+    ablage = Path(o) / "updates"
+    (ablage / "vorher-9.9.9").mkdir(parents=True)
+    ziel = ablage / "vorher-9.9.9" / "befunde-vorher"
+    ziel.write_text("autologin\n", encoding="utf-8")
+    ziel.chmod(0o600)
+
+    def erreichbar():
+        """Kommt man an die Datei heran? Wie ein fremder Benutzer --
+        ohne Leserecht auf dem Weg dorthin geht es nicht."""
+        try:
+            return ziel.read_text(encoding="utf-8") != ""
+        except OSError:
+            return False
+
+    # 700 auf der Ablage: der Besitzer kommt durch, ein anderer nicht.
+    # Nachgestellt wird es ueber den Modus, den ein anderer Benutzer
+    # saehe -- 0 Rechte fuer "andere".
+    ablage.chmod(0o700)
+    pruefe("700 gibt anderen kein Durchgehen", 0, ablage.stat().st_mode & 0o007)
+    ablage.chmod(0o710)
+    pruefe("710 auch nicht -- das war der Fehler", 0,
+           ablage.stat().st_mode & 0o007)
+    ablage.chmod(0o711)
+    pruefe("711 gibt das Durchgehen", 0o001, ablage.stat().st_mode & 0o007)
+    pruefe("aber kein Auflisten", 0, ablage.stat().st_mode & 0o004)
+    pruefe("und die Datei bleibt fuer andere zu", 0,
+           ziel.stat().st_mode & 0o007)
+    pruefe("der Besitzer kommt heran", True, erreichbar())
+
+    # Und der eigentliche Fall: ein zugesperrter Elternordner macht
+    # eine tadellose Datei unerreichbar.
+    ablage.chmod(0o000)
+    pruefe("zugesperrter Elternordner sperrt die Datei aus", False,
+           erreichbar())
+    ablage.chmod(0o711)
+    pruefe("wieder geoeffnet, wieder da", True, erreichbar())
+
+# Und dass die Skripte es richtig machen: nirgends darf $DATEN oder
+# $ABLAGE auf 700 oder 710 gesetzt werden.
+titel("5) Keine Ablage auf 700 oder 710")
+
+ENG = re.compile(r'chmod\s+(?:0?700|0?710)\s+"?\$(?:\{)?'
+                 r'(DATEN|ABLAGE)\b')
+for name in SKRIPTE:
+    pfad = WURZEL / name
+    if not pfad.exists():
+        continue
+    schlecht = []
+    for nr, zeile in enumerate(pfad.read_text(encoding="utf-8").split("\n"), 1):
+        blank = zeile.split("#", 1)[0]
+        if ENG.search(blank):
+            schlecht.append((nr, zeile.strip()))
+    if schlecht:
+        for nr, zeile in schlecht:
+            print(f"   {ROT}FEHL{AUS}  {name}:{nr} sperrt die Ablage zu")
+            print(f"           {zeile[:70]}")
+            FEHLER += 1
+    else:
+        print(f"   ok    {name}")
+
 print()
 if FEHLER:
     print(f"{ROT}{FEHLER} Fehler.{AUS}")

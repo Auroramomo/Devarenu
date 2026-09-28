@@ -110,7 +110,10 @@ PY_AKTIV="$ORDNER/.venv/bin/python"
 # Angelegt, bevor irgendetwas angefasst wird. Hat der Aufrufer schon
 # eine mitgebracht (der Kern tut das), wird sie nur ergaenzt: er hat
 # die Units bereits abgelegt, der venv-Name kommt spaeter dazu.
-mkdir -p "$SICHERUNG/units"
+# Die Ablage durchgehbar, die Sicherung darin zu. 711 und nicht 710
+# -- siehe stick_update.sh, ablage_rechte().
+mkdir -p "$ABLAGE" "$SICHERUNG/units"
+chmod 711 "$ABLAGE" 2>/dev/null || true
 chmod 700 "$SICHERUNG"
 if [ "$SICHERUNG_SELBST" = ja ]; then
   blau "Sicherung"
@@ -541,5 +544,43 @@ if [ -f /opt/devarenu-vorrat/vorrat.json ]; then
 fi
 
 [ -n "$PATCH" ] && melden "Lokale Aenderungen wurden ueberschrieben. Gesichert als $PATCH."
+
+# ------------------------------------------------------- Der Stand
+# Was zuletzt eingespielt wurde -- fuer pruefen.sh und den
+# Fehlerbericht.
+#
+# Bis 0.3.4 schrieb das nur der Stick-Kern. Nach einem Update ueber
+# das Netz stand unter "Letztes Update" weiter die Stick-Meldung vom
+# 27.09., obwohl danach zweimal online eingespielt worden war. Wer
+# das liest, haelt den Rechner fuer aelter, als er ist.
+#
+# Hier und nicht in aktualisieren.sh: diese Datei laeuft auf BEIDEN
+# Wegen -- ueber das Netz und bei einer Ueberbrueckung von Hand.
+#
+# In eine EIGENE Datei. update/stand.json ist zugleich die
+# Verstaendigung zwischen Stick-Kern und Pult (bereit, jetzt); sie
+# von hier aus zu ueberschreiben koennte ein vorgemerktes
+# Stick-Update verwirren. Wer beide liest, nimmt die juengere.
+#
+# Nicht auf dem Stick-Weg: dort schreibt der Kern gleich danach
+# seinen eigenen, ausfuehrlicheren Stand.
+case "$REF" in
+  refs/stick/*) ;;
+  *)
+    mkdir -p "$ORDNER/update"
+    cat > "$ORDNER/update/stand-online.json" <<ENDE
+{
+  "lage": "eingespielt",
+  "version": "$VERSION",
+  "vorher": "$HIER",
+  "text": "Fassung $VERSION ist ueber das Netz eingespielt und laeuft.",
+  "zeit": "$(date '+%Y-%m-%d %H:%M:%S')"
+}
+ENDE
+    chmod 644 "$ORDNER/update/stand-online.json" 2>/dev/null || true
+    chown "$BENUTZER" "$ORDNER/update/stand-online.json" 2>/dev/null || true
+    ;;
+esac
+
 blau "Fertig"
 exit 0

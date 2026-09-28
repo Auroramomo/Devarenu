@@ -646,6 +646,65 @@ versteht, rund eine Stunde Zeit für eine Liste mit 93 Begriffen. Das
 ist der einzige Weg, wie aus einer experimentellen Sprache eine
 geprüfte wird.
 
+## Was dieser Rechner nach draußen sendet
+
+**Vollständig, und es gibt nichts daneben.** Ohne Wartungsfenster und
+ohne `meldung.json` verlässt gar nichts den Rechner — dann ist diese
+Liste leer. Jeder Punkt hat einen eigenen Schalter, alle sind per
+Vorgabe **aus**, und gesendet wird nur über den Kanal, der in
+`meldung.json` auf **diesem** Rechner steht. **Im Code steht kein
+Meldeziel.**
+
+| Was | Wann | Inhalt |
+|---|---|---|
+| **Update-Rückmeldung** | nach einem Autoupdate | Fassung vorher/nachher, Ergebnis, Dauer, die letzten Zeilen des Laufs |
+| **Fehlerberichte** | im Fenster, wenn welche vorliegen | nur die Erlaubnisliste aus `fehlerbericht.py`: Fassung, Rechnerdaten, Systemcheck, letztes Update, Journalzeilen ab Warnstufe |
+| **Nutzungsmeldung** | einmal je Fenster | Name der Gemeinde, Fassung, Datum |
+| **Spendenkonto-Hinweis** | beim Start, wenn die IBAN nicht stimmt | die Beanstandung, sonst nichts |
+
+**Was nie hinausgeht**, auf keinem dieser Wege: Predigttext,
+Übersetzungen, Mitschriften, Testprotokolle, Zuschriften aus dem Saal,
+eingetippter Freitext, Namen von Personen, IP- oder MAC-Adressen,
+WLAN-Name, WLAN-Passwort, `zustand.json`.
+
+Der Name der Gemeinde ist die einzige Angabe, die diesen Rechner
+benennt — und er steht nur dann darin, wenn du ihn einträgst und die
+Nutzungsmeldung einschaltest. Am Pult steht neben dem Schalter, was
+gesendet wird.
+
+Nachsehen, was eingerichtet ist:
+
+```fish
+bash meldung.sh --zeigen
+```
+```fish
+bash wartungsfenster.sh --zeigen
+```
+
+## Das Spendenkonto
+
+Die IBAN steht fest in `config.py` unter `SPENDE` und lässt sich **am
+Pult nicht ändern**. Wer das Programm weitergibt, soll das
+Spendenkonto nicht nebenbei austauschen können.
+
+Fest heißt nicht unfehlbar. Beim Start wird die **Prüfziffer nach
+mod 97** gerechnet. Stimmt sie nicht, steht am Pult und auf der
+QR-Seite:
+
+> Das angezeigte Spendenkonto ist ungültig. Bitte wende dich an den
+> Betreuer.
+
+**Es wird nichts gelöscht und nichts abgeschaltet** — eine falsche
+IBAN ist ein Grund nachzusehen, kein Grund, dem Zuhörer etwas
+wegzunehmen. Ist auf dem Rechner ein Meldekanal eingerichtet, geht
+zusätzlich eine Nachricht hinaus; ist keiner eingerichtet, geht keine.
+
+## Der Name der Gemeinde
+
+**Pult → Einrichtung → „Name der Gemeinde".** Er erscheint auf der
+QR-Seite unter dem Titel als „Devarenu · <Name>". Leer lassen heißt:
+keine Anzeige. Er steht in `zustand.json`, nicht im Repo.
+
 ## Was nicht im Protokoll steht
 
 Der gesprochene Satz geht **nicht** ins Journal — nur seine Länge:

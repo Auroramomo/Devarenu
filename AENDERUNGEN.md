@@ -6,6 +6,80 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.3.5 — die Ablage war zu, und das Programm sagt jetzt, was es sendet
+
+*28.09.2026.*
+
+### Für alle
+
+**Der Name der Gemeinde steht auf der QR-Seite.** Unter dem Titel als
+„Devarenu · <Name>", einzutragen am Pult unter Einrichtung. Leer
+lassen heißt: keine Anzeige.
+
+**Ein Schalter „Nutzung an den Entwickler melden".** Gesendet werden
+Name der Gemeinde, Fassung und Datum — sonst nichts. Das steht auch am
+Pult neben dem Schalter. Vorgabe aus, jederzeit wieder abschaltbar.
+
+**`AUFSTELLEN.md` listet jetzt vollständig auf, was dieser Rechner
+nach draußen sendet** — alle vier Wege, mit Inhalt und Schalter. Ohne
+Wartungsfenster und ohne `meldung.json` ist die Liste leer. Es gibt
+keine verdeckten Übermittlungen.
+
+**Das Spendenkonto wird beim Start geprüft.** Stimmt die Prüfziffer
+nicht, steht am Pult und auf der QR-Seite ein Hinweis. Es wird nichts
+gelöscht und nichts abgeschaltet.
+
+### Für Techniker
+
+**Die Ablage war zu.** `/var/lib/devarenu/updates` stand auf `710` —
+das gibt das Durchgehen der **Gruppe**, und der Ordner gehört
+`root:root`. Der Dienstbenutzer ist dort „andere" und bekam nichts;
+für ihn war der Ordner so zu wie mit `700`. Er kam damit nicht an
+seine eigene Sicherung. Jetzt `711`: hindurchgehen ja, hineinsehen
+nein. Gesetzt an einer Stelle (`ablage_rechte()` im Kern), und der
+Prüfstand verbietet `700` und `710` auf `$DATEN`/`$ABLAGE`.
+
+Mein Kommentar von 0.3.2 sagte das Richtige („der Dienstbenutzer muss
+hindurchgehen können"), die Zahl war falsch.
+
+**`gesundheit.sh --vorher` meldete Erfolg, wenn nichts geschrieben
+wurde.** `mkdir` und die Umleitung scheiterten mit „Keine
+Berechtigung", die nächste Zeile sagte trotzdem „Befunde vor dem
+Update gemerkt", und die Aufrufer hängten ein `|| true` an. Beides ist
+weg: ein Schreibfehler ist jetzt ein Fehler, und das Update wird
+angehalten. Ohne Grundlinie gilt hinterher jeder vorhandene Befund als
+neu — dann rollt ein tadelloses Update zurück.
+
+Dabei fiel eine dritte Stelle derselben Machart auf: `if ! cmd | sed`
+prüft den Rückgabewert von **sed**, und sed gelingt immer. Jetzt wird
+erst aufgefangen, dann ausgegeben.
+
+**Der Rechtewege-Prüfstand kennt den Elternordner.** Es genügt nicht,
+die Rechte einer Datei zu prüfen — jeder Ordner auf dem Weg dorthin
+muss durchgehbar sein. Genau daran lag es.
+
+**„Letztes Update" zeigte die Stick-Meldung vom 27.09.**, obwohl
+danach zweimal über das Netz eingespielt worden war. `aktualisierung.sh`
+schreibt den Stand jetzt selbst nach `update/stand-online.json` — sie
+läuft auf beiden Wegen, auch bei einer Überbrückung von Hand. In eine
+eigene Datei, weil `update/stand.json` zugleich die Verständigung
+zwischen Stick-Kern und Pult ist. `pruefen.sh` und der Fehlerbericht
+zeigen den jüngeren der beiden.
+
+**`spendenkonto.py`**: mod 97 nach ISO 13616, ohne Ländertabelle —
+eine Tabelle im Repo wäre eine Liste, die veraltet. Bei einem Fehler
+geht eine Meldung hinaus, **aber nur, wenn auf diesem Rechner ein
+Kanal eingerichtet ist**. Es steht kein Meldeziel im Code; der
+Prüfstand sieht nach.
+
+**`LIESMICH.md`** hat einen Abschnitt „Spenden und offizielle
+Fassung": ein Spendenkonto, der Fingerabdruck des Signierschlüssels
+(`SHA256:EklvDQh9QDDh7a5z9PhdUKXTcH0N+4aNcycsFYQnu+Q`, derselbe wie in
+`schluessel.erlaubt`), und die Bitte, veränderte Fassungen nicht unter
+dem Namen Devarenu weiterzugeben.
+
+---
+
 ## 0.3.4 — der Auszug gehört root, und das Update sah nicht hinein
 
 *28.09.2026. Eine Fassung für genau einen Fehler — und für die

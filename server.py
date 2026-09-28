@@ -52,6 +52,7 @@ import grafikkarte
 import aufnahme
 import berichtpost
 import pruefprotokoll
+import spendenkonto
 import sprachwache
 import drossel
 import pultschutz
@@ -85,6 +86,10 @@ MIKRO_RATE = 16000          # was Whisper erwartet
 # Fehlersuche einschalten; der Systemcheck meldet das, solange er an
 # ist.
 PROTOKOLL_MITSCHRIFT = False
+
+# Warum das Spendenkonto beanstandet wird, oder "" wenn alles stimmt.
+# Beim Start gesetzt, siehe spendenkonto_pruefen().
+KONTO_GRUND = ""
 
 
 def schutz(text, laenge=60):
@@ -3327,6 +3332,43 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         except Exception:
             pass
 
+    def spendenkonto_pruefen():
+        """Stimmt die Pruefziffer der IBAN aus config.py?
+
+        Die IBAN steht fest in einer versionierten Datei und laesst
+        sich am Pult nicht aendern -- das ist Absicht. Fest heisst
+        aber nicht unfehlbar: ein Zahlendreher faellt sonst niemandem
+        auf, der QR-Code sieht aus wie immer, und erst die
+        Ueberweisung geht schief.
+
+        Bei einem Fehler wird NICHTS geloescht und NICHTS
+        abgeschaltet. Es steht am Pult und auf der QR-Seite, und wenn
+        auf diesem Rechner ein Meldekanal eingerichtet ist, geht eine
+        Nachricht hinaus. Ist keiner eingerichtet, geht keine -- es
+        steht kein Meldeziel im Code."""
+        global KONTO_GRUND
+        ok, grund = spendenkonto.lage(getattr(config, "SPENDE", {}) or {})
+        KONTO_GRUND = "" if ok else grund
+        if ok:
+            return
+        print(warnung(f"Das Spendenkonto in config.py ist ungueltig: "
+                      f"{grund}. Am Pult und auf der QR-Seite steht ein "
+                      f"Hinweis. Es wird nichts abgeschaltet."))
+        melder = config.BASIS / "meldung.sh"
+        if not (config.BASIS / "meldung.json").exists() or not melder.exists():
+            return
+        try:
+            subprocess.Popen(
+                ["bash", str(melder),
+                 f"Devarenu {config.VERSION}: Spendenkonto ungueltig",
+                 f"Die IBAN in config.py wird beanstandet: {grund}.\n"
+                 f"Angezeigt wird sie weiter; am Pult und auf der "
+                 f"QR-Seite steht ein Hinweis."],
+                cwd=str(config.BASIS),
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+
     def pruefprotokolle_aufraeumen():
         """Dieselbe Frist wie die Aufnahmen -- derselbe Inhalt.
 
@@ -3411,6 +3453,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         if alt_nachricht:
             systemhinweis_legen(alt_nachricht)
         bericht_beim_start()
+        spendenkonto_pruefen()
         huete = asyncio.create_task(aufnahme_huetten())
         yield
         huete.cancel()
@@ -4164,6 +4207,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 "am_rechner": pultschutz.vom_rechner_selbst(
                     request.client.host if request.client else ""),
                 "wartung": lauf.wartungsbefunde,
+                "gemeinde": lauf.zustand.get("gemeinde", ""),
+                "nutzung_melden": bool(lauf.zustand.get("nutzung_melden")),
+                "spendenkonto": KONTO_GRUND,
                 "sprachverdacht": (lauf.sprachwache.satz()
                                    if lauf.sprachwache else ""),
                 # Nur ob eines gesetzt ist, nie der Hash. Das Pult muss
@@ -4299,6 +4345,29 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         dem sie liegt."""
         host = request.client.host if request.client else ""
         return pultschutz.vom_rechner_selbst(host)
+
+    @app.post("/api/gemeinde")
+    async def gemeinde_setzen(daten: dict):
+        """Name der Gemeinde und der Schalter fuer die Nutzungsmeldung.
+
+        Beides am Pult, beides in zustand.json. Der Name erscheint auf
+        der QR-Seite; der Schalter ist per Vorgabe AUS und laesst sich
+        jederzeit wieder ausschalten."""
+        stand = zustandsdatei.laden()[0]
+        if "gemeinde" in daten:
+            stand["gemeinde"] = " ".join(
+                str(daten.get("gemeinde") or "").split())[:60]
+        if "melden" in daten:
+            stand["nutzung_melden"] = bool(daten.get("melden"))
+        if not zustandsdatei.speichern(stand):
+            return JSONResponse({"grund": "nicht_schreibbar"},
+                                status_code=500)
+        lauf.zustand["gemeinde"] = stand["gemeinde"]
+        lauf.zustand["nutzung_melden"] = stand["nutzung_melden"]
+        print(f"Gemeinde: {stand['gemeinde'] or '(ohne Namen)'}, "
+              f"Nutzungsmeldung {'an' if stand['nutzung_melden'] else 'aus'}.")
+        return {"gemeinde": stand["gemeinde"],
+                "melden": stand["nutzung_melden"]}
 
     @app.post("/api/pruefprotokoll")
     async def pruefprotokoll_schalten(daten: dict, request: Request):
@@ -4661,9 +4730,28 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                   'Als Datei herunterladen</a>'
                 + '<a href="javascript:window.print()">Seite drucken</a>')
 
+        # "Devarenu . <Gemeinde>", oder nur "Devarenu". Der Name
+        # steht in zustand.json und wird am Pult gesetzt.
+        gemeinde = (lauf.zustand.get("gemeinde") or "").strip()
+        marke_zeile = ("Devarenu · " + html_escape(gemeinde)
+                       if gemeinde else "Devarenu")
+
+        # Das Spendenkonto steht fest in config.py. Stimmt die
+        # Pruefziffer nicht, sagt die Seite es -- abgeschaltet wird
+        # nichts.
+        kontohinweis = ""
+        konto_ok, konto_grund = spendenkonto.lage(
+            getattr(config, "SPENDE", {}) or {})
+        if not konto_ok:
+            kontohinweis = (
+                '<p class=kontowarnung>Das angezeigte Spendenkonto ist '
+                'ungültig. Bitte wende dich an den Betreuer.</p>')
+
         seite = QR_SEITE
         for marke, wert in (
                 ("<!--LOGO-->", logo),
+                ("<!--MARKE-->", marke_zeile),
+                ("<!--KONTOHINWEIS-->", kontohinweis),
                 ("<!--WLANSCHRITT-->", wlan_block),
                 ("<!--NRSEITE-->", nr_seite),
                 ("<!--SEITENQR-->", seiten_qr),
@@ -5249,12 +5337,26 @@ QR_SEITE = """<!doctype html><html lang=de><meta charset=utf-8>
    .drucksatz .zeichen svg{width:1.1cm;height:1.1cm}
    .drucksatz .satz{font-size:11pt}
  }
+ /* "Devarenu . <Gemeinde>". Klein und unter dem Titel: wer im Saal
+    sitzt, weiss, wo er ist -- die Zeile ist fuer den, der ein Foto
+    der Wand sieht oder die Seite ausdruckt. Ohne Namen faellt sie
+    ganz weg. */
+ .marke{font:1rem system-ui,sans-serif;color:var(--grau);
+   margin:.1rem 0 0}
+ /* Ein ungueltiges Spendenkonto ist kein Grund, dem Zuhoerer etwas
+    wegzunehmen -- aber es muss dastehen, bevor jemand ueberweist. */
+ .kontowarnung{margin:.4rem 1.2rem;padding:.5rem .8rem;
+   border:2px solid #9c2d22;border-radius:.4rem;background:#fdeceb;
+   color:#9c2d22;font:1rem/1.35 system-ui,sans-serif}
+ @media print{ .kontowarnung{border-width:1pt} }
 </style>
 <header>
   <img class=logo src="<!--LOGO-->" alt="" onerror="this.remove()">
   <h1>Übersetzung</h1>
+  <p class=marke><!--MARKE--></p>
   <div class=streifen></div>
 </header>
+<!--KONTOHINWEIS-->
 
 <main>
  <section class=links>
@@ -5783,6 +5885,21 @@ bleibt es so.</p>
   Protokoll (nur zur Fehlersuche)</span></label></p>
 <p class="hin" id=protokollhin data-t=protokoll_hin>Aus. Der gesprochene
 Satz steht dann nicht im Protokoll -- nur seine Länge.</p>
+<p class=warnzeile id=kontowarnung hidden>
+  <span id=kontowarnungtext></span></p>
+<p class=hin><label><span data-t=gemeinde_name>Name der Gemeinde</span><br>
+  <input type=text id=gemeindefeld maxlength=60 size=32
+         onchange=gemeindeSetzen()></label></p>
+<p class="hin" data-t=gemeinde_hin>Erscheint auf der QR-Seite als
+„Devarenu · &lt;Name&gt;“. Leer lassen heißt: keine Anzeige.</p>
+<p class=hin><label><input type=checkbox id=meldeschalter
+  onchange=gemeindeSetzen()> <span data-t=melden_an>Nutzung an den
+  Entwickler melden</span></label></p>
+<p class="hin" data-t=melden_hin>Gesendet werden <b>Name der Gemeinde,
+Fassung und Datum</b> — sonst nichts. Kein Predigttext, keine
+Zuschriften, keine Adressen. Der Versand läuft im Wartungsfenster über
+denselben Kanal wie die übrigen Meldungen und lässt sich jederzeit
+wieder abschalten.</p>
 <p class=hin id=pruefprotokollreihe hidden><label><input type=checkbox
   id=pruefprotokollschalter onchange=pruefprotokollSetzen()>
   <span data-t=pp_an>Testprotokoll schreiben (nur am Gemeinde-PC)</span></label></p>
@@ -6062,6 +6179,17 @@ const TEXTE={
    protokoll_an:"Mitschrift im Protokoll (nur zur Fehlersuche)",
    sprache_umstellen:"Ausgangssprache umstellen",
    wartung:"Wartung",
+   gemeinde_name:"Name der Gemeinde",
+   gemeinde_hin:"Erscheint auf der QR-Seite als \u201eDevarenu \u00b7 "
+     +"<Name>\u201c. Leer lassen hei\u00dft: keine Anzeige.",
+   melden_an:"Nutzung an den Entwickler melden",
+   melden_hin:"Gesendet werden Name der Gemeinde, Fassung und Datum "
+     +"\u2014 sonst nichts. Kein Predigttext, keine Zuschriften, keine "
+     +"Adressen. Der Versand l\u00e4uft im Wartungsfenster \u00fcber "
+     +"denselben Kanal wie die \u00fcbrigen Meldungen und l\u00e4sst "
+     +"sich jederzeit wieder abschalten.",
+   konto_kaputt:"Das angezeigte Spendenkonto ist ungültig. Bitte wende "
+     +"dich an den Betreuer.",
    wartung_hin:"Diese Punkte halten den Gottesdienst nicht auf. Sie "
      +"gehören der Technik und stehen deshalb nicht im Briefkasten. "
      +"Vollständig mit: bash pruefen.sh",
@@ -6256,6 +6384,15 @@ const TEXTE={
    protokoll_an:"Transcript in the log (for troubleshooting only)",
    sprache_umstellen:"Change source language",
    wartung:"Maintenance",
+   gemeinde_name:"Name of the church",
+   gemeinde_hin:"Shown on the QR page as \u201cDevarenu \u00b7 "
+     +"<name>\u201d. Leave empty for no display.",
+   melden_an:"Report usage to the developer",
+   melden_hin:"What is sent: name of the church, version and date "
+     +"\u2014 nothing else. It goes out during the maintenance window "
+     +"and can be switched off again at any time.",
+   konto_kaputt:"The donation account shown is invalid. Please contact "
+     +"the maintainer.",
    wartung_hin:"These items do not hold up the service. They belong "
      +"to the technician and are therefore not in the inbox. "
      +"Full list: bash pruefen.sh",
@@ -6978,6 +7115,19 @@ async function protokollSetzen(){
 // in der Bestaetigung selbst. Anders als bei der Aufnahme -- dort
 // sind es zwei, und der zweite ("nur die Predigt") ergibt bei einem
 // Test keinen Sinn.
+// ------------------------------------------------ Gemeinde
+async function gemeindeSetzen(){
+  const a = await fetch("/api/gemeinde",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({gemeinde:gemeindefeld.value,
+                         melden:meldeschalter.checked})});
+  const d = await a.json().catch(()=>({}));
+  if(a.ok){
+    gemeindefeld.value = d.gemeinde || "";
+    meldeschalter.checked = !!d.melden;
+  }
+}
+
 async function pruefprotokollSetzen(){
   const t = TEXTE[UI];
   const an = pruefprotokollschalter.checked;
@@ -7193,6 +7343,13 @@ async function lies(){
     if(d.protokoll_mitschrift!==undefined)
       protokollAnzeigen(d.protokoll_mitschrift);
     wartungAnzeigen(d.wartung);
+    // Nur zeichnen, wenn niemand gerade tippt -- sonst springt das
+    // Feld bei jedem Takt auf den gespeicherten Wert zurueck.
+    if(document.activeElement !== gemeindefeld)
+      gemeindefeld.value = d.gemeinde || "";
+    meldeschalter.checked = !!d.nutzung_melden;
+    kontowarnung.hidden = !d.spendenkonto;
+    if(d.spendenkonto) kontowarnungtext.textContent = TEXTE[UI].konto_kaputt;
     pruefprotokollreihe.hidden = !d.am_rechner;
     pruefprotokollAnzeigen(d.pruefprotokoll || null);
     sprachverdachtAnzeigen(d.sprachverdacht || "");
