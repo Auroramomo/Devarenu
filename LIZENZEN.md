@@ -277,10 +277,12 @@ Stellenangaben sind Fakten, kein Textauszug.
 
 Seit 0.4.0 ist die Quelle die **Schlachter (1951)**, kapitelweise über
 [api.getbible.net](https://api.getbible.net) — dieselbe Übersetzung,
-aus der auch `zaehlung.json` stammt, und ihrem Alter nach gemeinfrei.
-Der Text wird geholt, ausgezählt und **weggeworfen**: in der Datei
-stehen 2538 Zeilen mit Name, Häufigkeit, Streuung und Kapitelliste.
-Keine Zeile Bibeltext.
+aus der auch `zaehlung.json` stammt. Sie ist **nicht gemeinfrei**
+(© 1951 Genfer Bibelgesellschaft, „free non-commercial
+distribution"); Devarenu gibt sie aber auch nicht weiter. Der Text
+wird geholt, ausgezählt und **weggeworfen**: in der Datei stehen 2538
+Zeilen mit Name, Häufigkeit, Streuung und Kapitelliste. Keine Zeile
+Bibeltext. Näheres oben unter *Bibelstellen-Zählungen*.
 
 ## Bibelstellen-Zählungen
 
@@ -289,19 +291,54 @@ Versangabe zwischen zwei Zählungen verschiebt. Gebaut von
 `werkzeuge/zaehlung_bauen.py` aus den **Verszahlen** dreier
 Übersetzungen, abgerufen über [api.getbible.net](https://api.getbible.net):
 
-| Kürzel | Übersetzung | Zählung | Rechtsstand |
+| Kürzel | Übersetzung | Zählung | Rechtsstand laut Quelle |
 |---|---|---|---|
-| `schlachter` | Schlachter (1951) | hebräisch/masoretisch | gemeinfrei |
-| `kjv` | King James Version (1611/1769) | englisch | gemeinfrei |
-| `synodal` | Synodal-Übersetzung (1876) | Septuaginta (Psalmen) | gemeinfrei |
+| `schlachter` | Schlachter (1951) | hebräisch/masoretisch | **© 1951 Genfer Bibelgesellschaft — „Copyrighted; Free non-commercial distribution"** |
+| `kjv` | King James Version (1611/1769) | englisch | GPL |
+| `synodal` | Synodal-Übersetzung (1876) | Septuaginta (Psalmen) | Public Domain |
 
-**Gespeichert werden ausschließlich Zahlen** — Kapitel, Vers, Versatz.
-Keine Zeile Bibeltext, in keiner Sprache. Zahlen sind Fakten und kein
-Werk; dasselbe Argument gilt schon für `namen_block_b.csv`. Alle drei
-Übersetzungen sind ihrem Alter nach ohnehin gemeinfrei. Die Datei ist
-unter 5 kB groß — wer sie öffnet, sieht, dass darin nichts anderes
-steht.
+Dieselbe Quelle liefert auch die Texte, gegen die die Buchnamen
+geprüft wurden: `valera` (Reina Valera 1909, *Copyrighted, Weitergabe
+an CrossWire erlaubt*), `sse` (Sagradas Escrituras 1569, Public
+Domain), `almeida` (Almeida Atualizada, GPL), `livre` (Bíblia Livre,
+CC BY 3.0 BR).
+
+> **Berichtigung zu 0.4.0.** Dort stand, die Schlachter 1951 sei
+> „ihrem Alter nach gemeinfrei". **Das ist falsch.** Die
+> Lizenzangabe der Quelle lautet *Copyrighted; Free non-commercial
+> distribution*, Rechteinhaber ist die Genfer Bibelgesellschaft.
+
+**Darauf kommt es trotzdem nicht an, denn Devarenu gibt den Text
+nicht weiter.** Er wird geholt, ausgezählt und weggeworfen. Im Repo
+liegt keine Zeile Bibeltext und keine Bibel-PDF — nachzusehen mit
+
+```fish
+git ls-files | grep -iE '\.pdf$|bibel|schlachter'
+```
+
+Das findet sieben eigene Anleitungs-PDFs und vier Quelltextdateien,
+sonst nichts.
+
+Was bleibt, sind **Fakten über den Text**, nicht der Text:
+
+| Datei | Inhalt | Größe |
+|---|---|---|
+| `zaehlung.json` | Kapitel, Vers, Versatz | unter 5 kB |
+| `namen_block_b.csv` | Name, Häufigkeit, Streuung, Kapitelliste | 2538 Zeilen |
+
+Wie viele Verse ein Kapitel hat und welcher Eigenname in welchem
+Kapitel vorkommt, ist eine Tatsache über ein Werk und keine
+Vervielfältigung davon. Dasselbe Argument trug schon `namen_block_b.csv`
+in 0.3.x, als die Quelle eine gedruckte Studienbibel war.
+
+**Wo der Volltext während des Laufs liegt:** in einem Wegwerfordner
+unter `/tmp` (bei der Erstellung von 0.4.0:
+`…/scratchpad/bibel/schlachter/*.json`, 8,3 MB, 66 Dateien). Er ist
+nach der Sitzung weg und wird bei Bedarf neu geholt —
+`werkzeuge/zaehlung_bauen.py` und `namen_aus_bibel.py --aus-bibeltext`
+können beides.
 
 Dass die Schlachter **2000** dieselbe Zählung hat wie die 1951, ist an
 vier Stellen geprüft (`pruefstand/zaehlung_test.py`); beide folgen dem
-masoretischen Text.
+masoretischen Text. **Für die Namensschreibung gilt das nicht
+automatisch** — siehe die Annahme im Bericht zu dieser Nachbesserung.

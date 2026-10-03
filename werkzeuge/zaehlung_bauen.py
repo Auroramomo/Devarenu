@@ -29,9 +29,11 @@ abrufbar sind:
 
 Gespeichert werden ausschliesslich ZAHLEN: Kapitel, Vers, Versatz. Kein
 Bibeltext. Zahlen sind Fakten und kein Werk; dasselbe gilt schon fuer
-namen_block_b.csv, siehe LIZENZEN.md. Die Texte selbst sind alle
-gemeinfrei (1876, 1611/1769, 1951 -- die Schlachter 1951 ist seit
-langem frei), und das Projekt uebernimmt von ihnen keine Zeile.
+namen_block_b.csv, siehe LIZENZEN.md. Die Rechtsstaende sind verschieden -- Synodal 1876 ist Public Domain,
+die KJV steht unter GPL, die SCHLACHTER 1951 ist NICHT gemeinfrei
+(Copyright Genfer Bibelgesellschaft, "free non-commercial
+distribution"). Darauf kommt es hier nicht an: das Projekt uebernimmt
+von keiner eine Zeile. Siehe LIZENZEN.md.
 
 Dass die Zaehlung der Schlachter **2000** mit der von 1951 uebereinstimmt,
 ist an den vier Beispielen oben geprueft; beide folgen dem

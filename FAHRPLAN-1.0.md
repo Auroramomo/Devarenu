@@ -34,58 +34,97 @@ gemeint war; er belegt nicht, dass es in einem Saal funktioniert.
 
 **Die Blocker hängen zusammen, und zwar in dieser Reihenfolge:** erst
 die Testumgebung (B2), dann ein Update-Weg, der sich darin und im Feld
-bewährt (B1), dann der Knopf (B4), der ihn bedienbar macht. B3, B5,
+bewährt (B1), dann die Lizenz der englischen Stimme (B4). B3, B5,
 B6 und B7 laufen daneben; B7 kostet Zeit, die nicht technisch ist, und
 gehört darum früh angestoßen.
 
 ---
 
+## Zwei Rechner, zwei Update-Wege
+
+**Das ist die wichtigste Unterscheidung in diesem Dokument.**
+
+| | Rostock, bis 1.0 | Rollout-Rechner |
+|---|---|---|
+| Internet | ja, über das Wartungs-WLAN | **nein** |
+| Update | online, im Wartungsfenster oder per Knopf | **Stick rein, am Pult einspielen** |
+| Wartungsfenster, Autoupdate, „Jetzt aus dem Netz" | **in Betrieb** | **gibt es dort nicht** |
+
+Der **Online-Weg** — `aktualisieren.sh`, das Wartungsfenster, das
+Autoupdate und der Knopf „Jetzt aus dem Netz aktualisieren" — gehört
+zur **Erprobung in Rostock**. Er ist dort gebaut worden, weil ein
+Rechner, an dem der Entwickler nicht sitzt, sich selbst auf Stand
+halten muss, solange täglich etwas dazukommt.
+
+**Ein Rechner im Rollout hat kein Internet.** Für ihn gilt der Weg,
+den das Projekt von Anfang an hatte: **Stick einstecken, am Pult auf
+„Jetzt einspielen" drücken.** Alles, was danach passiert — Signatur
+prüfen, vorspulen, Units schreiben, Gesundheitscheck, bei einem
+Fehler zurückrollen — ist für beide Wege dieselbe Logik
+(`stick_update.sh` plus die versionierte `aktualisierung.sh`).
+
+Was daraus folgt: **die Blocker-Liste prüft den Stick-Weg, nicht den
+Online-Weg.** Der Online-Weg darf scheitern, ohne dass eine zweite
+Gemeinde davon etwas merkt — er läuft dort nicht.
+
+---
+
 # Blocker
 
-## B1. Der Update-Weg, mehrfach und ohne Eingriff
+## B1. Der Stick-Weg mit Pult-Knopf, mehrfach und ohne Eingriff
 
-**Stand:** Der Online-Weg hat im Feld **mehrfach getragen**, aber
-immer von Hand: 0.3.4 → 0.3.7 und 0.3.7 → 0.3.8, jeweils mit
-`bash aktualisieren.sh` auf dem Gemeinderechner. Dreimal ist er
-vorher gescheitert, und jedes Mal an einer Stelle, die im neuen Stand
-längst behoben war — 0.3.1 (Units nie geschrieben), 0.3.3 (`[ -f … ]`
-ohne `sudo` auf einem `root:root 700`-Ordner), 0.3.7 (falscher
-Update-Stand am Pult).
+**Das ist der Weg, den ein Rollout-Rechner geht**, und damit der
+einzige, der hier zählt: Stick einstecken, am Pult unter *Einrichtung*
+auf **„Jetzt einspielen"** drücken, fertig. Kein Terminal, kein
+Internet, keine Tastatur.
 
-Der **zweigeteilte Kern** (stabiler Kern plus versionierte Hälfte) ist
-seit 0.2.13 im Programm und mit über 100 Zusicherungen belegt,
-darunter der echte alte Kern aus `git show v0.2.11:stick_update.sh`,
-der sich beim Update selbst überschreibt. Der **Rückweg** ist im
-Prüfstand belegt: scheitert die versionierte Hälfte mittendrin, kommt
-alles zurück.
+**Stand:** Im Programm seit 0.2.13, im Prüfstand mit über 100
+Zusicherungen belegt — darunter der echte alte Kern aus
+`git show v0.2.11:stick_update.sh`, der sich beim Update selbst
+überschreibt, und seit 0.4.0 der Weg auf die jeweils neue Fassung von
+`v0.3.7` und `v0.3.8` aus (`pruefstand/einspielweg_test.sh`). Alles
+mit Attrappen für `systemctl`, `sudo`, `runuser`, `curl` und
+`udevadm`.
+
+Auf echter Hardware hat **kein einziges Stick-Update** stattgefunden.
+Der Gemeinderechner ist bisher immer online aktualisiert worden.
 
 **Was fehlt:**
 
-- **Das Autoupdate im Fenster, im Feld.** Dass der Rechner sich
-  donnerstags zwischen 18 und 22 Uhr von selbst holt, was da ist, ist
-  im Prüfstand belegt und auf dem Gemeinderechner **nie beobachtet**.
-  Dazu gehört der Wecker: `cat /sys/class/rtc/rtc0/wakealarm` nach
-  einem echten Herunterfahren.
-- **Der Rückweg im Feld.** Ein absichtlich scheiterndes Update, das
-  den alten Stand zurückholt — bisher nur mit Attrappen.
-- **Der Prüfstand für den Weg auf die jeweils neue Fassung.** Er ist
-  angefangen (von `v0.3.7` und `v0.3.8` aus, über `git worktree`, mit
-  dem *alten* `aktualisieren.sh` gegen den echten neuen Baum) und war
-  bei 0.4.0 noch rot: der Gesundheitscheck fragt den laufenden Dienst
-  über HTTP und trifft dabei den echten statt den der Sandbox. Es
-  fehlt eine Attrappe dafür.
+- **Drei Fassungen hintereinander per Stick**, ohne dass jemand
+  eingreift. Eingesteckt von jemandem, der nicht daneben steht und
+  mitliest.
+- **Der Rückweg auf echter Hardware.** Ein Update, das absichtlich
+  scheitert, muss den alten Stand zurückholen. Bisher nur mit
+  Attrappen.
+- **Der Knopf am Pult**, einmal im Saal gedrückt. Er setzt nur eine
+  Marke (`update/jetzt`); eingespielt wird von
+  `devarenu-update.timer`, der als root läuft — der Dienst bekommt
+  dafür kein Recht.
 
-**Wie man es prüft:** Drei Fassungen hintereinander, ohne dass jemand
-eingreift. Danach jeweils: läuft der Dienst, meldet das Pult die neue
-Fassung, liegt die Sicherung unter `/var/lib/devarenu/updates/`, sind
-die Units neu geschrieben, ist `zustand.json` unangetastet. Und der
-Gegentest mit einem Update, das scheitern muss.
+**Wie man es prüft:** `AUFSTELLEN.md`, Abschnitt „Von 0.2.11 direkt
+auf 0.3.0". Danach jeweils: läuft der Dienst, meldet das Pult die
+neue Fassung, liegt die Sicherung unter `/var/lib/devarenu/updates/`,
+sind die Units neu geschrieben, ist `zustand.json` unangetastet. Und
+der Gegentest mit einem Update, das scheitern muss.
 
 > **Daran hängt alles andere.** Ohne einen erprobten Weg, Fehler zu
 > beheben, darf keine zweite Gemeinde ein Gerät bekommen. Wer dort
-> etwas kaputtmacht, kann es nicht reparieren.
+> etwas kaputtmacht, kann es nicht reparieren — und niemand kann sich
+> daraufsetzen, weil kein Internet da ist.
 
----
+### Der Online-Weg gehört nicht hierher
+
+`aktualisieren.sh`, das Wartungsfenster, das Autoupdate und der Knopf
+„Jetzt aus dem Netz aktualisieren" sind **Werkzeuge der Erprobung in
+Rostock**. Sie haben dort mehrfach getragen (0.3.4 → 0.3.7,
+0.3.7 → 0.3.8, jeweils von Hand) und dreimal nicht — 0.3.1, 0.3.3,
+0.3.7, jedes Mal an einer Stelle, die im neuen Stand längst behoben
+war.
+
+Für 1.0 ist das **kein Kriterium**: ein Rollout-Rechner hat kein
+Internet und benutzt davon nichts. Was dort offen bleibt, bleibt
+offen — es hält keine zweite Gemeinde auf.
 
 ## B2. Die virtuelle Testumgebung
 
@@ -156,37 +195,49 @@ Sicherung eine Behauptung.
 
 ---
 
-## B4. Der Knopf „Jetzt aktualisieren"
+## B4. Die Lizenz der englischen Stimme
 
-**Stand:** Seit 0.4.0 **gebaut und im Prüfstand**, auf dem
-Gemeinderechner **nie gedrückt** — er kommt ja erst mit dieser
-Fassung dorthin.
+**Stand:** `en_US-lessac-medium` ist auf den Blizzard-2013-Daten von
+Lessac Technologies / Voice Factory trainiert. Deren Lizenz gewährt
+die Nutzung **„exclusively for Research Purposes only"**, nicht
+übertragbar, ohne Recht zur Unterlizenzierung
+([Lizenztext][bl13]). Ein Gottesdienst ist keine Forschung.
 
-Am Pult unter *Einrichtung*, nur am Gemeinde-PC selbst
-(`nur_am_rechner`), nie während einer laufenden Übersetzung, und ein
-zweiter Klick startet nichts Neues. Der Weg zu root ist eng: der
-Dienst legt eine Datei in seinem eigenen Ordner an
-(`update/online-jetzt`), und `devarenu-onlineupdate.timer` sieht als
-root alle 30 Sekunden danach — kein `sudo`, kein Parameter, den der
-Dienst unterschieben könnte.
+Das betrifft den Datensatz; `rhasspy/piper-voices` gibt die daraus
+trainierten Gewichte trotzdem weiter, und ob die Beschränkung
+mitwandert, ist offen. Für **ein** Gerät in Erprobung ist das
+hinnehmbar. Für Geräte, die an fremde Gemeinden gehen, nicht — dann
+verteilt das Projekt die Stimme weiter.
 
-**Was fehlt:** Ein Druck im Feld, einmal mit dem eingetragenen
-Wartungs-WLAN und einmal mit einem Handy-Hotspot. Dazu der Fall, den
-nur echte Hardware hergibt: **Stromausfall mitten im Update**. Der
-nächste Start muss das erkennen und als *abgebrochen* melden; im
-Prüfstand tut er es.
+Englisch ist keine Nebensache: es ist nach Deutsch die Sprache, die
+eine aufnehmende Gemeinde am ehesten einschaltet.
 
-**Wie man es prüft:** Nach dem Einspielen von 0.4.0 einmal
-`sudo bash dienst.sh` (die Unit ist neu), dann
+**Was fehlt:** Eine Entscheidung. Lizenzfreier Ersatz liegt
+gemessen bereit (siehe [LIZENZEN.md](LIZENZEN.md)):
 
-```fish
-systemctl is-enabled devarenu-onlineupdate.timer
-```
+| Stimme | Lizenz | Tempo |
+|---|---|---|
+| `en_US-joe-medium` | **CC0** | 1,15 |
+| `en_US-ljspeech-medium` | public domain | 1,28 |
+| `en_US-lessac-medium` *(heute)* | nur Forschung | 1,07 |
 
-und danach am Pult drücken. Erledigt, wenn zwei Fassungen so
-eingespielt wurden, ohne dass jemand ein Terminal geöffnet hat.
+dazu `john`, `kristin`, `norman`, `bryce` (public domain),
+`libritts_r` (CC BY 4.0), `sam` (Apache-2.0).
 
----
+**Entschieden wird nach einer Hörprobe, nicht nach der Tabelle.** Das
+Projekt wählt Stimmen so: `werkzeuge/sprachpaket.py --bauen en` baut
+ein Paket mit drei Kandidaten, ein englischsprachiger Hörer wählt.
+Genau so sind Spanisch und Portugiesisch gewählt worden.
+
+**In 0.4.0 wird keine Stimme getauscht.** Ein Stimmwechsel ändert,
+was die Zuhörer hören, und gehört nicht in eine Lizenzaufräumung.
+
+**Wie man es prüft:** In `LIZENZEN.md` steht zur ausgelieferten
+englischen Stimme eine Lizenz, die eine Weitergabe trägt — oder eine
+aufgeschriebene Begründung, warum die Beschränkung des Datensatzes
+die Gewichte nicht erfasst.
+
+[bl13]: https://www.cstr.ed.ac.uk/projects/blizzard/2013/lessac_blizzard2013/license.html
 
 ## B5. Die Erstinstallation, von Fremden durchgespielt
 
@@ -213,60 +264,36 @@ abarbeiten, ohne einen Rechner zu plätten.
 
 ---
 
-## B6. Die Lizenzen der Bausteine
+## B6. Die übrigen Lizenzen der Bausteine
 
-**Stand:** Seit 0.4.0 **erhoben** — und damit ist aus einer offenen
-Frage ein konkretes Problem geworden. `werkzeuge/stimmlizenzen.py`
-liest die Modellkarte jeder der 21 ausgelieferten Piper-Stimmen; die
-Tabelle steht in [LIZENZEN.md](LIZENZEN.md), dazu Whisper, Gemma,
-Ollama und `piper-tts`.
+Die englische Stimme steht als **B4** für sich. Hier geht es um den
+Rest.
 
-**Zwei Befunde betreffen Sprachen, die in Rostock laufen:**
+**Stand:** Seit 0.4.0 erhoben. `werkzeuge/stimmlizenzen.py` liest die
+Modellkarte jeder der 21 ausgelieferten Piper-Stimmen; die Tabelle
+steht in [LIZENZEN.md](LIZENZEN.md), dazu Whisper, Gemma, Ollama und
+`piper-tts`.
 
-| Stimme | Lizenz | Lage |
-|---|---|---|
-| `en_US-lessac-medium` | Blizzard 2013 (Lessac / Voice Factory) | „exclusively for **Research Purposes** only", nicht übertragbar, ohne Unterlizenzierung |
-| `ru_RU-irina-medium` | „Unknown" (RHVoice) | **keine Lizenz genannt**; das Repo führt keine Lizenzdatei |
+| Baustein | Lage |
+|---|---|
+| **Gemma** (`gemma4:12b`) | keine freie Lizenz, sondern Nutzungsbedingungen mit *Prohibited Use Policy*. Devarenu liefert das Modell **nicht mit** — `einrichten.sh` holt es über Ollama, jede Gemeinde nimmt die Bedingungen selbst entgegen. |
+| `sr_RS-serbski_institut`, `tr_TR-dfki` | CC BY-NC-SA — **nicht eingeschaltet** |
+| `ar_JO-kareem`, `it_IT-paola`, `ka_GE-natia`, `sw_CD-lanfrica` | „See URL" / „See LICENSE file" — **nicht eingeschaltet** |
+| Whisper `large-v3-turbo`, `faster-whisper`, `CTranslate2`, Ollama | MIT |
+| `piper-tts` | GPL-3.0-or-later — der Grund, warum Devarenu selbst GPLv3 ist |
 
-Dazu fünf nicht eingeschaltete Stimmen mit „See URL" oder
-`CC-BY-NC-SA`. Und **Gemma** ist keine freie Lizenz, sondern
-Nutzungsbedingungen mit einer *Prohibited Use Policy* — Devarenu
-liefert das Modell nicht mit, jede Gemeinde nimmt es über Ollama
-selbst entgegen.
+**Was fehlt:** Eine Entscheidung, was mit den sechs markierten, nicht
+eingeschalteten Stimmen geschieht. Drei Wege: nachsehen und
+begründen, austauschen, oder **nicht mitliefern** und erst auf
+Anforderung holen — `einrichten.sh` lädt sie ohnehin einzeln.
 
-**Seit 0.4.0 steht auch der Ausweg da.** Alle englischen und
-russischen Stimmen in `rhasspy/piper-voices` sind erhoben, und für
-beide Fälle gibt es lizenzfreien Ersatz — für Russisch sogar zwei
-Stimmen unter **CC0** (`denis`, `dmitri`), für Englisch eine unter CC0
-(`joe`) und mehrere gemeinfreie (`ljspeech`, `john`, `kristin`,
-`norman`). Die Tabelle steht in [LIZENZEN.md](LIZENZEN.md), samt
-gemessenem Sprechtempo.
+Dazu ein Satz zu Gemma in der Übergabe an eine Gemeinde: sie nimmt
+die Bedingungen entgegen, nicht das Projekt.
 
-**Für Russisch wäre der Wechsel ein Gewinn in beide Richtungen:**
-`dmitri` ist CC0 **und** mit Längenfaktor 0,92 deutlich schneller als
-die heutige `irina` (1,22). Englisch kostet dagegen etwas — `joe`
-braucht 1,15 statt 1,07.
-
-**Was fehlt:** Eine Entscheidung. Zwei Wege, und einer muss gewählt
-werden:
-
-1. **Wechseln.** Dann ist der Punkt sauber erledigt — aber es ändert,
-   was die Zuhörer hören, und die Stimme gehört vorher angehört. Das
-   Projekt wählt Stimmen so: `werkzeuge/sprachpaket.py --bauen <sp>`
-   baut ein Paket mit drei Kandidaten, ein Muttersprachler hört sie an
-   und wählt. Genau so sind Spanisch und Portugiesisch gewählt worden.
-2. **Begründet bleiben.** Die Beschränkung gilt dem Datensatz, nicht
-   den trainierten Gewichten — dann gehört diese Begründung
-   aufgeschrieben und nicht bloß gedacht. Für `ru` geht das nicht:
-   dort ist gar keine Lizenz genannt.
-
-**Wie man es prüft:** In `LIZENZEN.md` steht zu jeder
-ausgelieferten Stimme eine Lizenz **und** ein Satz, warum die
-Weitergabe in Ordnung ist. Kein „unklar" mehr bei einer Sprache, die
-irgendwo eingeschaltet ist.
-
-> **Entfernt ist nichts.** Die Tabelle ist die Grundlage für eine
-> Entscheidung, nicht die Entscheidung.
+**Wie man es prüft:** In `LIZENZEN.md` steht zu jeder **ausgelieferten**
+Stimme eine Lizenz **und** ein Satz, warum die Weitergabe in Ordnung
+ist. Kein „unklar" mehr bei etwas, das mit dem Gerät das Haus
+verlässt.
 
 ---
 
@@ -453,25 +480,40 @@ Entscheidung: gelöst, oder erklärt und dokumentiert.
 
 ---
 
-## S5. Gemeinden ohne Internet-WLAN — der Stick-Weg
+## S5. Die russische Stimme
 
-**Stand:** Im Programm seit 0.2.13, im Prüfstand mit Attrappen für
-`systemctl`, `sudo`, `runuser`, `curl` und `udevadm` belegt. Auf dem
-Gemeinderechner hat **kein einziges** Stick-Update stattgefunden: dort
-lief immer der Online-Weg.
+**Stand:** `ru_RU-irina-medium` nennt **gar keine Lizenz** — die
+Modellkarte sagt „Unknown", und das RHVoice-Repository `irina-rus`
+führt keine Lizenzdatei. Ohne Lizenz gibt es keine ausdrückliche
+Erlaubnis.
 
-**Warum es trotzdem auf die Liste gehört:** Eine Gemeinde ohne
-nutzbares WLAN gibt es, und für die ist der Stick der einzige Weg. Es
-ist aber kein Blocker, solange eine aufnehmende Gemeinde ein WLAN
-stellen kann — und das lässt sich vorher fragen.
+**Warum trotzdem nur *Sollte*:** Russisch ist die Sprache, für die
+Rostock Devarenu gebaut hat. Eine aufnehmende Gemeinde schaltet sie
+nur ein, wenn sie russische Zuhörer hat — und dann ist es ihre
+Entscheidung, nicht eine, die sie erbt. Englisch (**B4**) steht
+anders da: das schaltet fast jeder ein.
 
-**Was fehlt:** Ein Update per Stick auf echter Hardware, von jemandem
-eingesteckt, der nicht daneben steht und mitliest.
+**Der Ersatz liegt gemessen bereit, und er wäre ein Gewinn in beide
+Richtungen:**
 
-**Wie man es prüft:** `AUFSTELLEN.md`, Abschnitt „Von 0.2.11 direkt
-auf 0.3.0". Danach: läuft der Dienst, meldet das Pult die neue
-Fassung, liegt die Sicherung da, sind die Units neu geschrieben. Und
-der Gegentest mit einem Update, das scheitern muss.
+| Stimme | Lizenz | Tempo |
+|---|---|---|
+| `ru_RU-dmitri-medium` | **CC0** | **0,92** |
+| `ru_RU-denis-medium` | **CC0** | 1,14 |
+| `ru_RU-irina-medium` *(heute)* | „Unknown" | 1,22 |
+
+`dmitri` ist lizenzfrei **und** knapp dreißig Prozent schneller als
+die heutige Stimme — weniger Sprechzeit je Abschnitt heißt weniger
+Rückstand über die Predigt.
+
+**Was fehlt:** Eine Hörprobe. **Das entscheiden die russischen
+Zuhörer in Rostock**, nicht eine Tabelle und nicht der Entwickler.
+Eine Stimme, die lizenzfrei und schnell ist, aber niemandem gefällt,
+ist die falsche Wahl.
+
+**Wie man es prüft:** `werkzeuge/sprachpaket.py --bauen ru` baut ein
+Paket mit drei Kandidaten; wer Russisch spricht, hört sie an und
+wählt. Danach `config.STIMMEN["ru"]` und `TEMPO_STIMME` setzen.
 
 ---
 
@@ -513,6 +555,16 @@ Einstellung dort zu beheben. Der Weg ist deshalb **RustDesk-Terminal
 plus ein TCP-Tunnel auf Port 8000** — darüber ist das Pult erreichbar,
 und RustDesk zählt für den Server als „am Rechner" (Loopback), also
 geht auch der Update-Knopf. Steht ausführlich in `AUFSTELLEN.md`.
+
+**Der Online-Update-Weg als Kriterium** — `aktualisieren.sh`, das
+Wartungsfenster, das Autoupdate und der Knopf „Jetzt aus dem Netz"
+sind Werkzeuge der Erprobung in Rostock. Ein Rollout-Rechner hat kein
+Internet und benutzt davon nichts. Was dort offen bleibt, hält keine
+zweite Gemeinde auf. Geprüft wird stattdessen der Stick-Weg (**B1**).
+
+**Der Stick-Weg als eigener Punkt** — er war bis 0.4.0 „Sollte"
+(S5, *Gemeinden ohne Internet-WLAN*) und ist jetzt **B1**, also der
+Normalfall statt der Ausnahme.
 
 **Die Erstinstallation als Liste** — sie existiert
 ([ERSTINSTALLATION.md](ERSTINSTALLATION.md)). Was fehlt, ist nur noch

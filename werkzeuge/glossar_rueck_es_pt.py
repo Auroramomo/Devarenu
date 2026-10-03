@@ -195,7 +195,11 @@ BIBELBUCH = {
                      "Almeida und Bíblia Livre schreiben den vollen Titel."),
     ("A031", "pt"): ("Obadias", "Almeida: Obadias. \"Abdias\" ist die "
                                 "Form aus der Vulgata-Tradition."),
-    ("A033", "pt"): ("Miquéias", "Akzent fehlte."),
+    # A033 bleibt "Miqueias" -- OHNE Akzent. Die Almeida Atualizada
+    # von 1959 schreibt "Miquéias"; NAA und NVI folgen dem Acordo
+    # Ortográfico und schreiben "Miqueias". Die Gemeinden, um die es
+    # geht, lesen NAA oder NVI. Mit 0.4.0 war der Akzent einmal drin
+    # und ist zurueckgenommen.
     ("A057", "pt"): ("Filemom", "Almeida: Filemom."),
 }
 

@@ -20,6 +20,9 @@ Nicht mehr aus einer Studienbibel-PDF, sondern aus dem Volltext der
 Schlachter (1951) ueber api.getbible.net -- kapitelweise, mit
 `--aus-bibeltext`. Dieselbe Uebersetzungsfamilie wie die Schlachter
 2000 im Betrieb und dieselbe Quelle, aus der zaehlung.json kommt.
+Sie ist NICHT gemeinfrei (Copyright Genfer Bibelgesellschaft); der
+Text wird darum geholt, ausgezaehlt und weggeworfen. Siehe
+LIZENZEN.md.
 
 Das hat drei Maengel der alten Liste behoben:
 
