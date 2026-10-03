@@ -145,13 +145,46 @@ Nutzung „exclusively for Research Purposes only" gewährt, und
 **Russisch** nennt gar keine Lizenz. Entfernt ist nichts; die Tabelle
 in `LIZENZEN.md` ist die Grundlage für eine Entscheidung.
 
+**C — Die Testumgebung.** `VM-TESTUMGEBUNG.md`,
+`vm_pruefstand.sh`, `testmodus.py`. Der Testmodus greift nur, wenn die
+Datei `TESTMODUS` daliegt **und** der Rechner keine NVIDIA-Karte hat.
+Die zweite Bedingung ist die eigentliche Sperre: die erste allein wäre
+eine Datei, und Dateien wandern — kopierte Ordner, zurückgespielte
+Sicherungen, Sticks aus Testverzeichnissen. Dann lief am Sonntag ein
+`tiny`-Modell, und am Pult sähe man es nicht: die Übersetzung käme ja,
+nur als Unsinn. Fällt `nvidia-smi` aus, gilt „Karte da" — im Zweifel
+Betrieb, nicht Test. Liegt die Marke doch auf einem Rechner mit Karte,
+sagt der Systemcheck es trotzdem.
+
+Die ehrliche Liste, **was die VM nicht prüft**, steht in
+`VM-TESTUMGEBUNG.md` zuerst und nicht zuletzt: NVIDIA-Treiber,
+Übersetzungsqualität, Ton, Wayland-Sitzung, BIOS-Wecker, Handys im
+Saal, Hardware-Untergrenze. „Grün auf der VM" heißt nicht „grün im
+Saal".
+
+**G — Der Fahrplan.** `FAHRPLAN-1.0.md` ist neu geschnitten: **sieben
+Blocker** (Update-Weg mehrfach ohne Eingriff, VM-Testumgebung,
+Signierschlüssel gesichert plus zweiter, der Update-Knopf im Feld,
+Erstinstallation von Fremden durchgespielt, Lizenzen der Bausteine
+entschieden, Datenschutz abgenommen), **sechs Sollte** (freigegebene
+Sprachen, Qualität im Betrieb, Kaltstart, Netz je Gemeinde, Stick-Weg,
+Bus-Faktor) und ein Abschnitt *nicht mehr auf der Liste* — **RustDesk
+unter Wayland ist kein Blocker mehr**, der Weg über
+RustDesk-Terminal plus TCP-Tunnel trägt, und über ihn geht auch der
+neue Update-Knopf.
+
 ### Was offen ist
 
-- **C** (VM-Testumgebung), **G** (FAHRPLAN-Abgleich) und der
-  Release-Text sind in diesem Lauf nicht fertig geworden.
+- Der Prüfstand für den Einspielweg auf die jeweils neue Fassung ist
+  angefangen und noch rot: der Gesundheitscheck fragt den laufenden
+  Dienst über HTTP und trifft dabei den echten statt den der
+  Sandbox. Es fehlt eine Attrappe dafür. **Der Weg auf 0.4.0 ist
+  damit nicht geprüft.**
+- Der Release-Text ist nicht geschrieben.
 - `namen_block_b.csv` wartet auf die Bibel-PDF.
 - Neun Glossarzeilen warten auf geprüfte Werte für en, ru, fa.
 - Das pt-Tempo 1,15 ist im Betrieb nicht bestätigt.
+- Zwei Stimmlizenzen sind offen (`en` nur Forschung, `ru` ungenannt).
 - `ERSTINSTALLATION.md` hat noch niemand abgearbeitet, der das Projekt
   nicht kennt.
 
