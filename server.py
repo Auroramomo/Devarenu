@@ -60,6 +60,7 @@ import pultschutz
 import qr_texte
 import zustand as zustandsdatei
 from glossar import Glossar, glossarzeilen, vokalisieren
+import zaehlung
 
 # Die Ausgangssprache wird nicht uebersetzt: der Text kommt aus der
 # Spracherkennung, der Ton ist die Originalaufnahme des Predigers. Damit
@@ -429,6 +430,17 @@ class Werk:
         else:
             print("Kein Namensindex (namen_block_b.csv fehlt). Der Prompt "
                   "nutzt dann nur den eingetippten Text.")
+        # Die Zaehlungstabelle. Fehlt sie, wird nichts umgerechnet --
+        # und das ist der richtige Ausfall: die Angabe der Schlachter
+        # stimmt ja.
+        self.zaehlung = zaehlung.Tabelle.laden()
+        if self.zaehlung.vorhanden:
+            print("Zaehlung: Bibelstellen werden fuer "
+                  + ", ".join(sorted(zaehlung.ZAEHLUNG_JE_SPRACHE))
+                  + " umgerechnet")
+        else:
+            print("Keine zaehlung.json. Bibelstellen bleiben in der "
+                  "Zaehlung der Schlachter.")
         self.stt_prompt = ""
         # Kopf (Einleitung und Thema) getrennt vom Rest. Beim Kuerzen auf
         # das Token-Budget bleibt er stehen, die Namen weichen von hinten
@@ -810,6 +822,42 @@ class Werk:
         }
 
     # ---- Uebersetzung ----
+    def stellen_umrechnen(self, text, sprache):
+        """[(Quelltext, Zielname, Kapitel, Vers), ...] oder [].
+
+        NUR bei deutscher Ausgangssprache: die Schlachter zaehlt wie
+        der hebraeische Text, und nur davon ausgehend ist die
+        Umrechnung belegt. Spricht jemand englisch, nennt er die Stelle
+        schon in der englischen Zaehlung.
+
+        Leer heisst: nichts umzurechnen. Das ist der haeufige Fall --
+        "Johannes 3,16" heisst ueberall 3,16."""
+        if self.quelle != "de" or not self.zaehlung.vorhanden:
+            return []
+        welche = zaehlung.ZAEHLUNG_JE_SPRACHE.get(sprache)
+        if not welche:
+            return []
+        from bibelstellen import stellen_mit_versen
+        aus = []
+        for nummer, buch, kapitel, vers, quelltext, _ in \
+                stellen_mit_versen(text):
+            neu = self.zaehlung.umrechnen(nummer, kapitel, vers, welche)
+            if not neu:
+                continue
+            z_kap, z_vers = neu
+            if (z_kap, z_vers) == (kapitel, vers):
+                continue
+            # Der Buchname in der Zielsprache. Fuer einen einzelnen
+            # Psalm der Singular, nicht der Buchtitel.
+            name = zaehlung.ZITATNAME.get(nummer, {}).get(sprache)
+            if not name:
+                treffer = [e for e in self.glossar.eintraege
+                           if e.block == "A" and e.de == buch]
+                name = (treffer[0].ziel.get(sprache, "").strip()
+                        if treffer else "") or buch
+            aus.append((quelltext, name, z_kap, z_vers))
+        return aus
+
     def uebersetzen(self, text, sprache, kontext=None):
         treffer = self.glossar.finde_in(text, self.quelle)
         gtext = glossarzeilen(treffer, sprache, quelle=self.quelle)
@@ -846,6 +894,13 @@ class Werk:
         anrede = getattr(config, "ANREDE", {}).get(sprache)
         if anrede:
             system += f"\n- {anrede}"
+        # Bibelstellen in die Zaehlung der Zielsprache. Vorgegeben wird
+        # die FERTIGE Angabe, nicht die Regel -- ein Sprachmodell, das
+        # rechnen soll, rechnet falsch.
+        stellen_um = self.stellen_umrechnen(text, sprache)
+        if stellen_um:
+            system += zaehlung.hinweis_bauen(stellen_um, sprache,
+                                             trenner or ",")
         if kontext:
             system += (f"\n\nDavor wurde bereits gesprochen und uebersetzt:"
                        f"\n---\n{kontext}\n---\n"
@@ -869,7 +924,23 @@ class Werk:
         t = a.json()["message"]["content"]
         if "</think>" in t:
             t = t.split("</think>", 1)[1]
-        return re.sub(r"[*`]+", "", t).strip().strip('"').strip()
+        t = re.sub(r"[*`]+", "", t).strip().strip('"').strip()
+        # Nachsehen, ob die umgerechnete Angabe wirklich dasteht. Wenn
+        # nicht, einsetzen -- aber nur, wo die alte Angabe woertlich im
+        # Text steht. Sonst bleibt alles, wie es ist, und es geht ins
+        # Journal: eine Uebersetzung kaputtzureparieren ist schlimmer
+        # als eine Stelle in der falschen Zaehlung.
+        if stellen_um:
+            t, ersetzt = zaehlung.nachtragen(t, stellen_um, trenner or ",")
+            for quell, ziel in ersetzt:
+                print(f"        Zaehlung {sprache}: {quell} -> {ziel} "
+                      f"(vom Modell nicht uebernommen)")
+            offen = [q for q, n, k, v in stellen_um
+                     if not zaehlung.steht_drin(t, n, k, v)]
+            for q in offen:
+                print(f"        Zaehlung {sprache}: {q} blieb, wie es war "
+                      f"-- das Modell hat umformuliert.")
+        return t
 
     # ---- Piper ----
     def original_ablegen(self, audio, nummer):

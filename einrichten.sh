@@ -293,15 +293,32 @@ if [ "$MANGEL" = "1" ]; then
   warn "denselben Ordner wie dieses Skript."
 fi
 
-if [ -f glossar_v0.4.csv ]; then
-  gut "glossar_v0.4.csv ($(($(wc -l < glossar_v0.4.csv) - 1)) Eintraege)"
+# Die Glossardatei beim NAMEN aus config.py, nicht als feste
+# Zeichenkette -- sonst meldet dieses Skript eine Datei als fehlend,
+# die es gar nicht mehr geben soll. Dieselbe Falle hatte start.sh bis
+# 0.3.0 und der Pruefstand bis 0.4.0.
+GLOSSAR="$($PY -c 'import config, os
+print(os.path.basename(config.GLOSSAR_CSV))' 2>/dev/null || true)"
+if [ -n "$GLOSSAR" ] && [ -f "$GLOSSAR" ]; then
+  gut "$GLOSSAR ($(($(wc -l < "$GLOSSAR") - 1)) Eintraege)"
 elif [ -f build_glossar.py ]; then
-  fehlt "glossar_v0.4.csv, wird erzeugt"
+  fehlt "${GLOSSAR:-das Glossar}, wird erzeugt"
   $PY build_glossar.py
 else
-  warn "glossar_v0.4.csv fehlt und laesst sich ohne build_glossar.py"
+  warn "${GLOSSAR:-Das Glossar} fehlt und laesst sich ohne build_glossar.py"
   warn "nicht erzeugen. Ohne Glossar laeuft der Server, uebersetzt aber"
   warn "Fachbegriffe deutlich schlechter."
+fi
+
+# Die Zaehlungstabelle fuer Bibelstellen. Fehlt sie, laeuft alles --
+# nur bleiben die Stellen in der Zaehlung der Schlachter, und ein
+# englischsprachiger Zuhoerer findet "Joel 3,1" in seiner Bibel nicht.
+if [ -f zaehlung.json ]; then
+  gut "zaehlung.json (Bibelstellen werden umgerechnet)"
+else
+  warn "zaehlung.json fehlt. Bibelstellen bleiben in der Zaehlung der"
+  warn "Schlachter. Neu bauen (braucht Netz):"
+  warn "  python werkzeuge/zaehlung_bauen.py --scharf"
 fi
 
 if [ -f namen_block_b.csv ]; then

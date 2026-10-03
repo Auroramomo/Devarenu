@@ -74,7 +74,16 @@ Im Testbetrieb ist genau das passiert.
 
 **Thema und Bibelstellen eintragen.** Daraus zieht das Programm die
 Eigennamen der genannten Kapitel. Daran hängt, ob Bethsaida richtig
-geschrieben wird.
+geschrieben wird. Fehlt die Angabe, erinnert das Pult mit einer gelben
+Zeile daran — aufgehalten wird nichts.
+
+**Bibelstellen werden in die Zählung der Zielsprache gebracht.** Die
+Schlachter 2000 zählt wie der hebräische Text; englische, spanische und
+portugiesische Bibeln zählen anders, russische bei den Psalmen
+ebenfalls. Aus „Joel 3,1" wird darum englisch „Joel 2:28" und aus
+„Psalm 23" russisch „Псалом 22". Umgerechnet wird nur, wo die Zuordnung
+eindeutig belegt ist — bei Spannen über Kapitelgrenzen, bei Versen ohne
+Gegenstück und für Persisch bleibt die Angabe unverändert stehen.
 
 ## Sprachen ändern
 

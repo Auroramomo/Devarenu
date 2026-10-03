@@ -147,3 +147,27 @@ Datei durch ihr eigenes Zeichen.
 `namen_block_b.csv` enthält Eigennamen und Kapitelangaben, die mit
 `namen_aus_bibel.py` aus einem Bibeltext extrahiert wurden. Namen und
 Stellenangaben sind Fakten, kein Textauszug.
+
+## Bibelstellen-Zählungen
+
+`zaehlung.json` enthält, um wie viel sich eine Kapitel- oder
+Versangabe zwischen zwei Zählungen verschiebt. Gebaut von
+`werkzeuge/zaehlung_bauen.py` aus den **Verszahlen** dreier
+Übersetzungen, abgerufen über [api.getbible.net](https://api.getbible.net):
+
+| Kürzel | Übersetzung | Zählung | Rechtsstand |
+|---|---|---|---|
+| `schlachter` | Schlachter (1951) | hebräisch/masoretisch | gemeinfrei |
+| `kjv` | King James Version (1611/1769) | englisch | gemeinfrei |
+| `synodal` | Synodal-Übersetzung (1876) | Septuaginta (Psalmen) | gemeinfrei |
+
+**Gespeichert werden ausschließlich Zahlen** — Kapitel, Vers, Versatz.
+Keine Zeile Bibeltext, in keiner Sprache. Zahlen sind Fakten und kein
+Werk; dasselbe Argument gilt schon für `namen_block_b.csv`. Alle drei
+Übersetzungen sind ihrem Alter nach ohnehin gemeinfrei. Die Datei ist
+unter 5 kB groß — wer sie öffnet, sieht, dass darin nichts anderes
+steht.
+
+Dass die Schlachter **2000** dieselbe Zählung hat wie die 1951, ist an
+vier Stellen geprüft (`pruefstand/zaehlung_test.py`); beide folgen dem
+masoretischen Text.

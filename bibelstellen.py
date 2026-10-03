@@ -279,6 +279,50 @@ def stellen_mit_bereichen(text):
     return gefunden, bereiche
 
 
+# Die Reihenfolge der Buecher, 1 bis 66. Dieselbe wie im Glossar
+# (Block A) und in namen_aus_bibel.BUECHER -- geprueft im Pruefstand.
+_NUMMER = {buch: i for i, buch in enumerate(BUECHER, 1)}
+
+
+def stellen_mit_versen(text):
+    """[(Nummer, Buchname, Kapitel, Vers, Quelltext, Bereich), ...]
+
+    Wie stellen_mit_bereichen(), nur mit dem Vers -- und ohne den
+    Bereich ueber mehrere Kapitel aufzuloesen. Gebraucht fuer die
+    Umrechnung in die Zaehlung der Zielsprache (zaehlung.py): dort
+    zaehlt genau die Angabe, die dasteht.
+
+    Ein Bereich ueber mehrere Kapitel ("Nehemia 1-4") oder ueber
+    mehrere Verse ("Mt 5,3-12") gibt keinen einzelnen Vers her. Die
+    Umrechnung laesst solche Angaben darum stehen -- das ist die
+    Regel, nicht die Ausnahme: eine halb umgerechnete Spanne waere
+    schlimmer als eine nicht umgerechnete."""
+    aus = []
+    for treffer in _MUSTER.finditer(text):
+        roh = _norm(treffer.group(1))
+        buch = _FORMEN.get(roh)
+        if not buch:
+            continue
+        if roh in _HEIKEL and not (treffer.group(1).rstrip().endswith(".")
+                                   or treffer.group(4)):
+            continue
+        if treffer.group(3):
+            continue                     # Spanne ueber Kapitel
+        kapitel = int(treffer.group(2))
+        vers = None
+        teil = treffer.group(4) or ""
+        if teil:
+            zahlen = re.findall(r"\d{1,3}", teil)
+            # Eine Versspanne ("3-12") bleibt stehen: sie hat kein
+            # einzelnes Gegenstueck.
+            if len(zahlen) != 1:
+                continue
+            vers = int(zahlen[0])
+        aus.append((_NUMMER.get(buch, 0), buch, kapitel, vers,
+                    treffer.group(0), treffer.span()))
+    return aus
+
+
 def stellen_finden(text):
     """Zieht Buch- und Kapitelangaben aus freiem Text.
 
