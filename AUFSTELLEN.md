@@ -1995,6 +1995,45 @@ Danach noch von Hand:
 bash anleitung_bauen.sh      # das Zuhörer-PDF in der neuen Sprache
 ```
 
+### Sicherung auf eine tragbare Platte
+
+`sichern.sh` und `zuruecksichern.sh`, seit 0.4.0. Gedacht für den Fall
+„Platte hin, Rechner neu aufsetzen".
+
+**Zwei Teile, und die Trennung ist der Kern.**
+
+| Teil | Inhalt | Zustand |
+|---|---|---|
+| `geheim.tar.gz.gpg` | `zustand.json`, `netz.json`, `meldung.json`, NetworkManager-Profile, RustDesk-Einstellungen | mit Passphrase verschlüsselt, `600` |
+| `offen/` | Modelle, Stimmen, Reparaturvorrat, Fassung, Commit-SHA, Tongeräteliste | unverschlüsselt |
+
+Im geheimen Teil stehen das WLAN-Passwort, das ntfy-Thema und das
+RustDesk-Kennwort. Der offene Teil ist nicht geheim, aber groß.
+
+**Die Passphrase wird beim Sichern abgefragt und nirgends
+gespeichert.** Sie steht auch nicht in der Befehlszeile — dort könnte
+sie jeder mitlesen, der `ps` tippt — sondern geht über einen
+Dateideskriptor an `gpg`.
+
+**Ohne Passphrase sind die Geheimnisse weg** und müssen neu eingetragen
+werden: WLAN am Pult, ntfy-Thema in `meldung.json`, RustDesk in
+RustDesk. **Alles andere lässt sich trotzdem wiederherstellen** —
+`zuruecksichern.sh --ohne-geheim` macht genau das und sagt beim
+Durchlauf, was offen bleibt.
+
+**Warum `gpg` und nicht `openssl enc`.** `gpg` bringt einen
+ordentlichen Schlüsselableiter mit (S2K, hier mit dem höchsten
+Zählwert) und schützt die Datei gegen unbemerkte Veränderung.
+`openssl enc` kann beides nicht von sich aus. Und `gnupg` ist auf einem
+Arch-System ohnehin da: `pacman` braucht es für die Paketsignaturen.
+`gpg` läuft dabei mit einem eigenen Verzeichnis im Wegwerfordner — der
+Schlüsselbund des Benutzers wird nicht angefasst.
+
+**Was ausdrücklich nicht in die Sicherung geht: die Aufnahmen.** Sie
+werden nach sieben Tagen gelöscht, und eine Sicherung, die sie
+mitnimmt, hebelt diese Zusage aus. `pruefstand/sicherung_test.sh`
+prüft das mit.
+
 ### Der Knopf „Jetzt aus dem Netz aktualisieren"
 
 Am Pult unter *Einrichtung*, seit 0.4.0. Er spart den Weg ins Terminal

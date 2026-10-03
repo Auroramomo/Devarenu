@@ -136,9 +136,14 @@ fällt sonst erst in der Gemeinde auf.
 abarbeiten kann. `AUFSTELLEN.md` ist gewachsen und setzt voraus, dass
 man die Geschichte kennt.
 
-**Seit 0.3.6 gibt es die Liste.** Sie steht unten. Was fehlt, ist
-der Durchlauf: **niemand hat sie abgearbeitet, der das Projekt nicht
-kennt.** Bis dahin ist sie eine Behauptung.
+**Seit 0.4.0 steht sie als eigenes Dokument:**
+[ERSTINSTALLATION.md](ERSTINSTALLATION.md) — zehn Abschnitte, nach
+jedem eine Kontrolle mit Befehl und erwarteter Ausgabe, dazu eine
+Tabelle "was die Gemeinde vorher sagen muss" und eine Störungstabelle
+am Ende. Die Liste unten ist die Kurzfassung davon.
+
+Was fehlt, ist der Durchlauf: **niemand hat sie abgearbeitet, der das
+Projekt nicht kennt.** Bis dahin ist sie eine Behauptung.
 
 **Wie man es prüft:** Jemand, der nicht am Projekt beteiligt ist,
 arbeitet sie ab — ohne Rückfragen. Jede Rückfrage ist eine Lücke im

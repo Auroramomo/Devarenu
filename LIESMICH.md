@@ -30,6 +30,12 @@ Zum Schluss prüft ein Selbsttest die Kette: Piper spricht einen Satz,
 Whisper schreibt ihn wieder auf. Kommt er durch, funktioniert es.
 Jederzeit wiederholbar mit `.venv/bin/python selbsttest.py`.
 
+**Für einen Gemeinderechner von Grund auf**, mit Saalnetz, Dienst,
+Wartungsfenster und Sicherung, gibt es
+[ERSTINSTALLATION.md](ERSTINSTALLATION.md) — zehn Abschnitte, nach
+jedem eine Kontrolle. Geschrieben für jemanden, der das Projekt nicht
+kennt.
+
 **Voraussetzung:** Linux und eine NVIDIA-Grafikkarte. Ohne Grafikkarte
 läuft alles auf der CPU und ist für den Livebetrieb zu langsam.
 
