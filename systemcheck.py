@@ -61,6 +61,7 @@ WARTUNG = {
     "ordner_schmutzig",
     "wecker_fehlt", "fenster_timer", "fenster_profil",
     "onlineupdate_timer", "onlineupdate_abgebrochen",
+    "testmodus", "testmodus_marke",
     "stick_timer",          # das Update per Stick, nicht der Sonntag
 }
 
@@ -816,6 +817,49 @@ def _protokoll(befunde):
         tun_en="Switch it off again under Setup on the control desk."))
 
 
+def _testmodus(befunde):
+    """Laeuft dieser Rechner im Testmodus?
+
+    Dann ist die Uebersetzung unbrauchbar, und das gehoert gesagt --
+    nicht als Fehler (auf der Testmaschine ist es gewollt), aber
+    deutlich. Die eigentliche Sperre steckt in testmodus.py: ohne
+    NVIDIA-Karte greift er, mit einer nicht.
+
+    Und der Gegenfall gehoert auch gesagt: liegt die Marke auf einem
+    Rechner MIT Karte, ist sie dort versehentlich hingekommen -- ueber
+    eine Sicherung, einen kopierten Ordner, einen Stick aus einem
+    Testverzeichnis. Dann tut sie nichts, aber sie hat dort nichts zu
+    suchen."""
+    try:
+        import testmodus
+        an, grund = testmodus.lage()
+    except Exception:
+        return
+    if an:
+        befunde.append(Befund(
+            "testmodus", HINWEIS,
+            "Dieser Rechner laeuft im TESTMODUS: Whisper rechnet als "
+            f"\"{testmodus.MODELL}\" auf der CPU. Die Uebersetzung ist "
+            "damit unbrauchbar -- geprueft wird der Weg, nicht das "
+            "Ergebnis. Auf einem Gemeinderechner darf das nie stehen.",
+            "Ausschalten:  python testmodus.py --aus",
+            was_en="This computer runs in TEST MODE: Whisper uses a tiny "
+                   "model on the CPU, so translations are unusable.",
+            tun_en="Switch it off:  python testmodus.py --aus"))
+        return
+    if testmodus.MARKE.exists():
+        befunde.append(Befund(
+            "testmodus_marke", HINWEIS,
+            "Die Datei TESTMODUS liegt im Projektordner. Sie greift hier "
+            "nicht -- dieser Rechner hat eine Grafikkarte --, aber sie ist "
+            "versehentlich hergekommen: ueber eine Sicherung, einen "
+            "kopierten Ordner oder einen Stick aus einem Testverzeichnis.",
+            "Wegnehmen:  python testmodus.py --aus",
+            was_en="A TESTMODUS marker file is present. It has no effect "
+                   "here, but it does not belong on this computer.",
+            tun_en="Remove it:  python testmodus.py --aus"))
+
+
 def _onlineupdate(befunde):
     """Der Weg hinter dem Knopf "Jetzt aus dem Netz".
 
@@ -1049,6 +1093,7 @@ def pruefen():
     _protokoll(befunde)
     _mp3(befunde)
     _onlineupdate(befunde)
+    _testmodus(befunde)
     _vorrat(befunde)
     _units_veraltet(befunde)
     _stick(befunde)

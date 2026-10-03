@@ -71,3 +71,7 @@ netz.json.*
 # nicht hinausging, steht im Klartext daneben.
 meldung.json
 meldung-offen.txt
+
+# Die Marke fuer den Testmodus. Sie gehoert auf die Testmaschine und
+# nirgends sonst -- und darf mit keinem Update mitwandern.
+TESTMODUS

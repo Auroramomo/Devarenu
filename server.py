@@ -571,6 +571,26 @@ class Werk:
                                 download_root=str(config.MODELL_ORDNER))
 
         geraet, rechenart = config.WHISPER_DEVICE, config.WHISPER_COMPUTE
+        # Der Testmodus (nur auf einem Rechner OHNE NVIDIA-Karte und nur
+        # mit der Marke TESTMODUS). Er tauscht das Modell gegen ein
+        # kleines auf der CPU -- damit der Weg pruefbar ist, nicht die
+        # Qualitaet. Siehe testmodus.py.
+        import testmodus
+        tm_an, tm_grund = testmodus.lage()
+        if tm_an:
+            print("\n" + "=" * 62)
+            print("TESTMODUS")
+            print(f"  {tm_grund}")
+            print("  Die Uebersetzung ist so UNBRAUCHBAR. Geprueft wird")
+            print("  der Weg, nicht das Ergebnis.")
+            print("=" * 62 + "\n")
+            tm_modell, geraet, rechenart = testmodus.einstellungen(
+                (config.WHISPER_MODELL, geraet, rechenart))
+
+            def laden(g, r, _m=tm_modell):
+                print(f"Whisper {_m} laedt ({g}, {r}) ...")
+                return WhisperModel(_m, device=g, compute_type=r,
+                                    download_root=str(config.MODELL_ORDNER))
         modell, grund = None, ""
         try:
             modell = laden(geraet, rechenart)

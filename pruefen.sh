@@ -142,6 +142,33 @@ else
   info "und ist fuer den Livebetrieb zu langsam."
 fi
 
+# Der Testmodus. Er gehoert HIERHIN, direkt unter die Karte: ohne
+# Karte ist er die Erklaerung, mit Karte ist eine herumliegende Marke
+# ein Befund. Beides sagt testmodus.py selbst -- und nur es, damit es
+# nicht zwei Antworten auf dieselbe Frage gibt.
+if [ -f "$ORDNER/testmodus.py" ]; then
+  # Direkt und nicht ueber mit_python: hier wird ein WERT gebraucht,
+  # und mit_python formatiert fuer die Ausgabe.
+  TM="$("$PY" -c 'import testmodus
+an, grund = testmodus.lage()
+print(("AN" if an else "aus") + "|" + grund)' 2>/dev/null)"
+  case "${TM%%|*}" in
+    AN)
+      warn "TESTMODUS: ${TM#*|}"
+      info "Die Uebersetzung ist so UNBRAUCHBAR. Auf einem"
+      info "Gemeinderechner darf das nie stehen:"
+      info "  python testmodus.py --aus" ;;
+    aus)
+      if [ -f "$ORDNER/TESTMODUS" ]; then
+        warn "Die Datei TESTMODUS liegt da. Sie greift hier nicht --"
+        info "dieser Rechner hat eine Karte --, gehoert aber weg:"
+        info "  python testmodus.py --aus"
+      else
+        gut "kein Testmodus"
+      fi ;;
+  esac
+fi
+
 # --------------------------------------------------------------- Netz
 blau "Netz"
 

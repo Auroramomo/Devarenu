@@ -344,3 +344,8 @@ bash pruefen.sh
 Ausführlich — mit Begründungen, Messungen und der Geschichte jeder
 Entscheidung — steht alles in [AUFSTELLEN.md](AUFSTELLEN.md). Dieses
 Dokument hier ist der kurze Weg; jenes die Erklärung.
+
+Wer diese Anleitung **üben** will, ohne einen Rechner zu plätten:
+[VM-TESTUMGEBUNG.md](VM-TESTUMGEBUNG.md). Dort läuft dasselbe in einer
+virtuellen Maschine — bis auf Ton, Grafikkarte und Saalnetz, und das
+steht dort auch so.

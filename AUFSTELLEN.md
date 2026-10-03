@@ -1995,6 +1995,25 @@ Danach noch von Hand:
 bash anleitung_bauen.sh      # das Zuhörer-PDF in der neuen Sprache
 ```
 
+### Die virtuelle Testmaschine
+
+**Jedes Update läuft zuerst dort und dann auf dem Gemeinderechner.**
+Anleitung, Skript und — wichtiger — die ehrliche Liste, *was die VM
+nicht prüft*: [VM-TESTUMGEBUNG.md](VM-TESTUMGEBUNG.md).
+
+Der Grund steht in der Geschichte: 0.3.1 schrieb die Units nie, 0.3.3
+brach an einem `[ -f … ]` ohne `sudo` ab, 0.3.7 versteckte einen
+Pult-Schalter. Alle drei wären auf einer VM aufgefallen, und keiner
+davon brauchte eine Grafikkarte, ein Mikrofon oder einen Saal.
+
+Dazu gehört der **Testmodus** (`testmodus.py`): Whisper als `tiny` auf
+der CPU, damit ein Prüflauf Minuten dauert und nicht eine Stunde. Er
+greift nur, wenn die Datei `TESTMODUS` daliegt **und** der Rechner
+keine NVIDIA-Karte hat — die zweite Bedingung ist die eigentliche
+Sperre, denn Dateien wandern. Liegt die Marke doch einmal auf dem
+Gemeinderechner, sagt der Systemcheck es (`testmodus_marke`), obwohl
+sie dort nichts tut.
+
 ### Der Signierschlüssel
 
 `schluessel.erlaubt` ist der Vertrauensanker. Ein Update — über Stick
