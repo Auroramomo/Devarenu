@@ -453,6 +453,12 @@ class Werk:
         self.skript_namen = []
         self.skript_info = None
         self.verlauf = deque(maxlen=3)
+        # Wie oft der Floskelfilter gegriffen hat. Einmal fuer ganze
+        # Abschnitte, einmal fuer angehaengte Abspanne. Gezaehlt wird
+        # fuer die Messung der Schwellenmodi und fuer die Fehlersuche:
+        # steigt die erste Zahl, hoert das Mikrofon Musik.
+        self.erfunden_zahl = 0
+        self.erfunden_ende = 0
 
         # Piper einmal laden und behalten. Vorher wurde es je Abschnitt
         # als eigenes Programm gestartet, und die Messung hat gezeigt, dass
@@ -680,15 +686,71 @@ class Werk:
     # weil sie am Wortanfang haengt und dort "die" bzw. "wdr" steht.
     # Ein Prediger sagt keines von beidem, der Zusatz ist also auch fuer
     # die Livepipeline unbedenklich.
-    ERFUNDEN = re.compile(
-        r"^\W*(untertitel|untertitelung|amara\.org|copyright|abonniert|"
-        r"vielen dank( fuer|für)? (das|ihre|eure)|"
-        r"vielen dank\.?$|danke\.?$|tschüss\.?$|"
-        r"bis zum n(ä|ae)chsten mal|"
-        r"die sendung wurde|"
-        r"(wdr|ndr|zdf|ard|swr|mdr|rbb|arte)[ -]?(mediagroup|presse|text)|"
-        r"im auftrag (des|der) (wdr|ndr|zdf|ard|swr|mdr|rbb)|"
-        r"mit freundlicher unterst(ü|ue)tzung)", re.IGNORECASE)
+    # Bis 0.4.0 stand hier "( fuer|für)?" -- das Leerzeichen nur im
+    # ersten Zweig. Damit traf das Muster "vielen dank fuer das ...",
+    # aber NIE "Vielen Dank fuer Ihre Aufmerksamkeit." oder "Vielen Dank
+    # fuers Zuhoeren.", weil nach "dank" ein Leerzeichen steht und der
+    # zweite Zweig keines mitbringt. Genau diese beiden Saetze kommen in
+    # Rostock, sobald die Schwelle an ist.
+    #
+    # Zwei Aenderungen an der Arbeitsweise:
+    #   1. Geprueft wird mit fullmatch. Ein Abschnitt faellt nur, wenn er
+    #      GANZ aus der Floskel besteht. Vorher reichte der Anfang, und
+    #      "Vielen Dank fuer das Wort, das heute zu uns kam" war weg.
+    #   2. Steht die Floskel am Ende eines sonst echten Abschnitts, wird
+    #      nur sie abgeschnitten (floskel_kuerzen).
+    #
+    # "Danke." allein steht NICHT mehr darin: im Gottesdienst ist das
+    # ein normaler Satz. "Vielen Dank." allein bleibt gefiltert.
+    _ABSPANN = (r"(zuh(ö|oe)ren|zuschauen|zusehen|mitschauen|"
+                r"aufmerksamkeit|interesse|dabei\s*sein)")
+    _FLOSKEL = (
+        r"untertitel\w*\b.*"
+        r"|amara\.org.*"
+        r"|copyright.*"
+        r"|abonniert.*"
+        # Allein oder mit beliebigem Dank-Objekt: das ist der Abspann.
+        # Dass dabei ein echter Dank des Predigers verlorengehen kann,
+        # ist in Kauf genommen -- er steht am Predigtende, wo ohnehin
+        # nichts mehr uebersetzt werden muss.
+        r"|vielen\s+dank"
+        # Mit Dank-Objekt nur, wenn das Objekt der Abspann selbst ist.
+        # Das alte Muster nahm "vielen dank fuer das|ihre|eure" mit
+        # BELIEBIGEM Objekt -- damit fiel auch "Vielen Dank fuer eure
+        # Gebete". Ein Prediger sagt das mitten in der Predigt.
+        r"|(vielen\s+|herzlichen\s+)?dank(e)?(\s+sch(ö|oe)n)?"
+        r"\s+f(ü|ue)rs?\s+"
+        r"(das\s+|die\s+|den\s+|ihre\s+|eure\s+|euer\s+|ihr\s+|dein\s+)?"
+        + _ABSPANN + r"\b.*"
+        # Ohne ".*": "Bis zum naechsten Mal werden wir den Abschnitt zu
+        # Ende lesen" ist ein Predigtsatz, "Bis zum naechsten Mal!" der
+        # Abspann. Der Unterschied ist, dass danach nichts mehr kommt.
+        r"|bis\s+zum\s+n(ä|ae)chsten\s+mal"
+        r"|tsch(ü|ue)ss"
+        r"|die\s+sendung\s+wurde.*"
+        r"|(wdr|ndr|zdf|ard|swr|mdr|rbb|arte)[\s-]?"
+        r"(mediagroup|presse|text).*"
+        r"|im\s+auftrag\s+(des|der)\s+(wdr|ndr|zdf|ard|swr|mdr|rbb).*"
+        r"|mit\s+freundlicher\s+unterst(ü|ue)tzung.*"
+    )
+    ERFUNDEN = re.compile(r"\W*(?:" + _FLOSKEL + r")\W*", re.IGNORECASE)
+
+    # Satzgrenze zum Abschneiden. Nur dort, wo auf ein Satzzeichen
+    # Leerraum folgt -- "Dr. Luther" soll kein Satzende sein.
+    SATZGRENZE = re.compile(r"(?<=[.!?…])\s+")
+
+    @classmethod
+    def floskel_kuerzen(cls, text):
+        """Schneidet Abspannfloskeln am Ende ab, laesst den Rest stehen.
+
+        "Gott segne euch. Vielen Dank fuers Zuhoeren." ist ein echter
+        Abschnitt mit einem angehaengten Abspann. Ihn ganz wegzuwerfen
+        kostet den Segen, ihn ganz zu behalten schickt den Abspann in
+        vier Sprachen auf die Handys."""
+        teile = [t for t in cls.SATZGRENZE.split((text or "").strip()) if t]
+        while len(teile) > 1 and cls.ERFUNDEN.fullmatch(teile[-1]):
+            teile.pop()
+        return " ".join(teile).strip()
 
     def sprache_raten(self, audio):
         """(Kennung, Wahrscheinlichkeit) -- welche Sprache klingt das?
@@ -742,8 +804,18 @@ class Werk:
 
         if not text:
             return ""
-        if self.ERFUNDEN.match(text):
+        # Erst der ganze Abschnitt, dann sein Ende: besteht er GANZ aus
+        # einer Floskel, faellt er; haengt sie nur hinten dran, faellt
+        # nur sie.
+        if self.ERFUNDEN.fullmatch(text):
+            self.erfunden_zahl += 1
             return ""
+        gekuerzt = self.floskel_kuerzen(text)
+        if gekuerzt != text:
+            self.erfunden_ende += 1
+            text = gekuerzt
+            if not text:
+                return ""
         # Ein Wort, das sich immer wiederholt, ist eine Schleife im Dekoder.
         woerter = text.lower().split()
         if len(woerter) >= 4 and len(set(woerter)) <= 2:
@@ -3505,7 +3577,7 @@ class Kanalscan:
         text = mass["text"]
         if not text:
             return "ton_ohne_sprache", "kein Text"
-        if werk.ERFUNDEN.match(text):
+        if werk.ERFUNDEN.fullmatch(werk.floskel_kuerzen(text) or text):
             return "ton_ohne_sprache", "Leerlaufphrase"
         woerter = text.lower().split()
         if len(woerter) >= 4 and len(set(woerter)) <= 2:
