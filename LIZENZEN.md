@@ -230,6 +230,13 @@ zwischen Mitliefern und Verweisen, und er ist Absicht.
 `namen_aus_bibel.py` aus einem Bibeltext extrahiert wurden. Namen und
 Stellenangaben sind Fakten, kein Textauszug.
 
+Seit 0.4.0 ist die Quelle die **Schlachter (1951)**, kapitelweise über
+[api.getbible.net](https://api.getbible.net) — dieselbe Übersetzung,
+aus der auch `zaehlung.json` stammt, und ihrem Alter nach gemeinfrei.
+Der Text wird geholt, ausgezählt und **weggeworfen**: in der Datei
+stehen 2538 Zeilen mit Name, Häufigkeit, Streuung und Kapitelliste.
+Keine Zeile Bibeltext.
+
 ## Bibelstellen-Zählungen
 
 `zaehlung.json` enthält, um wie viel sich eine Kapitel- oder

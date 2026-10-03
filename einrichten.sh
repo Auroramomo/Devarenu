@@ -324,8 +324,9 @@ fi
 if [ -f namen_block_b.csv ]; then
   # Nicht wc -l: die Datei hat mehr Zeilen als nutzbare Namen. Was der
   # Streuungsfilter als Allgemeinwort markiert hat, faellt beim Laden
-  # weg. Frueher stand hier 2237, wo der Server 1212 sieht -- zwei
-  # Zahlen fuer dieselbe Sache, und die falsche war die groessere.
+  # weg. Einmal stand hier die Zeilenzahl, wo der Server deutlich
+  # weniger sah -- zwei Zahlen fuer dieselbe Sache, und die falsche
+  # war die groessere.
   ANZAHL="$($PY -c 'from bibelstellen import Namensindex
 from pathlib import Path
 print(len(Namensindex.laden(Path("namen_block_b.csv")).eintraege))' 2>/dev/null)"
@@ -333,7 +334,8 @@ print(len(Namensindex.laden(Path("namen_block_b.csv")).eintraege))' 2>/dev/null)
 else
   warn "namen_block_b.csv fehlt. Der Server laeuft, aber das Kontextfeld"
   warn "am Pult findet keine Bibelnamen. Neu erzeugen mit:"
-  warn "  .venv/bin/python namen_aus_bibel.py --von 44 --bis 1951 bibel.pdf"
+  warn "  .venv/bin/python namen_aus_bibel.py --aus-bibeltext"
+  warn "Das holt den Bibeltext kapitelweise und braucht keine PDF."
 fi
 
 [ -f logo.png ] && gut "logo.png" || fehlt "logo.png (nur Optik)"

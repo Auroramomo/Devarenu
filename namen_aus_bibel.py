@@ -14,54 +14,53 @@ Ablauf:
     python namen_aus_bibel.py --probe bibel.pdf       # was gibt das PDF her?
     python namen_aus_bibel.py bibel.pdf               # ganzer Durchlauf
 
-WAS AN namen_block_b.csv HEUTE FEHLT (nachgezaehlt fuer 0.4.0)
+WOHER DIE LISTE IM REPO STAMMT (seit 0.4.0)
 
-Die Datei im Repo hat 2237 Zeilen und deckt **25 von 66 Buechern** ab.
-Daniel, die Koenige, die Chronik, Esra, Esther, Ruth, Richter, die
-Klagelieder, Amos, Obadja, Micha, Zephanja, alle vier Evangelien, alle
-Briefe und die Offenbarung bringen **null** Namen; aus der
-Apostelgeschichte stammt genau ein Kapitel. Wer heute "Daniel 7" oder
-"Offenbarung 13" eintraegt, bekommt einen Prompt ohne einen einzigen
-Namen -- also genau das, was dieses Modul verhindern soll.
+Nicht mehr aus einer Studienbibel-PDF, sondern aus dem Volltext der
+Schlachter (1951) ueber api.getbible.net -- kapitelweise, mit
+`--aus-bibeltext`. Dieselbe Uebersetzungsfamilie wie die Schlachter
+2000 im Betrieb und dieselbe Quelle, aus der zaehlung.json kommt.
 
-Dazu kommen drei Befunde, die beim Nachsehen aufgefallen sind:
+Das hat drei Maengel der alten Liste behoben:
 
-1. ABSICHT WAR ES NICHT. buch_abkuerzungen() ist gegen die
-   Querverweisspalte gebaut ("Hebr", "Offb", "2Pt") und filtert als
-   Nebenwirkung auch die AUSGESCHRIEBENEN Buchnamen -- und das sind die
-   Namen der grossen Gestalten: Mose, Petrus, Johannes, Daniel,
-   Nehemia, Samuel, Josua, Jesaja, Jeremia, Hesekiel, Hosea, Joel,
-   Jona, Micha, Nahum, Habakuk, Haggai, Sacharja, Maleachi, Esra,
-   Ruth, Hiob, Matthaeus, Markus, Lukas, Jakobus, Judas, Titus,
-   Philemon. 76 lange Formen stehen im Filter. Der Satz in
-   fuer_stellen() -- "Jesus und Jerusalem trifft Whisper ohnehin" --
-   begruendet die RANGFOLGE, nicht das Weglassen: Jerusalem und David
-   stehen sehr wohl in der Datei, nur weit hinten.
+  1. ABDECKUNG. Die alte deckte 25 von 66 Buechern ab; Daniel, die
+     Koenige, die Evangelien, alle Briefe und die Offenbarung brachten
+     NULL Namen. Jetzt sind es 66 von 66.
+  2. DIE NAMEN DER GROSSEN GESTALTEN. buch_abkuerzungen() ist gegen
+     die Querverweisspalte einer Studienbibel gebaut ("Hebr", "Offb",
+     "2Pt") und filterte als Nebenwirkung die AUSGESCHRIEBENEN
+     Buchnamen -- also gerade Mose, Petrus, Johannes, Daniel und
+     Nehemia. Reiner Bibeltext hat keine Querverweisspalte; der
+     Filter gilt darum nur noch fuer den PDF-Weg (NUR_PDF).
+  3. DIE KAPITELZUORDNUNG. stellen_index() ordnete einen Namen dem
+     Kolumnentitel seiner SEITE zu -- und auf derselben Seite stand
+     der Kommentar. "Paulus" trug damit 71 Kapitel, darunter
+     1. Mose 3 und Habakuk 1, und das Funktionswort "Obschon" trug
+     33. Jetzt ist ein Kapitel ein Kapitel: Paulus steht in 38.
 
-2. "Jesus" und "Elia" fehlen aus einem ANDEREN Grund. Sie stehen in
-   keiner Filterliste, und doch sind sie nicht in der Datei ("Eliab",
-   "Eliam", "Elias" schon). Woran die Begleiterquote oder der
-   Streuungsfilter sie hat scheitern lassen, laesst sich ohne das PDF
-   nicht sagen -- mit "--probe" auf den passenden Seiten waere es in
-   einer Minute geklaert.
+In Zahlen:
 
-3. DIE KAPITELZUORDNUNG IST GROB. stellen_index() ordnet einen Namen
-   dem Kolumnentitel seiner Seite zu. In einer Studienbibel steht auf
-   derselben Seite der Kommentar, und der nennt Paulus beim Auslegen
-   von 1. Mose. Darum traegt "Paulus" hier 71 Kapitel, darunter
-   1. Mose 3 und Habakuk 1, und das Funktionswort "Obschon" traegt
-   33 Kapitel. Fuer den Prompt ist das verschmerzlich -- ein Name zu
-   viel kostet einen Platz --, aber es erklaert, warum die Liste
-   laenger aussieht, als sie traegt.
+                           alt      neu
+    Zeilen                2237     2538
+    nutzbar (Server)      1212     2454
+    abgedeckte Buecher      25       66
 
-NEU BAUEN: dazu wird die Bibel-PDF gebraucht, aus der die heutige Liste
-entstanden ist. Sie liegt NICHT im Repo und darf auch nicht hinein
-(Urheberrecht, siehe LIZENZEN.md). Mit ihr ist es ein Befehl:
+Nachgebaut wird sie mit
 
-    python namen_aus_bibel.py /pfad/zur/bibel.pdf --ziel namen_block_b.csv
+    python namen_aus_bibel.py --aus-bibeltext --ziel namen_block_b.csv
 
-Danach gehoeren Vorher-Nachher-Zahlen in die Release-Notiz: Zeilen,
-abgedeckte Buecher, und ob Mose, Petrus und Daniel darin vorkommen.
+GESPEICHERT WIRD WEITER KEIN BIBELTEXT -- nur Namen, Haeufigkeiten und
+Kapitelangaben. Der Text wird geholt, ausgezaehlt und weggeworfen.
+Siehe LIZENZEN.md.
+
+Der PDF-Weg bleibt, unveraendert: wer eine andere Uebersetzung oder
+eine Studienbibel auswerten will, braucht ihn.
+
+OFFEN GEBLIEBEN: "Jesus" steht als "Jesu" in der Liste. Die
+Genitiv-Zusammenlegung in kandidaten() zieht "Jesus" auf "Jesu",
+weil die lateinische Beugung dort andersherum laeuft als die
+deutsche. Folgenlos -- der Name hat prompt_rang 3 und kommt nie in
+den Prompt, weil Whisper ihn ohnehin trifft.
 """
 
 import argparse
@@ -116,6 +115,8 @@ BUECHER = {
 KEINE_NAMEN = {
     "HERR", "HERRN", "HERRE", "GOTT", "Gott", "Gottes", "Herr", "Herrn",
     "Amen", "Halleluja", "Sela", "Kapitel", "Vers", "Buch", "Bibel",
+    # Die Schlachter setzt "(Pause)", wo andere "Sela" schreiben.
+    "Pause",
     "Seite", "Anmerkung", "Studienbibel", "Übersetzung", "Auflage",
     "Vorwort", "Inhalt", "Register", "Anhang", "Einleitung",
 }
@@ -189,7 +190,28 @@ def buch_abkuerzungen():
     return raus
 
 
-KEINE_NAMEN |= FUNKTIONSWOERTER | buch_abkuerzungen()
+# Die Buchabkuerzungen gehoeren zum PDF-Weg: eine Studienbibel hat eine
+# Querverweisspalte voller "Hebr", "Offb", "2Pt". Reiner Bibeltext hat
+# die nicht -- und dann filtert diese Liste nur noch die
+# AUSGESCHRIEBENEN Buchnamen weg, also gerade Mose, Petrus, Johannes,
+# Daniel und Nehemia. Genau deshalb fehlten sie bis 0.4.0 in
+# namen_block_b.csv.
+#
+# Darum zwei Mengen: die eine gilt immer, die andere nur fuer das PDF.
+KEINE_NAMEN |= FUNKTIONSWOERTER
+NUR_PDF = buch_abkuerzungen()
+
+
+def nur_pdf_sperren(an=True):
+    """Die Buchabkuerzungen dazunehmen oder weglassen."""
+    global KEINE_NAMEN
+    if an:
+        KEINE_NAMEN |= NUR_PDF
+    else:
+        KEINE_NAMEN -= NUR_PDF
+
+
+nur_pdf_sperren(True)
 
 WORT = re.compile(r"\b([A-ZÄÖÜ][a-zäöüßA-ZÄÖÜ\-]{3,})\b")
 STELLE = re.compile(r"(\d{1,3})[,:.](\d{1,3})")
@@ -300,7 +322,8 @@ ZAHLWOERTER = {"zwei", "drei", "vier", "fünf", "fuenf", "sechs", "sieben",
                "tausend", "viele", "wenige", "einige", "etliche"}
 
 
-def kandidaten(text, hoechste_begleiterquote=0.25):
+def kandidaten(text, hoechste_begleiterquote=0.25,
+               hoechste_satzanfangsquote=0.85, satzanfang_ab=5):
     """Trennt Eigennamen von normalen Substantiven.
 
     Ueber Gross- und Kleinschreibung geht es nicht: im Deutschen sind ALLE
@@ -315,10 +338,29 @@ def kandidaten(text, hoechste_begleiterquote=0.25):
     Das ist eine Heuristik, keine Grammatik. Sie irrt bei festen Wendungen
     wie "der Herr Zebaoth" und bei Voelkernamen mit Artikel. Fuer einen
     Whisper-Prompt ist das verschmerzbar: ein Wort zu viel kostet nur
-    Platz, ein Wort zu wenig kostet einen Verhoerer."""
+    Platz, ein Wort zu wenig kostet einen Verhoerer.
+
+    ZWEITES KRITERIUM: DER SATZANFANG.
+    
+    Den Begleiter uebersteht eine ganze Klasse von Nicht-Namen: Imperative
+    und Satzeinleiter. "Gehe", "Nimm", "Hoeret", "Darnach", "Mein" stehen
+    nie mit Artikel -- und standen bis 0.4.0 in der Namensliste.
+    Nachgemessen auf der ganzen Schlachter:
+
+        echte Namen       David 0,10  Mose 0,08  Petrus 0,18
+                          Jerusalem 0,02  Sanballat 0,00
+        Imperative u. a.  Gehe 1,00  Nimm 1,00  Hoeret 1,00
+                          Darnach 0,98  Mein 0,97  Oder 0,99
+
+    Ein Name kommt mitten im Satz vor, ein Imperativ fast nur davor. Die
+    Grenze liegt bei 0,85 -- weit von beiden Gruppen entfernt.
+
+    Erst ab `satzanfang_ab` Nennungen, damit ein seltener Name, der
+    zufaellig zweimal einen Satz eroeffnet, nicht herausfaellt."""
     gross = Counter()          # alle Vorkommen
     bewertbar = Counter()      # Vorkommen, an denen sich der Begleiter zeigt
     mit_begleiter = Counter()
+    am_anfang = Counter()      # Vorkommen als erstes Wort eines Satzes
 
     # Zeilenumbrueche zuerst zu Leerzeichen. In PDF-Text steht mitten im
     # Satz staendig ein Umbruch, und wuerde man daran trennen, gaelte jedes
@@ -347,6 +389,7 @@ def kandidaten(text, hoechste_begleiterquote=0.25):
             # Wuerde man es ganz ueberspringen, verloere man jeden Namen,
             # der nur einmal und dann satzeinleitend vorkommt.
             if i == 0:
+                am_anfang[wort] += 1
                 continue
             bewertbar[wort] += 1
             vorher = woerter[i - 1].strip(",;:()»«\"'").lower()
@@ -361,6 +404,9 @@ def kandidaten(text, hoechste_begleiterquote=0.25):
         pruefbar = bewertbar[wort]
         if pruefbar and mit_begleiter[wort] / pruefbar > hoechste_begleiterquote:
             continue
+        if n >= satzanfang_ab \
+                and am_anfang[wort] / n > hoechste_satzanfangsquote:
+            continue
         treffer[wort] = n
 
     # Genitivformen auf den Grundnamen ziehen: Adams zaehlt zu Adam,
@@ -370,6 +416,69 @@ def kandidaten(text, hoechste_begleiterquote=0.25):
         if wort.endswith("s") and wort[:-1] in treffer:
             treffer[wort[:-1]] += treffer.pop(wort)
     return treffer
+
+
+# --------------------------------------------- Bibeltext kapitelweise
+#
+# DER ZWEITE EINGABEWEG, und der bessere.
+#
+# Der PDF-Weg oben ordnet einen Namen dem Kolumnentitel seiner SEITE
+# zu. In einer Studienbibel steht auf derselben Seite der Kommentar,
+# und der nennt Paulus beim Auslegen von 1. Mose -- in der Liste von
+# 0.3.8 trug "Paulus" darum 71 Kapitel, darunter 1. Mose 3 und
+# Habakuk 1, und das Funktionswort "Obschon" trug 33.
+#
+# Hier kommt der Text kapitelweise und sauber: ueber api.getbible.net,
+# aus der Schlachter (1951) -- derselben Zaehlung, die auch
+# zaehlung.json zugrunde liegt, und derselben Uebersetzungsfamilie wie
+# die Schlachter 2000 im Betrieb. Damit ist die Kapitelangabe exakt
+# statt geschaetzt.
+#
+# GESPEICHERT WIRD WEITER KEIN BIBELTEXT. Der Text wird geholt,
+# ausgezaehlt und weggeworfen; in die CSV gehen Namen, Haeufigkeiten
+# und Kapitelangaben -- Fakten, kein Werk. Dasselbe Argument wie
+# bisher, siehe LIZENZEN.md.
+API = "https://api.getbible.net/v2/schlachter"
+
+
+def bibeltext_holen(lager=None):
+    """{(Buchname, Kapitelnummer): Text} fuer alle 66 Buecher.
+
+    lager ist ein Ordner mit <nr>.json, wie ihn
+    werkzeuge/zaehlung_bauen.py anlegt. Ohne lager wird geholt."""
+    import json
+    import urllib.request
+    namen = list(BUECHER)
+    aus = {}
+    for nr in range(1, 67):
+        if lager:
+            d = json.loads((Path(lager) / f"{nr}.json")
+                           .read_text(encoding="utf-8"))
+        else:
+            with urllib.request.urlopen(f"{API}/{nr}.json", timeout=60) as a:
+                d = json.loads(a.read().decode("utf-8"))
+        buch = namen[nr - 1]
+        for k in d["chapters"]:
+            aus[(buch, int(k["chapter"]))] = " ".join(
+                v["text"] for v in k["verses"])
+    return aus
+
+
+def stellen_index_genau(kapitel_texte, namen):
+    """Wie stellen_index(), nur exakt: ein Kapitel ist ein Kapitel.
+
+    Genitive werden mitgezaehlt. kandidaten() zieht "Adams" auf "Adam"
+    zusammen; stuende hier nur die Grundform, verlore ein Name, der im
+    Kapitel ausschliesslich im Genitiv vorkommt, seine Stelle."""
+    index = defaultdict(set)
+    for (buch, nr), text in kapitel_texte.items():
+        stelle = f"{buch} {nr}"
+        for wort in set(WORT.findall(text)):
+            if wort in namen:
+                index[wort].add(stelle)
+            elif wort.endswith("s") and wort[:-1] in namen:
+                index[wort[:-1]].add(stelle)
+    return index
 
 
 def stellen_index(text, namen):
@@ -430,12 +539,129 @@ def probe(pdf, von, bis):
     print("durcheinanderbringt.")
 
 
+def schreiben(ziel, namen, index, max_streuung, verdacht_ab=31):
+    """Die CSV. Dieselben Spalten und dieselben Regeln wie beim PDF-Weg.
+
+    DIE STREUUNG SAGT ERST AB EINER GEWISSEN HAEUFIGKEIT ETWAS.
+
+    Sie misst, in wie vielen verschiedenen Kapiteln ein Wort steht,
+    geteilt durch seine Nennungen. Der Gedanke: ein Eigenname buendelt
+    sich bei einer Person oder einem Ort, ein Allgemeinwort wie
+    "Mitternacht" verteilt sich ueber die ganze Bibel.
+
+    Bei zwei Nennungen in zwei Kapiteln ist die Streuung 1,0 -- und
+    das gilt fuer "Mahalaleels" genauso wie fuer "Frevel". Das Mass
+    hat dort keine Trennkraft.
+
+    Mit der ungenauen Seitenzuordnung des PDF-Weges fiel das nicht
+    auf: zwei Nennungen auf derselben Seite ergaben EIN Kapitel, also
+    Streuung 0,5. Mit kapitelgenauer Zuordnung schlug der Filter zu --
+    und verwarf 916 Namen mit zwei Nennungen, darunter Madai, Almodad,
+    Chazarmavet, Nebajoth, Morija. Also genau die, bei denen Whisper
+    sich verhoert, und damit der ganze Zweck dieser Liste.
+
+    Wo liegt die Grenze? Nachgezaehlt im Band 8 bis 30 Nennungen mit
+    Streuung ueber 0,75: 166 Woerter, und sie sind etwa halb und halb.
+    Gattungswoerter (Harfen, Gerste, Schuhe, Kummer, Getraenk, Briefe,
+    Gunst, Zittern, Jubel, Dank, Durst) neben echten Namen
+    (Timotheus, Gomorra, Beerseba, Nazareth, Gaza, Midian, Chamat,
+    Pheresiter, Ussiel). Dort verwirft der Filter so viel, wie er
+    gewinnt.
+
+    Ab 31 Nennungen trennt er: Mittag, Treue, Honig, Jugend, Norden,
+    Mitternacht, Milch, Steinen, Zorns, Kleidern, Geschenke, Mundes --
+    und als Beifang zwei Namen (Judaea, Zidon), die haeufig genug
+    sind, dass Whisper sie ohnehin kennt.
+
+    Darum 31. Was darunter durchrutscht, kostet einen Platz im Prompt;
+    was zu Unrecht herausfaellt, kostet einen Verhoerer. Das ist der
+    Tausch, und er geht in diese Richtung."""
+    zeilen = []
+    for wort, anzahl in sorted(namen.items(), key=lambda x: -x[1]):
+        stellen = sorted(index.get(wort, []))
+        streuung = len(stellen) / anzahl if anzahl else 0
+        zeilen.append({
+            "de": wort,
+            "haeufigkeit": anzahl,
+            "streuung": round(streuung, 2),
+            "verdacht": ("ja" if anzahl >= verdacht_ab
+                         and streuung > max_streuung else ""),
+            "prompt_rang": 1 if anzahl <= 20 else (2 if anzahl <= 200 else 3),
+            "kapitel_anzahl": len(stellen),
+            "kapitel": "|".join(stellen[:40]),
+        })
+    with open(ziel, "w", encoding="utf-8-sig", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=["de", "haeufigkeit", "streuung",
+                                           "verdacht", "prompt_rang",
+                                           "kapitel_anzahl", "kapitel"],
+                           delimiter=";")
+        w.writeheader()
+        w.writerows(zeilen)
+    return zeilen
+
+
+def aus_bibeltext(a):
+    """Der Weg ohne PDF: Text kapitelweise, Kapitelangabe exakt."""
+    # Die Buchabkuerzungen NICHT sperren -- reiner Bibeltext hat keine
+    # Querverweisspalte, und die Liste wuerde nur Mose, Petrus,
+    # Johannes, Daniel und Nehemia wegfiltern.
+    nur_pdf_sperren(False)
+
+    lager = a.aus_bibeltext or None
+    print("Bibeltext wird " + ("gelesen" if lager else "geholt") + " ...")
+    kapitel = bibeltext_holen(lager)
+    print(f"{len(kapitel)} Kapitel aus 66 Buechern, "
+          f"{sum(len(t.split()) for t in kapitel.values())} Woerter.")
+
+    ganz = " ".join(kapitel.values())
+    alle = kandidaten(ganz)
+    namen = {w: n for w, n in alle.items() if n >= a.min_haeufigkeit}
+    print(f"{len(alle)} Kandidaten, davon {len(namen)} ab "
+          f"{a.min_haeufigkeit} Nennungen.")
+
+    print("Stellenindex wird gebaut (kapitelgenau) ...")
+    index = stellen_index_genau(kapitel, set(namen))
+
+    if a.probe:
+        print("\n--- Probe, nichts geschrieben ---")
+        for wort, anzahl in Counter(namen).most_common(25):
+            print(f"  {anzahl:5}  {wort:22} "
+                  f"{len(index.get(wort, [])):4} Kapitel")
+        for wort in ("Mose", "Petrus", "Johannes", "Daniel", "Nehemia",
+                     "Elia", "Jesus", "Sanballat"):
+            st = sorted(index.get(wort, []))
+            print(f"  {wort:12} {namen.get(wort, 0):5} Nennungen, "
+                  f"{len(st):4} Kapitel  {', '.join(st[:3])}")
+        return
+
+    zeilen = schreiben(a.ziel, namen, index, a.max_streuung,
+                       a.verdacht_ab)
+    verdaechtig = sum(1 for z in zeilen if z["verdacht"])
+    leer = sum(1 for z in zeilen if not z["kapitel"])
+    buecher = {k.rsplit(" ", 1)[0] for z in zeilen
+               for k in z["kapitel"].split("|") if k}
+    print(f"\n{len(zeilen)} Namen nach {a.ziel}")
+    print(f"  mit Stellenzuordnung: {len(zeilen) - leer}")
+    print(f"  abgedeckte Buecher:   {len(buecher)} von 66")
+    print(f"  als Allgemeinwort verdaechtig: {verdaechtig} "
+          f"(Streuung ueber {a.max_streuung})")
+    print(f"  brauchbar: {len(zeilen) - verdaechtig}")
+    print("\nKein Bibeltext gespeichert -- nur Namen, Haeufigkeiten")
+    print("und Kapitelangaben. Siehe LIZENZEN.md.")
+
+
 def main():
     p = argparse.ArgumentParser(
         epilog="Seitenzahlen sind PDF-Seiten, nicht die gedruckten. In der "
                "MacArthur-Studienbibel beginnt der Bibeltext bei etwa "
                "PDF-Seite 44 und endet vor dem Anhang bei etwa 1951.")
-    p.add_argument("pdf")
+    p.add_argument("pdf", nargs="?",
+                   help="eine Bibel-PDF. Ohne sie: --aus-bibeltext")
+    p.add_argument("--aus-bibeltext", nargs="?", const="", default=None,
+                   metavar="ORDNER",
+                   help="statt der PDF den Text kapitelweise ueber "
+                        "api.getbible.net (Schlachter 1951). Mit einem "
+                        "Ordner: <nr>.json von dort lesen statt holen.")
     p.add_argument("--probe", action="store_true")
     p.add_argument("--von", type=int, default=None,
                    help="erste PDF-Seite, Vorwort und Einleitungen auslassen")
@@ -443,11 +669,19 @@ def main():
                    help="letzte PDF-Seite, Anhang und Register auslassen")
     p.add_argument("--max-streuung", type=float, default=0.75,
                    help="ab welcher Streuung ein Wort als Allgemeinwort gilt")
+    p.add_argument("--verdacht-ab", type=int, default=31,
+                   help="ab wie vielen Nennungen die Streuung ueberhaupt "
+                        "etwas aussagt")
     p.add_argument("--min-haeufigkeit", type=int, default=2,
                    help="seltener genannte Namen weglassen")
     p.add_argument("--ziel", default="namen_block_b.csv")
     a = p.parse_args()
 
+    if a.aus_bibeltext is not None:
+        return aus_bibeltext(a)
+
+    if not a.pdf:
+        sys.exit("Entweder eine PDF nennen oder --aus-bibeltext benutzen.")
     if not Path(a.pdf).exists():
         sys.exit(f"Nicht gefunden: {a.pdf}")
 
