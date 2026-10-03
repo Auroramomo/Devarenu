@@ -90,7 +90,8 @@ UNIT_ORDNER="${DEVARENU_UNIT_ORDNER:-/etc/systemd/system}"
 UNITS_GESICHERT="devarenu.service devarenu-stick@.service \
 devarenu-update.service devarenu-update.timer \
 devarenu-fenster.service devarenu-fenster.timer \
-devarenu-fenster-wecker.service"
+devarenu-fenster-wecker.service \
+devarenu-onlineupdate.service devarenu-onlineupdate.timer"
 UDEV_REGEL="${DEVARENU_UDEV_REGEL:-/etc/udev/rules.d/99-$NAME-stick.rules}"
 
 cd "$ORDNER"
@@ -312,7 +313,9 @@ done
 if [ -f "$UNIT_ORDNER/devarenu.service" ]; then
   for paar in "devarenu-fenster.service:devarenu-fenster.service.vorlage" \
               "devarenu-fenster.timer:devarenu-fenster.timer.vorlage" \
-              "devarenu-fenster-wecker.service:devarenu-fenster-wecker.service.vorlage"; do
+              "devarenu-fenster-wecker.service:devarenu-fenster-wecker.service.vorlage" \
+              "devarenu-onlineupdate.service:devarenu-onlineupdate.service.vorlage" \
+              "devarenu-onlineupdate.timer:devarenu-onlineupdate.timer.vorlage"; do
     unit="${paar%%:*}"; vorlage="${paar#*:}"
     ziel="$UNIT_ORDNER/$unit"
     [ -f "$ORDNER/$vorlage" ] || continue

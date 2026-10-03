@@ -110,7 +110,8 @@ EINHAENGEPUNKT=/run/devarenu-stick
 UNITS_GESICHERT="devarenu.service devarenu-stick@.service \
 devarenu-update.service devarenu-update.timer \
 devarenu-fenster.service devarenu-fenster.timer \
-devarenu-fenster-wecker.service"
+devarenu-fenster-wecker.service \
+devarenu-onlineupdate.service devarenu-onlineupdate.timer"
 
 # Die Kopie der Schluesselliste, gegen die die Signatur geprueft wird.
 # Sie bekommt BEWUSST keinen eigenen Schalter: eine Umgebungsvariable,

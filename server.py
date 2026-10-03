@@ -4372,6 +4372,10 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 # Eigennamen des Kapitels vorlegt, und das ist genau der
                 # Unterschied zwischen "Sanballat" und "San Ballard".
                 "kontext_fehlt": not lauf.werk.stt_prompt,
+                # Der Knopf "Jetzt aus dem Netz": steht er zur
+                # Verfuegung, und laeuft gerade einer?
+                "online_lauf": online_lauf() or None,
+                "online_vorgemerkt": (basis / "update" / "online-jetzt").exists(),
                 # Ob dieses Pult ueberhaupt am Gemeinde-PC selbst
                 # offen ist. Der Schalter wird sonst gar nicht
                 # angezeigt -- ein Knopf, der immer "geht nicht"
@@ -5308,6 +5312,66 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         print("Update: am Pult auf Einspielen gedrueckt.")
         return {"angenommen": True}
 
+    def online_lauf():
+        """Was der Knopf gerade tut, oder {}.
+
+        Geschrieben von wartungsfenster.sh --jetzt, hier nur gelesen --
+        wie bei stand.json. Der Umweg ueber eine Datei ist Absicht: das
+        Update startet den Dienst neu, und was sich der Server gemerkt
+        haette, waere genau dann weg, wenn die Meldung gebraucht wird."""
+        try:
+            d = json.loads((basis / "update" / "online-lauf.json")
+                           .read_text(encoding="utf-8"))
+            return d if isinstance(d, dict) else {}
+        except (OSError, ValueError):
+            return {}
+
+    @app.post("/api/update/online")
+    async def update_online(request: Request):
+        """Stoesst ein Update ueber das Netz an. Nur am Gemeinderechner.
+
+        DER SERVER BEKOMMT DAFUER KEIN RECHT. Er legt eine Datei in
+        seinem eigenen Ordner an -- update/online-jetzt --, und
+        devarenu-onlineupdate.timer sieht als root alle 30 Sekunden
+        danach. Kein sudo, kein Parameter, den jemand unterschieben
+        koennte. Derselbe Weg, den der Stick-Knopf seit 0.2.12 geht.
+
+        Ausdruecklich NICHT per Pult-Passwort aus dem Saal: das
+        Passwort ginge dort unverschluesselt ueber HTTP. Wer per
+        RustDesk auf den Bildschirm des Rechners sieht, bedient einen
+        Browser, der auf dem Rechner laeuft -- fuer den Server ist das
+        Loopback, und damit gilt er als am Rechner."""
+        if not nur_am_rechner(request):
+            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
+        if lauf.laeuft:
+            return JSONResponse({"grund": "uebersetzung"}, status_code=409)
+        # Ein zweiter Klick waehrend eines Laufs startet nichts Neues.
+        # Die Entscheidung gehoert hierher und nicht in die
+        # Oberflaeche: wer zwei Pulte offen hat, sieht auf dem einen
+        # noch den Stand von vorhin.
+        marke = basis / "update" / "online-jetzt"
+        if marke.exists() or online_lauf().get("lage") == "laeuft":
+            return JSONResponse({"grund": "laeuft_schon"}, status_code=409)
+        try:
+            marke.parent.mkdir(parents=True, exist_ok=True)
+            marke.write_text("", encoding="utf-8")
+        except OSError as e:
+            print(f"Update: Marke nicht schreibbar: {str(e)[:120]}")
+            return JSONResponse({"grund": "nicht_schreibbar"}, status_code=500)
+        print("Update: am Pult auf \"Jetzt aus dem Netz\" gedrueckt.")
+        # Laeuft der Timer gar nicht, holt niemand die Marke ab. Das
+        # gehoert gesagt, sonst wartet jemand vor einem Knopf, der
+        # gedrueckt ist und nichts tut.
+        timer = True
+        try:
+            r = subprocess.run(["systemctl", "is-enabled",
+                                "devarenu-onlineupdate.timer"],
+                               capture_output=True, text=True, timeout=5)
+            timer = r.stdout.strip() == "enabled"
+        except Exception:
+            pass
+        return {"angenommen": True, "timer": timer}
+
     @app.get("/pult")
     def pult():
         return HTMLResponse((basis / "pult.html").read_text(encoding="utf-8")
@@ -6115,6 +6179,20 @@ bleibt es so.</p>
 <p class=hin id=updatestand hidden></p>
 <button class=klein id=updateknopf onclick=updateJetzt() hidden
         data-t=upd_jetzt>Jetzt einspielen</button>
+<!-- Der Weg ueber das Netz. Nur am Gemeinde-PC selbst sichtbar: ein
+     Knopf, der aus dem Saal nur "geht nicht" sagt, ist schlechter als
+     keiner -- und ein Pult-Passwort wuerde das nicht ersetzen, es ginge
+     im Saalnetz unverschluesselt ueber HTTP. -->
+<div id=onlinereihe hidden>
+  <button class=klein id=onlineknopf onclick=onlineUpdate()
+          data-t=on_jetzt>Jetzt aus dem Netz aktualisieren</button>
+  <p class=hin data-t=on_hin>Holt die neueste geprüfte Fassung. Der
+  Rechner verbindet sich dafür mit dem eingetragenen Wartungs-WLAN;
+  steht keines zur Verfügung, wird die Verbindung benutzt, die gerade
+  besteht — zum Beispiel ein Handy-Hotspot. Der Dienst startet dabei
+  neu. Während einer laufenden Übersetzung geht es nicht.</p>
+  <p class=hin id=onlinestand hidden></p>
+</div>
 <p class=hin><label><input type=checkbox id=protokollschalter
   onchange=protokollSetzen()> <span data-t=protokoll_an>Mitschrift im
   Protokoll (nur zur Fehlersuche)</span></label></p>
@@ -6426,6 +6504,27 @@ const TEXTE={
    konto_kaputt:"Das angezeigte Spendenkonto ist ungültig. Bitte wende "
      +"dich an den Betreuer.",
    kontext_fehlt:"Thema und Bibelstellen fehlen. Prediger fragen.",
+   on_jetzt:"Jetzt aus dem Netz aktualisieren",
+   on_hin:"Holt die neueste geprüfte Fassung. Der Rechner verbindet "
+     +"sich dafür mit dem eingetragenen Wartungs-WLAN; steht keines zur "
+     +"Verfügung, wird die Verbindung benutzt, die gerade besteht — zum "
+     +"Beispiel ein Handy-Hotspot. Der Dienst startet dabei neu. "
+     +"Während einer laufenden Übersetzung geht es nicht.",
+   on_frage:"Jetzt aus dem Netz aktualisieren? Der Dienst startet dabei "
+     +"neu, die Zuhörer sind kurz getrennt.",
+   on_vorgemerkt:"Vorgemerkt. Es beginnt in höchstens 30 Sekunden.",
+   on_laeuft_netz:"Die Verbindung wird hergestellt …",
+   on_laeuft_update:"Das Update läuft. Der Dienst startet dabei neu.",
+   on_laeuft:"Das Update läuft …",
+   on_laeuft_schon:"Es läuft schon eines. Bitte abwarten.",
+   on_uebersetzung:"Erst die Übersetzung anhalten, dann aktualisieren.",
+   on_nur_am_rechner:"Das geht nur am Gemeinde-PC selbst.",
+   on_nicht_schreibbar:"Die Marke ließ sich nicht schreiben. Platte voll "
+     +"oder Rechte verstellt.",
+   on_kein_timer:"Angestoßen — aber der Timer dafür läuft nicht, also "
+     +"holt es niemand ab. Nachsehen: systemctl status "
+     +"devarenu-onlineupdate.timer",
+   on_ging_nicht:"Das ging nicht. Mehr steht im Journal.",
    loeschen:"Löschen",
    loeschen_frage:"„{d}“ wirklich löschen? Das lässt sich nicht "
      +"zurücknehmen.",
@@ -6637,6 +6736,27 @@ const TEXTE={
    konto_kaputt:"The donation account shown is invalid. Please contact "
      +"the maintainer.",
    kontext_fehlt:"Topic and Bible passages are missing. Ask the preacher.",
+   on_jetzt:"Update from the network now",
+   on_hin:"Fetches the newest verified version. The computer connects to "
+     +"the maintenance Wi-Fi for this; if none is available, it uses "
+     +"whatever connection is up — a phone hotspot, for instance. The "
+     +"service restarts in the process. Not while a translation is running.",
+   on_frage:"Update from the network now? The service restarts, so "
+     +"listeners are briefly disconnected.",
+   on_vorgemerkt:"Queued. It starts within 30 seconds.",
+   on_laeuft_netz:"Establishing the connection …",
+   on_laeuft_update:"The update is running. The service restarts in the "
+     +"process.",
+   on_laeuft:"The update is running …",
+   on_laeuft_schon:"One is already running. Please wait.",
+   on_uebersetzung:"Pause the translation first, then update.",
+   on_nur_am_rechner:"This only works on the church computer itself.",
+   on_nicht_schreibbar:"The marker could not be written. Disk full or "
+     +"permissions changed.",
+   on_kein_timer:"Queued — but the timer for it is not running, so "
+     +"nothing will pick it up. Check: systemctl status "
+     +"devarenu-onlineupdate.timer",
+   on_ging_nicht:"That did not work. Details are in the log.",
    loeschen:"Delete",
    loeschen_frage:"Really delete \u201c{d}\u201d? This cannot be undone.",
    loeschen_laeuft:"This recording is running. Stop it first.",
@@ -6982,6 +7102,44 @@ async function aufnahmeLoeschen(name){
     alert(t["loeschen_"+(d.grund||"")] || t.loeschen_ging_nicht);
   }
   aufnahmenLaden();
+}
+
+// ------------------------------------------- Jetzt aus dem Netz
+function onlineUpdateAnzeigen(d){
+  // Nur am Gemeinde-PC. Dieselbe Schranke wie beim Testprotokoll.
+  onlinereihe.hidden = !d.am_rechner;
+  if(onlinereihe.hidden) return;
+  const t = TEXTE[UI];
+  const l = d.online_lauf;
+  const laeuft = d.online_vorgemerkt || (l && l.lage === "laeuft");
+  onlineknopf.disabled = !!(laeuft || d.live);
+  onlineknopf.title = d.live ? t.on_uebersetzung : "";
+  let satz = "";
+  if(d.online_vorgemerkt && !(l && l.lage === "laeuft")) satz = t.on_vorgemerkt;
+  else if(l && l.lage === "laeuft")
+    satz = t["on_laeuft_" + (l.schritt||"")] || t.on_laeuft;
+  // Ergebnis und Fehlschlag kommen als Satz aus dem Skript. Der ist
+  // deutsch -- aber er nennt Fassungsnummern und Pfade, und die
+  // uebersetzt niemand. Besser der Satz als gar keine Auskunft.
+  else if(l && l.text) satz = l.text;
+  onlinestand.hidden = !satz;
+  if(satz) onlinestand.textContent = satz;
+}
+
+async function onlineUpdate(){
+  const t = TEXTE[UI];
+  if(!confirm(t.on_frage)) return;
+  onlineknopf.disabled = true;
+  const a = await fetch("/api/update/online",{method:"POST"});
+  const d = await a.json().catch(()=>({}));
+  onlinestand.hidden = false;
+  if(a.ok){
+    onlinestand.textContent = d.timer === false ? t.on_kein_timer
+                                                : t.on_vorgemerkt;
+  }else{
+    onlinestand.textContent = t["on_"+(d.grund||"")] || t.on_ging_nicht;
+    onlineknopf.disabled = false;
+  }
 }
 
 let zustandLive=false;
@@ -7630,6 +7788,7 @@ async function lies(){
     meldeschalter.checked = !!d.nutzung_melden;
     kontowarnung.hidden = !d.spendenkonto;
     kontextwarnung.hidden = !d.kontext_fehlt;
+    onlineUpdateAnzeigen(d);
     if(d.spendenkonto) kontowarnungtext.textContent = TEXTE[UI].konto_kaputt;
     pruefprotokollreihe.hidden = !d.am_rechner;
     pruefprotokollAnzeigen(d.pruefprotokoll || null);

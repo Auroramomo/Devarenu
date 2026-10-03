@@ -1995,6 +1995,59 @@ Danach noch von Hand:
 bash anleitung_bauen.sh      # das Zuhörer-PDF in der neuen Sprache
 ```
 
+### Der Knopf „Jetzt aus dem Netz aktualisieren"
+
+Am Pult unter *Einrichtung*, seit 0.4.0. Er spart den Weg ins Terminal
+— niemand muss `bash aktualisieren.sh` tippen.
+
+**Nur am Gemeinde-PC selbst.** Dieselbe Schranke wie bei Aufnahmen und
+Testprotokoll (`nur_am_rechner`). Ein Pult-Passwort würde das nicht
+ersetzen: es ginge im Saalnetz unverschlüsselt über HTTP, und ein
+Update, das sich von dort anstoßen lässt, ist ein Update, das jeder
+anstoßen kann, der im WLAN ist. **Über RustDesk geht es**, denn dort
+läuft der Browser auf dem Rechner selbst — für den Server ist das
+Loopback.
+
+**Warum ein Marker und kein `sudo`.** Der Server läuft als `devarenu`,
+das Update braucht root. Eine `sudo`-Regel für den Dienstbenutzer stünde
+dauerhaft offen, und wer den Server übernimmt, übernimmt sie mit.
+Stattdessen legt der Server eine Datei in seinem eigenen Ordner an —
+`update/online-jetzt` —, und `devarenu-onlineupdate.timer` sieht als
+root alle 30 Sekunden danach. Der Dienst bekommt **kein einziges Recht
+mehr**, als er ohnehin hat: es gibt keinen Parameter, den er
+unterschieben könnte, und keinen Befehl, den er wählen kann. Derselbe
+Weg, den der Stick-Knopf seit 0.2.12 geht.
+
+Der Preis sind bis zu 30 Sekunden, bis etwas passiert. Das steht am
+Pult, sonst drückt jemand ein zweites Mal.
+
+**Der Ablauf** (`wartungsfenster.sh --jetzt`, als root):
+
+1. Läuft eine Übersetzung? Dann nichts, mit Begründung am Pult.
+2. Fenster-Timer anhalten — sonst stolpert er mitten im Update über
+   ein Repo, das gerade vorgespult wird.
+3. Das eingetragene Wartungs-WLAN verbinden. Gibt es keines oder lässt
+   es sich nicht verbinden, wird die Verbindung benutzt, **die gerade
+   besteht** — etwa ein Handy-Hotspot, den der Helfer per Klick
+   verbunden hat. Getrennt wird am Ende nur, was Devarenu selbst
+   verbunden hat.
+4. `aktualisieren.sh`, als Dienstbenutzer (ihm gehört das Repo).
+5. Rückmeldung über `meldung.sh`, **solange das WLAN noch steht**.
+6. Trennen, Timer wieder an.
+
+Fortschritt und Ergebnis stehen in `update/online-lauf.json` und damit
+am Pult. **Ein zweiter Klick während eines Laufs startet nichts Neues**
+— die Entscheidung sitzt im Server, nicht in der Oberfläche: wer zwei
+Pulte offen hat, sieht auf dem einen noch den Stand von vorhin.
+
+**Stromausfall mitten im Update.** Dann steht in
+`online-lauf.json` weiter „läuft", und niemand hat es beendet. Beim
+nächsten Hochfahren berichtigt `--jetzt-aufraeumen` das auf
+„abgebrochen" mit dem Hinweis auf `pruefen.sh`; der Systemcheck meldet
+es ebenfalls. Zurückgerollt hat sich `aktualisieren.sh` selbst, falls
+es bis dahin kam — und ein Repo mit halbem Stand lässt es beim nächsten
+Lauf nicht an sich heran, sondern bricht ab und sagt es.
+
 ### Das Glossar aktiv schalten
 
 Seit 0.4.0 ist `config.GLOSSAR_CSV` = `glossar_v0.9.csv`. Davor zeigte

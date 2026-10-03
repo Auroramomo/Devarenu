@@ -46,6 +46,10 @@ AUSSCHALTEN="${DEVARENU_POWEROFF:-systemctl poweroff}"
 # Die Unit, die den Wecker als root stellt. Der laengere Name ist
 # Absicht, siehe devarenu-fenster-wecker.service.vorlage.
 WECKER_UNIT_NAME="${DEVARENU_WECKER_UNIT:-devarenu-fenster-wecker.service}"
+# Auch systemctl als Attrappe setzbar. Der Pruefstand soll den Weg
+# "Knopf gedrueckt -> Update gelaufen" durchspielen koennen, ohne
+# Dienste auf dem Rechner anzufassen, auf dem er laeuft.
+SYSTEMCTL="${DEVARENU_SYSTEMCTL:-systemctl}"
 
 blau() { printf '\n\033[1;34m== %s\033[0m\n' "$*"; }
 gut()  { printf '   \033[32mok\033[0m   %s\n' "$*"; }
@@ -230,6 +234,90 @@ Datum:    $(date '+%Y-%m-%d')" >/dev/null 2>&1; then
 # Laeuft nur im Fenster, nur mit Schalter, nur einmal je Fenster und
 # nie waehrend einer Uebersetzung. Die Pruefung der Signatur macht
 # aktualisieren.sh -- hier wird nichts gelockert, was dort gilt.
+# --------------------------------------------- Der Kern eines Updates
+#
+# Dieselben Schritte fuer beide Wege: das Autoupdate im Fenster und den
+# Knopf "Jetzt aktualisieren" am Pult. Was sich unterscheidet, ist die
+# Vorbedingung drumherum -- nicht das Einspielen selbst. Zwei Kopien
+# davon waeren zwei Baustellen.
+#
+# Rueckgabe ueber Globale, weil bash keine Verbuende kennt.
+KERN_VORHER="" KERN_NACHHER="" KERN_DAUER="" KERN_ERGEBNIS="" KERN_VORRAT=""
+
+update_kern() {  # $1 Anlass (fuer die Meldungen), $2 Protokolldatei
+  local anlass="$1" protokoll="$2" rc=0 t0
+  KERN_VORHER="$(tr -d '[:space:]' < "$ORDNER/VERSION" 2>/dev/null)"
+  t0="$(date +%s)"
+
+  # Als BENUTZER, nicht als Wurzel: dem gehoert das Repo. Liefen die
+  # git-Befehle als root, blieben root-eigene Objekte in .git zurueck
+  # und der Dienst kaeme an sein eigenes Repo nicht mehr heran.
+  # aktualisieren.sh holt sich Privilegiertes selbst.
+  if [ "$(id -u)" = 0 ] && [ "$BENUTZER" != root ]; then
+    runuser -u "$BENUTZER" -- bash "$ORDNER/aktualisieren.sh" \
+      > "$protokoll" 2>&1 || rc=$?
+  else
+    bash "$ORDNER/aktualisieren.sh" > "$protokoll" 2>&1 || rc=$?
+  fi
+  chmod 600 "$protokoll" 2>/dev/null || true
+
+  KERN_NACHHER="$(tr -d '[:space:]' < "$ORDNER/VERSION" 2>/dev/null)"
+  KERN_DAUER=$(( $(date +%s) - t0 ))
+  sed 's/\x1b\[[0-9;]*m//g' "$protokoll" | tail -20 | sed 's/^/   /'
+
+  if [ "$rc" = 0 ] && [ "$KERN_VORHER" != "$KERN_NACHHER" ]; then
+    KERN_ERGEBNIS="eingespielt"
+    gut "$KERN_VORHER -> $KERN_NACHHER in ${KERN_DAUER}s"
+  elif [ "$rc" = 0 ]; then
+    KERN_ERGEBNIS="nichts zu tun"
+    gut "kein neueres Tag, Fassung bleibt $KERN_NACHHER"
+  else
+    KERN_ERGEBNIS="GESCHEITERT"
+    warn "$anlass ist gescheitert (Rueckgabe $rc)."
+  fi
+
+  # Den Reparaturvorrat gleich mitziehen.
+  #
+  # Er traegt die Fassung, zu der er gebaut wurde; nach jedem Update
+  # meldet der Systemcheck sonst "Der Vorrat gehoert zu Fassung X".
+  # Das ist richtig und stand bisher jede Woche da -- und eine
+  # Meldung, die nach jedem Update erscheint und nie etwas aufhaelt,
+  # bringt einem bei, die Liste zu ueberblaettern.
+  #
+  # Nur nach einem gelungenen Update, nur solange das WLAN steht, und
+  # ein Fehlschlag steht bloss in der Rueckmeldung: der Vorrat ist
+  # eine Vorsichtsmassnahme, kein Betriebsmittel.
+  KERN_VORRAT=""
+  if [ "$KERN_ERGEBNIS" = "eingespielt" ] && [ -f "$ORDNER/vorrat_bauen.sh" ]; then
+    info "Reparaturvorrat wird nachgezogen ..."
+    if bash "$ORDNER/vorrat_bauen.sh" >> "$protokoll" 2>&1; then
+      gut "Vorrat auf $KERN_NACHHER nachgezogen"
+      KERN_VORRAT="Vorrat nachgezogen."
+    else
+      warn "Der Vorrat liess sich nicht nachziehen."
+      info "Kein Grund zur Eile -- er ist eine Vorsichtsmassnahme."
+      KERN_VORRAT="Vorrat NICHT nachgezogen (siehe Protokoll)."
+    fi
+  fi
+  return 0
+}
+
+# Die Rueckmeldung, SOLANGE DAS WLAN NOCH STEHT. Nach dem
+# Herunterfahren ginge nichts mehr hinaus, und dann wuesste niemand,
+# dass etwas schiefging.
+update_melden() {  # protokoll vorher nachher ergebnis dauer vorrat
+  [ -f "$ORDNER/meldung.sh" ] || return 0
+  bash "$ORDNER/meldung.sh" "Devarenu $(hostname): $4" \
+"Fassung vorher:  ${2:-unbekannt}
+Fassung nachher: ${3:-unbekannt}
+Ergebnis:        $4
+Dauer:           ${5}s
+${6:+Vorrat:          $6}
+
+$(sed 's/\x1b\[[0-9;]*m//g' "$1" | tail -25)" >/dev/null 2>&1 \
+    || warn "Die Rueckmeldung ging nicht hinaus, sie liegt vorgemerkt."
+}
+
 autoupdate_laufen() {
   [ "$AUTOUPDATE" = ja ] || return 1
   [ "$IM_FENSTER" = ja ] || return 1
@@ -252,41 +340,10 @@ autoupdate_laufen() {
   chmod 711 "$ABLAGE" 2>/dev/null || true
   : > "$marke"
 
-  local vorher; vorher="$(tr -d '[:space:]' < "$ORDNER/VERSION" 2>/dev/null)"
   local protokoll="$ABLAGE/autoupdate-$FENSTERKENNUNG.log"
-  local t0; t0="$(date +%s)"
-  local rc=0
-
-  # Als BENUTZER, nicht als Wurzel: dem gehoert das Repo. Liefen die
-  # git-Befehle als root, blieben root-eigene Objekte in .git zurueck
-  # und der Dienst kaeme an sein eigenes Repo nicht mehr heran.
-  # aktualisieren.sh holt sich Privilegiertes selbst.
-  if [ "$(id -u)" = 0 ] && [ "$BENUTZER" != root ]; then
-    runuser -u "$BENUTZER" -- bash "$ORDNER/aktualisieren.sh" \
-      > "$protokoll" 2>&1 || rc=$?
-  else
-    bash "$ORDNER/aktualisieren.sh" > "$protokoll" 2>&1 || rc=$?
-  fi
-  chmod 600 "$protokoll" 2>/dev/null || true
-
-  local nachher; nachher="$(tr -d '[:space:]' < "$ORDNER/VERSION" 2>/dev/null)"
-  local dauer=$(( $(date +%s) - t0 ))
-  sed 's/\x1b\[[0-9;]*m//g' "$protokoll" | tail -20 | sed 's/^/   /'
-
-  # Die Rueckmeldung, SOLANGE DAS WLAN NOCH STEHT. Nach dem
-  # Herunterfahren ginge nichts mehr hinaus, und dann wuesste niemand,
-  # dass etwas schiefging.
-  local ergebnis
-  if [ "$rc" = 0 ] && [ "$vorher" != "$nachher" ]; then
-    ergebnis="eingespielt"
-    gut "$vorher -> $nachher in ${dauer}s"
-  elif [ "$rc" = 0 ]; then
-    ergebnis="nichts zu tun"
-    gut "kein neueres Tag, Fassung bleibt $nachher"
-  else
-    ergebnis="GESCHEITERT"
-    warn "Das Autoupdate ist gescheitert (Rueckgabe $rc)."
-  fi
+  update_kern "Autoupdate" "$protokoll"
+  local vorher="$KERN_VORHER" nachher="$KERN_NACHHER"
+  local dauer="$KERN_DAUER" ergebnis="$KERN_ERGEBNIS"
 
   # Den Reparaturvorrat gleich mitziehen.
   #
@@ -301,32 +358,9 @@ autoupdate_laufen() {
   # eine Vorsichtsmassnahme, kein Betriebsmittel. Dass er eine
   # Fassung hinterherhinkt, hat noch nie einen Gottesdienst
   # aufgehalten.
-  local vorrat_satz=""
-  if [ "$ergebnis" = "eingespielt" ] && [ -f "$ORDNER/vorrat_bauen.sh" ]; then
-    info "Reparaturvorrat wird nachgezogen ..."
-    if bash "$ORDNER/vorrat_bauen.sh" >> "$protokoll" 2>&1; then
-      gut "Vorrat auf $nachher nachgezogen"
-      vorrat_satz="Vorrat nachgezogen."
-    else
-      warn "Der Vorrat liess sich nicht nachziehen."
-      info "Kein Grund zur Eile -- er ist eine Vorsichtsmassnahme."
-      vorrat_satz="Vorrat NICHT nachgezogen (siehe Protokoll)."
-    fi
-  fi
-
-  # Die Rueckmeldung ZULETZT, damit der Vorrat darin vorkommt --
-  # und solange das WLAN noch steht.
-  if [ -f "$ORDNER/meldung.sh" ]; then
-    bash "$ORDNER/meldung.sh" "Devarenu $(hostname): $ergebnis" \
-"Fassung vorher:  ${vorher:-unbekannt}
-Fassung nachher: ${nachher:-unbekannt}
-Ergebnis:        $ergebnis
-Dauer:           ${dauer}s
-${vorrat_satz:+Vorrat:          $vorrat_satz}
-
-$(sed 's/\x1b\[[0-9;]*m//g' "$protokoll" | tail -25)" >/dev/null 2>&1 \
-      || warn "Die Rueckmeldung ging nicht hinaus, sie liegt vorgemerkt."
-  fi
+  local vorrat_satz="$KERN_VORRAT"
+  update_melden "$protokoll" "$vorher" "$nachher" "$ergebnis" \
+                "$dauer" "$vorrat_satz"
 
   # Erfolg oder nichts zu tun -> aus, wenn so eingestellt.
   # Fehlgeschlagen -> an bleiben. Der Rechner ist zurueckgerollt und
@@ -342,6 +376,152 @@ $(sed 's/\x1b\[[0-9;]*m//g' "$protokoll" | tail -25)" >/dev/null 2>&1 \
     $AUSSCHALTEN
   fi
   return 0
+}
+
+# -------------------------------------- Der Knopf "Jetzt aktualisieren"
+#
+# WARUM EIN MARKER UND KEIN sudo
+#
+# Der Server laeuft als devarenu, das Update braucht root. Statt einer
+# sudo-Regel, die dauerhaft offenstuende, legt der Server eine Datei an
+# -- update/online-jetzt -- und ein Timer, der als root laeuft, sieht
+# alle 30 Sekunden danach. Derselbe Weg, den der Stick-Knopf seit
+# 0.2.12 geht, und derselbe Grund: der Dienst bekommt kein einziges
+# Recht mehr, als er ohnehin hat. Er kann eine Datei in seinem eigenen
+# Ordner anlegen. Mehr nicht.
+#
+# Der Preis sind bis zu 30 Sekunden Wartezeit. Die stehen am Pult, denn
+# sonst drueckt jemand ein zweites Mal.
+LAUF_DATEI="$ORDNER/update/online-lauf.json"
+MARKE_JETZT="$ORDNER/update/online-jetzt"
+# Laenger als das hier darf ein Lauf nicht "laeuft" melden. Danach ist
+# etwas dazwischengekommen -- Strom weg, Dienst erschlagen -- und die
+# Datei luegt. 20 Minuten: aktualisieren.sh samt Selbsttest und Vorrat
+# braucht im schlechtesten Fall ein paar Minuten.
+LAUF_FRIST=1200
+
+lauf_schreiben() {  # lage schritt [text]
+  mkdir -p "$ORDNER/update" 2>/dev/null || true
+  cat > "$LAUF_DATEI" <<ENDE
+{
+  "lage": "$1",
+  "schritt": "$2",
+  "text": "${3:-}",
+  "seit": ${LAUF_SEIT:-$(date +%s)},
+  "zeit": "$(date '+%Y-%m-%d %H:%M:%S')"
+}
+ENDE
+  chmod 644 "$LAUF_DATEI" 2>/dev/null || true
+  chown "$BENUTZER" "$LAUF_DATEI" 2>/dev/null || true
+}
+
+# Steht schon eine Verbindung? Dann ist das der Hotspot, den der
+# Helfer eben per Klick verbunden hat -- und der soll benutzt werden,
+# nicht getrennt. "connected" ist die Antwort von NetworkManager,
+# wenn irgendeine Verbindung traegt.
+netz_steht() {
+  [ "$($NMCLI -t -f STATE general 2>/dev/null | head -1)" = connected ]
+}
+
+jetzt_laufen() {
+  LAUF_SEIT="$(date +%s)"
+  blau "Jetzt aktualisieren (vom Pult angestossen)"
+
+  if [ "$(id -u)" != 0 ]; then
+    warn "Dieser Weg laeuft als root, ueber devarenu-onlineupdate.service."
+    info "Von Hand geht es einfacher:  bash aktualisieren.sh"
+    return 1
+  fi
+
+  # Die Marke ZUERST weg. Geht unten etwas schief, soll der Timer es
+  # nicht in dreissig Sekunden erneut versuchen -- und nach einem
+  # Fehlschlag jedes Mal wieder in denselben Fehlschlag.
+  rm -f "$MARKE_JETZT"
+
+  if [ "$(uebersetzung_laeuft)" = ja ]; then
+    warn "Es wird uebersetzt. Das Update wartet."
+    lauf_schreiben gescheitert uebersetzung \
+      "Es wird uebersetzt. Erst die Uebersetzung anhalten."
+    return 1
+  fi
+
+  # Der Fenster-Timer aus, solange der Lauf geht. Sonst stolpert er
+  # mitten im Update ueber ein Repo, das gerade vorgespult wird.
+  local timer_war_an=nein
+  if $SYSTEMCTL is-active --quiet devarenu-fenster.timer 2>/dev/null; then
+    timer_war_an=ja
+    $SYSTEMCTL stop devarenu-fenster.timer >/dev/null 2>&1 \
+      && gut "Fenster-Timer angehalten"
+  fi
+
+  # Das WLAN. Erst das eingetragene Profil; gibt es keines oder laesst
+  # es sich nicht verbinden, wird genommen, was steht -- ein
+  # Handy-Hotspot zum Beispiel, den der Helfer eben verbunden hat.
+  # Getrennt wird am Ende nur, was WIR verbunden haben.
+  local wir_verbanden=nein
+  lauf_schreiben laeuft netz "Verbindung wird hergestellt"
+  if [ -n "$PROFIL" ] \
+     && ! $NMCLI -t -f NAME connection show --active 2>/dev/null \
+          | grep -qxF "$PROFIL"; then
+    if $NMCLI connection up "$PROFIL" >/dev/null 2>&1; then
+      gut "$PROFIL verbunden"
+      wir_verbanden=ja
+    else
+      warn "$PROFIL liess sich nicht verbinden."
+    fi
+  fi
+  if ! netz_steht; then
+    warn "Kein Netz. Es gibt nichts zu holen."
+    lauf_schreiben gescheitert netz \
+      "Kein Netz. Entweder das Wartungs-WLAN in Reichweite bringen oder am Rechner ein Handy-WLAN verbinden."
+    [ "$timer_war_an" = ja ] && $SYSTEMCTL start devarenu-fenster.timer >/dev/null 2>&1
+    return 1
+  fi
+  if [ "$wir_verbanden" = nein ]; then
+    info "Die bestehende Verbindung wird benutzt und bleibt stehen."
+  fi
+
+  mkdir -p "$ABLAGE"; chmod 711 "$ABLAGE" 2>/dev/null || true
+  local protokoll="$ABLAGE/jetzt-$(date +%Y%m%d-%H%M%S).log"
+  lauf_schreiben laeuft update "Das Update laeuft. Der Dienst startet dabei neu."
+  update_kern "Das Update" "$protokoll"
+
+  update_melden "$protokoll" "$KERN_VORHER" "$KERN_NACHHER" \
+                "$KERN_ERGEBNIS" "$KERN_DAUER" "$KERN_VORRAT"
+
+  if [ "$wir_verbanden" = ja ]; then
+    trennen
+  fi
+  [ "$timer_war_an" = ja ] \
+    && $SYSTEMCTL start devarenu-fenster.timer >/dev/null 2>&1 \
+    && gut "Fenster-Timer wieder an"
+
+  if [ "$KERN_ERGEBNIS" = "GESCHEITERT" ]; then
+    lauf_schreiben gescheitert fertig \
+      "Das Update ist gescheitert. Die alte Fassung ${KERN_NACHHER:-?} laeuft weiter. Einzelheiten: $protokoll"
+    return 1
+  fi
+  lauf_schreiben fertig fertig \
+    "${KERN_ERGEBNIS}. Fassung ${KERN_VORHER:-?} -> ${KERN_NACHHER:-?} in ${KERN_DAUER}s.${KERN_VORRAT:+ $KERN_VORRAT}"
+  return 0
+}
+
+# Ein Lauf, der "laeuft" meldet und dessen Frist abgelaufen ist, hat
+# sie nicht selbst beendet -- da war der Strom weg oder der Dienst
+# erschlagen. Das gehoert gesagt und nicht als "laeuft" stehengelassen,
+# sonst wartet am Pult jemand auf etwas, das nie fertig wird.
+lauf_aufraeumen() {
+  [ -f "$LAUF_DATEI" ] || return 0
+  grep -q '"lage": *"laeuft"' "$LAUF_DATEI" || return 0
+  local seit jetzt
+  seit="$(sed -n 's/.*"seit": *\([0-9]*\).*/\1/p' "$LAUF_DATEI" | head -1)"
+  jetzt="$(date +%s)"
+  [ -n "$seit" ] || return 0
+  [ $(( jetzt - seit )) -gt "$LAUF_FRIST" ] || return 0
+  LAUF_SEIT="$seit"
+  lauf_schreiben abgebrochen fertig \
+    "Der Lauf hat sich nicht gemeldet. Vermutlich war der Strom weg. Mit  bash pruefen.sh  nachsehen, welche Fassung laeuft."
+  warn "Ein alter Update-Lauf stand auf \"laeuft\" und ist jetzt als abgebrochen vermerkt."
 }
 
 # --------------------------------------------------------- Auto-Aus
@@ -513,6 +693,17 @@ case "${1:---zeigen}" in
   --wecker)
     wecker_stellen ;;
 
+  --jetzt)
+    # Wird von devarenu-onlineupdate.service aufgerufen, nicht von Hand.
+    lauf_aufraeumen
+    [ -f "$MARKE_JETZT" ] || exit 0
+    jetzt_laufen; exit $? ;;
+
+  --jetzt-aufraeumen)
+    # Beim Hochfahren: einen Lauf, der nie fertig wurde, als solchen
+    # vermerken.
+    lauf_aufraeumen; exit 0 ;;
+
   --pruefen)
     if [ "$AN" != ja ]; then
       # Kein Wort, kein Eingriff. Diese Fassung laeuft auch auf
@@ -545,6 +736,7 @@ case "${1:---zeigen}" in
     echo "Unbekannt: $1"
     echo "  --zeigen | --einschalten | --ausschalten"
     echo "  --autoupdate ja|nein | --berichte ja|nein"
+    echo "  --jetzt                 (vom Pult angestossen, braucht root)"
     echo "  --pruefen | --wecker"
     exit 2 ;;
 esac

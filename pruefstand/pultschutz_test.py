@@ -214,6 +214,21 @@ try:
     pruefe("der Fehlerbericht auch", 200,
            holen("/fehlerbericht.txt?schnell=1")[0])
 
+    # Der Knopf "Jetzt aus dem Netz" ist ein Sonderfall: er haengt
+    # NICHT am Pult-Passwort, sondern an nur_am_rechner. Darum gilt er
+    # auch ohne Passwort nur am Rechner selbst -- ein Passwort ginge im
+    # Saalnetz unverschluesselt ueber HTTP, und ein Update, das sich
+    # von dort anstossen laesst, ist ein Update, das jeder anstossen
+    # kann, der im WLAN ist.
+    saal_frueh = eigene_adresse()
+    if saal_frueh:
+        print("\n   -- der Update-Knopf, ohne Passwort --")
+        pruefe("aus dem Saal: 403", 403,
+               holen("/api/update/online", daten="{}",
+                     gastgeber=saal_frueh)[0])
+        pruefe("die Marke wurde nicht angelegt", False,
+               (ARBEIT / "update" / "online-jetzt").exists())
+
     print("\n   -- Passwort setzen (vom Pult aus) --")
     status, _ = holen("/api/pult-passwort", daten='{"passwort":"Gemeinde2026"}')
     pruefe("das Setzen wird angenommen", 200, status)

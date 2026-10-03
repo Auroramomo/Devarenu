@@ -35,6 +35,8 @@ UDEV_REGEL=/etc/udev/rules.d/99-$NAME-stick.rules
 # das Fenster spaeter einschaltet.
 FENSTER_UNIT=/etc/systemd/system/$NAME-fenster.service
 FENSTER_TIMER=/etc/systemd/system/$NAME-fenster.timer
+ONLINE_UNIT=/etc/systemd/system/$NAME-onlineupdate.service
+ONLINE_TIMER=/etc/systemd/system/$NAME-onlineupdate.timer
 WECKER_UNIT=/etc/systemd/system/$NAME-fenster-wecker.service
 
 blau() { printf '\n\033[1;34m== %s\033[0m\n' "$1"; }
@@ -140,7 +142,9 @@ fenster_einrichten() {
   for datei in wartungsfenster.sh wartungsfenster.py \
                devarenu-fenster.service.vorlage \
                devarenu-fenster.timer.vorlage \
-               devarenu-fenster-wecker.service.vorlage; do
+               devarenu-fenster-wecker.service.vorlage \
+               devarenu-onlineupdate.service.vorlage \
+               devarenu-onlineupdate.timer.vorlage; do
     [ -f "$ORDNER/$datei" ] || fehlt="$fehlt $datei"
   done
   if [ -n "$fehlt" ]; then
@@ -155,6 +159,13 @@ fenster_einrichten() {
     || { fehl "$FENSTER_TIMER"; return 1; }
   sed "s|@ORDNER@|$ORDNER|g" "$ORDNER/devarenu-fenster-wecker.service.vorlage" \
     | sudo tee "$WECKER_UNIT" >/dev/null || { fehl "$WECKER_UNIT"; return 1; }
+  # Der Weg fuer den Knopf "Jetzt aktualisieren" am Pult. Er gibt dem
+  # Dienst KEIN Recht: der Dienst legt eine Datei in seinem eigenen
+  # Ordner an, dieser Timer sieht danach. Naeheres in der Vorlage.
+  sed "s|@ORDNER@|$ORDNER|g" "$ORDNER/devarenu-onlineupdate.service.vorlage" \
+    | sudo tee "$ONLINE_UNIT" >/dev/null || { fehl "$ONLINE_UNIT"; return 1; }
+  sudo cp "$ORDNER/devarenu-onlineupdate.timer.vorlage" "$ONLINE_TIMER" \
+    || { fehl "$ONLINE_TIMER"; return 1; }
   sudo systemctl daemon-reload
 
   if sudo systemctl enable --now "$NAME-fenster.timer" 2>/dev/null; then
@@ -166,6 +177,12 @@ fenster_einrichten() {
     gut "Wecker eingerichtet"
   else
     warn "Die Wecker-Unit liess sich nicht einrichten."
+  fi
+  if sudo systemctl enable --now "$NAME-onlineupdate.timer" 2>/dev/null; then
+    gut "Knopf \"Jetzt aktualisieren\" am Pult einsatzbereit"
+  else
+    warn "Der Timer fuer den Update-Knopf liess sich nicht starten."
+    info "Der Knopf am Pult legt dann eine Marke an, die niemand abholt."
   fi
   bash "$ORDNER/wartungsfenster.sh" --zeigen
   return 0

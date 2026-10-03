@@ -506,7 +506,9 @@ pruefe "Kern und versionierte Logik" "$(liste "$ECHT/stick_update.sh")" \
   "$(liste "$ECHT/aktualisierung.sh")"
 pruefe "Kern und Online-Weg" "$(liste "$ECHT/stick_update.sh")" \
   "$(liste "$ECHT/aktualisieren.sh")"
-pruefe "und es sind die sieben, die es gibt" "7" \
+# Neun seit 0.4.0: devarenu-onlineupdate.service und .timer sind
+# dazugekommen, der Weg hinter dem Knopf "Jetzt aktualisieren".
+pruefe "und es sind die neun, die es gibt" "9" \
   "$(liste "$ECHT/stick_update.sh" | wc -l)"
 
 titel "10) Autoupdate im Fenster: wann es laeuft und wann nicht"
@@ -637,6 +639,149 @@ pruefe "und die Meldung nennt das Autoupdate, nicht die Berichte" "ja" \
 pruefe "der Schalter bleibt dabei aus" "False" \
   "$(cd "$W" && "$ECHT/.venv/bin/python" -c \
      'import sys; sys.path.insert(0,"."); import wartungsfenster as w; print(w.einstellung()["autoupdate"])')"
+
+# ------------------------------------ Der Knopf "Jetzt aktualisieren"
+#
+# Angestossen wird er ueber eine Marke, abgeholt von einem root-Timer.
+# Hier laeuft dieselbe Kette mit Attrappen: nmcli sagt, ob Netz steht,
+# systemctl schreibt nur mit, aktualisieren.sh auch.
+titel_f "Jetzt aktualisieren (Knopf am Pult)"
+
+J="$BASIS/wj"; rm -rf "$J"; mkdir -p "$J/.venv/bin" "$J/update"
+cp "$ECHT/wartungsfenster.sh" "$ECHT/wartungsfenster.py" \
+   "$ECHT/netzzustand.py" "$ECHT/config.py" "$J/"
+ln -sf "$ECHT/.venv/bin/python" "$J/.venv/bin/python"
+echo "0.9.0" > "$J/VERSION"
+cat > "$J/netz.json" <<ENDE
+{"wartungsfenster": {"an": true, "profil": "P", "wochendtag": "Do",
+ "von": "00:00", "bis": "23:59"}}
+ENDE
+# nmcli: "connected" oder nicht, je nach Datei. connection up gelingt.
+cat > "$J/nmcli" <<'NM'
+#!/bin/sh
+case "$*" in
+  *"STATE general"*) [ -f "$(dirname "$0")/netz_da" ] && echo connected                        || echo disconnected ;;
+  *"connection show --active"*) echo "" ;;
+  *) : ;;
+esac
+exit 0
+NM
+cat > "$J/systemctl" <<'SC'
+#!/bin/sh
+echo "systemctl $*" >> "$(dirname "$0")/systemctl.log"
+case "$1" in is-active) exit 0 ;; esac
+exit 0
+SC
+cat > "$J/meldung.sh" <<'ME'
+#!/usr/bin/env bash
+echo "MELDUNG: $1" >> "$(dirname "$0")/meldung.log"
+exit 0
+ME
+chmod +x "$J/nmcli" "$J/systemctl" "$J/meldung.sh"
+
+j_lauf() {  # $1 uebersetzung ja/nein
+  (cd "$J" && DEVARENU_NMCLI="$J/nmcli" DEVARENU_SYSTEMCTL="$J/systemctl" \
+     DEVARENU_RTCWAKE=/bin/true DEVARENU_POWEROFF=/bin/true \
+     DEVARENU_DATEN="$J/abl" DEVARENU_PORT=1 \
+     DEVARENU_UEBERSETZT_TEST="${1:-nein}" \
+     bash wartungsfenster.sh --jetzt 2>&1)
+}
+lage() { sed -n 's/.*"lage": *"\([a-z]*\)".*/\1/p' "$J/update/online-lauf.json" 2>/dev/null | head -1; }
+
+# 1) Ohne Marke passiert nichts -- der Timer tickt alle 30 Sekunden.
+cat > "$J/aktualisieren.sh" <<'UPD'
+#!/usr/bin/env bash
+echo "LIEF" >> "$(dirname "$0")/updater.log"
+echo "0.9.1" > "$(dirname "$0")/VERSION"
+exit 0
+UPD
+AUSJ="$(j_lauf nein)" || true
+pruefe "ohne Marke laeuft nichts" "nein" \
+  "$([ -f "$J/updater.log" ] && echo ja || echo nein)"
+
+# 2) Waehrend einer Uebersetzung nicht.
+: > "$J/update/online-jetzt"; touch "$J/netz_da"
+AUSJ="$(j_lauf ja)" || true
+pruefe "waehrend der Uebersetzung laeuft nichts" "nein" \
+  "$([ -f "$J/updater.log" ] && echo ja || echo nein)"
+pruefe "und es steht als Grund da" "gescheitert" "$(lage)"
+pruefe "die Marke ist weg, der Timer versucht es nicht alle 30s neu" "nein" \
+  "$([ -f "$J/update/online-jetzt" ] && echo ja || echo nein)"
+
+# 3) Ohne Netz: deutlich, und der Timer kommt zurueck.
+rm -f "$J/netz_da" "$J/systemctl.log"
+: > "$J/update/online-jetzt"
+AUSJ="$(j_lauf nein)" || true
+pruefe "ohne Netz laeuft der Updater nicht" "nein" \
+  "$([ -f "$J/updater.log" ] && echo ja || echo nein)"
+pruefe "und es steht deutlich da" "ja" \
+  "$(printf '%s' "$AUSJ" | grep -q 'Kein Netz' && echo ja || echo nein)"
+pruefe "der Fenster-Timer wird wieder gestartet" "ja" \
+  "$(grep -q 'start devarenu-fenster.timer' "$J/systemctl.log" \
+     && echo ja || echo nein)"
+
+# 4) Der gute Fall.
+touch "$J/netz_da"; rm -f "$J/systemctl.log"
+: > "$J/update/online-jetzt"
+AUSJ="$(j_lauf nein)" || true
+pruefe "der Updater lief" "ja" \
+  "$([ -f "$J/updater.log" ] && echo ja || echo nein)"
+pruefe "die Fassung steht auf 0.9.1" "0.9.1" "$(cat "$J/VERSION")"
+pruefe "der Lauf ist fertig" "fertig" "$(lage)"
+pruefe "der Fenster-Timer wurde angehalten" "ja" \
+  "$(grep -q 'stop devarenu-fenster.timer' "$J/systemctl.log" \
+     && echo ja || echo nein)"
+pruefe "und wieder gestartet" "ja" \
+  "$(grep -q 'start devarenu-fenster.timer' "$J/systemctl.log" \
+     && echo ja || echo nein)"
+pruefe "die Rueckmeldung ging hinaus" "ja" \
+  "$([ -f "$J/meldung.log" ] && echo ja || echo nein)"
+
+# 5) Abbruch mittendrin: der Updater gibt nicht Null zurueck. Er hat
+#    seinen eigenen Rueckweg (Fall 5 oben); hier zaehlt, dass das Pult
+#    es deutlich erfaehrt und die alte Fassung stehenbleibt.
+cat > "$J/aktualisieren.sh" <<'UPD'
+#!/usr/bin/env bash
+echo "ABBRUCH" >> "$(dirname "$0")/updater.log"
+exit 3
+UPD
+rm -f "$J/updater.log"
+: > "$J/update/online-jetzt"
+AUSJ="$(j_lauf nein)" || true
+pruefe "ein Fehlschlag wird als solcher vermerkt" "gescheitert" "$(lage)"
+pruefe "die Fassung bleibt, was sie war" "0.9.1" "$(cat "$J/VERSION")"
+pruefe "und der Satz nennt die laufende Fassung" "ja" \
+  "$(grep -q '0.9.1 laeuft weiter' "$J/update/online-lauf.json" \
+     && echo ja || echo nein)"
+
+# 6) Stromausfall mitten im Update: in online-lauf.json steht "laeuft",
+#    und niemand hat es beendet. Beim naechsten Start muss das
+#    berichtigt werden -- sonst wartet am Pult jemand auf etwas, das
+#    nie fertig wird.
+cat > "$J/update/online-lauf.json" <<ENDE
+{
+  "lage": "laeuft",
+  "schritt": "update",
+  "text": "",
+  "seit": $(( $(date +%s) - 4000 )),
+  "zeit": "2026-01-01 00:00:00"
+}
+ENDE
+AUSJ="$(cd "$J" && DEVARENU_NMCLI="$J/nmcli" DEVARENU_SYSTEMCTL="$J/systemctl" \
+  DEVARENU_DATEN="$J/abl" DEVARENU_PORT=1 \
+  bash wartungsfenster.sh --jetzt-aufraeumen 2>&1)" || true
+pruefe "ein abgebrochener Lauf wird erkannt" "abgebrochen" "$(lage)"
+pruefe "und gesagt, was zu tun ist" "ja" \
+  "$(grep -q 'pruefen.sh' "$J/update/online-lauf.json" && echo ja || echo nein)"
+
+# Ein Lauf, der noch in der Frist liegt, bleibt unangetastet.
+cat > "$J/update/online-lauf.json" <<ENDE
+{"lage": "laeuft", "schritt": "update", "text": "", "seit": $(date +%s),
+ "zeit": "2026-01-01 00:00:00"}
+ENDE
+(cd "$J" && DEVARENU_SYSTEMCTL="$J/systemctl" DEVARENU_PORT=1 \
+  bash wartungsfenster.sh --jetzt-aufraeumen >/dev/null 2>&1) || true
+pruefe "ein frischer Lauf bleibt laufend" "laeuft" "$(lage)"
 
 printf '\n'
 if [ "$FEHLER" = 0 ]; then

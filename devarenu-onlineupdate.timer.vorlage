@@ -1,0 +1,27 @@
+# Sieht nach, ob am Pult "Jetzt aktualisieren" gedrueckt wurde.
+#
+# Diese Datei ist eine Vorlage. dienst.sh setzt den Platzhalter und
+# legt das Ergebnis in
+# /etc/systemd/system/devarenu-onlineupdate.timer ab.
+#
+# Alle 30 Sekunden, und das ist billig: liegt die Marke nicht da,
+# endet der Lauf nach Millisekunden und sagt nichts. Dieselbe
+# Begruendung wie bei devarenu-fenster.timer.
+#
+# Beim Hochfahren ein eigener Lauf: ein Update, das vom Stromausfall
+# unterbrochen wurde, steht in update/online-lauf.json noch auf
+# "laeuft". Das gehoert beim naechsten Start berichtigt, sonst wartet
+# am Pult jemand auf etwas, das nie fertig wird.
+
+[Unit]
+Description=Devarenu, am Pult angestossenes Update abholen
+Documentation=https://github.com/Auroramomo/Devarenu
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=30s
+AccuracySec=5s
+Unit=devarenu-onlineupdate.service
+
+[Install]
+WantedBy=timers.target

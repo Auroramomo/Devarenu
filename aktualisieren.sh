@@ -126,7 +126,8 @@ wieder_anhaengen() {
 UNITS_GESICHERT="devarenu.service devarenu-stick@.service \
 devarenu-update.service devarenu-update.timer \
 devarenu-fenster.service devarenu-fenster.timer \
-devarenu-fenster-wecker.service"
+devarenu-fenster-wecker.service \
+devarenu-onlineupdate.service devarenu-onlineupdate.timer"
 
 # DER RUECKWEG.
 #

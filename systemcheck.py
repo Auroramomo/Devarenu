@@ -60,6 +60,7 @@ WARTUNG = {
     "abmeldefrage", "netzschalter", "sperre", "standby", "bildschirm",
     "ordner_schmutzig",
     "wecker_fehlt", "fenster_timer", "fenster_profil",
+    "onlineupdate_timer", "onlineupdate_abgebrochen",
     "stick_timer",          # das Update per Stick, nicht der Sonntag
 }
 
@@ -815,6 +816,49 @@ def _protokoll(befunde):
         tun_en="Switch it off again under Setup on the control desk."))
 
 
+def _onlineupdate(befunde):
+    """Der Weg hinter dem Knopf "Jetzt aus dem Netz".
+
+    Zwei Dinge koennen schieflaufen, und beide sind von aussen nicht
+    zu sehen: der Timer, der die Marke abholt, laeuft nicht -- dann ist
+    der Knopf ein Knopf ohne Wirkung. Oder ein Lauf steht noch auf
+    "laeuft", obwohl ihn niemand beendet hat; das heisst in der Regel,
+    dass der Strom weg war."""
+    import json
+    from pathlib import Path as P
+    # Nur auf einem Rechner, der ueberhaupt als Dienst laeuft.
+    if not P("/etc/systemd/system/devarenu.service").exists():
+        return
+    _, an = _dienst_an("devarenu-onlineupdate.timer")
+    if not an:
+        befunde.append(Befund(
+            "onlineupdate_timer", HINWEIS,
+            "Der Timer fuer den Knopf \"Jetzt aus dem Netz aktualisieren\" "
+            "laeuft nicht. Der Knopf am Pult legt dann eine Marke an, die "
+            "niemand abholt -- es sieht aus, als waere nichts passiert.",
+            "sudo systemctl enable --now devarenu-onlineupdate.timer",
+            was_en="The timer behind the control desk's \"update from the "
+                   "network\" button is not running, so nothing picks the "
+                   "request up.",
+            tun_en="sudo systemctl enable --now devarenu-onlineupdate.timer"))
+    try:
+        d = json.loads((Path(__file__).resolve().parent / "update"
+                        / "online-lauf.json").read_text(encoding="utf-8"))
+    except Exception:
+        return
+    if d.get("lage") == "abgebrochen":
+        befunde.append(Befund(
+            "onlineupdate_abgebrochen", HINWEIS,
+            "Ein Update ueber das Netz wurde angefangen und nie beendet. "
+            "Vermutlich war der Strom weg. Welche Fassung jetzt laeuft, "
+            "sagt pruefen.sh -- zurueckgerollt hat sich der Updater "
+            "selbst, falls er bis dahin kam.",
+            "bash pruefen.sh   (danach den Knopf noch einmal druecken)",
+            was_en="A network update was started and never finished, most "
+                   "likely a power cut.",
+            tun_en="bash pruefen.sh, then press the button again"))
+
+
 def _mp3(befunde):
     """Kann dieser Rechner die Predigt als MP3 schreiben?
 
@@ -1004,6 +1048,7 @@ def pruefen():
     _wartungsfenster(befunde)
     _protokoll(befunde)
     _mp3(befunde)
+    _onlineupdate(befunde)
     _vorrat(befunde)
     _units_veraltet(befunde)
     _stick(befunde)

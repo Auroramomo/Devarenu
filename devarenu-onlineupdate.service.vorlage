@@ -1,0 +1,49 @@
+# Spielt ein Update ein, das am Pult angestossen wurde.
+#
+# Diese Datei ist eine Vorlage. dienst.sh setzt den Platzhalter und
+# legt das Ergebnis in
+# /etc/systemd/system/devarenu-onlineupdate.service ab.
+#
+# WARUM DIESE UNIT UEBERHAUPT EXISTIERT
+#
+# Der Server laeuft als devarenu und soll genau so bleiben. Ein Update
+# braucht root -- Units schreiben, Pakete nachziehen, Dienste neu
+# starten. Die naheliegende Loesung waere eine sudo-Regel fuer den
+# Dienstbenutzer. Die stuende dann dauerhaft offen, und wer den Server
+# uebernimmt, uebernimmt sie mit.
+#
+# Stattdessen: der Server legt eine Datei an (update/online-jetzt) --
+# etwas, was er in seinem eigenen Ordner ohnehin darf --, und diese
+# Unit sieht alle 30 Sekunden nach. Sie bekommt KEINE Eingabe vom
+# Server ausser der Tatsache, dass die Datei da ist. Es gibt keinen
+# Parameter, den jemand unterschieben koennte, und keinen Befehl, den
+# der Dienst waehlen kann.
+#
+# Derselbe Weg geht der Stick-Knopf seit 0.2.12
+# (devarenu-update.service). Eine Logik, zwei Anlaesse.
+#
+# Der Preis sind bis zu 30 Sekunden, bis etwas passiert. Die stehen am
+# Pult, denn sonst drueckt jemand ein zweites Mal.
+
+[Unit]
+Description=Devarenu, am Pult angestossenes Update einspielen
+Documentation=https://github.com/Auroramomo/Devarenu
+After=NetworkManager.service
+
+[Service]
+Type=oneshot
+# Ueber /bin/bash und nicht direkt: das Ausfuehrungsrecht geht
+# verloren, sobald der Ordner ueber einen FAT-Stick oder als ZIP
+# kopiert wird. Naeheres in devarenu-update.service.vorlage.
+ExecStart=/bin/bash @ORDNER@/wartungsfenster.sh --jetzt
+
+# HOME, weil git es braucht und ein root-Dienst keines mitbringt.
+Environment=HOME=/root
+
+# Dasselbe Zeitfenster wie beim Stick-Update: venv neu bauen, Modelle
+# pruefen, Selbsttest. Fuenfzehn Minuten sind grosszuegig und
+# begrenzen trotzdem.
+TimeoutStartSec=900
+
+StandardOutput=journal
+StandardError=journal
