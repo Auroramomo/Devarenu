@@ -4626,12 +4626,47 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         tage = stand.get("aufnahme_tage", aufnahme.TAGE_VORGABE)
         ab = stand.get("aufnahme_frist_ab") or 0
         liste = aufnahme.aufnahmen(lauf.mitschnitt.ordner)
+        lage = lauf.mitschnitt.lage()
+        laeuft = lage["datei"] if lage else ""
         return {"tage": tage,
                 "liste": [{"name": a["name"],
                            "mb": round(a["bytes"] / 1024 / 1024, 1),
                            "tage": round(a["tage"], 1),
+                           # Die laufende Aufnahme bekommt am Pult
+                           # keinen Loeschknopf.
+                           "laeuft": a["name"] == laeuft,
                            "faellig": aufnahme.faellig_am(a, tage, ab)}
                           for a in liste]}
+
+    @app.post("/api/aufnahme/loeschen")
+    async def aufnahme_loeschen(daten: dict, request: Request):
+        """Eine Aufnahme von Hand loeschen. Nur am Gemeinderechner selbst.
+
+        Dieselbe Schranke wie beim Herunterladen: wer im Saal sitzt,
+        darf eine Predigtaufnahme nicht abrufen, und loeschen schon gar
+        nicht. Ein Pult-Passwort wuerde das nicht ersetzen -- es ginge
+        im Saalnetz unverschluesselt ueber HTTP.
+
+        Die Rueckfrage steht am Pult, nicht hier: eine Schnittstelle,
+        die zweimal gefragt werden will, ist keine Schnittstelle.
+        Geloescht wird nur, was in der eigenen Liste steht."""
+        if not nur_am_rechner(request):
+            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
+        name = (daten.get("name") or "").strip()
+        if not name:
+            return JSONResponse({"grund": "kein_name"}, status_code=400)
+        lage = lauf.mitschnitt.lage()
+        laeuft = lage["datei"] if lage else ""
+        gut, grund = aufnahme.loeschen(lauf.mitschnitt.ordner, name, laeuft)
+        if not gut:
+            # 409 und nicht 400: die Anfrage ist in Ordnung, der
+            # Zustand erlaubt sie nur nicht.
+            code = 409 if grund == "laeuft" else 404
+            return JSONResponse({"grund": grund}, status_code=code)
+        # Nur der Dateiname. Was darin gesprochen wurde, gehoert nicht
+        # ins Journal -- und der Name steht ohnehin schon in der Liste.
+        print(f"Aufnahme geloescht: {name}")
+        return {"geloescht": name}
 
     @app.get("/mitschnitt/{name}")
     def mitschnitt_holen(name: str, request: Request):
@@ -6391,6 +6426,13 @@ const TEXTE={
    konto_kaputt:"Das angezeigte Spendenkonto ist ungültig. Bitte wende "
      +"dich an den Betreuer.",
    kontext_fehlt:"Thema und Bibelstellen fehlen. Prediger fragen.",
+   loeschen:"Löschen",
+   loeschen_frage:"„{d}“ wirklich löschen? Das lässt sich nicht "
+     +"zurücknehmen.",
+   loeschen_laeuft:"Diese Aufnahme läuft gerade. Erst beenden.",
+   loeschen_nicht_gefunden:"Diese Aufnahme gibt es nicht mehr.",
+   loeschen_nur_am_rechner:"Löschen geht nur am Gemeinde-PC selbst.",
+   loeschen_ging_nicht:"Das Löschen ging nicht. Mehr steht im Journal.",
    wartung_hin:"Diese Punkte halten den Gottesdienst nicht auf. Sie "
      +"gehören der Technik und stehen deshalb nicht im Briefkasten. "
      +"Vollständig mit: bash pruefen.sh",
@@ -6595,6 +6637,13 @@ const TEXTE={
    konto_kaputt:"The donation account shown is invalid. Please contact "
      +"the maintainer.",
    kontext_fehlt:"Topic and Bible passages are missing. Ask the preacher.",
+   loeschen:"Delete",
+   loeschen_frage:"Really delete \u201c{d}\u201d? This cannot be undone.",
+   loeschen_laeuft:"This recording is running. Stop it first.",
+   loeschen_nicht_gefunden:"That recording is gone already.",
+   loeschen_nur_am_rechner:"Deleting only works on the church computer "
+     +"itself.",
+   loeschen_ging_nicht:"Deleting failed. Details are in the log.",
    wartung_hin:"These items do not hold up the service. They belong "
      +"to the technician and are therefore not in the inbox. "
      +"Full list: bash pruefen.sh",
@@ -6905,10 +6954,34 @@ async function aufnahmenLaden(){
   const d = await a.json().catch(()=>({liste:[]}));
   if(d.tage !== undefined) aufnahmetage.value = d.tage;
   if(!d.liste.length){ aufnahmeliste.textContent = t.aufnahme_keine; return; }
+  // Der Loeschknopf nur, wo die Aufnahme nicht gerade laeuft. Ein
+  // Knopf, der "geht nicht" sagt, waere schlechter als keiner -- und
+  // die laufende Aufnahme hat ohnehin ihre eigene Zeile oben.
   aufnahmeliste.innerHTML = d.liste.map(a =>
     '<div><a href="/mitschnitt/' + encodeURIComponent(a.name) + '">'
     + a.name + "</a> · " + a.mb + " MB · "
-    + t.aufnahme_faellig.split("{d}").join(a.faellig) + "</div>").join("");
+    + t.aufnahme_faellig.split("{d}").join(a.faellig)
+    + (a.laeuft ? ""
+       : ' <button class=klein onclick="aufnahmeLoeschen(this.dataset.n)"'
+         + ' data-n="' + a.name.replace(/"/g, "&quot;") + '">'
+         + t.loeschen + "</button>")
+    + "</div>").join("");
+}
+
+async function aufnahmeLoeschen(name){
+  // Die Rueckfrage NENNT DEN NAMEN. "Wirklich loeschen?" neben einer
+  // Liste von fuenf Predigten ist keine Rueckfrage, sondern ein
+  // Glueckspiel -- und geloescht ist geloescht.
+  const t = TEXTE[UI];
+  if(!confirm(t.loeschen_frage.split("{d}").join(name))) return;
+  const a = await fetch("/api/aufnahme/loeschen",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name:name})});
+  if(!a.ok){
+    const d = await a.json().catch(()=>({}));
+    alert(t["loeschen_"+(d.grund||"")] || t.loeschen_ging_nicht);
+  }
+  aufnahmenLaden();
 }
 
 let zustandLive=false;

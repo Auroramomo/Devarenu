@@ -539,6 +539,35 @@ def aufraeumen(ordner, tage=TAGE_VORGABE, ab=None, jetzt=None,
     return weg
 
 
+def loeschen(ordner, name, laeuft=""):
+    """Loescht EINE Aufnahme aus der eigenen Liste. (gut, grund).
+
+    DER NAME WIRD NICHT ALS PFAD BEHANDELT. Gesucht wird in der Liste,
+    die aufnahmen() ohnehin aufbaut, und zwar auf Gleichheit des
+    Dateinamens. Damit ist jeder Weg nach draussen von selbst
+    verschlossen: "../../etc/passwd" steht in keiner Liste. Ein
+    Path(name).name haette dasselbe Ziel, aber nur solange niemand die
+    Zeile umbaut -- hier gibt es gar keinen Pfad, den man umbauen
+    koennte.
+
+    laeuft ist der Dateiname der gerade laufenden Aufnahme, falls eine
+    laeuft. Die ist nicht loeschbar: der Koder schreibt noch hinein,
+    und was dabei herauskaeme, waere eine halbe Datei und ein Pult, das
+    "geloescht" sagt und daneben weiter "Aufnahme laeuft"."""
+    if laeuft and name == laeuft:
+        return False, "laeuft"
+    gefunden = next((a for a in aufnahmen(ordner) if a["name"] == name), None)
+    if gefunden is None:
+        return False, "nicht_gefunden"
+    for pfad in (gefunden["pfad"],
+                 gefunden["pfad"].with_suffix(".einwilligung.txt")):
+        try:
+            pfad.unlink(missing_ok=True)
+        except OSError as e:
+            return False, f"nicht_loeschbar: {str(e)[:60]}"
+    return True, ""
+
+
 def faellig_am(a, tage, ab=None):
     """Wann diese Aufnahme geloescht wird, als Text."""
     beginn = max(a["stand"], ab) if ab else a["stand"]

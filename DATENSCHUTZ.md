@@ -119,7 +119,7 @@ einmal gegen die Muster der Segmentzeilen prüft.
 | **Zweck** | Eine Predigt nachhören oder weitergeben |
 | **Daten** | Der Ton der Predigt, als MP3 (`Predigt_TT_MM_JJJJ.mp3`). Daneben ein Vermerk mit dem Zeitpunkt der Einwilligung — **ohne Namen** |
 | **Empfänger** | Niemand. Abrufbar nur am Gerät selbst, nicht aus dem Saalnetz |
-| **Speicherdauer** | Sieben Tage, einstellbar. Der Aufräumlauf läuft stündlich |
+| **Speicherdauer** | Sieben Tage, einstellbar. Der Aufräumlauf läuft stündlich. Von Hand löschbar am Pult, je Aufnahme, nur am Gerät selbst |
 | **Schalter** | Zwei Häkchen am Pult, beide Pflicht: die predigende Person wurde gefragt, und es läuft nur die Predigt mit. Vorgabe **aus** |
 
 Sichtbar, solange sie läuft — am Pult und auf jedem Handy im Saal.

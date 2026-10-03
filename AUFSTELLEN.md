@@ -862,6 +862,12 @@ Seit 0.3.0 werden sie nach **sieben Tagen gelöscht** (`aufnahme_tage`,
 am Pult einstellbar), der Aufräumlauf geht stündlich. Abrufbar sind
 sie nur am Gemeinde-PC selbst, nie aus dem Saalnetz.
 
+**Löschen von Hand** gibt es seit 0.4.0: ein Knopf je Aufnahme, mit
+einer Rückfrage, die den Dateinamen nennt. Nur am Gemeinde-PC selbst,
+wie das Herunterladen — ein Pult-Passwort würde das nicht ersetzen, es
+ginge im Saalnetz unverschlüsselt über HTTP. Eine laufende Aufnahme ist
+nicht löschbar. Ins Journal geht nur der Dateiname.
+
 Seit 0.3.8 ist das Format **MP3**, 48 kbit/s mono, rund 22 MB je
 Stunde. Die Datei heißt `Predigt_TT_MM_JJJJ.mp3` nach dem Tag des
 Aufnahmebeginns; gibt es den Namen schon, kommt `_2`, `_3` dahinter.

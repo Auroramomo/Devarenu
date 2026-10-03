@@ -353,6 +353,55 @@ try:
                for p in (ARBEIT / "ergebnisse" / "predigten").iterdir()
                if p.suffix.lower() in (".mp3", ".wav")))
 
+    print("\n   -- Loeschen von Hand --")
+    # Hier laeuft gerade KEINE Aufnahme (der Neustart oben hat sie
+    # beendet), die Datei liegt aber noch.
+    ordner = ARBEIT / "ergebnisse" / "predigten"
+    vorhanden = sorted(x.name for x in ordner.iterdir()
+                       if x.suffix.lower() in (".mp3", ".wav"))
+    opfer = vorhanden[0]
+    if saal:
+        pruefe("Loeschen aus dem Saal", 403,
+               holen("/api/aufnahme/loeschen", {"name": opfer},
+                     gastgeber=saal)[0])
+        pruefe("und die Datei liegt noch da", True, (ordner / opfer).exists())
+    # Kein Pfad aus dem Namen: gesucht wird in der eigenen Liste, und
+    # darin steht "../" nicht.
+    pruefe("\"../\" findet nichts", 404,
+           holen("/api/aufnahme/loeschen",
+                 {"name": "../../zustand.json"})[0])
+    pruefe("zustand.json liegt noch da", True, (ARBEIT / "zustand.json").exists())
+    pruefe("ohne Namen: abgelehnt", 400,
+           holen("/api/aufnahme/loeschen", {"name": ""})[0])
+
+    # Eine LAUFENDE Aufnahme ist nicht loeschbar.
+    st, roh = holen("/api/mitschnitt", {"einwilligung": {
+        "person_gefragt": True, "nur_predigt": True}})
+    laufend = json.loads(roh).get("datei", "")
+    pruefe("eine Aufnahme laeuft wieder", True, bool(laufend))
+    pruefe("die laufende ist nicht loeschbar", 409,
+           holen("/api/aufnahme/loeschen", {"name": laufend})[0])
+    pruefe("und liegt noch da", True, (ordner / laufend).exists())
+    # Am Pult steht an ihr auch kein Knopf.
+    st, roh = holen("/api/aufnahmen")
+    eintrag = next((x for x in json.loads(roh)["liste"]
+                    if x["name"] == laufend), None)
+    pruefe("die Liste kennzeichnet sie als laufend", True,
+           bool(eintrag and eintrag.get("laeuft")))
+    holen("/api/steuerung/pause", {})
+
+    # Und jetzt scharf.
+    pruefe("die alte laesst sich loeschen", 200,
+           holen("/api/aufnahme/loeschen", {"name": opfer})[0])
+    pruefe("danach ist die Datei weg", False, (ordner / opfer).exists())
+    pruefe("der Einwilligungsvermerk auch", False,
+           (ordner / opfer).with_suffix(".einwilligung.txt").exists())
+    st, roh = holen("/api/aufnahmen")
+    pruefe("und die Liste ist aktuell", False,
+           opfer in [x["name"] for x in json.loads(roh)["liste"]])
+    pruefe("zweimal loeschen gibt 404", 404,
+           holen("/api/aufnahme/loeschen", {"name": opfer})[0])
+
     print("\n   -- die Frist laesst sich umstellen --")
     st, roh = holen("/api/aufnahme/tage", {"tage": 3})
     pruefe("drei Tage angenommen", 200, st)
