@@ -45,19 +45,14 @@ Was sich für Gemeinde und Pult geändert hat. Ausführlich: `AENDERUNGEN.md`.
 - Ein **Testprotokoll** zeigt, wo die Kette kippt; Fehlerberichte
   gehen von selbst aufs Handy.
 
-**0.3.0 bis 0.3.2 — 26. bis 27.09.2026**
+**0.2.1 bis 0.3.2 — 20. bis 27.09.2026 (die Anfänge)**
 
-- Der erste Stand, den man einer Gemeinde hinstellen kann: Übersetzung
-  in mehrere Sprachen zugleich, Ton und Text auf jedem Handy, ohne
-  App, WLAN im Saal vom Rechner selbst.
+- Übersetzung in mehrere Sprachen zugleich, Ton und Text auf jedem
+  Handy, ohne App, WLAN im Saal vom Rechner selbst.
 - **Aufnahmen nur nach Rückfrage**, nach sieben Tagen gelöscht.
-  Updates aus dem Netz werden geprüft wie die vom Stick.
-
-**0.2.1 bis 0.2.15 — 20. bis 25.09.2026**
-
-- Update per USB-Stick, Tonquelle am Pult auswählbar, Reparaturvorrat
-  auf der Platte, Fachwortverzeichnis. Der Rechner wurde **Router für
-  das Saalnetz**. **Fehler melden ohne Technikkenntnis:** zwei
-  QR-Codes am Pult.
+- Update per USB-Stick und aus dem Netz, beides signiert geprüft.
+  Reparaturvorrat auf der Platte, Fachwortverzeichnis, Tonquelle am
+  Pult wählbar. **Fehler melden ohne Technikkenntnis:** zwei QR-Codes
+  am Pult.
 
 *0.2.3 wurde nie veröffentlicht.*
