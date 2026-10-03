@@ -83,6 +83,17 @@ body{
 .band svg{display:block}
 .band-oben{top:0; left:0; width:min(62vw,340px)}
 .band-unten{bottom:0; right:0; width:min(52vw,280px); transform:rotate(180deg)}
+/* Auf einem schmalen Schirm reicht das untere Band bis in den Knopf
+   "Zuhoeren": der Knopf laeuft ueber die volle Breite, das Band kommt
+   von rechts, und die Dreiecke tragen dieselben Farben wie der
+   Knopfverlauf. Das sieht nach einem Darstellungsfehler aus.
+   Zwei Schritte: das Band wird kleiner, und der Bildschirm bekommt
+   unten so viel Platz, dass es unter dem Knopf endet statt in ihm. */
+@media (max-width:460px){
+  .band-unten{width:min(34vw,120px)}
+  #ankommen{padding-bottom:calc(var(--rand) + 5.5rem
+                                + env(safe-area-inset-bottom))}
+}
 
 /* Facettierter Grauton des Urkundenpapiers, sehr zurückhaltend */
 .facetten{
@@ -439,10 +450,16 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
 
     <p class="neuband" id="neuband" hidden></p>
 
+    <!-- Der Hinweis stand bis 0.4.0 fest auf Deutsch in der Seite und
+         blieb es auch, wenn jemand Russisch oder Farsi gewaehlt hatte.
+         Wer die Sprache wechselt, wechselt sie fuer alles. Der Text
+         kommt deshalb aus TEXTE wie jede andere Beschriftung; das
+         Deutsche hier ist nur, was dasteht, bevor jemand waehlt. -->
     <p class="hinweis" id="ki-hinweis">
-      <b>Diese Übersetzung erstellt ein Computer.</b>
-      Sie wird während der Predigt automatisch erzeugt und kann Fehler
-      enthalten. Maßgeblich bleibt das gesprochene Wort.
+      <b id="ki-fett">Diese Übersetzung erstellt ein Computer.</b>
+      <span id="ki-rest">Sie wird während der Predigt automatisch erzeugt
+      und kann Fehler enthalten. Maßgeblich bleibt das gesprochene
+      Wort.</span>
     </p>
 
     <p class="fussnote"><a href="/anleitung.pdf?teil=zuhoerer" download
@@ -658,7 +675,8 @@ const TEXTE = {
       aufnahme:"Von dieser Predigt wird eine Tonaufnahme gemacht.",
       stumm:"Kein Ton? Am iPhone den seitlichen Schalter umlegen, sonst bleibt es still.",
       bildschirm:"Bildschirm anlassen, sonst stoppt die Wiedergabe.",
-      kiKurz:"Automatische Übersetzung, Fehler möglich.",
+      kiFett:"Diese Übersetzung erstellt ein Computer.",
+      kiRest:"Sie wird während der Predigt automatisch erzeugt und kann Fehler enthalten. Maßgeblich bleibt das gesprochene Wort.",
       post:"Melden", postTitel:"Nachricht an die Technik",
       anleitung:"Kurzanleitung als PDF",
       postHin:"Fehlt eine Sprache? Ist der Ton zu leise? Kurz schreiben, die Technik sieht es sofort. Eine Antwort kommt nicht, dafür ist während des Gottesdienstes keine Zeit.",
@@ -686,7 +704,8 @@ const TEXTE = {
       aufnahme:"This sermon is being recorded.",
       stumm:"No sound? Flip the side switch on your iPhone.",
       bildschirm:"Keep the screen on, otherwise playback stops.",
-      kiKurz:"Automatic translation, errors possible.",
+      kiFett:"This translation is made by a computer.",
+      kiRest:"It is produced automatically during the sermon and may contain errors. The spoken word remains authoritative.",
       post:"Message", postTitel:"Message to the sound desk",
       anleitung:"Short guide as PDF",
       postHin:"Missing a language? Sound too quiet? Write a line, the technician sees it right away. There will be no reply, there is no time for that during the service.",
@@ -714,7 +733,8 @@ const TEXTE = {
       aufnahme:"Эта проповедь записывается.",
       stumm:"Нет звука? Переключите боковой переключатель на iPhone.",
       bildschirm:"Не гасите экран, иначе воспроизведение остановится.",
-      kiKurz:"Автоматический перевод, возможны ошибки.",
+      kiFett:"Этот перевод выполняет компьютер.",
+      kiRest:"Он создаётся автоматически во время проповеди и может содержать ошибки. Решающим остаётся произнесённое слово.",
       post:"Сообщить",
       anleitung:"Краткое руководство в PDF", postTitel:"Сообщение технику",
       postHin:"Не хватает языка? Слишком тихо? Напишите коротко, техник сразу увидит. Ответа не будет, во время богослужения на это нет времени.",
@@ -742,7 +762,8 @@ const TEXTE = {
       aufnahme:"از این موعظه ضبط صوتی تهیه می‌شود.",
       stumm:"صدا ندارید؟ کلید کنار آیفون را جابه‌جا کنید.",
       bildschirm:"صفحه را روشن نگه دارید، وگرنه پخش متوقف می‌شود.",
-      kiKurz:"ترجمهٔ خودکار، احتمال خطا وجود دارد.",
+      kiFett:"این ترجمه را رایانه انجام می‌دهد.",
+      kiRest:"در حین موعظه به‌طور خودکار ساخته می‌شود و ممکن است خطا داشته باشد. آنچه معتبر است، کلام گفته‌شده است.",
       post:"پیام", postTitel:"پیام به مسئول فنی",
       anleitung:"راهنمای کوتاه به صورت PDF",
       postHin:"زبانی کم است؟ صدا کم است؟ کوتاه بنویسید، مسئول فنی فوراً می‌بیند. پاسخی داده نمی‌شود؛ در حین مراسم فرصت آن نیست.",
@@ -1357,7 +1378,12 @@ function startauswahlBauen(){
     const x = TEXTE[code] || TEXTE.en || TEXTE.de;
     $("starten").textContent = x.zuhoeren;
     $("starten").disabled = false;
-    $("start-fussnote").textContent = x.kiKurz;
+    // Der kurze Hinweis unter dem Knopf sagte dasselbe wie der Kasten
+    // darueber. Jetzt steht dort nichts mehr: "Zuerst eine Sprache
+    // waehlen" ist beantwortet, sobald eine gewaehlt ist.
+    $("start-fussnote").textContent = "";
+    $("ki-fett").textContent = x.kiFett;
+    $("ki-rest").textContent = " " + x.kiRest;
     $("frage-sprache").textContent = x.waehlen;
     const al = $("anleitungslink");
     if(al){
