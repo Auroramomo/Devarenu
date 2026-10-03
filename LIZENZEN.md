@@ -142,6 +142,88 @@ eingetragene Marke der Generalkonferenz. Es fällt **nicht** unter die
 GPLv3 dieses Projekts. Gemeinden anderer Konfessionen ersetzen die
 Datei durch ihr eigenes Zeichen.
 
+## Die ausgelieferten Piper-Stimmen
+
+Erhoben mit `werkzeuge/stimmlizenzen.py` aus der `MODEL_CARD` jeder
+Stimme im Repo `rhasspy/piper-voices` — derselben Quelle, aus der
+`einrichten.sh` sie holt. Stand 0.4.0.
+
+Genannt ist die Lizenz des **Datensatzes**, auf dem die Stimme
+trainiert wurde. Ob ein daraus trainiertes Modell dieselbe Beschränkung
+erbt, ist eine Rechtsfrage, die dieses Projekt nicht entscheidet — es
+legt sie offen.
+
+| Sprache | Stimme | Lizenz des Datensatzes | Anmerkung |
+|---|---|---|---|
+| Arabisch | `ar_JO-kareem-medium` | „See URL" | **unklar** |
+| Tschechisch | `cs_CZ-jirka-medium` | CC0 | |
+| Deutsch | `de_DE-thorsten-medium` | CC0 | |
+| Griechisch | `el_GR-rapunzelina-medium` | CC0 | |
+| Englisch | `en_US-lessac-medium` | Blizzard 2013 (Lessac/Voice Factory) | **nur Forschung** |
+| Spanisch | `es_MX-claude-high` | Apache-2.0 | |
+| Persisch | `fa_IR-amir-medium` | CC0 | |
+| Französisch | `fr_FR-siwis-medium` | CC-BY 4.0 | |
+| Ungarisch | `hu_HU-anna-medium` | CC0 | |
+| Italienisch | `it_IT-paola-medium` | „See URL" | **unklar** |
+| Georgisch | `ka_GE-natia-medium` | „See LICENSE file" (RHVoice) | **unklar** |
+| Niederländisch | `nl_NL-mls-medium` | CC-BY 4.0 | |
+| Polnisch | `pl_PL-darkman-medium` | CC0 | |
+| Portugiesisch | `pt_BR-jeff-medium` | CC0 | |
+| Rumänisch | `ro_RO-mihai-medium` | CC0 | |
+| **Russisch** | `ru_RU-irina-medium` | „Unknown" (RHVoice) | **keine Lizenz genannt** |
+| Serbisch | `sr_RS-serbski_institut-medium` | CC-BY-NC-SA 4.0 | **nichtkommerziell** |
+| Suaheli | `sw_CD-lanfrica-medium` | „See URL" | **unklar** |
+| Türkisch | `tr_TR-dfki-medium` | CC-BY-NC-SA 4.0 | **nichtkommerziell** |
+| Ukrainisch | `uk_UA-ukrainian_tts-medium` | CC0 | |
+| Vietnamesisch | `vi_VN-vais1000-medium` | CC-BY 4.0 | |
+
+### Zwei davon laufen in Rostock
+
+**Englisch** ist der schwerere Fall. Die Blizzard-2013-Lizenz von
+Lessac Technologies / Voice Factory gewährt die Nutzung „**exclusively
+for Research Purposes only**", nicht übertragbar, ohne Recht zur
+Unterlizenzierung ([Lizenztext][bl13]). Ein Gottesdienst ist keine
+Forschung. Das betrifft den Datensatz; `rhasspy/piper-voices` gibt die
+daraus trainierten Gewichte trotzdem weiter, und ob die Beschränkung
+mitwandert, ist offen. **Nicht entfernt**, aber hiermit festgehalten:
+wer das klären will, hat hier den Link. Ein Ausweg wäre eine englische
+Stimme auf CC0-Daten.
+
+**Russisch** nennt gar keine Lizenz: die `MODEL_CARD` sagt „Unknown",
+und das RHVoice-Repository `irina-rus` führt keine Lizenzdatei (die
+RHVoice-*Software* ist GPL-2.0, die Stimmdaten sind davon getrennt).
+Ohne Lizenz gibt es keine ausdrückliche Erlaubnis.
+
+Die übrigen fünf markierten Stimmen (Arabisch, Italienisch, Georgisch,
+Suaheli, Serbisch, Türkisch) sind **nicht eingeschaltet** — sie liegen
+im Repo und laufen nur, wenn eine Gemeinde sie am Pult wählt. Die zwei
+mit `NC` schließen eine kommerzielle Nutzung aus; eine Gemeinde handelt
+nicht kommerziell, aber Devarenu wird weitergegeben, und das ist der
+Punkt, an dem „nichtkommerziell" unbestimmt wird.
+
+**Es ist nichts entfernt worden.** Diese Tabelle ist die Grundlage für
+eine Entscheidung, nicht die Entscheidung.
+
+[bl13]: https://www.cstr.ed.ac.uk/projects/blizzard/2013/lessac_blizzard2013/license.html
+
+## Spracherkennung und Sprachmodell
+
+| Baustein | Was | Lizenz |
+|---|---|---|
+| `faster-whisper` | Laufzeit der Spracherkennung | MIT |
+| `CTranslate2` | Rechenkern darunter | MIT |
+| Whisper `large-v3-turbo` | das Modell selbst, von OpenAI | MIT |
+| Gemma (`gemma4`) | das Übersetzungsmodell, über Ollama | **Gemma Terms of Use** — keine Open-Source-Lizenz, mit Nutzungsbeschränkungen (*Prohibited Use Policy*) |
+| Ollama | Laufzeit des Sprachmodells | MIT |
+| `piper-tts` | Sprachausgabe, in-process importiert | **GPL-3.0-or-later** — der Grund, warum Devarenu selbst GPLv3 ist |
+
+Die **Gemma-Bedingungen** sind keine freie Lizenz. Sie erlauben
+Weitergabe und Betrieb, binden den Empfänger aber an dieselben
+Bedingungen und verbieten bestimmte Verwendungen. Devarenu liefert das
+Modell nicht mit — `einrichten.sh` holt es über Ollama, und damit
+nimmt es jede Gemeinde selbst entgegen. Das ist der Unterschied
+zwischen Mitliefern und Verweisen, und er ist Absicht.
+
 ## Bibelnamen
 
 `namen_block_b.csv` enthält Eigennamen und Kapitelangaben, die mit
