@@ -204,6 +204,51 @@ Punkt, an dem „nichtkommerziell" unbestimmt wird.
 **Es ist nichts entfernt worden.** Diese Tabelle ist die Grundlage für
 eine Entscheidung, nicht die Entscheidung.
 
+### Lizenzfreie Stimmen, die es stattdessen gibt
+
+Erhoben aus denselben Modellkarten, über alle englischen und
+russischen Stimmen in `rhasspy/piper-voices`. Für **beide** Problemfälle
+gibt es Ersatz, und für Russisch sogar zwei Stimmen unter CC0:
+
+Die Spalte *Tempo* ist der gemessene Längenfaktor gegen die deutsche
+Stimme (`laengenfaktor.py --je-stimme`, 20 Sätze aus `ausschnitt.mp3`).
+**Kleiner ist besser:** die Übersetzung braucht dann weniger Zeit als
+das Original, und der Rückstand wächst nicht.
+
+| Sprache | Stimme | Lizenz des Datensatzes | Tempo | Datensatz |
+|---|---|---|---|---|
+| **ru** | `ru_RU-dmitri-medium` | **CC0** | **0,92** | OHF-Voice/voice-datasets |
+| **ru** | `ru_RU-denis-medium` | **CC0** | 1,14 | OHF-Voice/voice-datasets |
+| ru | `ru_RU-ruslan-medium` | CC BY-NC-SA | — | ruslan-corpus |
+| ru | `ru_RU-irina-medium` *(heute aktiv)* | **„Unknown"** | 1,22 | RHVoice |
+| **en** | `en_US-joe-medium` | **CC0** | 1,15 | OHF-Voice/voice-datasets |
+| **en** | `en_US-ljspeech-medium` | **public domain** | 1,28 | LJ Speech |
+| en | `en_US-john-medium`, `-kristin-`, `-norman-`, `-bryce-` | public domain | — | LibriVox |
+| en | `en_US-libritts_r-medium`, `-libritts-high` | CC BY 4.0 | — | openslr 141 / 60 |
+| en | `en_US-sam-medium` | Apache-2.0 | — | Sam-Accenture |
+| en | `en_US-kathleen-low` | CC0 | — | rhasspy |
+| en | `en_US-ryan-*` | CC BY-NC-SA 4.0 | — | Kaggle |
+| en | `en_US-lessac-*` *(heute aktiv)* | **nur Forschung** | 1,07 | Blizzard 2013 |
+
+**Russisch wäre ein Gewinn in beide Richtungen.** `dmitri` ist
+lizenzfrei **und** mit 0,92 schneller als die heutige `irina` (1,22) —
+dreißig Prozent weniger Sprechzeit je Abschnitt. `denis` liegt bei
+1,14 und ist damit auch noch besser.
+
+**Englisch kostet etwas.** Die saubere Wahl `joe` (CC0) braucht 1,15
+statt 1,07 — gut sieben Prozent mehr Sprechzeit. Das ist der Preis,
+und er ist bezahlbar.
+
+Damit ist der offene Punkt keine Rechtsfrage mehr, sondern eine
+**Wahl**: welche Stimme soll die Gemeinde hören. Das entscheidet
+niemand am Schreibtisch — das Projekt wählt Stimmen, indem ein
+Muttersprachler drei Kandidaten anhört
+(`werkzeuge/sprachpaket.py --bauen <sp>`), so wie es bei Spanisch und
+Portugiesisch gelaufen ist.
+
+**Gewechselt ist nichts.** Ein Stimmwechsel ändert, was die Zuhörer
+hören, und gehört nicht in eine Lizenzaufräumung.
+
 [bl13]: https://www.cstr.ed.ac.uk/projects/blizzard/2013/lessac_blizzard2013/license.html
 
 ## Spracherkennung und Sprachmodell

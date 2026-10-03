@@ -234,13 +234,31 @@ Nutzungsbedingungen mit einer *Prohibited Use Policy* — Devarenu
 liefert das Modell nicht mit, jede Gemeinde nimmt es über Ollama
 selbst entgegen.
 
-**Was fehlt:** Eine Entscheidung zu `en` und `ru`. Drei Wege, und
-einer muss gewählt werden:
+**Seit 0.4.0 steht auch der Ausweg da.** Alle englischen und
+russischen Stimmen in `rhasspy/piper-voices` sind erhoben, und für
+beide Fälle gibt es lizenzfreien Ersatz — für Russisch sogar zwei
+Stimmen unter **CC0** (`denis`, `dmitri`), für Englisch eine unter CC0
+(`joe`) und mehrere gemeinfreie (`ljspeech`, `john`, `kristin`,
+`norman`). Die Tabelle steht in [LIZENZEN.md](LIZENZEN.md), samt
+gemessenem Sprechtempo.
 
-1. Die Beschränkung gilt nur für den Datensatz, nicht für die
-   trainierten Gewichte — dann gehört die Begründung aufgeschrieben.
-2. Eine andere Stimme auf freien Daten suchen und wechseln.
-3. Beim Rechteinhaber fragen.
+**Für Russisch wäre der Wechsel ein Gewinn in beide Richtungen:**
+`dmitri` ist CC0 **und** mit Längenfaktor 0,92 deutlich schneller als
+die heutige `irina` (1,22). Englisch kostet dagegen etwas — `joe`
+braucht 1,15 statt 1,07.
+
+**Was fehlt:** Eine Entscheidung. Zwei Wege, und einer muss gewählt
+werden:
+
+1. **Wechseln.** Dann ist der Punkt sauber erledigt — aber es ändert,
+   was die Zuhörer hören, und die Stimme gehört vorher angehört. Das
+   Projekt wählt Stimmen so: `werkzeuge/sprachpaket.py --bauen <sp>`
+   baut ein Paket mit drei Kandidaten, ein Muttersprachler hört sie an
+   und wählt. Genau so sind Spanisch und Portugiesisch gewählt worden.
+2. **Begründet bleiben.** Die Beschränkung gilt dem Datensatz, nicht
+   den trainierten Gewichten — dann gehört diese Begründung
+   aufgeschrieben und nicht bloß gedacht. Für `ru` geht das nicht:
+   dort ist gar keine Lizenz genannt.
 
 **Wie man es prüft:** In `LIZENZEN.md` steht zu jeder
 ausgelieferten Stimme eine Lizenz **und** ein Satz, warum die
