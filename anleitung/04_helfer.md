@@ -31,7 +31,8 @@ bereit.*
 
 ## 4. Am Pult
 
-**Einrichtung**, dann **Jetzt einspielen**. Es dauert bis zu drei
+Unten (am Laptop oben) auf **Einrichtung**, dort in der Liste auf
+**Update**, dann **Jetzt einspielen**. Es dauert bis zu drei
 Minuten, der Bildschirm wird kurz leer. Fertig, wenn dasteht:
 **Fassung 0.3.2 ist eingespielt und läuft.** Dann den Stick abziehen.
 
@@ -44,7 +45,8 @@ wieder ein.
 **Nicht weiterprobieren.** Der Rechner hat sich selbst auf den alten
 Stand zurückgeholt und läuft. Am Sabbat ist alles wie vorher.
 
-Oben rechts am Pult ist ein kleiner **Käfer**. Darauf tippen: zwei
+Am Pult auf **Einrichtung**, dort auf **Fehlersuche**, dann auf
+**Fehler melden** (am Laptop steht der Knopf oben rechts). Zwei
 Quadratmuster erscheinen. Das linke mit der Handykamera aufnehmen, es
 öffnet eine fertige E-Mail; das rechte lädt einen Bericht aufs Handy,
 der angehängt wird. Die E-Mail geht raus, sobald das Handy Empfang

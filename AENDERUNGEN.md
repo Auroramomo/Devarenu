@@ -6,6 +6,100 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.4.1 — Das Pult neu geordnet
+
+*03.10.2026.*
+
+### Für alle
+
+**Das Pult hat vier Reiter.** Gottesdienst, Vorbereiten, Aufnahmen,
+Einrichtung. Vorher war es eine lange Seite, auf der am Sonntag
+gescrollt werden musste; jetzt passt die Startseite auf einen
+Handybildschirm. Am Handy stehen die Reiter als feste Leiste unten, am
+Laptop als Zeile unter dem Kopf.
+
+**Die Funktion ändert sich nicht.** Jede Bedienung von 0.4.0 ist
+weiter erreichbar, jede Prüfung im Server steht unverändert. Was
+verschwunden aussieht, ist umgezogen.
+
+**Drei Kacheln sagen in einem Wort, wie es steht:** Ton (*gut*,
+*knapp*, *kein Ton*), Zuhörer (Gesamtzahl groß, je Sprache Kürzel und
+Zahl) und Thema (*fehlt* oder *gesetzt*). Darunter steht, was zuletzt
+erkannt wurde und wie lange es gebraucht hat.
+
+**Rote Meldungen stehen in jedem Reiter.** Wer in der Einrichtung
+steht, während der Ton ausfällt, sieht es dort. Gelbe Hinweise genügen
+als Punkt am Reiter. Die Statuspille oben rechts — *Läuft*,
+*Angehalten*, *Störung* — ist immer zu sehen.
+
+**Farbe hat wieder eine Bedeutung.** Dunkelblau nur noch für die eine
+Hauptaktion und den aktiven Reiter, grün/gelb/rot nur für Zustände,
+alle übrigen Knöpfe weiß mit grauem Rand. Die sieben Erklärabsätze, die
+bisher dauerhaft offen standen, hängen hinter einem „?" — gelöscht ist
+keiner.
+
+**Die Mindestlautstärke hat drei ausdrückliche Modi:** *Aus*,
+*Automatisch* und *Fest*. Vorgabe für neue Installationen ist *Aus*.
+Der Grund kommt aus Rostock: der Helfer stellte die Schwelle jeden
+Gottesdienst auf null, weil mit Automatik oder eingemessener Schwelle
+mehr Erkennungsfehler kamen. Der Server machte daraus die kleinste
+feste Schwelle — sein Wunsch war nirgends gespeichert und beim
+nächsten Einmessen weg. Jetzt steht der Modus in `zustand.json` und
+übersteht Neustarts. Eine gespeicherte Schwelle von 0,0005 oder
+darunter wird beim Update als *Aus* übernommen.
+
+Gemessen an einer Predigt von 21 Minuten: *Aus* lieferte 2743 Wörter,
+*Automatisch* 2576, *Fest* mit der eingemessenen Schwelle 1091 — die
+verwarf drei Fünftel. Dafür schneidet *Aus* jeden achten Abschnitt an
+der Höchstdauer, *Automatisch* nur jeden fünfzigsten.
+
+**„Vielen Dank fürs Zuhören" fällt endlich weg.** Im Filter für
+erfundene Sätze fehlte ein Leerzeichen, und genau die Abspannfloskeln,
+die Whisper auf Orgel und Gesang erfindet, gingen durch und liefen in
+vier Sprachen auf die Handys. Steht die Floskel am Ende eines sonst
+echten Abschnitts, wird jetzt nur sie abgeschnitten — „Gott segne
+euch." bleibt stehen. „Danke." allein gilt nicht mehr als Floskel: im
+Gottesdienst ist das ein normaler Satz.
+
+### Auf der Zuhörerseite
+
+**Der Hinweis „Diese Übersetzung erstellt ein Computer" folgt jetzt
+der gewählten Sprache.** Er stand fest auf Deutsch in der Seite — auch
+dann, wenn jemand Russisch oder Farsi gewählt hatte, und gerade dieser
+Satz richtet sich an jemanden, der kein Deutsch kann. Der zweite,
+kürzere Hinweis unter dem Knopf sagte dasselbe noch einmal und ist
+weg.
+
+**Der Deko-Streifen unten rechts** schnitt auf schmalen Schirmen in
+den Knopf *Zuhören*. Er ist dort jetzt kleiner und bleibt darunter.
+
+### Für die Technik
+
+* Das Pult ist zuerst fürs Handy gebaut (390 px), dann für den Laptop.
+  Die feste Leiste rechnet die Fußzone des Geräts ein
+  (`viewport-fit=cover`, `env(safe-area-inset-bottom)`) und weicht,
+  solange jemand in einem Textfeld tippt.
+* Der gewählte Reiter steht im Anker der Adresse (`#gottesdienst`).
+  Die Reiter sind Knöpfe mit `role=tab` und `aria-selected` und mit den
+  Pfeiltasten bedienbar.
+* `color-scheme: light`, damit Chromes erzwungener Dunkelmodus die
+  Zustandsfarben nicht umrechnet. Farbige Ränder sitzen auf logischen
+  Seiten, damit Farsi das Layout nicht spiegelt. Knöpfe und Reiter sind
+  mindestens 44 px hoch. Alle Farbpaare erreichen mindestens 4,6:1.
+* Alle Beschriftungen laufen über die Übersetzungstabellen, 199
+  Schlüssel in Deutsch und Englisch. „Abbrechen" im
+  Einwilligungsdialog und der Erklärtext zum Testprotokoll standen
+  bisher in keiner Tabelle.
+* `zustand.json` ist in Fassung 4. Ein Gerätewechsel verwirft eine
+  feste Schwelle wie bisher, fällt aber auf den zuletzt gewählten Modus
+  zurück statt stur auf Automatik.
+* Neu im Prüfstand: `pruefstand/pult_test.mjs` (mit
+  `pultnachbau.mjs` und `pultbilder.mjs`),
+  `pruefstand/floskeln_test.py`, `pruefstand/schwellenmodus_test.py`.
+  Neu in den Werkzeugen: `werkzeuge/schwellenmessung.py`.
+
+---
+
 ## 0.4.0 — Spanisch und Portugiesisch, und sechs Dinge, die niemand sah
 
 *03.10.2026.*

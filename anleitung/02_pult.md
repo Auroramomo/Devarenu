@@ -8,23 +8,72 @@ gehört die Portnummer dazu: **http://10.0.0.1:8000/pult**. Welche
 Adresse gilt, steht beim Start in der Ausgabe des Dienstes und in
 `bash pruefen.sh`.
 
+## Die vier Reiter
+
+Seit 0.4.1 hat das Pult vier Reiter. Am Handy stehen sie als feste
+Leiste unten, am Laptop als Zeile unter dem Kopf.
+
+| Reiter | Wofür |
+|---|---|
+| **Gottesdienst** | Starten, Anhalten, Aufnahme. Drei Kacheln: Ton, Zuhörer, Thema. Das ist die Startseite, und sie passt auf einen Handybildschirm. |
+| **Vorbereiten** | Thema und Bibelstellen, Manuskript, Ton einmessen — und dahinter die Feineinstellung mit Tonquelle und Schwelle. |
+| **Aufnahmen** | Was aufgenommen wurde: herunterladen, löschen, Löschfrist. |
+| **Einrichtung** | Was einmal je Gemeinde eingestellt wird. |
+
+Ein **gelber Punkt** am Reiter heißt: dort wartet etwas, das den
+Gottesdienst nicht aufhält. **Rote Meldungen** stehen dagegen in
+*jedem* Reiter als Band unter dem Kopf — wer in der Einrichtung steht,
+während der Ton ausfällt, sieht es dort.
+
+Oben rechts sagt die **Statuspille** in einem Wort, wie es steht:
+*Läuft* (grün), *Angehalten* (grau), *Störung* (rot). Sie ist immer zu
+sehen.
+
+Jedes „?" klappt die ausführliche Erklärung auf. Nichts davon ist
+verschwunden, es steht nur nicht mehr dauerhaft offen.
+
 ## Vor dem Gottesdienst
 
-1. **Tonquelle prüfen.** Unter *Einrichtung* → *Tonquelle* ist jede
-   Zeile ein Kanal. Hineinsprechen, der Balken muss ausschlagen. Immer
-   **auswählen**, nie eine Nummer abtippen: die Nummern verschieben sich
-   beim Umstecken.
-2. **Einmessen.** Den Prediger am echten Mikrofon sprechen lassen und
-   auf *Einmessen* drücken. Es dauert **12 Sekunden** — in dieser Zeit
-   muss durchgehend gesprochen werden. Danach weiß der Rechner, was in
-   diesem Saal leise und was laut ist.
-3. **Sprachen wählen.** Nur einschalten, was wirklich gebraucht wird —
-   jede zusätzliche Sprache kostet Rechenzeit.
-4. **WLAN-Name und Passwort eintragen.** Sie werden nur für den QR-Code
-   gebraucht; der Zugangspunkt kennt sie selbst. Stimmen sie hier nicht
-   mit dem Zugangspunkt überein, enthält der QR-Code ein falsches
+1. **Tonquelle prüfen.** Unter *Vorbereiten* → *Feineinstellung* ist
+   jede Zeile ein Kanal. Hineinsprechen, der Balken muss ausschlagen.
+   Immer **auswählen**, nie eine Nummer abtippen: die Nummern
+   verschieben sich beim Umstecken.
+2. **Thema und Bibelstellen eintragen.** Unter *Vorbereiten*. Solange
+   es fehlt, ist die Kachel *Thema* gelb und der Reiter trägt einen
+   Punkt. Es ist der Unterschied zwischen „Sanballat" und
+   „San Ballard".
+3. **Sprachen wählen.** *Einrichtung* → *Sprachen*. Nur einschalten,
+   was wirklich gebraucht wird — jede zusätzliche Sprache kostet
+   Rechenzeit.
+4. **WLAN-Name und Passwort eintragen.** *Einrichtung* → *WLAN &
+   QR-Code*. Sie werden nur für den QR-Code gebraucht. Stimmen sie hier
+   nicht mit dem Zugangspunkt überein, enthält der QR-Code ein falsches
    Passwort und niemand kommt ins Netz.
-5. **QR-Seite am Beamer prüfen.** Oben rechts auf *QR*.
+5. **QR-Seite am Beamer prüfen.** Am Laptop oben rechts auf *QR*, am
+   Handy unter *Einrichtung* → *WLAN & QR-Code*.
+
+## Die Mindestlautstärke: drei Modi
+
+Unter *Vorbereiten* → *Feineinstellung*. **Nur nötig bei
+Störgeräuschen im Raum** — im Normalfall ist hier nichts zu tun.
+
+| Modus | Was er tut |
+|---|---|
+| **Aus** | Keine Mindestlautstärke. Geschnitten wird an Sprechpausen und an der Höchstdauer. **Vorgabe.** |
+| **Automatisch** | Die Schwelle folgt dem Raumpegel. |
+| **Fest** | Der Wert bleibt stehen, den das Einmessen ergeben hat. |
+
+Der Modus bleibt über Neustarts stehen und wird in der Ton-Kachel
+genannt. **Einmessen** setzt ihn auf *Fest*: den Prediger am echten
+Mikrofon sprechen lassen und drücken, es dauert **12 Sekunden**, in
+denen durchgehend gesprochen werden muss.
+
+> Gemessen an einer Predigt von 21 Minuten lieferte *Aus* die meisten
+> Wörter, *Fest* mit der eingemessenen Schwelle die wenigsten — sie
+> verwarf drei Fünftel. Wer nicht sicher ist, lässt *Aus* stehen.
+
+Ein Wechsel des Tongeräts verwirft eine feste Schwelle: sie galt dem
+alten Mikrofon. Es gilt dann wieder der Modus, der vorher gewählt war.
 
 ## Die QR-Seite für den Beamer
 
@@ -66,12 +115,27 @@ eine Seite je Sprache, zum Auslegen am Eingang.
 - **Starten** und **Anhalten** mit dem großen Knopf. Anhalten stoppt die
   Auslieferung, ohne die Zuhörer zu trennen — sie bleiben verbunden und
   hören weiter, sobald es weitergeht.
-- **Der Briefkasten** oben zeigt Meldungen. Zwei Sorten: Zuschriften aus
-  dem Saal, und Hinweise von Devarenu selbst (mit ⚙). Die zweiten
-  bleiben stehen, bis sie einmal geöffnet wurden.
-- **Rote Zeilen** stehen für Dinge, die den Betrieb aufhalten: keine
+- **Die drei Kacheln** sagen jede in einem Wort, wie es steht, und
+  färben ihren linken Rand danach:
+  - **Ton** — *gut*, *knapp* oder *kein Ton*. Darunter der Pegelbalken
+    mit der Schwellenmarke und der Modus.
+  - **Zuhörer** — die Gesamtzahl groß, darunter je Sprache Kürzel und
+    Zahl.
+  - **Thema** — *fehlt* (gelb, mit einem Weg zum Eintragen) oder
+    *gesetzt* (grün, mit den erkannten Stellen).
+- **„Zuletzt erkannt"** zeigt den letzten Abschnitt und wie lange er
+  gebraucht hat. Ein Tipp darauf klappt die letzten acht auf. Steigt
+  die Verzögerung über mehrere Abschnitte, wird die Ton-Kachel gelb und
+  sagt *Verzögerung steigt* — dann staut sich etwas auf.
+- **Der Briefkasten** erscheint als rotes Band unter dem Kopf. Zwei
+  Sorten: Zuschriften aus dem Saal, und Hinweise von Devarenu selbst
+  (mit ⚙). Die zweiten bleiben stehen, bis sie einmal geöffnet wurden.
+- **Rote Bänder** stehen für Dinge, die den Betrieb aufhalten: keine
   Tonquelle, ein zweiter DHCP-Server im Netz, ein Rechner, der falsch
-  eingestellt ist. Sie nennen jeweils, was zu tun ist.
+  eingestellt ist. Sie stehen in jedem Reiter und nennen jeweils, was
+  zu tun ist.
+- **Von vorn beginnen** steht ganz unten, klein und grau, und fragt
+  nach.
 
 ## Sprachen
 
@@ -82,13 +146,14 @@ Drei Zustände, und sie sehen verschieden aus:
 - **gepunktet** — es gibt keines. Begriffe wie Sabbat, Gemeinde oder
   Vereinigung werden wörtlich übersetzt.
 
-Wird eine ungeprüfte Sprache eingeschaltet, legt Devarenu einen Hinweis
-in den Briefkasten — einmal je Sprache.
+Die ungeprüften stehen unter einer eigenen Überschrift *Noch nicht
+geprüft*. Wird eine eingeschaltet, legt Devarenu einen Hinweis in den
+Briefkasten — einmal je Sprache.
 
 ## Etwas funktioniert nicht
 
-Oben rechts, neben dem Zahnrad, sitzt ein **Käfer**. Dahinter steht,
-wie man es meldet:
+Am Laptop steht oben rechts **Fehler melden**, am Handy unter
+*Einrichtung* → *Fehlersuche*. Dahinter steht, wie man es meldet:
 
 - **Name und Adresse** des Betreuers zum Abschreiben.
 - **Ein QR-Code**, der auf dem Handy eine fertige Mail öffnet — Betreff

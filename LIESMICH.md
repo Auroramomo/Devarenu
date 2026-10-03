@@ -9,7 +9,7 @@ der Gemeinde: ohne Internet, ohne Konto, ohne laufende Kosten.
 Gemessen im Betrieb: 2,0 Sekunden Verzögerung, kein Nachlaufen über 32
 Minuten.
 
-**Fassung 0.3.0.** Was dazugekommen ist, steht in
+**Fassung 0.4.1.** Was dazugekommen ist, steht in
 [AENDERUNGEN.md](AENDERUNGEN.md). Devarenu läuft zur Zeit in **einer**
 Gemeinde und wird dort erprobt; an weitere Gemeinden geht es erst mit
 Version 1.0.
@@ -52,15 +52,18 @@ Beamer, und für das Pult.
 
 ## Einmal einrichten
 
-Am Pult öffnet das Zahnrad die Einrichtung: Tonquelle, Sprachen, WLAN.
+Das Pult hat vier Reiter: **Gottesdienst**, **Vorbereiten**,
+**Aufnahmen**, **Einrichtung**. Was einmal je Gemeinde eingestellt
+wird, steht unter Einrichtung; die Tonquelle unter Vorbereiten →
+Feineinstellung.
 
 **Tonquelle.** Gerät auswählen, hineinsprechen, Ausschlag am Balken
 prüfen. Lässt sich ein Gerät nicht öffnen, kommt das vorherige zurück und
 der Grund steht daneben. Der Server läuft dabei weiter.
 
 Alles davon steht anschließend in `zustand.json` neben dem Programm und
-gilt nach dem Neustart weiter, die eingemessene Mindestlautstärke
-eingeschlossen. Was in `config.py` steht, gilt für alle Gemeinden gleich
+gilt nach dem Neustart weiter, der Schwellenmodus und die eingemessene
+Mindestlautstärke eingeschlossen. Was in `config.py` steht, gilt für alle Gemeinden gleich
 und wird beim Aktualisieren überschrieben; `zustand.json` bleibt davon
 unberührt. Sie enthält das WLAN-Passwort im Klartext und ist deshalb nur
 für den eigenen Benutzer lesbar.

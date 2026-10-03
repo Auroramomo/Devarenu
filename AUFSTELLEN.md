@@ -1530,6 +1530,39 @@ python pruefstand/bericht_test.py
 python pruefstand/netz_alt_test.py
 ```
 
+### Das Pult
+
+```
+node pruefstand/pult_test.mjs
+node pruefstand/pult_test.mjs --bilder     # braucht firefox
+```
+
+Das Pult hat seit 0.4.1 vier Reiter. Damit kann etwas verschwinden,
+ohne dass es auffällt: ein Knopf, den niemand mehr erreicht, sieht aus
+wie ein aufgeräumtes Pult. Deshalb trägt `pult_test.mjs` die
+**Bestandsaufnahme** mit — eine Zeile je Bedienelement mit dem Ort, an
+dem es liegen soll — und prüft für jedes, dass es existiert, dass es
+dort liegt, und dass man von der Startseite aus hinkommt. Was eine
+Ebene tiefer steht (hinter einem „?" oder in der Feineinstellung), ist
+als solches vermerkt und wird auch so geprüft.
+
+Dazu: die acht Zustände (bereit, läuft, kein Ton, Thema fehlt, Aufnahme
+läuft, Update wartet, Meldung aus dem Saal, aus dem Saal geöffnet), die
+Reiterbedienung mit Tastatur, die roten Bänder in jedem Reiter, die
+Rückstau-Regel, die drei Schwellenmodi, die Vollständigkeit beider
+Sprachtabellen, die Farbregel, die Fingergröße, die logischen Ränder
+für Farsi und der Kontrast jedes Farbpaars.
+
+Gerechnet wird gegen einen nachgebauten Browser (`pultnachbau.mjs`) mit
+einem kleinen HTML-Parser: das Pult greift Elemente über ihre Kennung
+als globale Namen an, und ein Nachbau, der jede Anfrage mit einem
+frischen leeren Element beantwortet, bestätigt jede Behauptung.
+
+`--bilder` rendert das Pult mit Attrappendaten in acht Gerätegrößen
+(320×568 bis 1366×768, einmal quer, einmal mit 150 % Schriftgröße) und
+legt die Bilder unter **`/tmp/devarenu_pult/`** ab — **nie im Repo**.
+Es braucht `firefox`.
+
 Alles läuft mit Attrappen, ohne Wurzelrechte, ohne systemd, ohne
 Modell. `systemctl`, `sudo`, `curl`, `runuser`, `id` und `udevadm`
 kommen aus `pruefstand/attrappen/` und schreiben nur mit.

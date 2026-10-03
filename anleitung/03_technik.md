@@ -82,7 +82,8 @@ wird vorher als Patch gesichert, und das Pult nennt den Ablageort.
 
 ## Den Fehlerbericht schicken
 
-Am Pult, hinter dem Käfer oben rechts. Der Bericht entsteht beim
+Am Pult unter *Einrichtung* → *Fehlersuche* → *Fehler melden*;
+am Laptop steht der Knopf oben rechts. Der Bericht entsteht beim
 Abruf — er beschreibt den Rechner in diesem Moment, eine alte Kopie
 wäre schlimmer als keine.
 
