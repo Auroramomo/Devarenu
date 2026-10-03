@@ -19,7 +19,18 @@ try:
 except OSError:
     VERSION = "unbekannt"
 
-GLOSSAR_CSV = BASIS / "glossar_v0.4.csv"
+# Die AKTIVE Glossarfassung. v0.5 bis v0.8 sind Arbeitsstaende: dort
+# wurden es, pt, hr, fr und pl aufgebaut, waehrend im Betrieb weiter
+# v0.4 lief. In den Spalten, die v0.4 hat, sind alle fuenf Zeichen fuer
+# Zeichen gleich -- en, ru und fa haben also nie von einem Arbeitsstand
+# etwas abbekommen.
+#
+# v0.9 ist die erste, die aktiv wird: sie traegt die Rueckmeldungen der
+# spanischen und portugiesischen Pruefer. Nachgewiesen vor dem
+# Umschalten, mit werkzeuge/glossar_vergleich.py ueber 1444 Texte:
+# en, ru, fa und der Whisper-Prompt kommen Zeichen fuer Zeichen gleich
+# heraus.
+GLOSSAR_CSV = BASIS / "glossar_v0.9.csv"
 TESTSAETZE_CSV = BASIS / "testsaetze_v0.3.csv"
 ERGEBNIS_ORDNER = BASIS / "ergebnisse"
 
@@ -205,6 +216,38 @@ STELLEN_TRENNER = {
     "pt": ":",
 }
 
+# ----------------------------------------------------------------- Anrede
+#
+# Spanisch und Portugiesisch muessen bei jedem "ihr" und jedem "du"
+# entscheiden, welche Form gemeint ist -- und das Sprachmodell entscheidet
+# es sonst in jedem Abschnitt neu. In einer Predigt faellt das auf: die
+# Gemeinde wird in einem Satz geduzt, im naechsten gesiezt, und Gott
+# wechselt mit.
+#
+# Festgelegt wird die Form, die die gebrauchten Bibeluebersetzungen
+# verwenden:
+#
+#   es  Reina-Valera redet Gott mit "tú" an. Die Gemeinde als Mehrzahl
+#       ist in Lateinamerika "ustedes"; "vosotros" ist dort ausgestorben
+#       und klingt wie Kirchensprache aus dem 19. Jahrhundert.
+#   pt  Almeida redet Gott mit "tu" an. Die Gemeinde als Mehrzahl ist im
+#       brasilianischen Portugiesisch "voces".
+#
+# Dass die eine Form fuer Gott die vertrauliche ist und die andere fuer
+# die Gemeinde die hoefliche, ist kein Widerspruch, sondern genau die
+# Verteilung, die in beiden Uebersetzungen steht.
+#
+# Keine Sprache ohne Eintrag bekommt eine Vorgabe. Fuer Englisch,
+# Russisch und Persisch wuerde sie nichts entscheiden (en) oder waere
+# ungeprueft (ru, fa).
+ANREDE = {
+    "es": ("Die Gemeinde wird mit „ustedes“ angeredet, nie mit "
+           "„vosotros“. Gott wird mit „tú“ angeredet, wie in der "
+           "Reina-Valera."),
+    "pt": ("Die Gemeinde wird mit „vocês“ angeredet. Gott wird mit "
+           "„tu“ angeredet, wie in der Almeida."),
+}
+
 # ---------------------------------------------------------------- Uebersetzung
 # Die Ausgangssprache. Sie wird nicht uebersetzt: der Text kommt direkt aus
 # der Spracherkennung, der Ton ist die Originalaufnahme des Predigers. Das
@@ -252,7 +295,13 @@ SPRACHNAMEN_EN = {
 # maschinell erzeugt und ungeprueft. Bei Persisch hat die Pruefung acht
 # von 54 Eintraegen korrigiert, darunter einen, der theologisch ins
 # Gegenteil ging. Diesen Unterschied sollen die Zuhoerer sehen koennen.
-GEPRUEFT = {"de", "en", "ru", "fa"}
+#
+# es und pt kamen mit 0.4.0 dazu. Je ein Muttersprachler hat die 72
+# Begriffe durchgesehen und dazu rund 80 weitere beigetragen; die
+# Entscheidungen stehen in werkzeuge/glossar_rueck_es_pt.py, jede mit
+# Begruendung. Eingeschaltet wird dadurch nichts: ZIELSPRACHEN bleibt
+# en, ru, fa, und eine Gemeinde waehlt am Pult.
+GEPRUEFT = {"de", "en", "ru", "fa", "es", "pt"}
 
 # Piper-Stimmen je Sprache, so wie sie im Repo rhasspy/piper-voices liegen.
 # Was hier steht, kann einrichten.sh herunterladen; was fehlt, laeuft als

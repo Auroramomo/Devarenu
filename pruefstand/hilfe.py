@@ -22,8 +22,23 @@ WURZEL = Path(__file__).resolve().parent.parent
 # Was ein Server im Wegwerfordner braucht. Alle *.py kommen ohnehin
 # mit -- eine gepflegte Liste vergisst genau das Modul, das gerade
 # dazukam, und der Lauf meldet dann "der Server kam nicht hoch".
+# Die Glossardatei beim NAMEN aus config.py, nicht als feste
+# Zeichenkette: beim Umschalten auf glossar_v0.9.csv liefen sonst vier
+# Pruefstaende in "der Server kam nicht hoch", und zwar aus einem
+# Grund, der mit dem Pruefgegenstand nichts zu tun hat. Dieselbe Falle
+# hatte start.sh bis 0.3.0.
+def _glossarname():
+    import sys
+    sys.path.insert(0, str(WURZEL))
+    try:
+        import config
+        return config.GLOSSAR_CSV.name
+    except Exception:
+        return "glossar_v0.4.csv"
+
+
 BEIWERK = ("client.html", "VERSION", "logo.png", "betreuer.txt",
-           "glossar_v0.4.csv", "namen_block_b.csv")
+           _glossarname(), "namen_block_b.csv")
 VERKNUEPFT = (".venv", "voices", "models")
 
 

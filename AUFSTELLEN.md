@@ -626,9 +626,42 @@ Eine Sprache hat drei Zustände, und sie sehen am Pult verschieden aus:
 | Glossar da, ungeprüft | gestrichelt | gestrichelt, Punkt |
 | gar kein Glossar | gepunktet | gepunktet, Kreis |
 
-Von 21 Sprachen haben vier ein Fachwortverzeichnis. Wer Rumänisch
-dazuschaltet, bekommt eine Übersetzung ohne jede Terminologie: Sabbat,
-Gemeinde und Vereinigung werden wörtlich übertragen.
+Von 21 Sprachen haben **sechs** ein geprüftes Fachwortverzeichnis: de,
+en, ru, fa und seit 0.4.0 es und pt. Wer Rumänisch dazuschaltet,
+bekommt eine Übersetzung ohne jede Terminologie: Sabbat, Gemeinde und
+Vereinigung werden wörtlich übertragen.
+
+### Spanisch und Portugiesisch
+
+Freigegeben mit 0.4.0, **nicht eingeschaltet**: `ZIELSPRACHEN` bleibt
+en, ru, fa. Eine Gemeinde wählt sie am Pult unter *Übersetzt nach*; in
+Rostock ändert sich dadurch nichts.
+
+Je ein Muttersprachler hat die 72 Begriffe durchgesehen und rund 80
+weitere beigetragen. Festgelegt ist dabei auch die **Anrede**
+(`config.ANREDE`): die Gemeinde mit „ustedes" bzw. „vocês", Gott mit
+„tú" bzw. „tu" — so wie es in Reina-Valera und Almeida steht. Ohne
+diese Vorgabe entscheidet das Sprachmodell es in jedem Abschnitt neu,
+und die Gemeinde wird im Wechsel geduzt und gesiezt.
+
+**Bibelbuchnamen brauchen keine Einstellung je Gemeinde.** Geprüft
+wurde das, nicht vermutet: je zwei unabhängige Übersetzungen über
+`api.getbible.net` — für Spanisch Reina Valera (1909) gegen Sagradas
+Escrituras (1569), für Portugiesisch Almeida Atualizada gegen Bíblia
+Livre. Ergebnis **0 von 66** Buchnamen verschieden, in beiden Sprachen.
+Die Namen stehen also fest; ein Schalter dafür hätte keinen Gegenstand.
+Beim Abgleich fielen dagegen fünf Zellen auf, in denen unser Glossar
+von beiden Übersetzungen abwich (`Nahú` → `Nahúm`, `Cânticos` →
+`Cântico dos Cânticos`, `Abdias` → `Obadias`, `Miqueias` → `Miquéias`,
+`Filemão` → `Filemom`). Sie sind berichtigt.
+
+**Nach dem ersten Gottesdienst mit spanisch- oder
+portugiesischsprachigen Zuhörern: deren Rückmeldung einholen.** Ein
+geprüftes Glossar sagt, dass die Begriffe stimmen — nicht, dass die
+Übersetzung im Saal verständlich ankommt. Zu fragen ist nach dem
+Sprechtempo (für `pt_BR-jeff-medium` steht `TEMPO_STIMME` auf 1,15 und
+ist noch nicht im Betrieb bestätigt), nach der Anrede und danach, ob
+Bibelstellen beim Mitlesen wiederzufinden sind.
 
 **Beim Einschalten legt der Server einen Hinweis in den Briefkasten des
 Pults** — mit ⚙ und Absender „Devarenu", damit er nicht wie eine
@@ -1956,34 +1989,50 @@ Danach noch von Hand:
 bash anleitung_bauen.sh      # das Zuhörer-PDF in der neuen Sprache
 ```
 
-### Merkposten: das Glossar aktiv schalten
+### Das Glossar aktiv schalten
 
-**Noch offen, und ohne das bleibt der halbe Gewinn liegen.**
+Seit 0.4.0 ist `config.GLOSSAR_CSV` = `glossar_v0.9.csv`. Davor zeigte
+es über vier Arbeitsstände hinweg auf `v0.4` — die geprüften Sprachen
+standen in der neueren Datei, liefen live aber ohne
+Fachwortverzeichnis. Das war der schlechteste der drei Zustände, weil
+er nach dem besten aussah.
 
-Nach dem Rücklauf steht die geprüfte Sprache in `glossar_v0.8.csv` —
-aber `config.GLOSSAR_CSV` zeigt weiter auf `v0.4`. Die Sprache läuft
-damit **live ohne Fachwortverzeichnis**: das Pult zeigt sie als
-geprüft, und der Prediger bekommt trotzdem „Eucharystia" statt
-„Wieczerza Pańska". Das ist der schlechteste der drei Zustände, weil
-er nach dem besten aussieht.
+Zum Umschalten gehört dreierlei, und alles drei ist getan:
 
-Zum Umschalten gehört dreierlei:
+1. **`config.GLOSSAR_CSV`** zeigt auf die neue Fassung.
 
-1. **`config.GLOSSAR_CSV`** auf die neue Fassung setzen.
+2. **`start.sh`** prüft die Glossardatei beim Namen aus
+   `config.GLOSSAR_CSV`, nicht als feste Zeichenkette. Fehlt sie nach
+   einem Update, fällt es beim Start auf und nicht mitten im
+   Gottesdienst. Dasselbe gilt für den Prüfstand (`pruefstand/hilfe.py`,
+   `BEIWERK`).
 
-2. **Die Pflichtdateiliste in `start.sh`** ergänzen. Sie nennt heute
-   `glossar.py`, aber **keine** Glossar-CSV — fehlt die Datei nach
-   einem Update, merkt es niemand beim Start, sondern erst mitten im
-   Gottesdienst an einer Übersetzung ohne Terminologie.
+3. **Der Vergleichslauf** ist ein Werkzeug und ein Prüfstandfall:
 
-3. **Vorher ein Vergleichslauf** über die Testsätze für die schon
-   aktiven Sprachen. Eine neue Glossarfassung hat mehr Spalten, und
-   `glossarzeilen()` baut daraus den Prompt. Was sich für Englisch,
-   Russisch oder Persisch dabei ändert, soll **niemand überraschen** —
-   und schon gar nicht am Sabbat. Erwartet wird: keine Änderung.
+   ```fish
+   python werkzeuge/glossar_vergleich.py glossar_v0.4.csv glossar_v0.9.csv
+   ```
 
-Bis das geschehen ist, gilt die Sprache als geprüft, läuft aber ohne
-Glossar. Das gehört in die Release-Notiz, nicht in eine Fußnote.
+   Verglichen wird nicht die Datei, sondern das Ergebnis: der Text, den
+   `glossarzeilen()` dem Sprachmodell vorgibt, über 1444 Texte (die 40
+   Testsätze samt Kontext plus jede deutsche Form beider Fassungen,
+   allein und in einem Satz). Dazu der Whisper-Prompt und die
+   persische Vokalisierung. Rückgabe 0 heißt: Zeichen für Zeichen
+   dasselbe.
+
+**Warum das mehr ist als eine Formalie.** Das Glossar wirkt nicht über
+die Spalte, sondern über die **Suchvarianten**. `glossar.finde()`
+sortiert sie nach Länge und lässt die erste, die eine Textstelle
+beansprucht, gewinnen. Eine neue Zeile „28 Glaubensüberzeugungen" ist
+länger als die Variante „Glaubensüberzeugungen" an D034 — sie gewinnt,
+D034 fällt als Überlappung weg, und weil die neue Zeile für Englisch
+leer ist, fehlt „fundamental beliefs" plötzlich im englischen Prompt.
+In der CSV sieht man davon nichts.
+
+Beim Bauen von `v0.9` ist das **neun Mal** passiert.
+`werkzeuge/glossar_rueck_es_pt.py` prüft jede neue Zeile vorher und
+weist sie ab; die neun stehen im Bericht zu 0.4.0 und warten auf
+geprüfte Werte für en, ru und fa.
 
 ### Warum die Pakete nicht ins Repo gehören
 

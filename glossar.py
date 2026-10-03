@@ -46,6 +46,15 @@ class Eintrag:
     varianten: list
     ziel: dict        # {"en": ..., "ru": ..., "fa": ...}
     konfidenz: dict   # {"en": 3, "ru": 3, "fa": 1}
+    # Nebenformen je Zielsprache, mit "|" getrennt: Formen, die in
+    # Gemeinden auch vorkommen, aber nicht die sind, die wir ausgeben.
+    #
+    # Sie dienen NUR dem Erkennen, nie dem Ausgeben. Steht eine Predigt
+    # auf Spanisch und sagt der Prediger "Gran Decepción", soll das
+    # Glossar denselben Eintrag finden wie bei "Gran Chasco" -- in die
+    # Terminologievorgabe geht trotzdem die Hauptform. Zwei Formen als
+    # Vorgabe waeren keine Vorgabe.
+    neben: dict = field(default_factory=dict)
     vokal: str = ""   # persische Form mit Vokalzeichen, nur fuer die Stimme
     anmerkung: str = ""
 
@@ -115,6 +124,9 @@ class Glossar:
                     ziel={k: r[k] for k in sprachen},
                     vokal=r.get("fa_vokal", ""),
                     konfidenz={k: _zahl(r.get("k_" + k)) for k in sprachen},
+                    neben={k: [x.strip() for x in
+                               (r.get("n_" + k) or "").split("|") if x.strip()]
+                           for k in sprachen},
                     anmerkung=r["anmerkung"]))
 
         _SPRACHEN = sprachen
@@ -150,18 +162,27 @@ class Glossar:
             return self.finde(text, nur_hart)
 
         woerter = re.findall(r"\w+", text.lower(), re.UNICODE)
+
+        def steht_drin(begriff):
+            teile = [t for t in re.findall(r"\w+", begriff.lower(), re.UNICODE)
+                     if len(t) > 2]
+            if not teile:
+                return False
+            return all(any(w.startswith(stamm(t)) for w in woerter)
+                       for t in teile)
+
         treffer = []
         for e in self.eintraege:
             if nur_hart and e.typ != "hart":
                 continue
-            begriff = e.de if quelle == "de" else e.ziel.get(quelle, "").strip()
-            if not begriff:
-                continue
-            teile = [t for t in re.findall(r"\w+", begriff.lower(), re.UNICODE)
-                     if len(t) > 2]
-            if not teile:
-                continue
-            if all(any(w.startswith(stamm(t)) for w in woerter) for t in teile):
+            if quelle == "de":
+                formen = [e.de]
+            else:
+                # Hauptform UND Nebenformen. Der Prüfer hat sie als "auch
+                # gehört als" eingetragen, und im Dokument stand die
+                # Zusage, dass der Rechner später danach sucht.
+                formen = [e.ziel.get(quelle, "")] + e.neben.get(quelle, [])
+            if any(steht_drin(f.strip()) for f in formen if f and f.strip()):
                 treffer.append(e)
         return treffer
 

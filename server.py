@@ -812,6 +812,13 @@ class Werk:
             system += (f"\n- Bibelstellen werden mit „{trenner}“ zwischen "
                        f"Kapitel und Vers geschrieben, zum Beispiel "
                        f"Juan 3{trenner}16.")
+        # Die Anrede. Ohne Vorgabe entscheidet das Modell sie in jedem
+        # Abschnitt neu, und die Gemeinde wird im Wechsel geduzt und
+        # gesiezt. Nur fuer Sprachen, fuer die sie belegt festgelegt
+        # ist -- siehe config.ANREDE.
+        anrede = getattr(config, "ANREDE", {}).get(sprache)
+        if anrede:
+            system += f"\n- {anrede}"
         if kontext:
             system += (f"\n\nDavor wurde bereits gesprochen und uebersetzt:"
                        f"\n---\n{kontext}\n---\n"

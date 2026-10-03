@@ -35,7 +35,7 @@ sys.path.insert(0, str(WURZEL))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import pultschutz  # noqa: E402
-from hilfe import eigene_adresse  # noqa: E402
+from hilfe import BEIWERK, eigene_adresse  # noqa: E402
 
 GRUEN, ROT, AUS = "\033[32m", "\033[31m", "\033[0m"
 FEHLER = 0
@@ -178,8 +178,7 @@ try:
     # nach einem Fehler im Server aussieht und keiner ist.
     for q in sorted(WURZEL.glob("*.py")):
         shutil.copy2(q, ARBEIT / q.name)
-    for name in ("client.html", "VERSION", "logo.png", "betreuer.txt",
-                 "glossar_v0.4.csv", "namen_block_b.csv"):
+    for name in BEIWERK:
         q = WURZEL / name
         if q.exists():
             shutil.copy2(q, ARBEIT / name)
