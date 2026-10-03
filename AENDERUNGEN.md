@@ -6,6 +6,157 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.4.0 — Spanisch und Portugiesisch, und sechs Dinge, die niemand sah
+
+*03.10.2026.*
+
+### Für alle
+
+**Spanisch und Portugiesisch sind freigegeben.** Je ein
+Muttersprachler hat die 72 Fachbegriffe durchgesehen und rund 80
+weitere beigetragen. Eine Gemeinde wählt sie am Pult unter *Übersetzt
+nach*; **in Rostock ändert sich dadurch nichts**, die Zielsprachen
+bleiben Englisch, Russisch und Persisch.
+
+**Bibelstellen stehen in der Zählung der Zielsprache.** Die Schlachter
+zählt wie der hebräische Text — aus „Joel 3,1" wird englisch „Joel
+2:28", aus „Psalm 23" russisch „Псалом 22". Wer mitliest, findet die
+Stelle in seiner eigenen Bibel.
+
+**„Jetzt aus dem Netz aktualisieren"** als Knopf am Pult, unter
+*Einrichtung*. Nur am Gemeinde-PC selbst, nie während einer laufenden
+Übersetzung.
+
+**Aufnahmen lassen sich von Hand löschen**, je Aufnahme, mit einer
+Rückfrage, die den Dateinamen nennt.
+
+**Fehlen Thema und Bibelstellen, erinnert das Pult daran** — eine gelbe
+Zeile, die nichts aufhält.
+
+**Acht Schreibweisen von Bibelstellen wurden nicht erkannt** und
+trotzdem aus dem Thema gelöscht: „1. Kor 13", „1 Mose 1", „5 Mose 6"
+und fünf weitere. Behoben.
+
+### Für Techniker
+
+**A — Spanisch und Portugiesisch.** Neuer Glossarstand
+`glossar_v0.9.csv`, und er ist der erste, der aktiv wird: bis 0.3.8
+zeigte `config.GLOSSAR_CSV` über vier Arbeitsstände hinweg auf `v0.4`.
+`werkzeuge/glossar_rueck_es_pt.py` liest die beiden `.docx` mit der
+Standardbibliothek und trägt ein: 3 Tabellenkorrekturen, 13
+Nebenformen, 18 geänderte Zellen aus den Zusatzlisten, 43 neue Zeilen.
+Jede Entscheidung steht als Tabelle im Quelltext.
+
+*Die Falle dabei:* das Glossar wirkt über die **Suchvarianten**, nicht
+über die Spalte. `glossar.finde()` sortiert nach Länge; eine neue Zeile
+„28 Glaubensüberzeugungen" verdrängt D034 „Glaubensüberzeugungen", und
+weil die neue Zeile für Englisch leer ist, fehlt der Begriff im
+englischen Prompt. **Neun von 52 Kandidaten hätten das getan.** Sie
+sind abgewiesen. `werkzeuge/glossar_vergleich.py` vergleicht nicht die
+Datei, sondern das Ergebnis — `glossarzeilen()` über 1444 Texte, dazu
+Whisper-Prompt und persische Vokalisierung. en, ru und fa kommen
+Zeichen für Zeichen gleich heraus.
+
+**Bibelbuchnamen brauchen keine Einstellung je Gemeinde.** Je zwei
+unabhängige Übersetzungen verglichen (es: Reina Valera 1909 gegen
+Sagradas Escrituras 1569; pt: Almeida Atualizada gegen Bíblia Livre):
+**0 von 66** Namen verschieden. Dabei fielen fünf eigene Fehler auf
+(`Nahú`, `Cânticos`, `Abdias`, `Miqueias`, `Filemão`) — berichtigt.
+Dazu die **Anrede** als feste Vorgabe (`config.ANREDE`): ustedes/vocês
+für die Gemeinde, tú/tu für Gott, wie in Reina-Valera und Almeida.
+
+**I — Vorbereitung am Pult.** `bibelstellen.py` normalisierte beim
+Nachschlagen nur die Leerzeichen, nicht die Punkte: in der Tabelle
+stand `1.korinther` und `1kor`, gesucht wurde `1.kor`. Beide Seiten
+normalisieren jetzt gleich (null Kollisionen über alle Formen aller
+Sprachen). Neu erkannt: „Kapitel 3 Vers 16", die langen Buchtitel
+(`Offenbarung des Johannes` ergab bis 0.3.8 *Johannes* 14), Umlaute als
+ae/oe/ue. Nicht mehr erkannt: Abkürzungen, die gewöhnliche Wörter sind
+— „Zum zweiten Mal 2 Lesungen" ergab Maleachi 2, „am 3. Oktober" hätte
+Amos 3 ergeben.
+
+**Grundregel: aus dem Thema-Text werden nur anerkannte Treffer
+entfernt.** Was nicht erkannt wird, bleibt stehen.
+
+**Der Whisper-Prompt** wurde als „die letzten 700 **Zeichen**" gebaut.
+Whisper schneidet bei 223 **Token** ab. Gemessen am Beispiel „Nehemia
+baut die Mauer. Nehemia 1-4": alt 258 Token **und der Kopf war weg**,
+neu 210 Token mit Kopf. Jetzt gilt eine Rangfolge — Kopf bleibt, dann
+weichen die Namen von hinten, der Verlauf zuerst —, gezählt mit dem
+Tokenizer des eingesetzten Modells.
+
+`namen_block_b.csv` ist **nicht** neu gebaut: die Bibel-PDF liegt nicht
+im Repo und an keiner dokumentierten Stelle. Was fehlt, steht jetzt mit
+Zahlen im Modulkommentar von `namen_aus_bibel.py` — 25 von 66 Büchern,
+und die Lücke ist keine Absicht: `buch_abkuerzungen()` filtert gegen
+die Querverweisspalte und nimmt dabei 76 ausgeschriebene Buchnamen mit,
+also gerade Mose, Petrus, Johannes, Daniel und Nehemia.
+
+**J — Löschen.** `aufnahme.loeschen()` behandelt den Namen **nicht als
+Pfad**: gesucht wird in der Liste, die `aufnahmen()` ohnehin aufbaut,
+auf Gleichheit des Dateinamens. `../../zustand.json` steht in keiner
+Liste. Eine laufende Aufnahme ist nicht löschbar (409). Ins Journal
+geht nur der Dateiname.
+
+**B — Der Update-Knopf.** Der Server läuft als `devarenu`, das Update
+braucht root. Statt einer `sudo`-Regel, die dauerhaft offenstünde, legt
+der Server eine Datei in seinem eigenen Ordner an
+(`update/online-jetzt`), und `devarenu-onlineupdate.timer` sieht als
+root alle 30 Sekunden danach — **kein Parameter, den der Dienst
+unterschieben könnte, und kein Befehl, den er wählen kann.** Derselbe
+Weg, den der Stick-Knopf seit 0.2.12 geht. Gibt es kein
+Wartungs-WLAN, wird die Verbindung benutzt, die gerade steht (ein
+Handy-Hotspot); getrennt wird nur, was Devarenu selbst verbunden hat.
+Stromausfall mitten im Update wird beim nächsten Start erkannt und als
+*abgebrochen* vermerkt.
+
+**K — Zählungen.** `werkzeuge/zaehlung_bauen.py` vergleicht die
+Verszahlen je Kapitel aus drei gemeinfreien Übersetzungen und leitet
+`zaehlung.json` ab: 4 kB, **nur Zahlen, keine Zeile Bibeltext**.
+Umgerechnet wird nur, wo die Regel eindeutig folgt — Psalmenversatz für
+die englische Zählung (62 von 150, Versatz ausschließlich 1 oder 2),
+Psalmennummer für die Synodalzählung (132), Joel und Maleachi. **Nicht**
+umgerechnet: 29 weitere Bücher mit abweichenden Verszahlen, Spannen,
+Verse ohne Gegenstück, und Persisch. Live-Lauf mit `gemma4:12b`: 12 von
+12 Sätzen richtig. Einen Fall hat erst der Lauf aufgedeckt — das Modell
+schrieb „в Псалме 22" statt „Псалом 22", denselben Psalm im
+Präpositiv; seitdem prüft `steht_drin()` den Stamm des Buchnamens.
+
+**D — Sicherung.** `sichern.sh` und `zuruecksichern.sh`. Geheimnisse
+(WLAN-Passwort, ntfy-Thema, RustDesk-Kennwort) nur verschlüsselt, mit
+einer Passphrase, die abgefragt und nirgends gespeichert wird und auch
+nicht in der Befehlszeile steht. **Ohne Passphrase sind die Geheimnisse
+weg; alles andere lässt sich trotzdem wiederherstellen.** Die Aufnahmen
+gehen ausdrücklich nicht mit. Neu: **ERSTINSTALLATION.md**, zehn
+Abschnitte von der Kiste bis zur Abnahme, nach jedem eine Kontrolle.
+
+**E — Signierschlüssel.** Dass `schluessel.erlaubt` mehrere Schlüssel
+führen kann, stand seit 0.3.1 darin — geprüft wurde es nie. Jetzt
+steht es im Prüfstand. *Dabei fiel ein Fehler in der eigenen
+Dokumentation auf:* die Adresse vor dem Schlüssel ist ein **Etikett,
+keine Bedingung**. `git verify-tag` nimmt ein Tag an, solange der
+**Schlüssel** in der Datei steht — auch unter fremder Adresse. Wer
+einen Schlüssel sperren will, löscht die **Zeile**.
+
+**F — Lizenzen.** `werkzeuge/stimmlizenzen.py` liest die `MODEL_CARD`
+aller 21 Stimmen. Zwei Befunde betreffen Sprachen, die in Rostock
+laufen: **Englisch** hängt an den Blizzard-2013-Daten, deren Lizenz die
+Nutzung „exclusively for Research Purposes only" gewährt, und
+**Russisch** nennt gar keine Lizenz. Entfernt ist nichts; die Tabelle
+in `LIZENZEN.md` ist die Grundlage für eine Entscheidung.
+
+### Was offen ist
+
+- **C** (VM-Testumgebung), **G** (FAHRPLAN-Abgleich) und der
+  Release-Text sind in diesem Lauf nicht fertig geworden.
+- `namen_block_b.csv` wartet auf die Bibel-PDF.
+- Neun Glossarzeilen warten auf geprüfte Werte für en, ru, fa.
+- Das pt-Tempo 1,15 ist im Betrieb nicht bestätigt.
+- `ERSTINSTALLATION.md` hat noch niemand abgearbeitet, der das Projekt
+  nicht kennt.
+
+---
+
 ## 0.3.8 — die Predigt als MP3, und sechs Meldungen, die logen
 
 *28.09.2026.*
