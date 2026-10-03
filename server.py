@@ -201,7 +201,18 @@ class Segmentierer:
         self.max_dauer = max_dauer
         self.min_sprachdauer = min_sprachdauer
         self.grundpegel = 0.004
-        self.feste_schwelle = None      # None = automatisch
+        # Drei Modi, ausdruecklich benannt. Bis 0.4.0 gab es zwei, und
+        # beide steckten im Wert: None hiess mitlaufend, eine Zahl hiess
+        # festgenagelt. Ein Regler auf null wurde zur kleinsten festen
+        # Schwelle -- genau das taten die Helfer in Rostock jeden
+        # Gottesdienst, weil mit Schwelle mehr Erkennungsfehler kamen.
+        # Ein Wunsch, der sich nur als Zahl ausdruecken laesst, ist kein
+        # eingestellter Zustand: beim naechsten Einmessen war er weg.
+        self.modus = "aus"
+        self.feste_schwelle = None      # nur im Modus "fest" gefuellt
+        # Wohin ein Geraetewechsel zurueckfaellt. Nie "fest": die feste
+        # Schwelle galt der alten Tonquelle.
+        self.grundmodus = "aus"
         self.puffer = []
         self.vorpuffer = deque(maxlen=int(vorlauf * MIKRO_RATE / BLOCK) + 1)
         self.stille_bloecke = 0
@@ -222,11 +233,41 @@ class Segmentierer:
     def pegel(self, block):
         return float(np.sqrt(np.mean(block.astype(np.float64) ** 2)))
 
+    # Was "aus" bedeutet: nicht wirklich null, sondern unterhalb von
+    # allem, was ein Mikrofon in einem Raum aufnimmt. Geschnitten wird
+    # dann an Pausen nahe Stille und an der Hoechstdauer. Derselbe Wert,
+    # den der Server bis 0.4.0 aus einem Regler auf null machte -- das
+    # Verhalten bleibt damit Bit fuer Bit dasselbe, es heisst nur jetzt
+    # so, wie es gemeint ist.
+    AUS_SCHWELLE = 0.0005
+
     @property
     def schwelle(self):
-        if self.feste_schwelle is not None:
+        if self.modus == "fest" and self.feste_schwelle is not None:
             return self.feste_schwelle
-        return max(0.0025, self.grundpegel * 3.5)
+        if self.modus == "automatisch":
+            return max(0.0025, self.grundpegel * 3.5)
+        return self.AUS_SCHWELLE
+
+    def modus_setzen(self, modus, wert=None):
+        """Legt den Modus fest. Gibt zurueck, was tatsaechlich gilt.
+
+        "fest" ohne Wert ist keine Einstellung, sondern ein Versehen:
+        dann bleibt es beim Grundmodus. Alles andere loescht den festen
+        Wert, damit er nicht als Leiche stehenbleibt und beim naechsten
+        Umschalten unbemerkt wieder gilt."""
+        if modus == "fest":
+            if wert is None:
+                return self.modus
+            self.feste_schwelle = max(0.0005, min(0.5, float(wert)))
+            self.modus = "fest"
+            return self.modus
+        if modus not in ("aus", "automatisch"):
+            return self.modus
+        self.feste_schwelle = None
+        self.modus = modus
+        self.grundmodus = modus
+        return self.modus
 
     def schub(self, block):
         """Nimmt einen Audioblock, gibt ein fertiges Segment zurueck oder None.
@@ -349,6 +390,9 @@ class Segmentierer:
                             "halten."}
         schwelle = ruhe + (stimme - ruhe) * sicherheit
         self.feste_schwelle = max(0.0015, min(0.3, schwelle))
+        # Einmessen heisst festnageln. Der Grundmodus bleibt stehen:
+        # darauf faellt ein Geraetewechsel zurueck.
+        self.modus = "fest"
         return {"erfolg": True, "ruhe": round(ruhe, 5),
                 "stimme": round(stimme, 5),
                 "schwelle": round(self.feste_schwelle, 5),
@@ -3906,10 +3950,12 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         Schwelle wieder freigegeben, faellt auch der Zeitpunkt weg -- es
         gibt dann keine Messung mehr, die gilt."""
         seg = lauf.segmentierer
-        fest = seg.feste_schwelle is not None
+        fest = seg.modus == "fest" and seg.feste_schwelle is not None
         lauf.zustand["schwelle"] = {
             "wert": round(seg.feste_schwelle, 5) if fest else None,
-            "gemessen": zustandsdatei.jetzt() if fest else None}
+            "gemessen": zustandsdatei.jetzt() if fest else None,
+            "modus": seg.modus,
+            "grundmodus": seg.grundmodus}
         zustandsdatei.speichern(lauf.zustand)
 
     @app.get("/")
@@ -4101,11 +4147,17 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             anders = war != (tonquelle.geraet, tonquelle.kanal,
                              tonquelle.kanaele)
             if anders and (lauf.zustand["schwelle"]["wert"] is not None
-                           or seg.feste_schwelle is not None):
-                seg.feste_schwelle = None
-                lauf.zustand["schwelle"] = {"wert": None, "gemessen": None}
-                print("Schwelle verworfen: sie galt der alten Tonquelle. "
-                      "Nach dem Start einmal neu einmessen.")
+                           or seg.modus == "fest"):
+                # Nicht stur auf Automatik: wer ausdruecklich ohne
+                # Schwelle faehrt, soll nach einem Mikrofonwechsel nicht
+                # unversehens eine bekommen.
+                zurueck = seg.grundmodus or "aus"
+                seg.modus_setzen(zurueck)
+                lauf.zustand["schwelle"] = {"wert": None, "gemessen": None,
+                                            "modus": seg.modus,
+                                            "grundmodus": seg.grundmodus}
+                print(f"Schwelle verworfen: sie galt der alten Tonquelle. "
+                      f"Zurueck auf \"{zurueck}\".")
             zustandsdatei.speichern(lauf.zustand)
             wo = (f", {zustandsdatei.kanalname(tonquelle.kanal, tonquelle.kanaele)}"
                   if tonquelle.kanaele > 1 else "")
@@ -4595,7 +4647,12 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 "spitze": round(seg.pegel_spitze, 5),
                 "grund": round(seg.grundpegel, 5),
                 "schwelle": round(seg.schwelle, 5),
-                "fest": seg.feste_schwelle is not None,
+                "fest": seg.modus == "fest",
+                "modus": seg.modus,
+                "grundmodus": seg.grundmodus,
+                # Wann zuletzt eingemessen wurde. Eine Schwelle von heute
+                # frueh ist etwas anderes als eine vom letzten Jahr.
+                "gemessen": (lauf.zustand.get("schwelle") or {}).get("gemessen"),
                 "knapp": sum(1 for t in seg.zu_leise
                              if time.time() - t < 30),
                 "spricht": seg.spricht,
@@ -4627,14 +4684,19 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         sprechen lassen, Wert knapp unter dessen Pegel setzen, fertig. Alles
         Leisere wird dann gar nicht erst zu einem Segment."""
         seg = lauf.segmentierer
-        if daten.get("automatisch"):
-            seg.feste_schwelle = None
-        else:
-            wert = float(daten.get("wert", 0))
-            seg.feste_schwelle = max(0.0005, min(0.5, wert))
+        # Der ausdrueckliche Weg: {"modus": "aus"|"automatisch"|"fest"}.
+        # "automatisch": true und ein nackter Wert bleiben erhalten --
+        # ein Pult aus einer aelteren Fassung soll weiter bedienbar sein.
+        modus = daten.get("modus")
+        if modus is None:
+            modus = "automatisch" if daten.get("automatisch") else "fest"
+        wert = daten.get("wert")
+        seg.modus_setzen(modus, wert if wert is not None else None)
         schwelle_sichern()
         return {"schwelle": round(seg.schwelle, 5),
-                "fest": seg.feste_schwelle is not None}
+                "fest": seg.modus == "fest",
+                "modus": seg.modus,
+                "grundmodus": seg.grundmodus}
 
     @app.post("/api/mitschnitt")
     async def mitschnitt(daten: dict):
@@ -8263,11 +8325,23 @@ def main():
             "gesprochene Satz steht dann im Journal. Nur zur "
             "Fehlersuche; danach am Pult wieder ausschalten."))
     lauf.wlan = dict(stand["wlan"])
-    if stand["schwelle"]["wert"] is not None:
+    # Der Modus uebersteht den Neustart, nicht nur der Wert. Bis 0.4.0
+    # stand hier allein die Zahl, und ein Pult ohne Schwelle sah nach
+    # einem Dienstneustart aus wie eines mit Automatik.
+    _sch = stand.get("schwelle") or {}
+    seg.grundmodus = _sch.get("grundmodus") or "aus"
+    _modus = _sch.get("modus") or ("fest" if _sch.get("wert") is not None
+                                   else "automatisch")
+    if _modus == "fest" and _sch.get("wert") is not None:
         # Die eingemessene Schwelle gilt weiter. Im Dateibetrieb wird sie
         # gleich wieder ueberschrieben, das ist Absicht: eine Aufnahme hat
         # keinen wandernden Raumklang.
-        seg.feste_schwelle = stand["schwelle"]["wert"]
+        seg.feste_schwelle = _sch["wert"]
+        seg.modus = "fest"
+    else:
+        seg.modus_setzen(_modus if _modus in ("aus", "automatisch") else "aus")
+    print(f"Schwelle: {seg.modus}" +
+          (f" ({seg.feste_schwelle:.5f})" if seg.modus == "fest" else ""))
     # Das Abschalt-Event des Servers. Der Mikrofon-Thread haengt bewusst
     # nicht mehr daran, sondern an seinem eigenen in Tonquelle; hier bleibt,
     # was den Dateibetrieb beendet.
@@ -8295,6 +8369,7 @@ def main():
         # folgen muesste. Fest eingestellt bleibt die Segmentierung ueber
         # die ganze Datei vergleichbar.
         seg.feste_schwelle = 0.006
+        seg.modus = "fest"
         # Sofort loslegen, sonst laeuft die Aufnahme ins Leere, bis jemand
         # am Pult drueckt. Ohne Zuhoerer ist hier noch niemand zu
         # benachrichtigen, deshalb direkt statt ueber starten().

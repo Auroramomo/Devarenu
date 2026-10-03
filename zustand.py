@@ -37,7 +37,15 @@ DATEI = config.BASIS / "zustand.json"
 #
 # 3 hat glossar_quittiert. Das kam schon mit 0.2.11, ohne die Fassung
 # hochzusetzen -- ein Versehen, das hier nachgeholt wird.
-FASSUNG = 3
+FASSUNG = 4
+
+# Die drei Schwellenmodi. Steht hier und nicht in server.py, weil
+# zustand.py den Wert aus der Datei pruefen muss, bevor der Server
+# ihn zu sehen bekommt.
+SCHWELLENMODI = ("aus", "automatisch", "fest")
+# Bis 0.4.0 machte der Server aus einem Regler auf null diese
+# kleinste feste Schwelle. Sie ist der Umzugsmarker fuer "aus".
+AUS_SCHWELLE = 0.0005
 
 # Bis 0.2.11 wurde die Fassung GESCHRIEBEN, aber nie gelesen. Es gab
 # keine Umzugsschritte, keine Sicherung, und _uebernehmen kopierte Feld
@@ -77,11 +85,54 @@ def _von_2_nach_3(daten):
     return "glossar_quittiert ergaenzt"
 
 
+def _von_3_nach_4(daten):
+    """Der Schwellenmodus kam mit 0.4.1 dazu.
+
+    Bis dahin gab es zwei Zustaende, und beide standen nur im Wert:
+    None hiess mitlaufend, eine Zahl hiess festgenagelt. Der Helfer in
+    Rostock stellte den Regler jeden Gottesdienst auf null -- der Server
+    machte daraus die kleinste feste Schwelle, 0.0005. Das war nie ein
+    Festnageln, sondern der Wunsch, gar keine Schwelle zu haben.
+
+    Deshalb wird genau dieser Wert zu "aus" und nicht zu "fest". Alles
+    darueber bleibt "fest", None wird "automatisch": das ist, was die
+    Datei bisher bedeutet hat.
+
+    grundmodus -- wohin ein Geraetewechsel zurueckfaellt -- ist bei
+    einer uebernommenen Datei "automatisch", wenn eine feste Schwelle
+    darin stand. Das ist genau das Verhalten von bisher; welchen Modus
+    die Gemeinde vorher gewaehlt hatte, steht nirgends."""
+    s = daten.get("schwelle")
+    if not isinstance(s, dict):
+        daten["schwelle"] = {"wert": None, "gemessen": None,
+                             "modus": "aus", "grundmodus": "aus"}
+        return "schwelle neu angelegt"
+    wert = s.get("wert")
+    if wert is None:
+        modus, grund = "automatisch", "automatisch"
+    elif wert <= AUS_SCHWELLE:
+        # Der Regler stand auf null. Das war nie "fest".
+        modus, grund = "aus", "aus"
+        s["wert"] = None
+        s["gemessen"] = None
+    else:
+        modus, grund = "fest", "automatisch"
+    # Gesetzt und nicht setdefault: vorgabe() hat "aus" schon
+    # eingetragen, und eine Datei in Fassung 3 kann den Schluessel gar
+    # nicht kennen. Hier entscheidet der Umzug, nicht die Vorgabe --
+    # sonst stuende jede uebernommene Gemeinde ploetzlich ohne Schwelle
+    # da, auch die, die gerade eine eingemessen hatte.
+    s["modus"] = modus
+    s["grundmodus"] = grund
+    return f"Schwellenmodus ergaenzt ({s['modus']})"
+
+
 # Von welcher Fassung nach der naechsten. Der Schluessel ist die
 # Fassung, die IN DER DATEI steht.
 UMZUEGE = {
     1: _von_1_nach_2,
     2: _von_2_nach_3,
+    3: _von_3_nach_4,
 }
 
 # Geschrieben wird aus den Request-Threads des Servers, also aus mehreren
@@ -119,7 +170,22 @@ def vorgabe():
         "quelle": config.AUSGANGSSPRACHE,
         "ziele": list(config.ZIELSPRACHEN),
         "wlan": {"ssid": "", "passwort": ""},
-        "schwelle": {"wert": None, "gemessen": None},
+        # Drei Modi. "aus" heisst: keine Pegelschwelle, geschnitten
+        # wird an Pausen nahe Stille und an der Hoechstdauer.
+        # "automatisch" folgt dem Grundpegel, "fest" dem Wert.
+        #
+        # Vorgabe ist "aus". Der Befund aus Rostock: der Helfer
+        # stellt die Schwelle jeden Gottesdienst auf null, weil mit
+        # Automatik oder eingemessener Schwelle MEHR
+        # Erkennungsfehler kommen als ohne.
+        #
+        # grundmodus ist der Modus, auf den ein Geraetewechsel
+        # zurueckfaellt. Eine feste Schwelle gilt der alten
+        # Tonquelle und darf die neue nicht abwuergen -- aber sie
+        # darf auch nicht stur auf Automatik werfen, wenn die
+        # Gemeinde ausdruecklich ohne Schwelle faehrt.
+        "schwelle": {"wert": None, "gemessen": None,
+                     "modus": "aus", "grundmodus": "aus"},
         # Welche ungeprueften Sprachen der Techniker schon einmal
         # gelesen hat. Steht hier und nicht nur im Speicher, weil es
         # sonst nach jedem Neustart wieder im Briefkasten laege -- und
@@ -317,11 +383,24 @@ def _uebernehmen(roh, daten):
         if isinstance(wert, (int, float)) and not isinstance(wert, bool):
             # Dieselben Grenzen wie am Pult. Ein von Hand eingetragener
             # Unsinnswert soll den Ton nicht dauerhaft abwuergen.
-            daten["schwelle"] = {
-                "wert": max(0.0005, min(0.5, float(wert))),
-                "gemessen": schwelle.get("gemessen") or None}
-        elif wert is not None:
+            daten["schwelle"]["wert"] = max(0.0005, min(0.5, float(wert)))
+            daten["schwelle"]["gemessen"] = schwelle.get("gemessen") or None
+        elif wert is None:
+            daten["schwelle"]["wert"] = None
+            daten["schwelle"]["gemessen"] = schwelle.get("gemessen") or None
+        else:
             fehlerhaft.append("schwelle")
+        # Ein unbekannter Modus faellt auf die Vorgabe zurueck und kostet
+        # nur sich selbst: die Schwelle steht dann noch, der Modus nicht.
+        for feld in ("modus", "grundmodus"):
+            m = schwelle.get(feld)
+            if m is None:
+                continue
+            if m in SCHWELLENMODI and not (feld == "grundmodus"
+                                           and m == "fest"):
+                daten["schwelle"][feld] = m
+            else:
+                fehlerhaft.append(f"schwelle.{feld}")
     elif schwelle is not None:
         fehlerhaft.append("schwelle")
 

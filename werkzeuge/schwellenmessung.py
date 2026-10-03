@@ -184,13 +184,14 @@ def main():
     print(f"{len(audio)/rate/60:.1f} Minuten Ton.")
 
     print("Whisper laedt ...")
-    werk = server.Werk(config.QUELLE if hasattr(config, "QUELLE") else "de",
-                       [])
+    # nur_text: Piper wird nicht gebraucht. Gemessen wird, WO
+    # geschnitten wird und was daraufhin erkannt wird.
+    werk = server.Werk(nur_text=True)
     print(f"Rechenwerk: {werk.rechenwerk}")
 
     gemessen = einmessen_auf(audio, args)
     if gemessen and gemessen.get("erfolg"):
-        fest = gemessen["wert"]
+        fest = gemessen["schwelle"]
         print(f"Einmessen auf dieser Datei: {fest:.5f}  ({gemessen['text']})")
     else:
         fest = 0.0060
