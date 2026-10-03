@@ -86,10 +86,35 @@ class Befund:
 
 
 def _lauf(befehl, zeit=5):
-    """Ruft etwas auf und gibt die Ausgabe zurueck, oder None."""
+    """Ruft etwas auf und gibt die Ausgabe zurueck, oder None.
+
+    MIT EINEM $HOME, auch wenn der Aufrufer keines hat. Ein root-Dienst
+    bringt keines mit, und kreadconfig6 loest "$HOME/.config" dann zu
+    "//.config" auf. Es beschwert sich darueber -- und zwar auf dem
+    TERMINAL, nicht auf stderr, also hilft capture_output nicht:
+
+        Configuration file "//.config/kreadconfig6rc" not writable.
+        Please contact your system administrator
+
+    Aufgefallen beim Bau des Einspielweg-Pruefstands, der den
+    Gesundheitscheck absichtlich ohne HOME laufen laesst. Im Feld
+    trifft es das Autoupdate im Fenster, das donnerstags als root
+    laeuft -- jede Woche zwei Zeilen im Journal, die nichts sagen.
+
+    Behoben wird die URSACHE und nicht das Symptom: wo kein HOME
+    steht, wird das aus der Benutzerdatenbank eingesetzt. Dazu stdin
+    auf /dev/null -- ein Programm, das im Dienst nach etwas fragt,
+    wartet sonst bis zum Zeitablauf."""
+    umgebung = dict(os.environ)
+    if not umgebung.get("HOME"):
+        try:
+            umgebung["HOME"] = str(Path.home())
+        except Exception:
+            umgebung["HOME"] = "/root"
     try:
         a = subprocess.run(befehl, capture_output=True, text=True,
-                           timeout=zeit)
+                           timeout=zeit, env=umgebung,
+                           stdin=subprocess.DEVNULL)
         return a.stdout
     except Exception:
         return None

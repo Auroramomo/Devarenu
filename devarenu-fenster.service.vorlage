@@ -24,5 +24,21 @@ ExecStart=/bin/bash @ORDNER@/wartungsfenster.sh --pruefen
 # schaltet im Zweifel das WLAN. Mehr als eine Minute braucht das nie.
 TimeoutStartSec=120
 
+# EIN $HOME, obwohl dieser Dienst keines braeuchte.
+#
+# Im Fenster laeuft das Autoupdate, und dazu gehoert der
+# Gesundheitscheck. Der fragt ueber systemcheck.py die
+# Energieeinstellungen bei kreadconfig6 ab -- und das loest ohne HOME
+# "$HOME/.config" zu "//.config" auf, beschwert sich darueber auf dem
+# Terminal und schrieb jede Woche zwei nutzlose Zeilen ins Journal:
+#
+#   Configuration file "//.config/kreadconfig6rc" not writable.
+#
+# systemcheck.py setzt seit 0.4.0 selbst ein HOME ein, wenn keines
+# steht. Hier steht es trotzdem, aus demselben Grund wie in
+# devarenu-update.service: ein Programm, das $HOME erwartet und keines
+# findet, bricht im schlechteren Fall ab statt sich zu beschweren.
+Environment=HOME=/root
+
 StandardOutput=journal
 StandardError=journal
