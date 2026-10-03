@@ -5954,406 +5954,769 @@ if(SPRACHEN.length > 1){
 
 
 PULT = """<!doctype html><html lang=de><meta charset=utf-8>
-<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name=color-scheme content=light>
 <title>Pult</title>
 <style>
- body{font:16px/1.6 Georgia,serif;margin:0;background:#f3f4f6;color:#141f52;
-      display:grid;place-items:start center;min-height:100vh;padding:2rem 1rem}
- .k{background:#fff;border:1px solid #d9dce4;padding:1.8rem;width:min(92vw,34rem)}
- h1{font-size:1.3rem;font-weight:400;letter-spacing:.06em;margin:0 0 1.2rem}
- /* Faellt still weg, wenn kein Logo im Ordner liegt: eine kaputte
-    Bildmarke sieht schlimmer aus als gar keine.
-    Hiess frueher .marke wie die rote Schwellenmarke des Pegelbalkens.
-    Das Logo bekam dadurch deren Aussehen und wurde zu einem roten
-    Strich in der Ecke. */
- .logo{height:2.1rem;width:auto;display:block;margin:0 0 .7rem;opacity:.9}
- .lage{display:flex;align-items:center;gap:.6rem;margin:0 0 1.2rem;
-       font:.85rem/1.4 system-ui,sans-serif;color:#6b7385}
- .punkt{width:9px;height:9px;border-radius:50%;background:#d9dce4}
- .punkt.an{background:#1fa5d8}
- button{font:1rem Georgia,serif;letter-spacing:.06em;padding:.9rem;border:0;
-        cursor:pointer;color:#fff;width:100%;margin-bottom:.5rem}
- /* Meldungen aus dem Saal duerfen nicht untergehen: sie kommen selten,
-    und wenn, dann meist waehrend etwas laeuft. Deshalb ueber dem
-    Hauptknopf und mit einer kleinen Bewegung, die aufhoert, sobald man
-    hinsieht. */
- /* Der Kaefer sitzt neben dem Zahnrad: sichtbar, aber nicht bei den
-    Betriebsknoepfen. Wer im Gottesdienst einen Fehler bemerkt, soll
-    ihn finden, ohne zu suchen -- und niemand soll versehentlich
-    daraufkommen statt auf Start. */
- #kaefer{background:none;border:0;color:#6b7385;cursor:pointer;
-   padding:.25rem .35rem;line-height:0}
- #kaefer:hover{color:#c0392b}
- .betreuer{margin:.6rem 0 1rem;font-size:1.05rem}
- .betreuer code{font-size:.95rem;color:#1c3a8f}
- .qrpaar{display:flex;gap:1.4rem;flex-wrap:wrap;margin:.4rem 0 1rem}
- .qrpaar img{border:1px solid #d9dce4;border-radius:4px;background:#fff}
- .qrpaar>div{max-width:210px}
- .briefkasten{background:#1fa5d8;display:flex;align-items:center;
-   justify-content:center;gap:.6rem;font-size:1rem}
- /* Ohne das gewinnt display:flex gegen das hidden-Attribut, und der
-    Briefkasten stand mit einer Null darin da. */
- [hidden]{display:none !important}
- .briefkasten .umschlag{font-size:1.3rem;display:inline-block}
- /* Ein kleines Zeichen, das wackelt, sieht im Betrieb niemand. Auffallen
-    muss die ganze Flaeche, sonst bleibt die Meldung liegen. */
- @media (prefers-reduced-motion: no-preference){
-   .briefkasten{animation:pochen 1.8s ease-in-out infinite}
-   .briefkasten .umschlag{animation:wackeln 1.8s ease-in-out infinite}
- }
- @keyframes pochen{0%,100%{background:#1fa5d8}
-   50%{background:#0d7fab;box-shadow:0 0 0 3px rgba(31,165,216,.35)}}
- @keyframes wackeln{0%,70%,100%{transform:rotate(0)}
-   78%{transform:rotate(-14deg)}86%{transform:rotate(12deg)}
-   93%{transform:rotate(-6deg)}}
- #postzahl{background:#fff;color:#1c3a8f;border-radius:999px;
-   min-width:1.4rem;padding:.05rem .35rem;font:600 .85rem system-ui,sans-serif}
- .start{background:linear-gradient(100deg,#3b1e73,#1c3a8f 52%,#1fa5d8)}
- .pause{background:#141f52}
- button:disabled{opacity:.4;cursor:default}
- /* Gleiche Groesse wie die anderen, aber zurueckgenommen: es ist eine
-    Handlung wie die uebrigen, nur eine seltenere. Als blosser Text sah
-    sie verloren aus. */
- .reset{background:none;color:#6b7385;border:1px solid #d9dce4}
- .reset:hover{border-color:#9aa3b2;color:#141f52}
- /* Zuklappbar, weil dieser Teil vor dem Gottesdienst gebraucht wird und
-    waehrenddessen nur Platz kostet. */
- h2.klapp{display:flex;justify-content:space-between;align-items:center;
-   cursor:pointer;user-select:none}
- h2.klapp:hover{color:#1c3a8f}
- /* Wort statt bloss eines Pfeils: ein Dreieck allein sagt nicht, was
-    passiert, wenn man darauf drueckt. */
- .klapptext{display:inline-flex;align-items:center;gap:.35rem;
-   font:.72rem system-ui,sans-serif;text-transform:none;letter-spacing:0;
-   color:#8b93a3;font-weight:400}
- h2.klapp:hover .klapptext{color:#1c3a8f}
- .pfeil{font-size:.9rem;transition:transform .18s ease}
- .pfeil.zu{transform:rotate(-90deg)}
- h2{font:.8rem system-ui,sans-serif;text-transform:uppercase;
-    letter-spacing:.1em;color:#6b7385;margin:1.8rem 0 .6rem;font-weight:600}
- /* Pegel: der Balken zeigt den Ist-Pegel, die Marke die Schwelle.
-    Was links der Marke bleibt, wird nicht uebersetzt. */
- .balken{position:relative;height:26px;background:#eceef2;overflow:hidden}
- /* Drei Zustaende, die man ohne Zahlen unterscheiden kann:
-    grau  = nur Raumgeraeusch, nichts geht verloren
-    rot   = hoerbar, aber unter der Schwelle: genau das wird weggeworfen
-    blau  = wird uebersetzt
-    Der rote Bereich ist der einzige, bei dem der Techniker handeln muss,
-    und er soll ihn sehen, ohne den Zahlenwert zu lesen. */
- .fuell{height:100%;width:0;background:#9aa3b2;
-   transition:width .08s linear, background .2s ease}
- .fuell.knapp{background:linear-gradient(90deg,#a8737b,#c0392b)}
- .fuell.ueber{background:linear-gradient(90deg,#1c3a8f,#1fa5d8)}
- .marke{position:absolute;top:-3px;bottom:-3px;width:2px;background:#c0392b}
- .marke::after{content:"";position:absolute;top:-4px;left:-4px;
-               border:5px solid transparent;border-top-color:#c0392b}
- /* Der Balken faellt nur auf, wenn etwas nicht stimmt. Im Normalbetrieb
-    bleibt er unsichtbar, damit er nicht zur Tapete wird und im Ernstfall
-    uebersehen wird. */
- /* Ueber das hidden-Attribut gesteuert, nicht ueber eine zweite Klasse:
-    "warnung warnung" traf frueher versehentlich die Regel fuer die gelbe
-    Stufe, und der Balken stand leer da. Was leer ist, wird versteckt. */
- .warnung{margin:1rem 0 0;padding:.7rem .9rem;
-   font:.9rem/1.45 system-ui,sans-serif;border-left:4px solid;
-   background:#fdf6e3;border-color:#c8991f;color:#7a5c12}
- .warnung.schwer{background:#fdeeec;border-color:#c0392b;color:#8c2f22}
- @keyframes puls{0%,100%{opacity:1}50%{opacity:.55}}
- @media (prefers-reduced-motion: no-preference){
-   .warnung.alarm{animation:puls 1.6s ease-in-out infinite}
- }
- .werte{display:flex;justify-content:space-between;
-        font:.75rem system-ui,sans-serif;color:#6b7385;margin:.35rem 0 .7rem;
-        font-variant-numeric:tabular-nums}
- input[type=range]{width:100%;margin:.2rem 0 .5rem}
- select{width:100%;font:.9rem system-ui,sans-serif;padding:.5rem;
-         border:1px solid #d9dce4;background:#fff;margin-bottom:.3rem}
- /* Auswahlfeld und Pegel nebeneinander: waehlen, hineinsprechen,
-    Ausschlag sehen -- ohne den Blick an eine andere Stelle zu nehmen.
-    Bricht auf schmalen Schirmen um, das Pult steht auch mal auf einem
-    Tablet. */
- .tonreihe{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
- .tonreihe select{flex:1 1 14rem;margin-bottom:0}
- .tonreihe .balken{flex:1 1 8rem}
- /* Kanalliste: eine Zeile je Eingang, Name links, Pegelbalken rechts.
-    Die Zeile ist der Knopf -- wer den Kanal gefunden hat, drueckt genau
-    dorthin, wo er gerade hingesehen hat. */
- .kanal{display:flex;align-items:center;gap:.6rem;width:100%;
-   padding:.5rem .6rem;margin-bottom:.25rem;border:1px solid #d9dce4;
-   background:#fff;cursor:pointer;text-align:left;
-   font:.85rem system-ui,sans-serif;color:#141f52}
- .kanal:hover{border-color:#1c3a8f}
- .kanal.an{border-color:#141f52;box-shadow:inset 0 0 0 1px #141f52}
- /* Nicht messbar heisst nicht unsichtbar: die Zeile bleibt stehen, damit
-    die Liste zwischen zwei Umlaeufen nicht springt und niemand daneben
-    drueckt. */
- .kanal.ruht{opacity:.55;cursor:default}
- .kanal .kname{flex:1 1 10rem;min-width:0;overflow:hidden;
-   text-overflow:ellipsis;white-space:nowrap}
- .kanal .kkanal{flex:0 0 auto;font-variant-numeric:tabular-nums;
-   color:#6b7385;font-size:.78rem}
- .kanal .balken{flex:1 1 6rem;height:14px}
- .kanal .kwort{flex:0 0 5.5rem;text-align:right;font-size:.75rem;
-   color:#6b7385}
- /* Das Ergebnis der Sprachpruefung. Der gehoerte Text steht gross, das
-    Urteil klein daneben -- und zwar in dieser Rangfolge, weil der Text
-    die Frage beantwortet und das Urteil sie nur zusammenfasst. Wer
-    "Liebe Gemeinde, wir lesen heute" liest, weiss Bescheid; wer ein
-    Haekchen mit "Sprache" liest, glaubt einer Maschine, die auf einer
-    Orgel schon ganze Andachtssaetze erfunden hat. */
- .kanal .kurteil{flex:0 0 100%;padding-left:.1rem;margin-top:.15rem}
- .kanal .ktext{display:block;font-size:.92rem;color:#141f52;
-   line-height:1.35}
- .kanal .kmarke{display:block;font-size:.72rem;color:#8b92a1;
-   margin-top:.1rem;font-variant-numeric:tabular-nums}
- /* Die gelbe Zeile fuer eine gespeicherte Quelle, die es nicht mehr
-    gibt. Sie steht oben und nicht unten: sie ist der Grund, warum der
-    Techniker ueberhaupt hier ist. */
- .kanal.vermisst{background:#fdf6e3;border-color:#c8991f;color:#7a5c12;
-   cursor:default;display:block}
- .zielliste{display:flex;flex-wrap:wrap;gap:.4rem;margin:.2rem 0 .3rem}
- .zielliste label{display:inline-flex;align-items:center;gap:.35rem;
-   margin:0;padding:.35rem .6rem;border:1px solid #d9dce4;cursor:pointer;
-   font:.85rem system-ui,sans-serif;color:#141f52}
- .zielliste label.an{background:#141f52;color:#fff;border-color:#141f52}
- .zielliste input{margin:0}
- /* Fehlende Stimme sichtbar machen, nicht nur abschwaechen. Eine
-    Kachel mit 75 Prozent Deckkraft sieht aus wie ein Darstellungsfehler;
-    wer sie anklickt, erfaehrt erst im Gottesdienst, dass kein Ton
-    kommt. */
- .zielliste .ohneton{border-style:dotted;border-color:#b45309}
- .zielliste .ohneton .nurtext{font-size:.72rem;color:#b45309;
-   white-space:nowrap}
- .zielliste .ohneton.an{border-color:#b45309;border-style:solid}
- .zielliste .ohneton.an .nurtext{color:#fbbf24}
- /* Der ganze Block ist zurueckgenommen, nicht die einzelne Kachel: so
-    sieht man auf einen Blick, wo die geprueften aufhoeren. */
- .zielliste.ungeprueft label{border-style:dashed;color:#6b7385}
- /* Gar kein Glossar sieht anders aus als ein ungeprueftes: gepunktet
-    statt gestrichelt. Der Unterschied muss auf den ersten Blick da
-    sein, sonst haette die Trennung keinen Zweck. */
- .zielliste.ohneglossar label{border-style:dotted}
- .experiment{display:block;font:.68rem system-ui,sans-serif;
-   opacity:.85;margin-top:.15rem}
- .post .systempost{border-left:3px solid #1c3a8f;background:#f3f6fd}
- .post .systempost .wann{color:#1c3a8f;font-weight:600}
- .zielliste.ungeprueft label.an{color:#fff;border-style:solid}
- .untertitel{margin:.5rem 0 .2rem;font-style:italic}
- /* Der Betrieb steht vorn, die Einrichtung dahinter. Was einmal je
-    Gemeinde eingestellt wird, soll am Sonntag nicht im Weg stehen. */
- .kopfknoepfe{position:absolute;top:1.3rem;right:1.4rem;display:flex;gap:.4rem}
- .kopfknoepfe button{background:none;border:1px solid #d9dce4;color:#6b7385;
-   width:auto;padding:.25rem .6rem;font:.75rem system-ui,sans-serif;
-   letter-spacing:.06em;margin:0;line-height:1.4}
- #zahnrad{font-size:1rem;padding:.1rem .5rem}
- /* Der Weg zum Beamerbild soll nicht davon abhaengen, dass jemand eine
-    Adresse im Kopf hat. Ein Knopf, ein neues Fenster, Vollbild. */
- #qrknopf{font-weight:600;letter-spacing:.1em}
- #zahnrad.an{background:#141f52;color:#fff;border-color:#141f52}
- #einrichtung>h2:first-of-type{margin-top:.6rem}
- .k{position:relative}
- input[type=text]{font:.9rem system-ui,sans-serif;padding:.5rem;
-                  border:1px solid #d9dce4}
- a{color:#1c3a8f}
- input[type=file]{width:100%;font:.85rem system-ui,sans-serif;
-                  padding:.5rem;border:1px dashed #d9dce4;background:#fbfcfd}
- .reihe{display:flex;gap:.5rem}
- .reihe button{margin:0}
- .klein{background:#141f52;font-size:.85rem;padding:.55rem}
- .aus{background:#eceef2;color:#6b7385}
- label{display:block;font:.85rem system-ui,sans-serif;color:#6b7385;
-       margin:1.4rem 0 .3rem}
- textarea{width:100%;font:.9rem system-ui,sans-serif;padding:.6rem;
-          border:1px solid #d9dce4;min-height:4.5rem;resize:vertical}
- table{width:100%;border-collapse:collapse;margin:1.2rem 0 0;
-       font:.9rem system-ui,sans-serif}
- td{padding:.45rem 0;border-top:1px solid #d9dce4}
- td:last-child{text-align:right;font-variant-numeric:tabular-nums}
- /* Meldungen aus dem Saal stehen deutlicher da als der Verlauf: sie
-    verlangen eine Entscheidung, der Verlauf nur einen Blick. */
- .post{font:.9rem/1.5 system-ui,sans-serif;margin:.2rem 0 .6rem}
- .post div{padding:.5rem .7rem;margin-bottom:.35rem;background:#eef4fb;
-   border-left:3px solid #1fa5d8;color:#141f52}
- .post .wann{color:#6b7385;font-size:.78rem;margin-right:.4rem}
- .mit{font:.8rem/1.5 system-ui,sans-serif;color:#6b7385;margin:1rem 0 0;
-      max-height:11rem;overflow:auto}
- .mit div{padding:.25rem 0;border-top:1px solid #eef0f4}
- .hin{font:.8rem/1.5 system-ui,sans-serif;color:#6b7385;margin:1.2rem 0 0}
- /* Der Aufnahmeschalter steht NEBEN dem Startknopf und nicht unten bei
-    den Einstellungen: er gehoert zum Gottesdienst, nicht zur
-    Einrichtung. Schmaler als der Startknopf -- er ist die Ausnahme,
-    nicht der Normalfall. */
- .startreihe{display:flex;gap:.5rem;align-items:stretch}
- .startreihe .start{flex:1}
- .aufnahmeknopf{flex:0 0 auto;width:auto;padding:.9rem 1.1rem;
-   background:#fff;color:#6b7385;border:2px solid #d9dce4;
-   font:.95rem Georgia,serif;letter-spacing:.04em;cursor:pointer;
-   margin-bottom:.5rem}
- .aufnahmeknopf[aria-pressed="true"]{background:#c0392b;color:#fff;
-   border-color:#c0392b}
- /* Was laeuft, muss man sehen, ohne danach zu suchen. Rot, in
-    Bewegung, ueber dem Verlauf. */
- /* Die Warnung, dass jemand in einer anderen Sprache spricht als
-    eingestellt. Gelb und nicht rot: es ist eine Vermutung, kein
-    Befund -- und der Knopf daneben macht daraus eine Entscheidung. */
- .warnzeile{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;
-   background:#fff6d8;border:1px solid #e0c46a;border-radius:.4rem;
-   padding:.5rem .7rem;margin:.6rem 0;font-size:.92rem;color:#6b5210}
- .wartungliste{list-style:none;padding:0;margin:.4rem 0}
- .wartungliste li{padding:.4rem 0;border-top:1px solid var(--linie);
-   font-size:.9rem;display:flex;flex-direction:column;gap:.2rem}
- .wartungliste li.schwer{color:#9c2d22}
- .wartungliste code{font-size:.85rem;opacity:.8}
- .laeuftauf{display:flex;align-items:center;gap:.5rem;
-   font:.95rem system-ui,sans-serif;color:#c0392b;
-   background:#fdeceb;border:1px solid #c0392b;border-radius:.4rem;
-   padding:.5rem .7rem;margin:.2rem 0 .6rem}
- .laeuftauf #aufnahmedauer{margin-left:auto;
-   font-variant-numeric:tabular-nums}
- .rotpunkt{width:.7rem;height:.7rem;border-radius:50%;
-   background:#c0392b;flex:0 0 auto}
- @media (prefers-reduced-motion: no-preference){
-   .rotpunkt{animation:pulsen 1.6s ease-in-out infinite}
- }
- @keyframes pulsen{0%,100%{opacity:1}50%{opacity:.25}}
- dialog#einwilligung{max-width:26rem;border:1px solid #d9dce4;
-   border-radius:.5rem;padding:1.4rem}
- dialog#einwilligung h2{margin:0 0 .4rem}
- dialog#einwilligung label{display:flex;gap:.5rem;align-items:flex-start;
-   font:.95rem/1.45 system-ui,sans-serif;color:#141f52}
- dialog#einwilligung input[type=checkbox]{margin-top:.25rem;flex:0 0 auto}
+/* Das Pult. Vier Reiter, eine Startseite, Farbe nur mit Bedeutung.
+   Zuerst fuers Handy gebaut -- so wird es bedient -- danach fuer den
+   Laptop. Deshalb steht der Handyfall ohne Medienabfrage da und der
+   Laptop in einem min-width-Block darunter.
+
+   Farbregel, die ueberall gilt:
+     dunkelblau  nur die EINE Hauptaktion und der aktive Reiter
+     gruen/gelb/rot  nur Zustaende, nie Schmuck
+     alles uebrige  weiss mit grauem Rand
+   Wer sich nicht daran haelt, nimmt der Farbe die Aussage. */
+:root{
+  /* "light" allein: damit sagt die Seite, dass sie keinen Dunkelmodus
+     hat. Chrome laesst seinen erzwungenen Dunkelmodus dann in Ruhe,
+     statt die Zustandsfarben umzurechnen. */
+  color-scheme:light;
+  --navy:#141f52;
+  --text:#1f2433;
+  --grau:#5c6475;      /* 5,9:1 auf Weiss -- die hellste erlaubte Schrift */
+  --hell:#9aa3b2;      /* nur Linien und Flaechen, nie Schrift */
+  --linie:#e3e5ea;
+  --fl:#f5f6f8;
+  --gruen:#146b38; --gruenbg:#e6f4ec;
+  --gelb:#8a6208;  --gelbbg:#fdf4dc;
+  --rot:#c0392b;   --rotbg:#fbe9e7;
+  --link:#1c3a8f;
+  --leiste:3.6rem;
+  --schild:-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;
+  --display:Georgia,"Iowan Old Style","Times New Roman",serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fl);color:var(--text);
+     font:16px/1.55 var(--schild)}
+[hidden]{display:none !important}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+a{color:var(--link)}
+/* Georgia traegt die Ueberschriften und die eine Hauptaktion. Alles
+   andere laeuft in der Systemschrift: kleine Serifen auf einem
+   Handybildschirm liest im Halbdunkel niemand. */
+h1,h2,h3{font-family:var(--display);font-weight:400}
+
+/* ---------------------------------------------- Handy ist der Normalfall */
+.app{background:#fff;min-height:100dvh;
+     padding-bottom:calc(var(--leiste) + env(safe-area-inset-bottom))}
+
+/* Kopf. Am Handy stehen hier nur die Statuspille und die
+   Oberflaechensprache -- fuer mehr ist die Zeile zu schmal, und was
+   wegfaellt, steht unter Einrichtung. */
+.top{display:flex;align-items:center;gap:.6rem;
+     padding:.7rem 1rem;padding-top:calc(.7rem + env(safe-area-inset-top));
+     border-bottom:1px solid var(--linie);background:#fff}
+.top .logo{height:1.7rem;width:auto;flex:0 0 auto}
+.titel{display:flex;align-items:baseline;gap:.4rem;min-width:0}
+.titel b{font:400 1.05rem/1.2 var(--display);letter-spacing:.05em;
+         white-space:nowrap}
+.titel span{font-size:.75rem;color:var(--grau);white-space:nowrap}
+.meta{display:none;align-items:center;gap:.45rem}
+.luecke{margin-inline-start:auto}
+.laufzeit{font-size:.8rem;color:var(--grau);
+          font-variant-numeric:tabular-nums;white-space:nowrap}
+/* Die Pille sagt in einem Wort, was los ist. Sie steht in jedem Reiter
+   im Kopf und verschwindet nie. */
+.pille{flex:0 0 auto;padding:.2rem .6rem;border:1px solid;
+       font:600 .72rem var(--schild);letter-spacing:.08em;
+       text-transform:uppercase;white-space:nowrap;border-radius:999px}
+.pille.an{background:var(--gruenbg);border-color:var(--gruen);color:var(--gruen)}
+.pille.aus{background:var(--fl);border-color:var(--hell);color:var(--grau)}
+.pille.kaputt{background:var(--rotbg);border-color:var(--rot);color:var(--rot)}
+/* Kopfknoepfe: weiss mit grauem Rand wie jeder Nebenknopf. Mit Wort,
+   nicht nur mit Zeichen -- ein Kaefer allein sagt niemandem, dass man
+   damit den Betreuer erreicht. */
+.ikon{display:inline-flex;align-items:center;gap:.35rem;
+      min-height:44px;padding:.35rem .6rem;
+      border:1px solid var(--linie);background:#fff;color:var(--grau);
+      font:.78rem var(--schild);letter-spacing:.04em;cursor:pointer}
+.ikon:hover{border-color:var(--hell);color:var(--text)}
+.ikon svg{display:block}
+
+/* Reiterleiste. Am Handy fest unten, mit Zeichen und Wort; die
+   Fusszone des Geraets (Home-Balken) ist eingerechnet. */
+.reiter{position:fixed;inset-inline:0;bottom:0;z-index:5;
+        display:flex;justify-content:space-around;background:#fff;
+        border-top:1px solid var(--linie);
+        padding-bottom:env(safe-area-inset-bottom)}
+.reiter button{flex:1 1 0;min-width:0;min-height:44px;
+               display:flex;flex-direction:column;align-items:center;gap:.1rem;
+               padding:.45rem .2rem;background:none;border:0;
+               border-top:2px solid transparent;cursor:pointer;
+               position:relative;color:var(--grau);font:.7rem var(--schild)}
+.reiter button[aria-selected=true]{color:var(--navy);font-weight:600;
+                                   border-top-color:var(--navy)}
+.reiter .sym{font-size:1.15rem;line-height:1}
+.reiter .wort{max-width:100%;overflow:hidden;text-overflow:ellipsis;
+              white-space:nowrap}
+/* Ein offener Punkt am Reiter. Gelb heisst: dort wartet etwas, das den
+   Gottesdienst nicht aufhaelt. Rot steht nie hier, sondern als Banner
+   in jedem Reiter. */
+.punkt{position:absolute;top:.35rem;inset-inline-end:1.1rem;
+       width:7px;height:7px;border-radius:50%;background:var(--gelb)}
+.zahl{position:absolute;top:.2rem;inset-inline-end:.35rem;
+      min-width:1.1rem;padding:0 .2rem;border-radius:999px;
+      background:var(--rot);color:#fff;
+      font:600 .62rem/1.1rem var(--schild);text-align:center}
+/* Waehrend jemand tippt, ist die Leiste im Weg: die Tastatur schiebt
+   das Feld nach oben, und eine feste Leiste legt sich darueber. */
+body.tippt .reiter{display:none}
+body.tippt .app{padding-bottom:1rem}
+
+.inhalt{padding:1rem}
+
+/* Rote Banner stehen in JEDEM Reiter unter dem Kopf. Gelbe nur im
+   Gottesdienst; an den uebrigen Reitern genuegt der Punkt. */
+.banner{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;
+        padding:.6rem .8rem;margin:0 0 .6rem;
+        border:1px solid;border-inline-start-width:4px;
+        font-size:.9rem;line-height:1.45}
+.banner.rot{background:var(--rotbg);border-color:var(--rot);color:var(--rot)}
+.banner.gelb{background:var(--gelbbg);border-color:var(--gelb);color:var(--gelb)}
+.banner a,.banner button.link{color:inherit;font-weight:600}
+.banner .wohin{margin-inline-start:auto}
+
+h2{font:600 .72rem var(--schild);text-transform:uppercase;
+   letter-spacing:.1em;color:var(--grau);margin:1.6rem 0 .5rem}
+.inhalt section>h2:first-child{margin-top:0}
+
+/* Knoepfe. Genau einer ist dunkelblau. */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;
+     min-height:44px;padding:.6rem 1rem;
+     border:1px solid var(--linie);background:#fff;color:var(--text);
+     font:.95rem var(--schild);cursor:pointer}
+.btn:hover{border-color:var(--hell)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primaer{width:100%;min-height:3.4rem;
+             background:var(--navy);border-color:var(--navy);color:#fff;
+             font:1.05rem var(--display);letter-spacing:.06em}
+.btn.primaer:hover{background:#1c2a6b;border-color:#1c2a6b}
+.btn.gefahr{color:var(--rot);border-color:#eccac5}
+.btn.gefahr:hover{border-color:var(--rot)}
+.btn.an{border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy);
+        font-weight:600}
+.reihe{display:flex;gap:.5rem;flex-wrap:wrap}
+.haupt{display:grid;gap:.5rem}
+/* Die Aufnahme ist die Ausnahme, nicht der Normalfall: weiss, mit
+   rotem Ring. Laeuft sie, fuellt sich der Ring. */
+.rec{box-shadow:inset 0 0 0 2px var(--rot);border-color:var(--rot);
+     color:var(--rot)}
+.rec::before{content:"";width:.7rem;height:.7rem;border-radius:50%;
+             background:var(--rot);flex:0 0 auto}
+.rec[aria-pressed=true]{background:var(--rot);color:#fff}
+.rec[aria-pressed=true]::before{background:#fff}
+
+/* Kacheln: ein Wort Zustand oben rechts, farbiger Rand an der
+   Textanfangsseite -- logisch, damit Farsi nicht springt. */
+.kacheln{display:grid;grid-template-columns:1fr;gap:.6rem;margin:.9rem 0 .8rem}
+.kachel{background:var(--fl);border:1px solid var(--linie);
+        border-inline-start:4px solid var(--hell);padding:.7rem .85rem}
+.kachel.ok{border-inline-start-color:var(--gruen)}
+.kachel.warn{border-inline-start-color:var(--gelb)}
+.kachel.schlecht{border-inline-start-color:var(--rot)}
+.kkopf{display:flex;justify-content:space-between;align-items:baseline;
+       gap:.5rem;font:600 .7rem var(--schild);text-transform:uppercase;
+       letter-spacing:.09em;color:var(--grau)}
+.zustand{font-weight:600;font-size:.8rem;text-transform:none;letter-spacing:0;
+         text-align:end}
+.kachel.ok .zustand{color:var(--gruen)}
+.kachel.warn .zustand{color:var(--gelb)}
+.kachel.schlecht .zustand{color:var(--rot)}
+.gross{font:400 2rem/1.1 var(--display);margin:.3rem 0 .1rem}
+.unterz{font-size:.8rem;color:var(--grau);margin:.3rem 0 0;line-height:1.4}
+/* Pegelbalken in der Kachel: Ist-Pegel und die Schwellenmarke.
+   Grau = nur Raum, rot = hoerbar aber unter der Schwelle (genau das
+   wird weggeworfen), gruen = wird uebersetzt. */
+.mini{position:relative;height:10px;background:#dde0e7;margin:.55rem 0 .3rem}
+.mini .fuell{display:block;height:100%;width:0;background:var(--hell);
+             transition:width .08s linear,background .2s ease}
+.mini .fuell.knapp{background:var(--rot)}
+.mini .fuell.ueber{background:var(--gruen)}
+.mini .marke{position:absolute;top:-3px;bottom:-3px;width:2px;
+             background:var(--text);inset-inline-start:0}
+.sprachen{display:flex;flex-wrap:wrap;gap:.3rem .7rem;margin-top:.2rem;
+          font-size:.82rem;color:var(--grau)}
+.sprachen b{color:var(--text);font-variant-numeric:tabular-nums}
+
+/* Hoechstens ein Satz Erklaerung steht offen da. Der Rest -- und das
+   sind die heutigen Erklaertexte, Wort fuer Wort -- haengt hinter
+   einem Fragezeichen. Geloescht wird nichts. */
+details.hilfe{margin:.5rem 0 0}
+details.hilfe>summary{display:flex;align-items:center;gap:.4rem;
+  min-height:44px;cursor:pointer;list-style:none;
+  font:.78rem var(--schild);color:var(--grau)}
+details.hilfe>summary::-webkit-details-marker{display:none}
+details.hilfe>summary::before{content:"?";flex:0 0 auto;
+  width:1.35rem;height:1.35rem;border:1px solid var(--hell);
+  border-radius:50%;display:grid;place-items:center;
+  font:600 .75rem var(--schild)}
+details.hilfe[open]>summary{color:var(--text)}
+details.hilfe>div{border-inline-start:2px solid var(--linie);
+  padding-inline-start:.7rem;margin-bottom:.4rem}
+
+.hin{font:.8rem/1.5 var(--schild);color:var(--grau);margin:.6rem 0 0}
+.hin.warnung{color:var(--gelb)}
+.hin.gut{color:var(--gruen)}
+label{display:block;font:.8rem var(--schild);color:var(--grau);
+      margin:1rem 0 .3rem}
+input[type=text],input[type=password],input[type=number],textarea,select{
+  width:100%;font:.95rem var(--schild);padding:.6rem;min-height:44px;
+  border:1px solid var(--linie);background:#fff;color:var(--text)}
+textarea{min-height:5rem;resize:vertical;line-height:1.5}
+input[type=range]{width:100%;min-height:44px}
+.zeileein{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.zeileein input[type=number]{width:5.5rem;flex:0 0 auto}
+.haken{display:flex;align-items:flex-start;gap:.5rem;
+       font:.88rem/1.45 var(--schild);color:var(--text);margin:.8rem 0 0}
+.haken input{margin-top:.25rem;flex:0 0 auto;min-height:0;width:auto}
+
+/* Eine Zeile als Verweis, kein Knopf: sie fuehrt woandershin, sie tut
+   nichts. */
+.link{background:none;border:0;padding:0;margin:0;
+      font:inherit;color:var(--link);text-decoration:underline;cursor:pointer}
+.zuletzt{display:flex;align-items:center;gap:.5rem;width:100%;
+         min-height:44px;padding:.5rem 0;background:none;border:0;
+         border-top:1px solid var(--linie);text-align:start;
+         font:.85rem var(--schild);color:var(--grau);cursor:pointer}
+.zuletzt .satz{flex:1 1 auto;min-width:0;overflow:hidden;
+               text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.zuletzt .sek{font-variant-numeric:tabular-nums;flex:0 0 auto}
+.mit{font:.82rem/1.5 var(--schild);color:var(--grau);margin:0 0 .6rem;
+     max-height:12rem;overflow:auto}
+.mit div{display:flex;gap:.6rem;padding:.3rem 0;
+         border-top:1px solid var(--linie)}
+.mit .sek{flex:0 0 3rem;font-variant-numeric:tabular-nums;text-align:end}
+.leise{margin:1.6rem 0 0;text-align:center}
+.leise .btn{border-color:transparent;color:var(--grau);font-size:.8rem}
+.leise .btn:hover{border-color:var(--linie)}
+
+/* Was laeuft, muss man sehen, ohne danach zu suchen. */
+.laeuftauf{display:flex;align-items:center;gap:.5rem;
+  font:.9rem var(--schild);color:var(--rot);background:var(--rotbg);
+  border:1px solid var(--rot);padding:.5rem .7rem;margin:.5rem 0}
+.laeuftauf .dauer,.laeuftauf #pruefprotokollzeilen{
+  margin-inline-start:auto;font-variant-numeric:tabular-nums}
+.rotpunkt{width:.7rem;height:.7rem;border-radius:50%;background:var(--rot);
+          flex:0 0 auto}
+@media (prefers-reduced-motion: no-preference){
+  .rotpunkt{animation:pulsen 1.6s ease-in-out infinite}
+}
+@keyframes pulsen{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* Sprachen als Chips. Gewaehlt wird mit einer Kontur in Dunkelblau und
+   einem Haken, nicht mit dunkelblauer Flaeche: die gehoert der einen
+   Hauptaktion. */
+.chips{display:flex;flex-wrap:wrap;gap:.4rem;margin:.3rem 0}
+.chips label{display:inline-flex;align-items:center;gap:.4rem;
+  min-height:44px;margin:0;padding:.4rem .7rem;cursor:pointer;
+  border:1px solid var(--linie);background:#fff;
+  font:.88rem var(--schild);color:var(--text)}
+.chips label.an{background:#eef1f8;border-color:var(--navy);font-weight:600}
+.chips input{margin:0;width:auto;min-height:0}
+.chips .nurtext{font-size:.72rem;color:var(--gelb);white-space:nowrap}
+.chips .experiment{font-size:.7rem;color:var(--grau)}
+/* Noch nicht geprueft: gestrichelt, unter eigener Ueberschrift. */
+.chips.ungeprueft label{border-style:dashed}
+.chips.ohneglossar label{border-style:dotted}
+.untertitel{font:.75rem var(--schild);color:var(--grau);
+            margin:.9rem 0 .2rem;text-transform:none;letter-spacing:0}
+
+/* Einrichtung: links die Liste, rechts die Seite. Am Handy erst die
+   Liste, dann die Seite mit Zurueck. */
+.zwei{display:block}
+.seitennav{display:flex;flex-direction:column;gap:.35rem}
+.seitennav button{display:flex;align-items:center;justify-content:space-between;
+  gap:.5rem;min-height:48px;padding:.6rem .8rem;text-align:start;
+  border:1px solid var(--linie);background:#fff;cursor:pointer;
+  font:.95rem var(--schild);color:var(--text)}
+.seitennav button[aria-current=page]{background:#eef1f8;
+  border-color:var(--navy);font-weight:600}
+.seitennav .pfeil{color:var(--hell)}
+.zurueck{margin-bottom:.8rem}
+.unterseite h3{font:600 .95rem var(--schild);margin:0 0 .6rem;
+               color:var(--text)}
+/* Abgesetzt: Update und Fehlersuche gehoeren nicht zu dem, was man
+   einmal je Gemeinde einstellt. */
+.seitennav .trenner{height:1px;background:var(--linie);margin:.5rem 0}
+
+/* Kanalliste der Tonquelle. Die Zeile ist der Knopf. */
+.kanal{display:flex;align-items:center;gap:.6rem;width:100%;min-height:44px;
+  padding:.5rem .6rem;margin-bottom:.25rem;border:1px solid var(--linie);
+  background:#fff;cursor:pointer;text-align:start;flex-wrap:wrap;
+  font:.85rem var(--schild);color:var(--text)}
+.kanal:hover{border-color:var(--hell)}
+.kanal.an{border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
+.kanal.ruht{opacity:.6;cursor:default}
+.kanal .kname{flex:1 1 9rem;min-width:0;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.kanal .kkanal{flex:0 0 auto;font-size:.76rem;color:var(--grau);
+  font-variant-numeric:tabular-nums}
+.kanal .mini{flex:1 1 5rem;height:12px;margin:0}
+.kanal .kwort{flex:0 0 5rem;text-align:end;font-size:.75rem;color:var(--grau)}
+.kanal .kurteil{flex:1 1 100%}
+.kanal .ktext{display:block;font-size:.9rem;color:var(--text);line-height:1.35}
+.kanal .kmarke{display:block;font-size:.72rem;color:var(--grau)}
+.kanal.vermisst{display:block;background:var(--gelbbg);border-color:var(--gelb);
+  color:var(--gelb);cursor:default}
+
+/* Aufnahmen und Meldungen aus dem Saal: Listen mit einer Zeile je Stueck. */
+.liste .zeile{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;
+  padding:.6rem 0;border-top:1px solid var(--linie);font-size:.9rem}
+.liste .zeile .was{flex:1 1 10rem;min-width:0}
+.liste .zeile .btn{min-height:44px;padding:.4rem .7rem;font-size:.82rem}
+.post{font:.9rem/1.5 var(--schild);margin:.2rem 0 .8rem}
+.post div{padding:.5rem .7rem;margin-bottom:.35rem;background:var(--fl);
+  border-inline-start:3px solid var(--hell);color:var(--text)}
+.post .systempost{border-inline-start-color:var(--navy);background:#eef1f8}
+.post .wann{color:var(--grau);font-size:.78rem;margin-inline-end:.4rem}
+.post .systempost .wann{color:var(--navy);font-weight:600}
+.wartungliste{list-style:none;padding:0;margin:.4rem 0}
+.wartungliste li{padding:.45rem 0;border-top:1px solid var(--linie);
+  font-size:.88rem;display:flex;flex-direction:column;gap:.2rem}
+.wartungliste li.schwer{color:var(--rot)}
+.wartungliste code{font-size:.82rem;color:var(--grau);word-break:break-all}
+.werte{display:flex;justify-content:space-between;gap:.6rem;
+  font:.76rem var(--schild);color:var(--grau);
+  font-variant-numeric:tabular-nums;margin:.3rem 0}
+.betreuer{margin:.5rem 0 1rem;font-size:1.05rem}
+.betreuer code{font-size:.95rem;color:var(--link);word-break:break-all}
+.qrpaar{display:flex;gap:1.2rem;flex-wrap:wrap;margin:.4rem 0 1rem}
+.qrpaar img{border:1px solid var(--linie);background:#fff;
+  width:min(100%,190px);height:auto}
+.qrpaar>div{flex:1 1 12rem;max-width:14rem}
+/* Der Knopf, der die Datei waehlt. Das nackte Browser-Feld sieht auf
+   jedem Geraet anders aus und auf keinem wie ein Knopf. */
+.dateiknopf input{position:absolute;width:1px;height:1px;opacity:0;
+  overflow:hidden;clip:rect(0 0 0 0)}
+dialog#einwilligung{max-width:26rem;width:calc(100vw - 2rem);
+  border:1px solid var(--linie);padding:1.3rem;color:var(--text)}
+dialog#einwilligung h2{font:400 1.1rem var(--display);color:var(--text);
+  text-transform:none;letter-spacing:0;margin:0 0 .4rem}
+dialog#einwilligung label{display:flex;gap:.5rem;align-items:flex-start;
+  font:.92rem/1.45 var(--schild);color:var(--text);margin:.7rem 0 0}
+dialog#einwilligung input[type=checkbox]{margin-top:.25rem;flex:0 0 auto;
+  width:auto;min-height:0}
+dialog::backdrop{background:rgba(20,31,82,.45)}
+
+/* Der Wartungsblock klappt weiter auf und zu. Er ist kein Erklaertext,
+   sondern eine Liste von Befunden -- ein "?" waere dafuer das falsche
+   Zeichen. */
+h2.klapp{display:flex;justify-content:space-between;align-items:center;
+  min-height:44px;cursor:pointer;user-select:none}
+.klapptext{display:inline-flex;align-items:center;gap:.35rem;
+  font:.72rem var(--schild);text-transform:none;letter-spacing:0;
+  color:var(--grau);font-weight:400}
+.pfeil{font-size:.9rem;transition:transform .18s ease}
+.pfeil.zu{transform:rotate(-90deg)}
+/* Umschlag und Zahl im roten Briefkastenband. */
+#briefkastenband .umschlag{font-size:1.1rem}
+#postzahl{font-weight:700;font-variant-numeric:tabular-nums}
+.unterseite h3{font:600 1rem var(--schild);margin:0 0 .7rem}
+
+/* ---------------------------------------------------------- Laptop */
+@media (min-width:701px){
+  body{padding:0;background:var(--fl)}
+  .app{max-width:66rem;margin:1.5rem auto;min-height:0;padding-bottom:0;
+       border:1px solid var(--linie)}
+  body.tippt .app{padding-bottom:0}
+  .top{padding:.9rem 1.4rem}
+  .meta{display:flex}
+  .reiter{position:static;justify-content:flex-start;gap:.1rem;padding:0 1rem;
+          border-top:0;border-bottom:1px solid var(--linie)}
+  .reiter button{flex:0 0 auto;flex-direction:row;gap:.45rem;
+                 min-height:48px;padding:.7rem 1rem;font-size:.92rem;
+                 border-top:0;border-bottom:2px solid transparent}
+  .reiter button[aria-selected=true]{border-bottom-color:var(--navy)}
+  .reiter .sym{display:none}
+  .reiter .punkt{position:static;margin-inline-start:.1rem}
+  .reiter .zahl{position:static}
+  .inhalt{padding:1.4rem}
+  .kacheln{grid-template-columns:repeat(3,1fr)}
+  .haupt{grid-template-columns:1fr auto;align-items:stretch}
+  .haupt .rec{min-width:11rem}
+  .zwei{display:grid;grid-template-columns:14rem 1fr;gap:1.6rem;
+        align-items:start}
+  .zurueck{display:none}
+}
 </style>
-<div class=k>
-<div class=kopfknoepfe>
-  <button id=qrknopf onclick=qrOeffnen() title="QR-Seite für den Beamer">
-    QR</button>
-  <button id=kaefer onclick=fehlerZeigen() title="Fehler melden"
-          aria-label="Fehler melden"><svg viewBox="0 0 24 24" width="17"
-    height="17" fill="none" stroke="currentColor" stroke-width="1.7"
-    stroke-linecap="round"><ellipse cx="12" cy="13.5" rx="4.6" ry="5.8"/>
-    <path d="M12 7.7V19.3M7.4 13.5H2.8M16.6 13.5h4.6M8 9.4 4.6 6.6M16 9.4l3.4-2.8M8 17.8l-3.4 2.6M16 17.8l3.4 2.6"/>
-    <path d="M9.3 8.1a3.2 3.2 0 0 1 5.4 0"/></svg></button>
-  <button id=zahnrad onclick=einrichtungZeigen() title="Einrichtung">⚙</button>
-  <button id=sprachknopf onclick=uiSprache()>EN</button>
+<div class=app>
+
+<header class=top>
+  <img class=logo src="/logo.png" alt="" onerror="this.remove()">
+  <div class=titel><b>Devarenu</b><span data-t=pult>Pult</span></div>
+  <span class=luecke></span>
+  <div class=meta>
+    <span class=laufzeit id=laufzeit></span>
+    <button class=ikon id=qrknopf onclick=qrOeffnen() data-t=qr_titel
+            title="QR-Seite für den Beamer">QR</button>
+    <button class="ikon text" id=kaefer onclick=fehlerZeigen()>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M8 6a4 4 0 0 1 8 0M5 11h14M12 6v12M6 9a6 6 0 0 0 12 0
+                 M4 14h2M18 14h2M6 19l2-2M18 19l-2-2"/></svg>
+      <span data-t=fehler_melden>Fehler melden</span></button>
+  </div>
+  <span class="pille aus" id=pille data-t=p_aus>Angehalten</span>
+  <button class=ikon id=sprachknopf onclick=uiSprache()>EN</button>
+</header>
+
+<!-- Vier Reiter. Am Handy feste Leiste unten mit Zeichen und Wort, am
+     Laptop eine Zeile unter dem Kopf. Echte Knoepfe mit role=tab: eine
+     Liste von Verweisen laesst sich nicht mit den Pfeiltasten bedienen,
+     und am Pult steht nicht immer eine Maus. -->
+<nav class=reiter role=tablist aria-label="Bereiche">
+  <button role=tab id=rGottesdienst aria-selected=true
+          aria-controls=gottesdienst onclick="reiterWaehlen('gottesdienst')">
+    <span class=sym aria-hidden=true>◉</span>
+    <span class=wort data-t=r_gottesdienst>Gottesdienst</span></button>
+  <button role=tab id=rVorbereiten aria-selected=false tabindex=-1
+          aria-controls=vorbereiten onclick="reiterWaehlen('vorbereiten')">
+    <span class=sym aria-hidden=true>✎</span>
+    <span class=wort data-t=r_vorbereiten>Vorbereiten</span>
+    <span class=punkt id=punktVorbereiten hidden></span></button>
+  <button role=tab id=rAufnahmen aria-selected=false tabindex=-1
+          aria-controls=aufnahmen onclick="reiterWaehlen('aufnahmen')">
+    <span class=sym aria-hidden=true>♫</span>
+    <span class=wort data-t=r_aufnahmen>Aufnahmen</span>
+    <span class=zahl id=zahlAufnahmen hidden></span></button>
+  <button role=tab id=rEinrichtung aria-selected=false tabindex=-1
+          aria-controls=einrichtung onclick="reiterWaehlen('einrichtung')">
+    <span class=sym aria-hidden=true>⚙</span>
+    <span class=wort data-t=r_einrichtung>Einrichtung</span>
+    <span class=punkt id=punktEinrichtung hidden></span></button>
+</nav>
+
+<div class=inhalt>
+
+<!-- Rote Meldungen stehen in JEDEM Reiter. Wer in der Einrichtung
+     steht, waehrend der Ton ausfaellt, soll es dort sehen und nicht
+     erst, wenn er zufaellig zurueckwechselt. -->
+<div id=bannerleiste>
+<p class="banner rot" id=rechenwarnung hidden></p>
+<p class="banner rot" id=tonhin hidden></p>
+<p class="banner rot" id=zweiterdhcp hidden></p>
+<p class="banner gelb" id=updatehin hidden></p>
+<p class="banner rot" id=briefkastenband hidden>
+  <span class=umschlag aria-hidden=true>✉</span>
+  <span id=postzahl></span>
+  <span data-t=post_neu>neue Meldungen aus dem Saal</span>
+  <button class="link wohin" id=briefkasten onclick=postZeigen()
+          data-t=post_lesen>Lesen</button></p>
+<p class="banner gelb" id=sprachverdacht hidden>
+  <span id=sprachverdachttext></span>
+  <button class="link wohin" id=bSpracheUm onclick=spracheUmstellen()
+          data-t=sprache_umstellen>Ausgangssprache umstellen</button></p>
+<p class="banner gelb" id=warnung hidden></p>
 </div>
-<img class=logo src="/logo.png" alt="" onerror="this.remove()">
-<h1 data-t=pult>Pult</h1>
-<p class=lage><span class=punkt id=punkt></span><span id=lage>…</span></p>
+
+<!-- ============================================= Gottesdienst -->
+<section id=gottesdienst role=tabpanel aria-labelledby=rGottesdienst>
 <div id=betrieb>
-<p class="warnung schwer" id=rechenwarnung hidden></p>
-<p class=warnung id=updatehin hidden></p>
-<p class="warnung schwer" id=tonhin hidden></p>
-<p class="warnung schwer" id=zweiterdhcp hidden></p>
-<button class=briefkasten id=briefkasten onclick=postZeigen() hidden>
-  <span class=umschlag>✉</span><span id=postzahl></span>
-  <span data-t=post_neu>neue Meldungen aus dem Saal</span></button>
-<div class=startreihe>
-  <button class=start id=bStart onclick=umschalten()>Übersetzung starten</button>
-  <button class=aufnahmeknopf id=bSchnitt onclick=aufnahmeUmschalten()
+<div class=haupt>
+  <button class="btn primaer" id=bStart onclick=umschalten()>Übersetzung starten</button>
+  <button class="btn rec" id=bSchnitt onclick=aufnahmeUmschalten()
           aria-pressed="false" data-t=aufnahme>Aufnahme</button>
 </div>
+<p class=hin id=anhaltenHin data-t=anhalten_hin hidden>Anhalten stoppt die
+Auslieferung, ohne die Sitzung zu beenden. Die Handys bleiben verbunden.</p>
 <p class=laeuftauf id=aufnahmelaeuft hidden>
-  <span class=rotpunkt></span>
+  <span class=rotpunkt aria-hidden=true></span>
   <b data-t=aufnahme_laeuft>Aufnahme läuft</b>
-  <span id=aufnahmedauer>0:00</span></p>
-<p class=warnzeile id=sprachverdacht hidden>
-  <span id=sprachverdachttext></span>
-  <button class=klein id=bSpracheUm onclick=spracheUmstellen()
-          data-t=sprache_umstellen>Ausgangssprache umstellen</button></p>
-<!-- Thema und Bibelstellen fehlen. Steht HIER und nicht unter "Vor dem
-     Gottesdienst": der Abschnitt ist nach dem ersten Zuklappen zu, und
-     eine Erinnerung, die man erst aufklappen muss, erinnert niemanden.
-     Sichtbar vor und waehrend der Uebersetzung, an die Zuhoerer geht
-     davon nichts, und aufgehalten wird auch nichts. -->
-<p class=warnzeile id=kontextwarnung hidden>
-  <span data-t=kontext_fehlt>Thema und Bibelstellen fehlen. Prediger
-  fragen.</span></p>
-<p class=hin id=anhaltenHin data-t=anhalten_hin hidden>Anhalten stoppt die Auslieferung, ohne die
-Zuhörer zu trennen. Sie bleiben verbunden und hören weiter, sobald es
-weitergeht.</p>
-<button class=reset onclick=s('reset')>Von vorn</button>
-<p class=hin data-t=qr_hin>Mit <b>QR</b> oben rechts öffnet sich die Seite
-für den Beamer. Dort scannen die Zuhörer sich selbst ein.</p>
+  <span class=dauer id=aufnahmedauer>0:00</span></p>
+<p class="banner gelb" id=kontextwarnung hidden>
+  <span data-t=kontext_fehlt>Thema und Bibelstellen fehlen. Prediger fragen.</span>
+  <button class="link wohin" onclick="reiterWaehlen('vorbereiten','kontext')"
+          data-t=eintragen>Eintragen</button></p>
 
+<div class=kacheln>
+  <div class=kachel id=kTon>
+    <div class=kkopf><span data-t=k_ton>Ton</span>
+      <span class=zustand id=tonZustand>–</span></div>
+    <div class=mini><span class=fuell id=fuell></span>
+      <span class=marke id=marke style="inset-inline-start:0"></span></div>
+    <p class=unterz><span id=schwellestand></span>
+      <button class=link onclick="reiterWaehlen('vorbereiten','feineinstellung')"
+              data-t=ton_feiner>Feineinstellung</button></p>
+    <details class=hilfe><summary data-t=hilfe_ton>Pegel und Schwelle</summary>
+      <div>
+        <div class=werte><span id=pegelwert>–</span><span id=schwellwert>–</span></div>
+        <p class=hin data-t=ton_erklaert>Der Balken zeigt, was ankommt. Die
+        Marke ist die Mindestlautstärke: was links davon bleibt, wird nicht
+        übersetzt.</p>
+      </div></details>
+  </div>
 
+  <div class=kachel id=kHoerer>
+    <div class=kkopf><span data-t=k_hoerer>Zuhörer</span>
+      <span class=zustand id=hoererZustand></span></div>
+    <div class=gross id=hoererzahl>0</div>
+    <div class=sprachen id=hoerersprachen></div>
+    <details class=hilfe><summary data-t=hilfe_hoerer>Je Sprache</summary>
+      <div><table><tbody id=zahlen></tbody></table></div></details>
+  </div>
 
-<p class=warnung id=warnung hidden></p>
-<h2 data-t=lautstaerke>Mindestlautstärke</h2>
-<div class=balken>
-  <div class=fuell id=fuell></div>
-  <div class=marke id=marke style=left:0></div>
-</div>
-<div class=werte>
-  <span id=pegelwert>–</span>
-  <span id=schwellwert>–</span>
-</div>
-<input type=range id=regler min=0 max=100 value=30 oninput=schieben()>
-<button class=klein id=bEinmessen onclick=einmessen()>Einmessen: Prediger
-sprechen lassen</button>
-<div class=reihe>
-  <button class=klein id=bFest onclick=festnageln()>Regler festnageln</button>
-  <button class="klein aus" id=bAuto onclick=automatisch()>Mitlaufend</button>
-</div>
-<p class=hin>Am einfachsten ist das Einmessen: draufdrücken, den Prediger
-zwölf Sekunden normal sprechen lassen, fertig. Der Regler daneben ist für
-Nachjustierung von Hand. Alles unterhalb der Marke wird gar nicht erst
-übersetzt.</p>
-
-<h2 class=klapp id=vorbereitungKopf onclick=vorbereitungKlappen()>
-  <span data-t=vorbereitung>Vor dem Gottesdienst</span>
-  <span class=klapptext><span id=vorbereitungWort>Zuklappen</span>
-  <span class=pfeil id=vorbereitungPfeil>▾</span></span></h2>
-<div id=vorbereitung>
-<label for=kontext data-t=kontext>Thema und Bibelstellen</label>
-<textarea id=kontext placeholder="Predigt über Vergebung. Texte: Matthäus 18, Psalm 32. Namen: Petrus, Nathan."></textarea>
-<button class=klein onclick=k()>Übernehmen</button>
-<p class=hin id=erkannt></p>
-
-<label data-t=manuskript>Predigtmanuskript</label>
-<p class=hin>Falls der Prediger eines hat. Es wird <b>nicht vorgelesen</b>,
-sondern nur nach Namen durchsucht: Orte, Personen, Fremdwörter. Gesprochen
-wird, was gesprochen wird.</p>
-<input type=file id=datei accept=".txt,.md,.docx" onchange=hochladen()>
-<p class=hin id=skriptinfo></p>
-
-
-
+  <div class=kachel id=kThema>
+    <div class=kkopf><span data-t=k_thema>Thema</span>
+      <span class=zustand id=themaZustand></span></div>
+    <p class=unterz id=themazeile></p>
+    <button class=link id=themalink
+            onclick="reiterWaehlen('vorbereiten','kontext')"
+            data-t=eintragen>Eintragen</button>
+    <details class=hilfe><summary data-t=hilfe_thema>Was erkannt wurde</summary>
+      <div><p class=hin id=erkanntkachel></p>
+      <p class=hin data-t=kontext_erklaert>Thema und Bibelstellen legen
+      Whisper die Eigennamen des Kapitels vor. Das ist der Unterschied
+      zwischen „Sanballat“ und „San Ballard“.</p></div></details>
+  </div>
 </div>
 
-<h2 data-t=mitschnitt>Aufnahmen</h2>
-<p class=hin data-t=aufnahme_hin>Nimmt den Ton mit, der ohnehin durchläuft.
-Nur mit Einwilligung der predigenden Person. Der Schalter steht oben neben
-„Übersetzung starten“.</p>
-<p class=hin id=schnittinfo></p>
-<div class=reihe>
-  <span data-t=aufnahme_tage_wort>Löschen nach</span>
-  <input type=number id=aufnahmetage min=0 max=365 style="width:5rem"
-    onchange=aufnahmeTageSetzen()>
-  <span data-t=aufnahme_tage_einheit>Tagen</span>
+<button class=zuletzt id=zuletztzeile onclick=verlaufKlappen()
+        aria-expanded=false aria-controls=mit>
+  <span class=kopf data-t=zuletzt>Zuletzt erkannt</span>
+  <span class=satz id=zuletzttext>–</span>
+  <span class=sek id=zuletztsek></span></button>
+<div class=mit id=mit hidden></div>
+
+<p class=leise><button class=btn onclick=vonVorn()
+   data-t=reset>Von vorn beginnen …</button></p>
 </div>
-<p class=hin data-t=aufnahme_tage_hin>0 heißt: nicht löschen. Das ist eine
-Entscheidung, keine Vorgabe — dann sammelt sich an, woran niemand mehr denkt.</p>
-<div class=mit id=aufnahmeliste></div>
-
-
-
-<h2 data-t=zuhoerer_ueber>Zuhörer je Sprache</h2>
-<table><tbody id=zahlen></tbody></table>
-<div class=mit id=mit></div>
-
-</div>
+</section>
 
 <div id=post hidden>
-<p class=hin data-t=post_hin>Antworten ist nicht vorgesehen. Wer etwas meldet, weiß das und erwartet keine Rückmeldung.</p>
+  <button class="btn klein" onclick=postZeigen()
+          data-t=zurueck>Zurück</button>
   <h2 data-t=post_ueber>Aus dem Saal</h2>
+  <p class=hin data-t=post_hin>Antworten ist nicht vorgesehen. Wer etwas
+  meldet, weiß das und erwartet keine Rückmeldung.</p>
   <div class=post id=postliste></div>
-  <button class=klein onclick=postLeeren() data-t=post_weg>Erledigt</button>
+  <button class=btn onclick=postLeeren() data-t=post_weg>Erledigt</button>
 </div>
 
+<!-- ============================================== Vorbereiten -->
+<section id=vorbereiten role=tabpanel aria-labelledby=rVorbereiten hidden>
+<h2 data-t=kontext>Thema und Bibelstellen</h2>
+<label for=kontext data-t=kontext_label>Worüber wird gepredigt?</label>
+<textarea id=kontext placeholder="Predigt über Vergebung. Texte: Matthäus 18, Psalm 32. Namen: Petrus, Nathan."></textarea>
+<button class=btn onclick=k() data-t=uebernehmen>Übernehmen</button>
+<p class=hin id=erkannt></p>
+
+<h2 data-t=manuskript>Predigtmanuskript</h2>
+<p class=hin data-t=manuskript_kurz>Falls der Prediger eines hat.</p>
+<label class=dateiknopf><span class=btn data-t=manuskript_waehlen>Manuskript hochladen …</span>
+  <input type=file id=datei accept=".txt,.md,.docx" onchange=hochladen()></label>
+<p class=hin id=skriptinfo></p>
+<details class=hilfe><summary data-t=hilfe_manuskript>Was damit geschieht</summary>
+  <div><p class=hin data-t=manuskript_hin>Es wird <b>nicht vorgelesen</b>,
+  sondern nur nach Namen und Bibelstellen durchsucht. Daraus entsteht der
+  Prompt, mit dem Whisper die Eigennamen trifft. Der Text selbst verlässt
+  diesen Rechner nicht.</p></div></details>
+
+<h2 data-t=ton_einmessen>Ton einmessen</h2>
+<p class=hin id=einmessstand></p>
+<button class=btn id=bEinmessen onclick=einmessen()>Einmessen: Prediger sprechen lassen</button>
+<details class=hilfe id=feineinstellung><summary data-t=feineinstellung>Feineinstellung</summary>
+<div>
+<p class=hin data-t=feiner_hin>Nur nötig bei Störgeräuschen im Raum.</p>
+<div class=mini><span class=fuell id=tonfuell></span>
+  <span class=marke id=marke2 style="inset-inline-start:0"></span></div>
+<p class=hin id=feinwert></p>
+<input type=range id=regler min=0 max=100 value=30 oninput=schieben()>
+<div class=reihe>
+  <button class="btn klein" id=bAus onclick="schwelleModus('aus')" data-t=m_aus>Aus</button>
+  <button class="btn klein" id=bAuto onclick="schwelleModus('automatisch')" data-t=m_auto>Automatisch</button>
+  <button class="btn klein" id=bFest onclick="schwelleModus('fest')" data-t=m_fest>Fest</button>
+</div>
+<p class=hin data-t=modus_hin>„Aus“ heißt: keine Mindestlautstärke,
+geschnitten wird an Sprechpausen. „Automatisch“ folgt dem Raumpegel.
+„Fest“ hält den Wert, den das Einmessen ergeben hat.</p>
+<h3 data-t=tonquelle>Tonquelle</h3>
+<div id=kanalliste></div>
+<div class=reihe>
+  <button class="btn klein" id=bSprache onclick=spracheKnopf()
+          data-t=spr_pruefen>Sprache prüfen</button>
+</div>
+<p class=hin id=sprachstand></p>
+<p class=hin id=geraetstand></p>
+<details class=hilfe><summary data-t=hilfe_tonquelle>Wie man den Kanal findet</summary>
+  <div><p class=hin data-t=tonquelle_hin>Jede Zeile ist ein Kanal.
+  Hineinsprechen und zusehen, welche ausschlägt — gemessen wird reihum,
+  eine Zeile nach der anderen. „Sprache prüfen“ hört bei jedem Kanal mit
+  Pegel zweimal kurz hin und zeigt, was es verstanden hat.</p>
+  <p class=hin data-t=spr_hin>Was hier steht, ist gehört, nicht bewiesen.
+  Auf Musik erfindet die Erkennung ganze Sätze. Im Zweifel den Text lesen:
+  steht dort, was gesprochen wurde, ist es der richtige Kanal.</p></div></details>
+</div></details>
+</section>
+
+<!-- ================================================ Aufnahmen -->
+<section id=aufnahmen role=tabpanel aria-labelledby=rAufnahmen hidden>
+<h2 data-t=mitschnitt>Aufnahmen</h2>
+<p class=hin id=schnittinfo></p>
+<div class="liste" id=aufnahmeliste></div>
+<p class=zeileein>
+  <span data-t=aufnahme_tage_wort>Löschen nach</span>
+  <input type=number id=aufnahmetage min=0 max=365 onchange=aufnahmeTageSetzen()>
+  <span data-t=aufnahme_tage_einheit>Tagen</span>
+</p>
+<details class=hilfe><summary data-t=hilfe_aufnahmen>Was aufgenommen wird</summary>
+  <div><p class=hin data-t=aufnahme_hin>Nimmt den Ton mit, der ohnehin
+  durchläuft. Nur nach ausdrücklichem Druck und nur mit beiden Häkchen.</p>
+  <p class=hin data-t=aufnahme_tage_hin>0 heißt: nicht löschen. Das ist
+  eine Entscheidung, keine Vorgabe — dann sammelt sich an, woran niemand
+  mehr denkt.</p></div></details>
+</section>
+
+<!-- ============================================== Einrichtung -->
+<section id=einrichtung role=tabpanel aria-labelledby=rEinrichtung hidden>
+<div class=zwei>
+<nav class=seitennav id=seitennav aria-label="Einrichtung"></nav>
+<div id=einrichtungseite>
+<button class="btn klein zurueck" onclick=unterseiteZu()
+        data-t=zurueck>Zurück</button>
+
+<div class=unterseite id=eGemeinde hidden>
+<h3 data-t=e_gemeinde>Gemeinde</h3>
+<label for=gemeindefeld data-t=gemeinde_name>Name der Gemeinde</label>
+<input type=text id=gemeindefeld maxlength=60 onchange=gemeindeSetzen()>
+<p class="hin" data-t=gemeinde_hin>Erscheint auf der QR-Seite als
+„Devarenu · &lt;Name&gt;“. Leer lassen heißt: keine Anzeige.</p>
+<label class=haken><input type=checkbox id=meldeschalter
+  onchange=gemeindeSetzen()> <span data-t=melden_an>Nutzung an den
+  Entwickler melden</span></label>
+<details class=hilfe><summary data-t=hilfe_melden>Was gesendet wird</summary>
+  <div><p class="hin" data-t=melden_hin>Gesendet werden <b>Name der
+  Gemeinde, Fassung und Datum</b> — sonst nichts. Kein Predigttext, keine
+  Zuschriften, keine Adressen. Der Versand läuft im Wartungsfenster über
+  denselben Kanal wie die übrigen Meldungen und lässt sich jederzeit
+  wieder abschalten.</p></div></details>
+<p class="banner rot" id=kontowarnung hidden><span id=kontowarnungtext></span></p>
+</div>
+
+<div class=unterseite id=eSprachen hidden>
+<h3 data-t=sprachen>Sprachen</h3>
+<label for=quellwahl data-t=quelle>Gesprochene Sprache</label>
+<select id=quellwahl onchange=sprachenSetzen()></select>
+<label data-t=ziele>Übersetzt nach</label>
+<div id=zielwahl></div>
+<p class=hin data-t=sprachen_hin>Alle Sprachen liegen auf dem Rechner. Nur
+die ausgewählten laufen mit, das spart Rechenzeit.</p>
+</div>
+
+<div class=unterseite id=eTonquelle hidden>
+<h3 data-t=tonquelle>Tonquelle</h3>
+<p class=hin data-t=tonquelle_wo>Kanalwahl, Pegel und „Sprache prüfen“
+stehen unter Vorbereiten → Feineinstellung.</p>
+<button class=btn onclick="reiterWaehlen('vorbereiten','feineinstellung')"
+        data-t=ton_feiner>Feineinstellung</button>
+</div>
+
+<div class=unterseite id=eWlan hidden>
+<h3 data-t=wlan>WLAN &amp; QR-Code</h3>
+<p class=hin data-t=wlan_hin>Netzname und Passwort des Routers, an dem
+dieser Rechner hängt. Sie wandern in den ersten QR-Code, damit sich die
+Handys mit einem Scan verbinden, ohne ein Passwort abzutippen. Ohne
+Eintrag zeigt die QR-Seite nur den zweiten Code.</p>
+<div class=reihe>
+  <input type=text id=ssid placeholder="Netzname" style="flex:1 1 9rem"
+         onchange=wlanSetzen()>
+  <input type=text id=wpw placeholder="Passwort" style="flex:1 1 9rem"
+         onchange=wlanSetzen()>
+</div>
+<p class=hin id=wlanstand></p>
+<p><a class=btn href="/qr" target="_blank" data-t=qr_oeffnen>QR-Seite für
+den Beamer öffnen</a></p>
+</div>
+
+<div class=unterseite id=ePasswort hidden>
+<h3 data-t=pw_ueber>Pult-Passwort (freiwillig)</h3>
+<p class=hin data-t=pw_hin>Ohne Eintrag bleibt alles wie bisher: jeder im
+Saal-WLAN kann dieses Pult bedienen. Mit Eintrag wird jedes Gerät im Saal
+einmal danach gefragt und merkt sich die Anmeldung. Die Zuhörerseite
+bleibt immer offen, und an diesem Rechner wird nie gefragt.</p>
+<p class=hin id=pwstand></p>
+<div class=reihe>
+  <input type=password id=pwfeld placeholder="Passwort" style="flex:1 1 9rem"
+    autocomplete="new-password">
+  <button class=btn onclick=pultPasswortSetzen() data-t=pw_setzen>Übernehmen</button>
+</div>
+<p><button class="btn gefahr" id=bPwWeg onclick=pultPasswortLoeschen()
+  data-t=pw_weg hidden>Passwort entfernen</button></p>
+<details class=hilfe><summary data-t=hilfe_pw>Vergessen?</summary>
+  <div><p class=hin data-t=pw_vergessen>Am Rechner selbst:
+  <code>python werkzeuge/pult_passwort.py --loeschen</code></p></div></details>
+</div>
+
+<div class=unterseite id=eUpdate hidden>
+<h3 data-t=e_update>Update</h3>
+<p class=hin id=fassung></p>
+<p class=hin id=updatestand hidden></p>
+<button class=btn id=updateknopf onclick=updateJetzt() hidden
+        data-t=upd_jetzt>Jetzt einspielen</button>
+<!-- Der Weg ueber das Netz. Nur am Gemeinde-PC selbst sichtbar: ein
+     Knopf, der aus dem Saal nur "geht nicht" sagt, ist schlechter als
+     keiner -- und ein Pult-Passwort wuerde das nicht ersetzen, es ginge
+     im Saalnetz unverschluesselt ueber HTTP. -->
+<div id=onlinereihe hidden>
+  <button class=btn id=onlineknopf onclick=onlineUpdate()
+          data-t=on_jetzt>Jetzt aus dem Netz aktualisieren</button>
+  <p class=hin id=onlinestand hidden></p>
+  <details class=hilfe><summary data-t=hilfe_online>Was dabei geschieht</summary>
+    <div><p class=hin data-t=on_hin>Holt die neueste geprüfte Fassung. Der
+    Rechner verbindet sich dafür mit dem eingetragenen Wartungs-WLAN;
+    steht keines zur Verfügung, wird die Verbindung benutzt, die gerade
+    besteht — zum Beispiel ein Handy-Hotspot. Der Dienst startet dabei
+    neu. Während einer laufenden Übersetzung geht es nicht.</p></div></details>
+</div>
+<p><a class=btn href="/anleitung.pdf" download
+   data-t=anleitung_pult>Bedienungsanleitung als PDF</a></p>
+</div>
+
+<div class=unterseite id=eFehlersuche hidden>
+<h3 data-t=e_fehlersuche>Fehlersuche</h3>
+<button class=btn onclick=fehlerZeigen() data-t=fehler_melden>Fehler melden</button>
+<h2 class=klapp id=wartungKopf onclick=wartungKlappen() hidden>
+  <span data-t=wartung>Wartung</span>
+  <span class=klapptext><span id=wartungZahl></span>
+  <span class="pfeil zu" id=wartungPfeil>▾</span></span></h2>
+<div id=wartungFeld hidden>
+<ul id=wartungliste class=wartungliste></ul>
+<p class=hin data-t=wartung_hin>Diese Punkte halten den Gottesdienst nicht
+auf. Sie gehören der Technik und stehen deshalb nicht im Briefkasten.
+Vollständig mit: bash pruefen.sh</p>
+</div>
+<label class=haken><input type=checkbox id=protokollschalter
+  onchange=protokollSetzen()> <span data-t=protokoll_an>Mitschrift im
+  Protokoll (nur zur Fehlersuche)</span></label>
+<p class="hin" id=protokollhin data-t=protokoll_hin>Aus. Der gesprochene
+Satz steht dann nicht im Protokoll -- nur seine Länge.</p>
+<p class=hin id=pruefprotokollreihe hidden><label class=haken><input
+  type=checkbox id=pruefprotokollschalter onchange=pruefprotokollSetzen()>
+  <span data-t=pp_an>Testprotokoll schreiben (nur am Gemeinde-PC)</span></label></p>
+<p class="hin" id=pruefprotokollhin data-t=pp_hin hidden>Schreibt je
+Abschnitt den erkannten Satz, jede Übersetzung und die Dauer jedes
+Schrittes in eine Datei. Nur zur Fehlersuche. Es hört von selbst auf,
+wenn der Dienst neu startet, und wird nach sieben Tagen gelöscht.</p>
+<p class=laeuftauf id=pruefprotokolllaeuft hidden>
+  <span class=rotpunkt aria-hidden=true></span>
+  <b data-t=pp_laeuft>Testprotokoll läuft</b>
+  <span id=pruefprotokollzeilen></span></p>
+</div>
+
+</div>
+</div>
+</section>
+
+<!-- Keine eigene Reiterseite: der Weg zum Betreuer wird selten
+     gebraucht und steht im Kopf und unter Fehlersuche. -->
 <div id=fehler hidden>
+<button class="btn klein" onclick=fehlerZeigen() data-t=zurueck>Zurück</button>
+<h2 data-t=fehler_ueber>Fehler melden</h2>
 <p class=hin data-t=fehler_text>Etwas funktioniert nicht? Schick dem
 Betreuer eine Mail.</p>
 <p class=betreuer><b id=betreuername></b><br><code id=betreuermail></code></p>
-
 <div class=qrpaar>
   <div><img id=qrmail alt="" width="190" height="190">
     <p class=hin data-t=fehler_qr_mail>Scannen: öffnet auf dem Handy eine
@@ -6363,16 +6726,20 @@ Betreuer eine Mail.</p>
     aufs Handy, zum Anhängen.</p>
     <p class=hin><code id=berichtklartext></code></p></div>
 </div>
-
-<p class="hin" data-t=fehler_offline>Die Mail geht raus, sobald das Handy
-wieder Internet hat. Im Saalnetz bleibt sie im Postausgang liegen.</p>
-
-<p><a class=klein id=berichtlink href="/fehlerbericht.txt" download
+<p><a class=btn id=berichtlink href="/fehlerbericht.txt" download
    data-t=fehler_laden>Fehlerbericht herunterladen</a></p>
-<p class=hin data-t=fehler_inhalt>Der Bericht enthält nur technische
-Angaben: Fassung, Rechner, Systemcheck, Meldungen ab Warnstufe. Keine
-Mitschriften, keine Zuschriften aus dem Saal, kein WLAN-Passwort.</p>
+<details class=hilfe><summary data-t=hilfe_bericht>Was im Bericht steht</summary>
+  <div><p class="hin" data-t=fehler_inhalt>Der Bericht enthält nur
+  technische Angaben: Fassung, Rechner, Systemcheck, Meldungen ab
+  Warnstufe. Keine Mitschriften, keine Zuschriften aus dem Saal, kein
+  WLAN-Passwort.</p>
+  <p class="hin" data-t=fehler_offline>Die Mail geht raus, sobald das
+  Handy wieder Internet hat. Im Saalnetz bleibt sie im Postausgang
+  liegen.</p></div></details>
 </div>
+
+</div><!-- .inhalt -->
+</div><!-- .app -->
 
 <dialog id=einwilligung>
   <form method=dialog>
@@ -6387,154 +6754,91 @@ Mitschriften, keine Zuschriften aus dem Saal, kein WLAN-Passwort.</p>
       Gebet und Abkündigungen aus.</span></label></p>
     <p class=hin data-t=ew_vermerk>Der Zeitpunkt der Bestätigung wird neben
     der Aufnahme vermerkt. Kein Name.</p>
-    <p class=warnung id=ewfehler hidden></p>
+    <p class="banner rot" id=ewfehler hidden></p>
     <div class=reihe>
-      <button class=klein id=ewStart onclick=aufnahmeBestaetigen()
+      <button class="btn primaer" id=ewStart onclick=aufnahmeBestaetigen()
         data-t=ew_start>Aufnahme starten</button>
-      <button class="klein knopf-still" id=ewAb data-t=abbrechen>Abbrechen</button>
+      <button class=btn id=ewAb data-t=abbrechen>Abbrechen</button>
     </div>
   </form>
 </dialog>
-
-<div id=einrichtung hidden>
-<p class=hin data-t=einrichtung_hin>Einmal je Gemeinde einstellen, danach
-bleibt es so.</p>
-<p class=hin id=fassung></p>
-<p class=hin><a href="/anleitung.pdf" download data-t=anleitung_pult>Bedienungsanleitung als PDF</a></p>
-<p class=hin id=updatestand hidden></p>
-<button class=klein id=updateknopf onclick=updateJetzt() hidden
-        data-t=upd_jetzt>Jetzt einspielen</button>
-<!-- Der Weg ueber das Netz. Nur am Gemeinde-PC selbst sichtbar: ein
-     Knopf, der aus dem Saal nur "geht nicht" sagt, ist schlechter als
-     keiner -- und ein Pult-Passwort wuerde das nicht ersetzen, es ginge
-     im Saalnetz unverschluesselt ueber HTTP. -->
-<div id=onlinereihe hidden>
-  <button class=klein id=onlineknopf onclick=onlineUpdate()
-          data-t=on_jetzt>Jetzt aus dem Netz aktualisieren</button>
-  <p class=hin data-t=on_hin>Holt die neueste geprüfte Fassung. Der
-  Rechner verbindet sich dafür mit dem eingetragenen Wartungs-WLAN;
-  steht keines zur Verfügung, wird die Verbindung benutzt, die gerade
-  besteht — zum Beispiel ein Handy-Hotspot. Der Dienst startet dabei
-  neu. Während einer laufenden Übersetzung geht es nicht.</p>
-  <p class=hin id=onlinestand hidden></p>
-</div>
-<p class=hin><label><input type=checkbox id=protokollschalter
-  onchange=protokollSetzen()> <span data-t=protokoll_an>Mitschrift im
-  Protokoll (nur zur Fehlersuche)</span></label></p>
-<p class="hin" id=protokollhin data-t=protokoll_hin>Aus. Der gesprochene
-Satz steht dann nicht im Protokoll -- nur seine Länge.</p>
-<p class=warnzeile id=kontowarnung hidden>
-  <span id=kontowarnungtext></span></p>
-<p class=hin><label><span data-t=gemeinde_name>Name der Gemeinde</span><br>
-  <input type=text id=gemeindefeld maxlength=60 size=32
-         onchange=gemeindeSetzen()></label></p>
-<p class="hin" data-t=gemeinde_hin>Erscheint auf der QR-Seite als
-„Devarenu · &lt;Name&gt;“. Leer lassen heißt: keine Anzeige.</p>
-<p class=hin><label><input type=checkbox id=meldeschalter
-  onchange=gemeindeSetzen()> <span data-t=melden_an>Nutzung an den
-  Entwickler melden</span></label></p>
-<p class="hin" data-t=melden_hin>Gesendet werden <b>Name der Gemeinde,
-Fassung und Datum</b> — sonst nichts. Kein Predigttext, keine
-Zuschriften, keine Adressen. Der Versand läuft im Wartungsfenster über
-denselben Kanal wie die übrigen Meldungen und lässt sich jederzeit
-wieder abschalten.</p>
-<p class=hin id=pruefprotokollreihe hidden><label><input type=checkbox
-  id=pruefprotokollschalter onchange=pruefprotokollSetzen()>
-  <span data-t=pp_an>Testprotokoll schreiben (nur am Gemeinde-PC)</span></label></p>
-<p class="hin" id=pruefprotokollhin data-t=pp_hin hidden>Schreibt je
-Abschnitt den erkannten Satz, jede Übersetzung und die Dauer jedes
-Schrittes in eine Datei. Nur zur Fehlersuche. Es hört von selbst auf,
-wenn der Dienst neu startet, und wird nach sieben Tagen gelöscht.</p>
-<p class=laeuftauf id=pruefprotokolllaeuft hidden>
-  <span class=rotpunkt></span>
-  <b data-t=pp_laeuft>Testprotokoll läuft</b>
-  <span id=pruefprotokollzeilen></span></p>
-<h2 class=klapp id=wartungKopf onclick=wartungKlappen() hidden>
-  <span data-t=wartung>Wartung</span>
-  <span class=klapptext><span id=wartungZahl></span>
-  <span class="pfeil zu" id=wartungPfeil>▾</span></span></h2>
-<div id=wartungFeld hidden>
-<p class=hin data-t=wartung_hin>Diese Punkte halten den Gottesdienst nicht
-auf. Sie gehören der Technik und stehen deshalb nicht im Briefkasten.
-Vollständig mit: bash pruefen.sh</p>
-<ul id=wartungliste class=wartungliste></ul>
-</div>
-
-<h2 class=klapp id=tonquelleKopf onclick=tonquelleKlappen()>
-  <span data-t=tonquelle>Tonquelle</span>
-  <span class=klapptext><span id=tonquelleWort>Zuklappen</span>
-  <span class=pfeil id=tonquellePfeil>▾</span></span></h2>
-<div id=tonquelleFeld>
-<div class=tonreihe>
-  <div class=balken><div class=fuell id=tonfuell></div></div>
-</div>
-<div id=kanalliste></div>
-<div class=reihe>
-  <button class=klein id=bSprache onclick=spracheKnopf()
-          data-t=spr_pruefen>Sprache prüfen</button>
-</div>
-<p class=hin id=sprachstand></p>
-<p class=hin data-t=spr_hin>Was hier steht, ist gehört, nicht bewiesen. Auf
-Musik erfindet die Erkennung ganze Sätze. Im Zweifel den Text lesen: steht
-dort, was gesprochen wurde, ist es der richtige Kanal.</p>
-<p class=hin id=geraetstand></p>
-<p class=hin data-t=tonquelle_hin>Jede Zeile ist ein Kanal. Hineinsprechen und
-zusehen, welche ausschlägt — gemessen wird reihum, eine Zeile nach der
-anderen. „Sprache prüfen“ hört bei jedem Kanal mit Pegel zweimal kurz hin und
-zeigt, was es verstanden hat.</p>
-</div>
-
-<h2 data-t=sprachen>Sprachen</h2>
-<label for=quellwahl data-t=quelle>Gesprochene Sprache</label>
-<select id=quellwahl onchange=sprachenSetzen()></select>
-<label data-t=ziele>Übersetzt nach</label>
-<div id=zielwahl></div>
-<p class=hin data-t=sprachen_hin>Alle Sprachen liegen auf dem Rechner. Nur die
-ausgewählten laufen mit, das spart Rechenzeit. Sprachen ohne Stimme
-erscheinen als Untertitel.</p>
-
-<h2 data-t=wlan>WLAN für die Zuhörer</h2>
-<p class=hin data-t=netz_wlan_hinweis>Netzname und Passwort werden nur für den
-QR-Code gebraucht. Der Zugangspunkt kennt sie selbst.</p>
-<div class=reihe>
-  <input type=text id=ssid placeholder="Netzname" style="flex:1"
-         onchange=wlanSetzen()>
-  <input type=text id=wpw placeholder="Passwort" style="flex:1"
-         onchange=wlanSetzen()>
-</div>
-<p class=hin id=wlanstand></p>
-<p class=hin data-t=wlan_hin>Netzname und Passwort des Routers, an dem
-dieser Rechner hängt. Sie wandern in den ersten QR-Code, damit sich die
-Handys mit einem Scan verbinden, ohne dass jemand ein Passwort abtippt.
-Ohne Eintrag zeigt die QR-Seite nur den zweiten Code.</p>
-<p class=hin><a href="/qr" target="_blank" data-t=qr_oeffnen>QR-Seite für den
-Beamer öffnen</a></p>
-
-<h2 data-t=pw_ueber>Pult-Passwort (freiwillig)</h2>
-<p class=hin data-t=pw_hin>Ohne Eintrag bleibt alles wie bisher: jeder im
-Saal-WLAN kann dieses Pult bedienen. Mit Eintrag wird jedes Gerät im Saal
-einmal danach gefragt und merkt sich die Anmeldung. Die Zuhörerseite bleibt
-immer offen, und an diesem Rechner wird nie gefragt.</p>
-<p class=hin id=pwstand></p>
-<div class=reihe>
-  <input type=password id=pwfeld placeholder="Passwort" style="flex:1"
-    autocomplete="new-password">
-  <button class=klein onclick=pultPasswortSetzen()
-    data-t=pw_setzen>Übernehmen</button>
-</div>
-<p class=hin><button class="klein knopf-still" onclick=pultPasswortLoeschen()
-  data-t=pw_weg>Passwort entfernen</button></p>
-<p class=hin data-t=pw_vergessen>Vergessen? Am Rechner selbst:
-<code>python werkzeuge/pult_passwort.py --loeschen</code></p>
-
-</div>
-</div>
 <script>
 // Beschriftungen. Nur Deutsch und Englisch, beide von Hand gepflegt: eine
 // maschinell falsch uebersetzte Schaltflaeche ist aergerlicher als eine
 // englische, die alle verstehen.
 const TEXTE={
- de:{pult:"Pult",sprachen:"Sprachen",quelle:"Gesprochene Sprache",
+ de:{pult:"Pult",
+   // --- Reiter, Kopf, Zustand (0.4.1) ---
+   r_gottesdienst:"Gottesdienst", r_vorbereiten:"Vorbereiten",
+   r_aufnahmen:"Aufnahmen", r_einrichtung:"Einrichtung",
+   p_an:"Läuft", p_aus:"Angehalten", p_stoerung:"Störung",
+   fehler_melden:"Fehler melden", qr_titel:"QR",
+   zurueck:"Zurück", eintragen:"Eintragen", uebernehmen:"Übernehmen",
+   abbrechen:"Abbrechen",
+   pp_hin:"Schreibt je Abschnitt den erkannten Satz, jede Übersetzung und "
+     +"die Dauer jedes Schrittes in eine Datei. Nur zur Fehlersuche. Es "
+     +"hört von selbst auf, wenn der Dienst neu startet, und wird nach "
+     +"sieben Tagen gelöscht.",
+   herunterladen:"Herunterladen", post_lesen:"Lesen",
+   anzeigefehler:"Anzeigefehler:", achtung:"Achtung:",
+   // --- Kacheln ---
+   k_ton:"Ton", k_hoerer:"Zuhörer", k_thema:"Thema",
+   k_gut:"gut", k_knapp:"knapp", k_kein_ton:"kein Ton",
+   k_verzoegerung:"Verzögerung steigt",
+   k_fehlt:"fehlt", k_gesetzt:"gesetzt",
+   k_namen:"{n} Namen",
+   zuletzt:"Zuletzt erkannt",
+   hilfe_ton:"Pegel und Schwelle", hilfe_hoerer:"Je Sprache",
+   hilfe_thema:"Was erkannt wurde", hilfe_manuskript:"Was damit geschieht",
+   hilfe_tonquelle:"Wie man den Kanal findet",
+   hilfe_aufnahmen:"Was aufgenommen wird", hilfe_melden:"Was gesendet wird",
+   hilfe_pw:"Vergessen?", hilfe_online:"Was dabei geschieht",
+   hilfe_bericht:"Was im Bericht steht",
+   ton_erklaert:"Der Balken zeigt, was ankommt. Die Marke ist die "
+     +"Mindestlautstärke: was links davon bleibt, wird nicht übersetzt.",
+   kontext_erklaert:"Thema und Bibelstellen legen Whisper die Eigennamen "
+     +"des Kapitels vor. Das ist der Unterschied zwischen „Sanballat“ "
+     +"und „San Ballard“.",
+   // --- Schwelle: drei Modi ---
+   ton_feiner:"Feineinstellung", feineinstellung:"Feineinstellung",
+   feiner_hin:"Nur nötig bei Störgeräuschen im Raum.",
+   ton_einmessen:"Ton einmessen",
+   m_aus:"Aus", m_auto:"Automatisch", m_fest:"Fest",
+   s_aus:"Keine Mindestlautstärke.", s_auto:"Mindestlautstärke automatisch.",
+   s_fest:"Mindestlautstärke fest.", s_fest_seit:"Fest seit {z}.",
+   modus_hin:"„Aus“ heißt: keine Mindestlautstärke, geschnitten wird an "
+     +"Sprechpausen. „Automatisch“ folgt dem Raumpegel. „Fest“ hält den "
+     +"Wert, den das Einmessen ergeben hat.",
+   schwelle_wort:"Schwelle", verworfen:"verworfen",
+   knapp_darunter:"knapp darunter",
+   spricht:"spricht", still:"still",
+   eingemessen:"Eingemessen. Nochmal messen",
+   messe:"Messe … noch {n} s, jetzt sprechen lassen",
+   // --- Vorbereiten ---
+   kontext_label:"Worüber wird gepredigt?",
+   manuskript_waehlen:"Manuskript hochladen …",
+   manuskript_kurz:"Falls der Prediger eines hat.",
+   manuskript_hin:"Es wird nicht vorgelesen, sondern nur nach Namen und "
+     +"Bibelstellen durchsucht. Daraus entsteht der Prompt, mit dem "
+     +"Whisper die Eigennamen trifft. Der Text selbst verlässt diesen "
+     +"Rechner nicht.",
+   skript_liest:"wird gelesen …",
+   skript_gelesen:"{w} Wörter gelesen.",
+   skript_stellen:"Stellen:",
+   skript_namen:"{b} bekannte und {n} weitere Namen.",
+   skript_ging_nicht:"Hochladen fehlgeschlagen.",
+   erkannt_keine:"Keine Bibelstelle erkannt. Schreibweise wie "
+     +"„1. Samuel 15“ oder „Mt 18“.",
+   erkannt_vor:"Erkannt:",
+   erkannt_namen:"{n} von {g} Namen im Prompt:",
+   // --- Einrichtung ---
+   e_gemeinde:"Gemeinde", e_update:"Update", e_fehlersuche:"Fehlersuche",
+   pw_kurz_ueber:"Pult-Passwort",
+   tonquelle_wo:"Kanalwahl, Pegel und „Sprache prüfen“ stehen unter "
+     +"Vorbereiten → Feineinstellung.",
+   reset_frage:"Von vorn beginnen? Zähler, Verlauf sowie Thema und "
+     +"Bibelstellen werden zurückgesetzt. Die Zuhörer bleiben verbunden.",
+   sprachen:"Sprachen",quelle:"Gesprochene Sprache",
    tonquelle:"Tonquelle",
    tonquelle_hin:"Jede Zeile ist ein Kanal. Hineinsprechen und zusehen, "
      +"welche ausschlägt — gemessen wird reihum, eine Zeile nach der "
@@ -6784,7 +7088,73 @@ const TEXTE={
    experimentell:"experimentell, mehr dazu in der Nachricht",
    post_hin:"Antworten ist nicht vorgesehen. Wer etwas meldet, weiß das "
      +"und erwartet keine Rückmeldung."},
- en:{pult:"Control desk",sprachen:"Languages",quelle:"Spoken language",
+ en:{pult:"Control desk",
+   r_gottesdienst:"Service", r_vorbereiten:"Prepare",
+   r_aufnahmen:"Recordings", r_einrichtung:"Setup",
+   p_an:"Running", p_aus:"Paused", p_stoerung:"Fault",
+   fehler_melden:"Report a fault", qr_titel:"QR",
+   zurueck:"Back", eintragen:"Enter", uebernehmen:"Apply",
+   abbrechen:"Cancel",
+   pp_hin:"Writes the recognised sentence, every translation and the "
+     +"duration of each step to a file, one line per section. For "
+     +"diagnostics only. It stops by itself when the service restarts "
+     +"and is deleted after seven days.",
+   herunterladen:"Download", post_lesen:"Read",
+   anzeigefehler:"Display error:", achtung:"Attention:",
+   k_ton:"Audio", k_hoerer:"Listeners", k_thema:"Topic",
+   k_gut:"good", k_knapp:"tight", k_kein_ton:"no audio",
+   k_verzoegerung:"delay rising",
+   k_fehlt:"missing", k_gesetzt:"set",
+   k_namen:"{n} names",
+   zuletzt:"Last recognised",
+   hilfe_ton:"Level and threshold", hilfe_hoerer:"Per language",
+   hilfe_thema:"What was recognised", hilfe_manuskript:"What happens to it",
+   hilfe_tonquelle:"How to find the channel",
+   hilfe_aufnahmen:"What gets recorded", hilfe_melden:"What is sent",
+   hilfe_pw:"Forgotten?", hilfe_online:"What happens",
+   hilfe_bericht:"What the report contains",
+   ton_erklaert:"The bar shows what arrives. The mark is the minimum "
+     +"volume: anything below it is not translated.",
+   kontext_erklaert:"Topic and Bible references hand Whisper the proper "
+     +"names of the chapter. That is the difference between "
+     +"\u201cSanballat\u201d and \u201cSan Ballard\u201d.",
+   ton_feiner:"Fine tuning", feineinstellung:"Fine tuning",
+   feiner_hin:"Only needed when the room is noisy.",
+   ton_einmessen:"Calibrate audio",
+   m_aus:"Off", m_auto:"Automatic", m_fest:"Fixed",
+   s_aus:"No minimum volume.", s_auto:"Minimum volume automatic.",
+   s_fest:"Minimum volume fixed.", s_fest_seit:"Fixed since {z}.",
+   modus_hin:"\u201cOff\u201d means no minimum volume; cuts happen at "
+     +"pauses. \u201cAutomatic\u201d follows the room level. "
+     +"\u201cFixed\u201d keeps the calibrated value.",
+   schwelle_wort:"Threshold", verworfen:"discarded",
+   knapp_darunter:"just below",
+   spricht:"speaking", still:"silent",
+   eingemessen:"Calibrated. Measure again",
+   messe:"Measuring … {n} s left, let them speak now",
+   kontext_label:"What is the sermon about?",
+   manuskript_waehlen:"Upload manuscript …",
+   manuskript_kurz:"If the preacher has one.",
+   manuskript_hin:"It is not read aloud, only searched for names and "
+     +"Bible references. That is what builds the prompt Whisper uses to "
+     +"get proper names right. The text itself never leaves this "
+     +"computer.",
+   skript_liest:"reading …",
+   skript_gelesen:"{w} words read.",
+   skript_stellen:"References:",
+   skript_namen:"{b} known and {n} further names.",
+   skript_ging_nicht:"Upload failed.",
+   erkannt_keine:"No Bible reference recognised. Write it like "
+     +"\u201c1 Samuel 15\u201d or \u201cMatt 18\u201d.",
+   erkannt_vor:"Recognised:",
+   erkannt_namen:"{n} of {g} names in the prompt:",
+   e_gemeinde:"Congregation", e_update:"Update", e_fehlersuche:"Diagnostics",
+   pw_kurz_ueber:"Desk password",
+   tonquelle_wo:"Channel, level and \u201ccheck language\u201d live under "
+     +"Prepare \u2192 Fine tuning.",
+   reset_frage:"Start over? Counters, history, topic and Bible references "
+     +"are reset. Listeners stay connected.",
+   sprachen:"Languages",quelle:"Spoken language",
    tonquelle:"Audio source",
    tonquelle_hin:"Each row is one channel. Speak and watch which one "
      +"moves — they are measured in turn, one row after another. Devices "
@@ -7016,26 +7386,157 @@ const TEXTE={
 let UI=localStorage.getItem("uiSprache")||"de";
 let NAMEN={};
 
+// ---------------------------------------------------------- Reiter
+// Vier Reiter, eine Unteransicht (Briefkasten oder Fehler melden) kann
+// sich davorlegen. Der gewaehlte Reiter steht im Anker der Adresse:
+// wer das Pult auf dem Handy neu laedt -- und das passiert, sobald das
+// WLAN kurz weg war -- landet dort, wo er war.
+const REITER = ["gottesdienst", "vorbereiten", "aufnahmen", "einrichtung"];
+const REITERKNOPF = {gottesdienst:"rGottesdienst", vorbereiten:"rVorbereiten",
+                     aufnahmen:"rAufnahmen", einrichtung:"rEinrichtung"};
+let reiterJetzt = "gottesdienst";
+let unteransicht = null;          // "post" | "fehler" | null
+
+function ansichtZeichnen(){
+  for(const n of REITER){
+    const abschnitt = document.getElementById(n);
+    const knopf = document.getElementById(REITERKNOPF[n]);
+    const an = (n === reiterJetzt);
+    abschnitt.hidden = !an || unteransicht !== null;
+    knopf.setAttribute("aria-selected", String(an));
+    // Nur der gewaehlte Reiter haengt in der Tabulatorfolge. Die
+    // uebrigen erreicht man mit den Pfeiltasten, so wie es sich fuer
+    // eine Reiterleiste gehoert.
+    knopf.tabIndex = an ? 0 : -1;
+  }
+  post.hidden = unteransicht !== "post";
+  fehler.hidden = unteransicht !== "fehler";
+}
+
+function reiterWaehlen(name, ziel){
+  if(!REITER.includes(name)) name = "gottesdienst";
+  reiterJetzt = name;
+  unteransicht = null;
+  // replaceState und nicht location.hash: ein Eintrag je Reiterwechsel
+  // fuellt die Zurueck-Taste mit Dingen, die niemand zurueckwill.
+  try{ history.replaceState(null, "", "#" + name); }catch(e){}
+  ansichtZeichnen();
+  // Was hinter dem Reiter liegt, wird erst beim Hinsehen geholt. Wer
+  // waehrend des Betriebs ein Mikrofon einsteckt, soll es finden, ohne
+  // die Seite neu zu laden.
+  if(name === "einrichtung"){ sprachenLaden(); wlanLaden(); updateLaden(); }
+  if(name === "aufnahmen") aufnahmenLaden();
+  // Der Tonscan macht fremde Geraete auf. Er laeuft nur, solange die
+  // Feineinstellung offen ist UND dieser Reiter vorne steht.
+  scanSchalten(name === "vorbereiten" && feineinstellung.open);
+  if(ziel === "kontext"){
+    kontext.focus();
+    kontext.scrollIntoView({behavior:"smooth", block:"center"});
+  }
+  if(ziel === "feineinstellung"){
+    feineinstellung.open = true;
+    scanSchalten(true);
+    feineinstellung.scrollIntoView({behavior:"smooth", block:"start"});
+  }
+  if(name !== "einrichtung") unterseiteJetzt = unterseiteJetzt;
+  uiZeichnen();
+}
+
+// Pfeiltasten in der Reiterleiste, wie bei einer Reiterleiste ueblich.
+document.querySelector(".reiter").addEventListener("keydown", e=>{
+  const i = REITER.indexOf(reiterJetzt);
+  let j = null;
+  if(e.key === "ArrowRight") j = (i + 1) % REITER.length;
+  if(e.key === "ArrowLeft")  j = (i - 1 + REITER.length) % REITER.length;
+  if(e.key === "Home") j = 0;
+  if(e.key === "End")  j = REITER.length - 1;
+  if(j === null) return;
+  e.preventDefault();
+  reiterWaehlen(REITER[j]);
+  document.getElementById(REITERKNOPF[REITER[j]]).focus();
+});
+
+// Solange ein Textfeld den Fokus hat, verdeckt die feste Leiste es
+// nicht: die Tastatur schiebt das Feld nach oben, die Leiste bleibt am
+// Rand des Fensters stehen und legt sich darueber.
+const TIPPFELDER = "input[type=text],input[type=password],input[type=number],"
+                 + "input[type=search],textarea";
+document.addEventListener("focusin", e=>{
+  if(e.target.matches && e.target.matches(TIPPFELDER))
+    document.body.classList.add("tippt");
+});
+document.addEventListener("focusout", e=>{
+  if(e.target.matches && e.target.matches(TIPPFELDER))
+    document.body.classList.remove("tippt");
+});
+
+// ------------------------------------------- Unterseiten der Einrichtung
+const UNTERSEITEN = [
+  {id:"eGemeinde",    t:"e_gemeinde"},
+  {id:"eSprachen",    t:"sprachen"},
+  {id:"eTonquelle",   t:"tonquelle"},
+  {id:"eWlan",        t:"wlan"},
+  {id:"ePasswort",    t:"pw_kurz_ueber"},
+  {id:"trenner"},
+  {id:"eUpdate",      t:"e_update"},
+  {id:"eFehlersuche", t:"e_fehlersuche"},
+];
+// Am Laptop steht links die Liste und rechts die Seite, beide immer.
+// Am Handy ist erst die Liste da und dann die Seite -- nebeneinander
+// bleibt auf 390 Pixeln von beidem zu wenig uebrig.
+const SCHMAL = () => window.matchMedia("(max-width:700px)").matches;
+let unterseiteJetzt = null;
+
+function unterseitenZeichnen(){
+  const t = TEXTE[UI];
+  const nav = document.getElementById("seitennav");
+  nav.innerHTML = UNTERSEITEN.map(u => u.id === "trenner"
+    ? '<span class=trenner></span>'
+    : `<button onclick="unterseiteWaehlen('${u.id}')"`
+      + (u.id === unterseiteJetzt ? ' aria-current=page' : '')
+      + `><span>${t[u.t] || u.t}</span><span class=pfeil>›</span></button>`
+  ).join("");
+  const schmal = SCHMAL();
+  for(const u of UNTERSEITEN){
+    if(u.id === "trenner") continue;
+    document.getElementById(u.id).hidden = u.id !== unterseiteJetzt;
+  }
+  nav.hidden = schmal && unterseiteJetzt !== null;
+  document.getElementById("einrichtungseite").hidden =
+    schmal && unterseiteJetzt === null;
+}
+
+function unterseiteWaehlen(id){
+  unterseiteJetzt = id;
+  unterseitenZeichnen();
+  if(id === "eSprachen") sprachenLaden();
+  if(id === "eWlan") wlanLaden();
+  if(id === "eUpdate") updateLaden();
+}
+function unterseiteZu(){
+  unterseiteJetzt = SCHMAL() ? null : unterseiteJetzt;
+  unterseitenZeichnen();
+}
+// Dreht jemand das Handy quer oder zieht das Fenster breit, aendert
+// sich damit die Antwort auf die Frage, ob Liste und Seite nebeneinander
+// passen.
+window.matchMedia("(max-width:700px)").addEventListener("change", ()=>{
+  if(!SCHMAL() && unterseiteJetzt === null) unterseiteJetzt = "eGemeinde";
+  unterseitenZeichnen();
+});
+
 function uiZeichnen(){
   const t=TEXTE[UI];
   document.querySelectorAll("[data-t]").forEach(e=>{
     const k=e.dataset.t; if(t[k]) e.textContent=t[k];
   });
-  // Die Ueberschrift richtet sich nach der Ansicht, nicht nach data-t.
-  document.querySelector("h1").textContent =
-    !einrichtung.hidden ? t.einrichtung
-    : (!post.hidden ? t.post_ueber : t.pult);
   // Ein Knopf statt zweier: er zeigt immer, was als naechstes passiert,
   // wenn man ihn drueckt. Zwei Knoepfe, von denen einer wirkungslos ist,
   // zwingen zum Nachdenken darueber, in welchem Zustand man gerade ist.
   bStart.textContent = zustandLive ? t.pause : t.start;
-  bStart.className = zustandLive ? "pause" : "start";
   // Erklaert, was Anhalten bewirkt. Solange nichts laeuft, erklaert er
   // etwas, das gerade niemanden beschaeftigt.
   anhaltenHin.hidden = !zustandLive;
-  vorbereitungWort.textContent = vorbereitung.hidden ? t.ausklappen : t.zuklappen;
-  document.querySelector(".reset").textContent=t.reset;
-  bFest.textContent=t.fest; bAuto.textContent=t.auto;
   if(!messlauf) bEinmessen.textContent=t.einmessen;
   // Der Schalter heisst immer gleich -- gedrueckt oder nicht sagt die
   // Farbe und aria-pressed, nicht der Text. Ein Knopf, dessen
@@ -7043,6 +7544,7 @@ function uiZeichnen(){
   // Zustand nennt oder die Handlung.
   bSchnitt.textContent=t.aufnahme;
   sprachknopf.textContent=UI==="de"?"EN":"DE";
+  unterseitenZeichnen();
   document.documentElement.lang=UI;
 }
 async function postLeeren(){
@@ -7061,53 +7563,25 @@ function warnungZeigen(text, schwer){
   // zwei Stellen Klassen, und eine davon schaltete ihn versehentlich ein.
   warnung.textContent = text || "";
   warnung.hidden = !text;
-  warnung.classList.toggle("schwer", !!schwer);
-}
-
-function vorbereitungKlappen(){
-  const zu = vorbereitung.hidden = !vorbereitung.hidden;
-  vorbereitungPfeil.classList.toggle("zu", zu);
-  vorbereitungWort.textContent = zu ? TEXTE[UI].ausklappen : TEXTE[UI].zuklappen;
-  try{ localStorage.setItem("vorbereitungZu", zu ? "1" : ""); }catch(e){}
+  // Rot heisst: der Ton geht gerade verloren. Gelb heisst: er koennte.
+  warnung.classList.toggle("rot", !!schwer);
+  warnung.classList.toggle("gelb", !schwer);
 }
 
 function postZeigen(){
-  // Wie die Einrichtung eine eigene Ansicht: Meldungen wollen gelesen
-  // werden, nicht zwischen Reglern stehen.
-  const zeigen = post.hidden;
+  // Die Meldungen aus dem Saal legen sich vor den Reiter, statt einen
+  // eigenen zu bekommen: sie kommen selten, und wer sie gelesen hat,
+  // will zurueck dorthin, wo er war.
+  const zeigen = unteransicht !== "post";
   // Beim Oeffnen gilt der Systemhinweis als gelesen. Danach bleibt an
   // der Sprache nur noch die kleine Zeile -- dieselbe Sprache fragt
   // nicht wieder nach.
-  if(zeigen) fetch("/api/nachrichten/gelesen",{method:"POST"});
-  post.hidden = !zeigen;
-  betrieb.hidden = zeigen;
-  einrichtung.hidden = true;
-  fehler.hidden = true;
-  zahnrad.classList.remove("an");
-  document.querySelector("h1").textContent =
-    zeigen ? TEXTE[UI].post_ueber : TEXTE[UI].pult;
-}
-
-function einrichtungZeigen(){
-  // Zwei Ansichten statt eines aufklappenden Bereichs: was einmal je
-  // Gemeinde eingestellt wird, soll am Sabbat gar nicht erst zwischen den
-  // woechentlichen Handgriffen stehen. Nebeneinander wird beides
-  // unuebersichtlich.
-  const zeigen = einrichtung.hidden;
-  einrichtung.hidden = !zeigen;
-  post.hidden = true;
-  fehler.hidden = true;
-  betrieb.hidden = zeigen;
-  zahnrad.classList.toggle("an", zeigen);
-  document.querySelector("h1").textContent =
-    zeigen ? TEXTE[UI].einrichtung : TEXTE[UI].pult;
-  // Auch die Geraete: wer waehrend des Betriebs ein Mikrofon einsteckt,
-  // soll es finden, ohne die Seite neu zu laden.
-  if(zeigen){ sprachenLaden(); wlanLaden(); updateLaden(); }
-  // Der Scan macht fremde Geraete auf. Er laeuft nur, solange die
-  // Einrichtung offen ist UND der Abschnitt aufgeklappt -- wer zurueck
-  // aufs Pult geht, hat ihn damit aus.
-  scanSchalten(zeigen && !tonquelleFeld.hidden);
+  if(zeigen){
+    fetch("/api/nachrichten/gelesen",{method:"POST"});
+    reiterJetzt = "gottesdienst";
+  }
+  unteransicht = zeigen ? "post" : null;
+  ansichtZeichnen();
 }
 
 function uiSprache(){
@@ -7157,14 +7631,14 @@ async function sprachenLaden(){
   const offen    = wahl.filter(x=>!x.geprueft && x.glossar);
   const ohne     = wahl.filter(x=>!x.geprueft && !x.glossar);
   zielwahl.innerHTML =
-    `<div class=zielliste>${geprueft.map(kachel).join("")}</div>`
+    `<div class=chips>${geprueft.map(kachel).join("")}</div>`
     + (offen.length
        ? `<p class="hin untertitel">${t.glossar_offen_ueber}</p>`
-         + `<div class="zielliste ungeprueft">${offen.map(kachel).join("")}</div>`
+         + `<div class="chips ungeprueft">${offen.map(kachel).join("")}</div>`
        : "")
     + (ohne.length
        ? `<p class="hin untertitel">${t.kein_glossar_ueber}</p>`
-         + `<div class="zielliste ungeprueft ohneglossar">${ohne.map(kachel).join("")}</div>`
+         + `<div class="chips ungeprueft ohneglossar">${ohne.map(kachel).join("")}</div>`
        : "")
     // Die Erklaerung nur, wenn es tatsaechlich eine Sprache ohne Stimme
     // gibt. Ein Hinweis, der immer dasteht, wird nicht mehr gelesen.
@@ -7182,6 +7656,12 @@ const zuWert=pz=>Math.pow(10,((pz/100)*-MIN_DB+MIN_DB)/20);
 
 let handBetrieb=false;
 async function s(w){await fetch("/api/steuerung/"+w,{method:"POST"});lies()}
+// Von vorn wirft Zaehler, Verlauf und Kontext weg. Bis 0.4.0 geschah
+// das ohne Rueckfrage, und der Knopf stand unter dem Startknopf.
+function vonVorn(){
+  if(!confirm(TEXTE[UI].reset_frage)) return;
+  s("reset");
+}
 async function umschalten(){
   // Zustand sofort umlegen, nicht erst beim naechsten Abruf: sonst bleibt
   // die Beschriftung bis zu zwei Sekunden lang falsch stehen.
@@ -7198,28 +7678,47 @@ async function k(){
 }
 function zeigeErkannt(d){
   if(!d) return;
+  const t=TEXTE[UI];
   if(!d.stellen||!d.stellen.length){
-    erkannt.textContent=kontext.value.trim()
-      ? "Keine Bibelstelle erkannt. Schreibweise wie „1. Samuel 15“ oder „Mt 18“."
-      : "";
+    erkannt.textContent=kontext.value.trim() ? t.erkannt_keine : "";
+    erkannt.classList.remove("gut");
     return;
   }
-  erkannt.innerHTML="Erkannt: <b>"+d.stellen.join(", ")+"</b><br>"
-    +d.namen.length+" von "+d.gefunden+" Namen im Prompt: "+d.namen.join(", ");
+  erkannt.innerHTML=t.erkannt_vor+" <b>"+d.stellen.join(", ")+"</b><br>"
+    +t.erkannt_namen.split("{n}").join(d.namen.length)
+                    .split("{g}").join(d.gefunden)
+    +" "+d.namen.join(", ");
+  erkannt.classList.add("gut");
 }
-function schieben(){handBetrieb=true;marke.style.left=regler.value+"%";
-  schwellwert.textContent="Schwelle "+regler.value+" %"}
-async function festnageln(){
-  await fetch("/api/schwelle",{method:"POST",
+function schieben(){
+  handBetrieb=true;
+  marke.style.insetInlineStart=regler.value+"%";
+  marke2.style.insetInlineStart=regler.value+"%";
+  schwellwert.textContent=TEXTE[UI].schwelle_wort+" "+regler.value+" %";
+  feinwert.textContent=schwellwert.textContent;
+}
+// Drei Modi, drei Knoepfe. Bis 0.4.0 waren es zwei, und "keine
+// Schwelle" liess sich nur ausdruecken, indem man den Regler auf null
+// zog -- was der Server als kleinste feste Schwelle speicherte und beim
+// naechsten Einmessen verwarf.
+let schwellenModus = "aus";
+async function schwelleModus(modus){
+  const koerper = (modus === "fest")
+    ? {modus:"fest", wert:zuWert(+regler.value)} : {modus:modus};
+  const a = await fetch("/api/schwelle",{method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({wert:zuWert(+regler.value)})});
+    body:JSON.stringify(koerper)});
+  const d = await a.json().catch(()=>({}));
+  if(d.modus) schwellenModus = d.modus;
+  modusZeigen();
   handBetrieb=false;
 }
-async function automatisch(){
-  await fetch("/api/schwelle",{method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({automatisch:true})});
-  handBetrieb=false;
+function modusZeigen(){
+  for(const [knopf, m] of [[bAus,"aus"], [bAuto,"automatisch"],
+                           [bFest,"fest"]]){
+    knopf.classList.toggle("an", schwellenModus === m);
+    knopf.setAttribute("aria-pressed", String(schwellenModus === m));
+  }
 }
 let schnittLaeuft=false;
 /* ---------- Aufnahme ----------
@@ -7294,23 +7793,34 @@ async function aufnahmenLaden(){
   const t = TEXTE[UI];
   if(a.status === 403){
     aufnahmeliste.textContent = t.aufnahme_nur_pc;
+    zahlAufnahmen.hidden = true;
     return;
   }
   const d = await a.json().catch(()=>({liste:[]}));
   if(d.tage !== undefined) aufnahmetage.value = d.tage;
-  if(!d.liste.length){ aufnahmeliste.textContent = t.aufnahme_keine; return; }
+  if(!d.liste.length){
+    aufnahmeliste.textContent = t.aufnahme_keine;
+    zahlAufnahmen.hidden = true;
+    return;
+  }
   // Der Loeschknopf nur, wo die Aufnahme nicht gerade laeuft. Ein
   // Knopf, der "geht nicht" sagt, waere schlechter als keiner -- und
   // die laufende Aufnahme hat ohnehin ihre eigene Zeile oben.
   aufnahmeliste.innerHTML = d.liste.map(a =>
-    '<div><a href="/mitschnitt/' + encodeURIComponent(a.name) + '">'
-    + a.name + "</a> · " + a.mb + " MB · "
-    + t.aufnahme_faellig.split("{d}").join(a.faellig)
+    '<div class=zeile><span class=was>' + a.name + '<br><small>' + a.mb
+    + " MB · " + t.aufnahme_faellig.split("{d}").join(a.faellig)
+    + '</small></span>'
+    + '<a class="btn klein" href="/mitschnitt/' + encodeURIComponent(a.name)
+    + '" download>' + t.herunterladen + '</a>'
     + (a.laeuft ? ""
-       : ' <button class=klein onclick="aufnahmeLoeschen(this.dataset.n)"'
+       : ' <button class="btn klein gefahr"'
+         + ' onclick="aufnahmeLoeschen(this.dataset.n)"'
          + ' data-n="' + a.name.replace(/"/g, "&quot;") + '">'
          + t.loeschen + "</button>")
     + "</div>").join("");
+  // Die Zahl am Reiter: wie viele Aufnahmen liegen hier.
+  zahlAufnahmen.hidden = !d.liste.length;
+  zahlAufnahmen.textContent = d.liste.length;
 }
 
 async function aufnahmeLoeschen(name){
@@ -7383,8 +7893,8 @@ async function messungBeenden(){
   const d=await a.json();
   messlauf=false;
   bEinmessen.textContent=d.erfolg
-    ? "Eingemessen. Nochmal messen"
-    : "Einmessen: Prediger sprechen lassen";
+    ? TEXTE[UI].eingemessen : TEXTE[UI].einmessen;
+  if(d.erfolg){ schwellenModus="fest"; modusZeigen(); }
   // Frueher stand hier className="warnung warnung", und genau das ist die
   // Regel fuer die gelbe Warnstufe: der Balken ging bei jedem Einmessen an
   // und blieb leer stehen.
@@ -7459,13 +7969,12 @@ function wartungAnzeigen(liste){
   }
 }
 
-function tonquelleKlappen(){
-  const zu = tonquelleFeld.hidden = !tonquelleFeld.hidden;
-  tonquellePfeil.classList.toggle("zu", zu);
-  tonquelleWort.textContent = zu ? TEXTE[UI].ausklappen : TEXTE[UI].zuklappen;
-  try{ localStorage.setItem("tonquelleZu", zu ? "1" : ""); }catch(e){}
-  scanSchalten(!zu);
-}
+// Der Tonscan haengt am Auf- und Zuklappen der Feineinstellung: er
+// macht fremde Geraete auf, und das darf nur laufen, solange jemand
+// hinsieht.
+feineinstellung.addEventListener("toggle", ()=>{
+  scanSchalten(feineinstellung.open && reiterJetzt === "vorbereiten");
+});
 
 async function kanaeleLaden(){
   try{
@@ -7526,7 +8035,7 @@ function kanalListeZeichnen(d){
       +`<span class=kname>${entschaerfen(z.name)}`
       +`${z.empfohlen?"":" !"}</span>`
       +`<span class=kkanal>${entschaerfen(z.kanalname)}</span>`
-      +`<span class=balken><span class="${farbe}" `
+      +`<span class=mini><span class="${farbe}" `
       +`style="display:block;height:100%;width:${pz}%"></span></span>`
       +`<span class=kwort>${wort}</span>`
       +(z.sprache ? `<span class=kurteil>${sprachSatz(z.sprache)}</span>` : "")
@@ -7703,14 +8212,9 @@ async function updateLaden(){
 async function fehlerZeigen(){
   // Wie der Briefkasten eine eigene Ansicht, kein aufspringendes
   // Fenster: am Pult darf im Gottesdienst nichts aufpoppen.
-  const zeigen = fehler.hidden;
-  fehler.hidden = !zeigen;
-  betrieb.hidden = zeigen;
-  einrichtung.hidden = true;
-  post.hidden = true;
-  zahnrad.classList.remove("an");
-  document.querySelector("h1").textContent =
-    zeigen ? TEXTE[UI].fehler_ueber : TEXTE[UI].pult;
+  const zeigen = unteransicht !== "fehler";
+  unteransicht = zeigen ? "fehler" : null;
+  ansichtZeichnen();
   if(!zeigen) return;
   // Erst beim Oeffnen: die QR-Bilder entstehen im Server neu, und beim
   // Betreuer steht die Adresse aus betreuer.txt.
@@ -7758,7 +8262,9 @@ async function pultPasswortLoeschen(){
 function pultPasswortAnzeigen(gesetzt){
   const t = TEXTE[UI];
   pwstand.textContent = gesetzt ? t.pw_an : t.pw_aus;
-  pwstand.classList.toggle("warnung", false);
+  // Ein Knopf, der nichts zu entfernen hat, stellt eine Frage, die
+  // sich nicht stellt.
+  bPwWeg.hidden = !gesetzt;
 }
 
 async function protokollSetzen(){
@@ -7837,14 +8343,10 @@ function spracheUmstellen(){
   // Die Sprachwahl steht ohnehin schon in der Einrichtung. Dorthin
   // fuehren, statt eine zweite Stelle zu bauen, an der dasselbe
   // eingestellt wird.
-  const ziel = document.getElementById("quellwahl");
-  if(!ziel) return;
-  // Die Einrichtung kann eingeklappt sein -- dann nuetzt ein
-  // Scrollen zu einem unsichtbaren Feld nichts.
-  const kopf = document.getElementById("vorbereitungKopf");
-  if(kopf && ziel.offsetParent === null) kopf.click();
-  ziel.scrollIntoView({behavior:"smooth", block:"center"});
-  ziel.focus();
+  reiterWaehlen("einrichtung");
+  unterseiteWaehlen("eSprachen");
+  quellwahl.scrollIntoView({behavior:"smooth", block:"center"});
+  quellwahl.focus();
 }
 
 function protokollAnzeigen(an){
@@ -7875,18 +8377,20 @@ async function updateJetzt(){
 
 async function hochladen(){
   const f=datei.files[0]; if(!f) return;
-  skriptinfo.textContent="wird gelesen …";
+  const t=TEXTE[UI];
+  skriptinfo.textContent=t.skript_liest;
   const daten=new FormData(); daten.append("datei",f);
   try{
     const a=await fetch("/api/skript",{method:"POST",body:daten});
     const d=await a.json();
-    if(d.fehler){skriptinfo.textContent=TEXTE[UI].skript_leer;return}
-    skriptinfo.innerHTML=d.woerter+" Wörter gelesen. "
-      +(d.stellen.length?"Stellen: <b>"+d.stellen.join(", ")+"</b>. ":"")
-      +d.bekannt+" bekannte und "+d.neu+" weitere Namen.<br>"
-      +d.namen.join(", ");
+    if(d.fehler){skriptinfo.textContent=t.skript_leer;return}
+    skriptinfo.innerHTML=t.skript_gelesen.split("{w}").join(d.woerter)+" "
+      +(d.stellen.length
+        ? t.skript_stellen+" <b>"+d.stellen.join(", ")+"</b>. " : "")
+      +t.skript_namen.split("{b}").join(d.bekannt).split("{n}").join(d.neu)
+      +"<br>"+d.namen.join(", ");
     lies();
-  }catch(e){skriptinfo.textContent="Hochladen fehlgeschlagen."}
+  }catch(e){skriptinfo.textContent=t.skript_ging_nicht}
 }
 
 async function pegel(){
@@ -7894,6 +8398,7 @@ async function pegel(){
     const d=await(await fetch("/api/pegel")).json();
     const pz=zuProzent(d.jetzt), sz=zuProzent(d.schwelle);
     fuell.style.width=pz+"%";
+    const t=TEXTE[UI];
     // Dieselbe Grenze wie bei der Warnung: hoerbar heisst deutlich ueber
     // dem Raumgeraeusch, nicht bloss ueber null.
     const hoerbar = d.jetzt > Math.max(d.grund*2.5, 0.0015);
@@ -7906,25 +8411,31 @@ async function pegel(){
     // Dieselbe Schwelle fuer die Kanalzeilen: sonst faerbte dasselbe
     // Signal oben blau und unten rot.
     pegelSchwelle=d.schwelle;
-    if(!handBetrieb){marke.style.left=sz+"%";regler.value=Math.round(sz)}
-    pegelwert.textContent=(d.spricht?"spricht":"still")+" · "+Math.round(pz)+" %";
+    if(!handBetrieb){
+      marke.style.insetInlineStart=sz+"%";
+      marke2.style.insetInlineStart=sz+"%";
+      regler.value=Math.round(sz);
+    }
+    pegelwert.textContent=(d.spricht?t.spricht:t.still)+" · "+Math.round(pz)+" %";
     // "knapp darunter" ist der Fall, den man am Regler sofort beheben
     // kann: es wird gesprochen, nur zu leise fuer die Schwelle.
-    schwellwert.textContent="Schwelle "+Math.round(sz)+" % · "
-      +(d.fest?"fest":"automatisch")
-      +(d.verworfen?" · "+d.verworfen+" verworfen":"")
-      +(d.knapp>30?" · knapp darunter":"");
-    bFest.className="klein"+(d.fest?"":" aus");
-    bAuto.className="klein"+(d.fest?" aus":"");
+    schwellwert.textContent=t.schwelle_wort+" "+Math.round(sz)+" % · "
+      +(t["m_"+({aus:"aus",automatisch:"auto",fest:"fest"}[d.modus]||"aus")])
+      +(d.verworfen?" · "+d.verworfen+" "+t.verworfen:"")
+      +(d.knapp>30?" · "+t.knapp_darunter:"");
+    feinwert.textContent=pegelwert.textContent+" · "+schwellwert.textContent;
+    if(d.modus && d.modus!==schwellenModus){ schwellenModus=d.modus; }
+    modusZeigen();
+    // Was die Ton-Kachel oben sagt, haengt an denselben Zahlen.
+    tonKachel(d);
     // Nur zeigen, wenn es auch etwas zu sagen gibt: ein leerer gelber
     // Balken sieht nach Warnung aus und stumpft ab.
     warnungZeigen(d.lage_text && (d.lage==="alarm"||d.lage==="warnung")
-      ? (d.lage==="alarm" ? "Achtung: " : "") + d.lage_text : "",
+      ? (d.lage==="alarm" ? t.achtung+" " : "") + d.lage_text : "",
       d.lage==="alarm");
     if(d.einmessen&&d.einmessen.laeuft){
       messlauf=true;
-      bEinmessen.textContent="Messe … noch "+d.einmessen.rest+" s, "
-        +"jetzt sprechen lassen";
+      bEinmessen.textContent=t.messe.split("{n}").join(d.einmessen.rest);
     }else if(messlauf){
       messungBeenden();
     }
@@ -7936,6 +8447,71 @@ async function pegel(){
     console.error("Pegel:", e);
   }
 }
+// ---------------------------------------------------------- Kacheln
+// Jede Kachel sagt in EINEM Wort, wie es steht, und faerbt ihren Rand
+// danach. Die Zahlen dahinter stehen eine Ebene tiefer, hinter dem
+// Fragezeichen: im Gottesdienst zaehlt gut/knapp/kein Ton, nicht 42 %.
+function kachelSetzen(kachel, stufe, wort){
+  kachel.classList.remove("ok", "warn", "schlecht");
+  if(stufe) kachel.classList.add(stufe);
+  kachel.querySelector(".zustand").textContent = wort || "";
+}
+
+// Steigt die Verzoegerung ueber mehrere Abschnitte, staut sich etwas
+// auf. Die Regel ist nicht erfunden, sondern die aus auswertung.py:
+// Median des letzten Drittels gegen den des ersten, und "waechst" ab
+// einer Sekunde Unterschied. Angewandt auf die acht Abschnitte, die der
+// Server ohnehin schickt -- bei acht Werten ist ein Drittel zwei.
+// Dazu die Bedingung, dass es ueberhaupt langsam ist: 2,0 s ist der
+// gemessene Betriebswert aus LIESMICH.md. Ein Anstieg von 0,3 auf 1,4
+// Sekunden ist kein Rueckstau, sondern ein laengerer Satz.
+const RUECKSTAU_ANSTIEG = 1.0;
+const RUECKSTAU_AB = 2.0;
+function rueckstau(letzte){
+  const w = (letzte||[]).map(x=>x.gesamt).filter(x=>typeof x === "number");
+  if(w.length < 6) return false;
+  const n = Math.max(1, Math.floor(w.length / 3));
+  const mitte = a => {
+    const b = a.slice().sort((x,y)=>x-y);
+    return b.length % 2 ? b[(b.length-1)/2]
+                        : (b[b.length/2-1] + b[b.length/2]) / 2;
+  };
+  const anfang = mitte(w.slice(0, n)), ende = mitte(w.slice(-n));
+  return ende > anfang + RUECKSTAU_ANSTIEG && ende > RUECKSTAU_AB;
+}
+let stauJetzt = false;
+
+// Die Ton-Kachel haengt an zwei Quellen: am Pegelabruf (zehnmal je
+// Sekunde) und am Zustand (alle zwei Sekunden). Beide rufen hier an,
+// und was sie nicht wissen, lassen sie stehen.
+let tonLage = {kein: false, text: ""};
+function tonKachel(p){
+  const t = TEXTE[UI];
+  if(tonLage.kein){
+    kachelSetzen(kTon, "schlecht", t.k_kein_ton);
+  }else if(stauJetzt){
+    kachelSetzen(kTon, "warn", t.k_verzoegerung);
+  }else if(p && p.lage === "alarm"){
+    kachelSetzen(kTon, "schlecht", t.k_kein_ton);
+  }else if(p && (p.lage === "warnung" || p.knapp > 30)){
+    kachelSetzen(kTon, "warn", t.k_knapp);
+  }else{
+    kachelSetzen(kTon, "ok", t.k_gut);
+  }
+  if(!p) return;
+  // Welcher Modus gilt -- und seit wann, wenn er eingemessen ist.
+  const wann = (p.gemessen || "").slice(11, 16);
+  schwellestand.textContent =
+    p.modus === "fest"
+      ? (wann ? t.s_fest_seit.split("{z}").join(wann) : t.s_fest)
+      : (p.modus === "automatisch" ? t.s_auto : t.s_aus);
+}
+
+function verlaufKlappen(){
+  const zu = mit.hidden = !mit.hidden;
+  zuletztzeile.setAttribute("aria-expanded", String(!zu));
+}
+
 async function lies(){
   // Abruf und Verarbeitung getrennt: vorher fing ein einziges catch beides
   // ab und meldete "Server nicht erreichbar", auch wenn der Server
@@ -7947,12 +8523,13 @@ async function lies(){
     if(!a.ok) throw new Error("HTTP " + a.status);
     d = await a.json();
   }catch(e){
-    lage.textContent = TEXTE[UI].server_weg + " (" + e.message + ")";
+    pille.className = "pille kaputt";
+    pille.textContent = TEXTE[UI].p_stoerung;
+    warnungZeigen(TEXTE[UI].server_weg + " (" + e.message + ")", true);
     return;
   }
   try{
     const t=TEXTE[UI];
-    punkt.className="punkt"+(d.live?" an":"");
     // Eigene Zeile und nicht die Pegelwarnung: die wird zehnmal je
     // Sekunde neu gesetzt und wuerde diese hier ueberschreiben.
     // Aus der Ferne die erste Frage: was laeuft hier eigentlich?
@@ -7991,13 +8568,49 @@ async function lies(){
     const tSatz = tonSatz(d.ton);
     tonhin.hidden = !tSatz;
     if(tSatz) tonhin.textContent = tSatz;
-    const quelle = (d.audio_quelle!==undefined && d.audio_quelle!==null)
-      ? " · "+t.tonda : "";
+    // Die Statuspille steht in jedem Reiter im Kopf. Drei Zustaende,
+    // und der dritte -- Stoerung -- schlaegt die beiden anderen: wer
+    // keinen Ton hat, interessiert sich nicht dafuer, dass die
+    // Uebersetzung formal laeuft.
+    tonLage.kein = !!tSatz;
+    const stoerung = !!(tSatz || d.stt_fehler || fremd.length);
+    pille.className = "pille " + (stoerung ? "kaputt" : (d.live ? "an" : "aus"));
+    pille.textContent = stoerung ? t.p_stoerung
+                                 : (d.live ? t.p_an : t.p_aus);
+    // Laufzeit statt Segmentzahl: wie lange laeuft das hier schon.
+    const sek = Math.max(0, Math.round(d.laeuft_seit || 0));
+    laufzeit.textContent = d.live
+      ? Math.floor(sek/3600 ? sek/3600 : 0)
+        ? `${Math.floor(sek/3600)}:${String(Math.floor(sek%3600/60)).padStart(2,"0")}:${String(sek%60).padStart(2,"0")}`
+        : `${Math.floor(sek/60)}:${String(sek%60).padStart(2,"0")}`
+      : "";
     if(zustandLive!==d.live){ zustandLive=d.live; uiZeichnen(); }
-    lage.textContent=(d.live?t.laeuft:t.pause_an)+" · "+d.gesendet
-      +" "+t.segmente+" · "+d.gesamt+" "+t.hoerer+quelle;
-    zahlen.innerHTML=Object.entries(d.hoerer||{}).map(([a,b])=>
+
+    // --- Kachel Zuhoerer ---
+    const hoerer = Object.entries(d.hoerer||{});
+    hoererzahl.textContent = d.gesamt;
+    hoerersprachen.innerHTML = hoerer
+      .filter(([a,b])=>b>0)
+      .map(([a,b])=>`<span>${a.toUpperCase()} <b>${b}</b></span>`).join("");
+    kachelSetzen(kHoerer, d.gesamt > 0 ? "ok" : null, "");
+    zahlen.innerHTML=hoerer.map(([a,b])=>
       `<tr><td>${NAMEN[a]||a}</td><td>${b}</td></tr>`).join("");
+
+    // --- Kachel Thema ---
+    const stellen = d.stellen || [], namen = d.namen || [];
+    if(d.kontext_fehlt){
+      kachelSetzen(kThema, "warn", t.k_fehlt);
+      themazeile.textContent = "";
+      themalink.hidden = false;
+    }else{
+      kachelSetzen(kThema, "ok", t.k_gesetzt);
+      themazeile.textContent = stellen.length
+        ? stellen.join(", ") + " · "
+          + t.k_namen.split("{n}").join(namen.length)
+        : t.k_namen.split("{n}").join(namen.length);
+      themalink.hidden = true;
+    }
+    erkanntkachel.textContent = namen.join(", ");
     // Die Wahrheit steht im Server, nicht im Browser: nach einem
     // Neuladen des Pults, nach einem Dienstneustart oder wenn die
     // Aufnahme von selbst endete (Uebersetzung angehalten, Platte
@@ -8020,15 +8633,15 @@ async function lies(){
     sprachverdachtAnzeigen(d.sprachverdacht || "");
     if(d.pult_passwort!==undefined) pultPasswortAnzeigen(d.pult_passwort);
     const post_=(d.nachrichten||[]);
-    briefkasten.hidden = post_.length===0;
+    briefkastenband.hidden = post_.length===0;
     postzahl.textContent = post_.length;
     // Steht ein Systemhinweis darin, heisst der Knopf anders: "neue
     // Meldungen aus dem Saal" waere schlicht falsch.
     const sys_ = post_.some(x=>x.art==="system");
-    const knopftext = briefkasten.querySelector("[data-t=post_neu]");
+    const knopftext = briefkastenband.querySelector("[data-t=post_neu]");
     if(knopftext) knopftext.textContent =
       sys_ ? TEXTE[UI].post_system : TEXTE[UI].post_neu;
-    if(post_.length===0 && !post.hidden){ postZeigen(); }
+    if(post_.length===0 && unteransicht === "post"){ postZeigen(); }
     postliste.innerHTML = post_.slice().reverse().map(x=>{
       const roh = (UI==="en" && x.text_en) ? x.text_en : x.text;
       const sicher = roh.replace(/[<>&]/g,
@@ -8042,31 +8655,46 @@ async function lies(){
       return `<div><span class=wann>${x.zeit}`
         +`${x.sprache?" · "+x.sprache:""}</span>${sicher}</div>`;
     }).join("");
-    mit.innerHTML=(d.letzte||[]).slice().reverse().map(x=>
-      `<div>${x.gesamt}s &nbsp; ${x.deutsch}</div>`).join("");
+    // Die Zeile zeigt den letzten Abschnitt mit seiner Verzoegerung.
+    // Ein Tipp darauf klappt die acht auf, die der Server mitschickt.
+    const letzte = d.letzte || [];
+    const neuste = letzte.length ? letzte[letzte.length-1] : null;
+    zuletzttext.textContent = neuste ? neuste.deutsch : "–";
+    zuletztsek.textContent = neuste ? neuste.gesamt + " s" : "";
+    mit.innerHTML = letzte.slice().reverse().map(x=>
+      `<div><span class=sek>${x.gesamt} s</span><span>${
+        String(x.deutsch).replace(/[<>&]/g,
+          c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]))}</span></div>`).join("");
+    stauJetzt = rueckstau(letzte);
+    tonKachel(null);
+
+    // --- Punkte und Zahlen an den Reitern ---
+    // Gelb am Reiter Vorbereiten, solange das Thema fehlt. Rote
+    // Meldungen stehen als Banner in jedem Reiter, dafuer braucht es
+    // keinen Punkt.
+    punktVorbereiten.hidden = !d.kontext_fehlt;
+    punktEinrichtung.hidden = !((d.wartung||[]).length || d.update);
     if(d.stellen&&d.stellen.length&&!erkannt.innerHTML)
       zeigeErkannt({stellen:d.stellen,namen:d.namen||[],
                     gefunden:(d.namen||[]).length});
   }catch(e){
-    lage.textContent = "Anzeigefehler: " + e.message;
+    warnungZeigen(TEXTE[UI].anzeigefehler + " " + e.message, true);
     console.error(e);
   }
 }
-try{
-  if(localStorage.getItem("vorbereitungZu")){
-    vorbereitung.hidden = true;
-    vorbereitungPfeil.classList.add("zu");
-    vorbereitungWort.textContent = TEXTE[UI].ausklappen;
-  }
-}catch(e){}
-try{
-  if(localStorage.getItem("tonquelleZu")){
-    tonquelleFeld.hidden = true;
-    tonquellePfeil.classList.add("zu");
-    tonquelleWort.textContent = TEXTE[UI].ausklappen;
-  }
-}catch(e){}
+// Der Reiter aus der Adresse. Vorgabe ist Gottesdienst: wer das Pult
+// aufmacht, will zuerst starten.
+reiterJetzt = REITER.includes(location.hash.slice(1))
+  ? location.hash.slice(1) : "gottesdienst";
+unterseiteJetzt = SCHMAL() ? null : "eGemeinde";
+ansichtZeichnen();
+unterseitenZeichnen();
+window.addEventListener("hashchange", ()=>{
+  const n = location.hash.slice(1);
+  if(REITER.includes(n) && n !== reiterJetzt) reiterWaehlen(n);
+});
 sprachenLaden().then(uiZeichnen);
+aufnahmenLaden();
 lies();setInterval(lies,2000);
 pegel();setInterval(pegel,150);
 </script></html>"""
