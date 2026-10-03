@@ -103,26 +103,123 @@ WEITERE = {
     },
 }
 
+# Zusaetzliche deutsche Schreibweisen -- die, die am Pult wirklich
+# getippt werden und die es bis 0.3.8 nicht gab.
+#
+# Die ausgeschriebenen Buchtitel: wer "Lukasevangelium 15" tippt, meint
+# Lukas 15, und "Offenbarung des Johannes 14" meint Offenbarung 14 --
+# bis 0.3.8 wurde daraus Johannes 14, also das falsche Buch.
+_LANGFORMEN = {
+    "Matthäus": ["Matthäusevangelium", "Evangelium nach Matthäus"],
+    "Markus": ["Markusevangelium", "Evangelium nach Markus"],
+    "Lukas": ["Lukasevangelium", "Evangelium nach Lukas"],
+    "Johannes": ["Johannesevangelium", "Evangelium nach Johannes"],
+    "Offenbarung": ["Offenbarung des Johannes"],
+    "Apostelgeschichte": ["Apostelgeschichte des Lukas"],
+    "Römer": ["Römerbrief", "Brief an die Römer"],
+    "Galater": ["Galaterbrief", "Brief an die Galater"],
+    "Epheser": ["Epheserbrief", "Brief an die Epheser"],
+    "Philipper": ["Philipperbrief", "Brief an die Philipper"],
+    "Kolosser": ["Kolosserbrief", "Brief an die Kolosser"],
+    "Hebräer": ["Hebräerbrief", "Brief an die Hebräer"],
+    "Jakobus": ["Jakobusbrief", "Brief des Jakobus"],
+    "Judas": ["Judasbrief", "Brief des Judas"],
+    "Titus": ["Titusbrief"], "Philemon": ["Philemonbrief"],
+    "1. Korinther": ["1. Korintherbrief", "erster Korintherbrief"],
+    "2. Korinther": ["2. Korintherbrief", "zweiter Korintherbrief"],
+    "1. Thessalonicher": ["1. Thessalonicherbrief"],
+    "2. Thessalonicher": ["2. Thessalonicherbrief"],
+    "1. Timotheus": ["1. Timotheusbrief"],
+    "2. Timotheus": ["2. Timotheusbrief"],
+    "1. Petrus": ["1. Petrusbrief"], "2. Petrus": ["2. Petrusbrief"],
+    "1. Johannes": ["1. Johannesbrief"],
+    "2. Johannes": ["2. Johannesbrief"],
+    "3. Johannes": ["3. Johannesbrief"],
+    "Psalmen": ["Psalter"],
+    "Hohelied": ["Hoheslied", "Lied der Lieder"],
+    "Sprüche": ["Sprichwörter", "Buch der Sprüche"],
+    "Prediger": ["Buch Prediger"],
+}
+
+
+def _ohne_umlaut(wort):
+    """Roemer fuer Römer, Matthaeus fuer Matthäus.
+
+    Am Pult wird auf einer Tastatur getippt, die Umlaute hat -- aber
+    nicht jeder tippt sie. "Roemer 8" ist keine Nachlaessigkeit,
+    sondern die Schreibweise, die ohne Umlaut auskommt, und sie stand
+    bis 0.3.8 nicht in der Liste."""
+    for mit, ohne in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"),
+                      ("Ä", "Ae"), ("Ö", "Oe"), ("Ü", "Ue"), ("ß", "ss")):
+        wort = wort.replace(mit, ohne)
+    return wort
+
+
+def _norm(form):
+    """Die Vergleichsform: klein, ohne Leerzeichen UND OHNE PUNKTE.
+
+    DAS WAR DER FEHLER BIS 0.3.8. Das Muster erlaubte Punkte und
+    Leerzeichen an beliebiger Stelle -- "1. Kor", "1 Mose", "5 Mose"
+    wurden also alle gefunden. Nachgeschlagen wurde dann aber in einer
+    Tabelle, deren Schluessel nur die Leerzeichen entfernt hatte:
+    darin stand "1.korinther" und "1kor", gesucht wurde "1.kor" und
+    "1mose". Acht gaengige Schreibweisen gingen so verloren -- und
+    weil die Stelle am Muster trotzdem traf, wurde sie aus dem
+    Thema-Text GELOESCHT. Der Techniker tippte "1. Kor 13", und uebrig
+    blieb ein Thema ohne Stelle und ohne Namen.
+
+    Jetzt normalisieren beide Seiten gleich. Dass das keine zwei
+    Buecher zusammenwirft, ist geprueft: ueber alle Formen aller
+    Sprachen gibt es null Kollisionen."""
+    return re.sub(r"[\s.]+", "", form).lower()
+
+
 # Alle Schreibweisen auf den Glossarnamen abbilden, laengste zuerst, damit
 # "1. Samuel" vor "Samuel" greift und "1Kor" nicht als "Kor" endet.
 _FORMEN = {}
 for _buch, _liste in BUECHER.items():
     for _f in _liste + [_buch]:
-        _FORMEN[_f.lower().replace(" ", "")] = _buch
+        _FORMEN[_norm(_f)] = _buch
+        _FORMEN.setdefault(_norm(_ohne_umlaut(_f)), _buch)
+for _buch, _liste in _LANGFORMEN.items():
+    for _f in _liste:
+        _FORMEN.setdefault(_norm(_f), _buch)
+        _FORMEN.setdefault(_norm(_ohne_umlaut(_f)), _buch)
 for _sprache, _tabelle in WEITERE.items():
     for _buch, _liste in _tabelle.items():
         for _f in _liste:
-            _FORMEN.setdefault(_f.lower().replace(" ", ""), _buch)
+            _FORMEN.setdefault(_norm(_f), _buch)
+
+# Abkuerzungen, die zugleich gewoehnliche Woerter sind. Sie gelten nur
+# mit Punkt ("Mal. 2") oder mit Versangabe ("Mal 2,3").
+#
+# "Zum zweiten Mal 2 Lesungen" ergab bis 0.3.8 Maleachi 2, und "wir
+# treffen uns am 3. Maerz" haette Amos 3 ergeben. Eine Stelle, die der
+# Prompt nennt, aber niemand predigt, kostet nicht nur Platz: Whisper
+# bekommt dann die Namen eines fremden Kapitels vorgelegt.
+#
+# Zurueckhaltend aufgezaehlt und nicht nach Laenge geraten: "Dan 7" und
+# "Gal 5" sind gaengige Zitate, und "Dan" wie "Gal" sind keine
+# deutschen Woerter.
+_HEIKEL = {"mal", "mi", "am", "hi", "ri", "jude"}
 
 def _fragment(form):
     """Macht aus einer Schreibweise ein Regex-Stueck, das alle ueblichen
     Varianten abdeckt: '1. Samuel' trifft auch '1.Samuel' und '1 Samuel',
-    '1Sam' auch '1. Sam'."""
+    '1Sam' auch '1. Sam'.
+
+    Mehrwortige Formen ("Offenbarung des Johannes") duerfen zwischen den
+    Woertern beliebig viel Weissraum haben -- getippt wird am Pult, nicht
+    gesetzt."""
     treffer = re.match(r"^([1-5])\.?\s*(.+)$", form)
     if treffer:
-        return re.escape(treffer.group(1)) + r"\s*\.?\s*" + \
-            re.escape(treffer.group(2)) + r"\.?"
-    return re.escape(form) + r"\.?"
+        return (re.escape(treffer.group(1)) + r"\s*\.?\s*"
+                + _wortfolge(treffer.group(2)) + r"\.?")
+    return _wortfolge(form) + r"\.?"
+
+
+def _wortfolge(form):
+    return r"\s+".join(re.escape(w) for w in form.split())
 
 
 # Das Muster wird aus den bekannten Buchnamen gebaut, nicht aus einem
@@ -131,30 +228,44 @@ def _fragment(form):
 # uebrig gebliebenes "Chr", und die Stelle war verloren.
 _ALLE_FORMEN = ({f for liste in BUECHER.values() for f in liste}
                 | set(BUECHER)
+                | {f for liste in _LANGFORMEN.values() for f in liste}
                 | {f for t in WEITERE.values() for liste in t.values()
                    for f in liste})
+_ALLE_FORMEN |= {_ohne_umlaut(f) for f in _ALLE_FORMEN}
 _ALTERNATIVEN = "|".join(
     _fragment(f) for f in sorted(_ALLE_FORMEN, key=len, reverse=True))
 
+# "Kapitel" und "Vers" ausgeschrieben: wer am Pult diktiert bekommt
+# ("Johannes Kapitel 3 Vers 16"), tippt es auch so. Beides optional.
 _MUSTER = re.compile(
-    r"\b(" + _ALTERNATIVEN + r")\s*"                            # Buch
-    r"(\d{1,3})"                                                # Kapitel
-    r"(?:\s*(?:bis|[-–])\s*(\d{1,3}))?"                         # bis Kapitel
-    r"(?:\s*[,:]\s*\d{1,3}(?:\s*[-–]\s*\d{1,3})?)?",           # Verse, egal
+    r"\b(" + _ALTERNATIVEN + r")"                                # 1 Buch
+    r"\s*(?:kapitel\s*)?"                                       # "Kapitel"
+    r"(\d{1,3})"                                                # 2 Kapitel
+    r"(?:\s*(?:bis|[-–])\s*(\d{1,3}))?"                         # 3 bis Kapitel
+    r"(\s*(?:[,:]|\s+vers)\s*\d{1,3}"                          # 4 Verse
+    r"(?:\s*(?:[-–]|\s*bis)\s*\d{1,3})?)?",
     re.IGNORECASE)
 
 
-def stellen_finden(text):
-    """Zieht Buch- und Kapitelangaben aus freiem Text.
+def stellen_mit_bereichen(text):
+    """[(stelle, ...), ...] und die Textbereiche, die dazu gehoeren.
 
-    Verse werden erkannt, aber weggeworfen: der Namensindex arbeitet auf
-    Kapitelebene, und wer Matthaeus 18,21-35 predigt, streift ohnehin das
-    ganze Kapitel."""
-    gefunden = []
+    Nur ANERKANNTE Treffer liefern einen Bereich. Das ist der
+    Unterschied, auf den es ankommt: bis 0.3.8 wurde jeder Mustertreffer
+    aus dem Thema-Text geloescht, auch wenn das Nachschlagen danach
+    scheiterte. "1. Kor 13" verschwand also spurlos -- weder als Stelle
+    erkannt noch im Thema stehengeblieben. Jetzt gilt: was nicht erkannt
+    wird, bleibt stehen."""
+    gefunden, bereiche = [], []
     for treffer in _MUSTER.finditer(text):
-        roh = re.sub(r"\s+", "", treffer.group(1)).lower().rstrip(".")
-        buch = _FORMEN.get(roh) or _FORMEN.get(roh + ".")
+        roh = _norm(treffer.group(1))
+        buch = _FORMEN.get(roh)
         if not buch:
+            continue
+        # Abkuerzungen, die gewoehnliche Woerter sind, zaehlen nur mit
+        # Punkt oder Versangabe.
+        if roh in _HEIKEL and not (treffer.group(1).rstrip().endswith(".")
+                                   or treffer.group(4)):
             continue
         von = int(treffer.group(2))
         bis = int(treffer.group(3)) if treffer.group(3) else von
@@ -164,7 +275,17 @@ def stellen_finden(text):
             stelle = f"{buch} {k}"
             if stelle not in gefunden:
                 gefunden.append(stelle)
-    return gefunden
+        bereiche.append(treffer.span())
+    return gefunden, bereiche
+
+
+def stellen_finden(text):
+    """Zieht Buch- und Kapitelangaben aus freiem Text.
+
+    Verse werden erkannt, aber weggeworfen: der Namensindex arbeitet auf
+    Kapitelebene, und wer Matthaeus 18,21-35 predigt, streift ohnehin das
+    ganze Kapitel."""
+    return stellen_mit_bereichen(text)[0]
 
 
 class Namensindex:
@@ -267,22 +388,97 @@ def prompt_bauen(freitext, namen, einleitung, max_zeichen):
     return kopf + " Namen: " + ", ".join(genommen) + ".", genommen
 
 
+# Whisper nimmt vom uebergebenen Prompt nur die letzten
+# max_length // 2 - 1 Token, und max_length ist 448. Das sind 223.
+# Nachgelesen in faster_whisper.transcribe.WhisperModel.get_prompt.
+STT_TOKEN_GRENZE = 223
+
+
+def stt_prompt_bauen(kopf, namen, verlauf, zaehlen, grenze=STT_TOKEN_GRENZE):
+    """Der Prompt fuer EINEN Abschnitt, auf das Token-Budget gebracht.
+
+    DER FEHLER BIS 0.3.8: der Prompt wurde als
+    `" ".join([stt_prompt, verlauf])[-700:]` gebaut -- die letzten 700
+    ZEICHEN. Waechst der Verlauf, faellt damit der Anfang weg, und der
+    Anfang ist genau das Wertvolle: die Einleitung und das Thema, das
+    der Techniker vor dem Gottesdienst erfragt hat. Bei einem
+    namensreichen Kapitel ("Nehemia baut die Mauer. Nehemia 1-4") war
+    nach wenigen Abschnitten nur noch Verlauf uebrig.
+    Dazu kam, dass Whisper ohnehin bei 223 TOKEN abschneidet, nicht bei
+    700 Zeichen -- gekuerzt wurde also an der falschen Stelle und nach
+    dem falschen Mass.
+
+    Jetzt gilt eine Rangfolge:
+
+      1. DER KOPF BLEIBT. Einleitung und Thema stehen immer drin.
+      2. Dann die Namen, von hinten gekuerzt. Sie sind nach Seltenheit
+         sortiert -- hinten stehen die, die Whisper ohnehin trifft.
+      3. Dann der Verlauf, von vorn gekuerzt: der juengste Satz sagt am
+         meisten darueber, wie es weitergeht.
+
+    Gemessen wird mit dem Tokenizer des eingesetzten Modells, nicht in
+    Zeichen. `zaehlen` ist eine Funktion Text -> Tokenzahl.
+
+    Passt nicht einmal der Kopf, wird er wortweise gekuerzt. Das ist
+    der Notfall und sollte nie eintreten: PROMPT_MAX_ZEICHEN ist so
+    gewaehlt, dass Kopf und Namen zusammen hineinpassen."""
+    kopf = (kopf or "").strip()
+    namen = list(namen or [])
+    verlauf = [v for v in (verlauf or []) if v and v.strip()]
+
+    if zaehlen(kopf) > grenze:
+        worte = kopf.split()
+        while worte and zaehlen(" ".join(worte)) > grenze:
+            worte.pop()
+        return " ".join(worte)
+
+    def zusammen(n, v):
+        teile = [kopf]
+        if n:
+            teile.append("Namen: " + ", ".join(n) + ".")
+        teile.extend(v)
+        return " ".join(teile)
+
+    # Erst die Namen von hinten, bis Kopf plus Namen passen.
+    while namen and zaehlen(zusammen(namen, [])) > grenze:
+        namen.pop()
+    # Dann den Verlauf von vorn auffuellen, juengster Satz zuerst.
+    genommen = []
+    for satz in reversed(verlauf):
+        versuch = [satz] + genommen
+        if zaehlen(zusammen(namen, versuch)) > grenze:
+            break
+        genommen = versuch
+    return zusammen(namen, genommen)
+
+
 def aus_pulttext(text, index, einleitung, max_zeichen, zusatznamen=None):
     """Ein Aufruf fuer den Server: Text vom Pult rein, Prompt raus.
 
     zusatznamen stammen aus einem hochgeladenen Manuskript. Sie stehen
     vorn, weil sie garantiert vorkommen, waehrend die Namen aus einem
     Bibelkapitel nur vorkommen koennten."""
-    stellen = stellen_finden(text)
+    stellen, bereiche = stellen_mit_bereichen(text)
     namen = list(zusatznamen or [])
     for n in index.fuer_stellen(stellen):
         if n not in namen:
             namen.append(n)
-    # Die Stellenangaben aus dem Freitext nehmen: die Buchnamen stehen
-    # gleich als Namen im Prompt und wuerden sonst doppelt Platz kosten.
-    freitext = _freitext_saeubern(_MUSTER.sub(" ", text))
+    # Die ERKANNTEN Stellenangaben aus dem Freitext nehmen: die Buchnamen
+    # stehen gleich als Namen im Prompt und wuerden sonst doppelt Platz
+    # kosten. Was NICHT erkannt wurde, bleibt stehen -- sonst
+    # verschwindet es aus dem Thema, ohne dafuer irgendwo aufzutauchen.
+    rest, ende = [], 0
+    for a, b in bereiche:
+        rest.append(text[ende:a])
+        ende = b
+    rest.append(text[ende:])
+    freitext = _freitext_saeubern(" ".join(rest))
     prompt, drin = prompt_bauen(freitext, namen, einleitung, max_zeichen)
-    return {"prompt": prompt, "stellen": stellen,
+    # Der Kopf getrennt, damit hoeren() ihn beim Kuerzen schuetzen kann.
+    kopf = einleitung.strip()
+    if freitext.strip():
+        kopf += " " + freitext.strip().rstrip(".") + "."
+    return {"prompt": prompt, "kopf": kopf, "stellen": stellen,
             "namen": drin, "namen_gefunden": len(namen)}
 
 

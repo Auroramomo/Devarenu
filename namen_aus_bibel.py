@@ -13,6 +13,55 @@ Textauszug: der Bibeltext selbst wird nicht gespeichert.
 Ablauf:
     python namen_aus_bibel.py --probe bibel.pdf       # was gibt das PDF her?
     python namen_aus_bibel.py bibel.pdf               # ganzer Durchlauf
+
+WAS AN namen_block_b.csv HEUTE FEHLT (nachgezaehlt fuer 0.4.0)
+
+Die Datei im Repo hat 2237 Zeilen und deckt **25 von 66 Buechern** ab.
+Daniel, die Koenige, die Chronik, Esra, Esther, Ruth, Richter, die
+Klagelieder, Amos, Obadja, Micha, Zephanja, alle vier Evangelien, alle
+Briefe und die Offenbarung bringen **null** Namen; aus der
+Apostelgeschichte stammt genau ein Kapitel. Wer heute "Daniel 7" oder
+"Offenbarung 13" eintraegt, bekommt einen Prompt ohne einen einzigen
+Namen -- also genau das, was dieses Modul verhindern soll.
+
+Dazu kommen drei Befunde, die beim Nachsehen aufgefallen sind:
+
+1. ABSICHT WAR ES NICHT. buch_abkuerzungen() ist gegen die
+   Querverweisspalte gebaut ("Hebr", "Offb", "2Pt") und filtert als
+   Nebenwirkung auch die AUSGESCHRIEBENEN Buchnamen -- und das sind die
+   Namen der grossen Gestalten: Mose, Petrus, Johannes, Daniel,
+   Nehemia, Samuel, Josua, Jesaja, Jeremia, Hesekiel, Hosea, Joel,
+   Jona, Micha, Nahum, Habakuk, Haggai, Sacharja, Maleachi, Esra,
+   Ruth, Hiob, Matthaeus, Markus, Lukas, Jakobus, Judas, Titus,
+   Philemon. 76 lange Formen stehen im Filter. Der Satz in
+   fuer_stellen() -- "Jesus und Jerusalem trifft Whisper ohnehin" --
+   begruendet die RANGFOLGE, nicht das Weglassen: Jerusalem und David
+   stehen sehr wohl in der Datei, nur weit hinten.
+
+2. "Jesus" und "Elia" fehlen aus einem ANDEREN Grund. Sie stehen in
+   keiner Filterliste, und doch sind sie nicht in der Datei ("Eliab",
+   "Eliam", "Elias" schon). Woran die Begleiterquote oder der
+   Streuungsfilter sie hat scheitern lassen, laesst sich ohne das PDF
+   nicht sagen -- mit "--probe" auf den passenden Seiten waere es in
+   einer Minute geklaert.
+
+3. DIE KAPITELZUORDNUNG IST GROB. stellen_index() ordnet einen Namen
+   dem Kolumnentitel seiner Seite zu. In einer Studienbibel steht auf
+   derselben Seite der Kommentar, und der nennt Paulus beim Auslegen
+   von 1. Mose. Darum traegt "Paulus" hier 71 Kapitel, darunter
+   1. Mose 3 und Habakuk 1, und das Funktionswort "Obschon" traegt
+   33 Kapitel. Fuer den Prompt ist das verschmerzlich -- ein Name zu
+   viel kostet einen Platz --, aber es erklaert, warum die Liste
+   laenger aussieht, als sie traegt.
+
+NEU BAUEN: dazu wird die Bibel-PDF gebraucht, aus der die heutige Liste
+entstanden ist. Sie liegt NICHT im Repo und darf auch nicht hinein
+(Urheberrecht, siehe LIZENZEN.md). Mit ihr ist es ein Befehl:
+
+    python namen_aus_bibel.py /pfad/zur/bibel.pdf --ziel namen_block_b.csv
+
+Danach gehoeren Vorher-Nachher-Zahlen in die Release-Notiz: Zeilen,
+abgedeckte Buecher, und ob Mose, Petrus und Daniel darin vorkommen.
 """
 
 import argparse

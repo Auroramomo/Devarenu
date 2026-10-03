@@ -430,6 +430,11 @@ class Werk:
             print("Kein Namensindex (namen_block_b.csv fehlt). Der Prompt "
                   "nutzt dann nur den eingetippten Text.")
         self.stt_prompt = ""
+        # Kopf (Einleitung und Thema) getrennt vom Rest. Beim Kuerzen auf
+        # das Token-Budget bleibt er stehen, die Namen weichen von hinten
+        # und der Verlauf zuerst -- siehe bibelstellen.stt_prompt_bauen.
+        self.stt_kopf = config.PROMPT_EINLEITUNG.strip()
+        self.stt_namen = []
         self.letzter_satz = ""
         self.kontext_stellen = []
         self.kontext_namen = []
@@ -672,12 +677,34 @@ class Werk:
             print(f"        Spracherkennung ging nicht: {str(e)[:70]}")
             return "", None
 
+    def stt_token(self, text):
+        """Wie viele Token macht Whisper daraus?
+
+        Gemessen mit dem Tokenizer DIESES Modells. Eine Schaetzung in
+        Zeichen ginge bei Eigennamen regelmaessig daneben: "Sanballat"
+        sind neun Zeichen und vier Token, "der" drei Zeichen und eines.
+        Gerade die Namen sind es aber, um die es im Prompt geht.
+
+        Faellt der Tokenizer aus, wird grob geschaetzt -- lieber zu
+        vorsichtig als gar kein Prompt."""
+        if not text:
+            return 0
+        t = getattr(self.whisper, "hf_tokenizer", None)
+        if t is None:
+            return len(text) // 3 + 1
+        try:
+            return len(t.encode(" " + text.strip()).ids)
+        except Exception:
+            return len(text) // 3 + 1
+
     def hoeren(self, audio):
         kwargs = dict(language=self.quelle, beam_size=1,
                       vad_filter=False, condition_on_previous_text=False)
-        teile = [t for t in [self.stt_prompt, " ".join(self.verlauf)] if t]
-        if teile:
-            kwargs["initial_prompt"] = " ".join(teile)[-700:]
+        from bibelstellen import stt_prompt_bauen
+        prompt = stt_prompt_bauen(self.stt_kopf, self.stt_namen,
+                                  list(self.verlauf), self.stt_token)
+        if prompt.strip():
+            kwargs["initial_prompt"] = prompt
         segmente, _ = self.whisper.transcribe(audio, **kwargs)
         text = " ".join(s.text.strip() for s in segmente).strip()
 
@@ -4340,6 +4367,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 "aufnahme": bool(lauf.mitschnitt.laeuft),
                 "protokoll_mitschrift": PROTOKOLL_MITSCHRIFT,
                 "pruefprotokoll": lauf.pruefprotokoll.lage(),
+                # Hat jemand Thema und Bibelstellen uebernommen? Ohne sie
+                # laeuft alles -- nur ohne den Prompt, der Whisper die
+                # Eigennamen des Kapitels vorlegt, und das ist genau der
+                # Unterschied zwischen "Sanballat" und "San Ballard".
+                "kontext_fehlt": not lauf.werk.stt_prompt,
                 # Ob dieses Pult ueberhaupt am Gemeinde-PC selbst
                 # offen ist. Der Schalter wird sonst gar nicht
                 # angezeigt -- ein Knopf, der immer "geht nicht"
@@ -4635,6 +4667,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                            config.PROMPT_MAX_ZEICHEN,
                            zusatznamen=lauf.werk.skript_namen)
         lauf.werk.stt_prompt = erg["prompt"]
+        lauf.werk.stt_kopf = erg["kopf"]
+        lauf.werk.stt_namen = list(erg["namen"])
         lauf.werk.kontext_stellen = erg["stellen"]
         lauf.werk.kontext_namen = erg["namen"]
         print(f"Prompt gesetzt: {len(erg['stellen'])} Stellen, "
@@ -4682,6 +4716,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                                config.PROMPT_MAX_ZEICHEN,
                                zusatznamen=erg["namen"])
             lauf.werk.stt_prompt = neu["prompt"]
+            lauf.werk.stt_kopf = neu["kopf"]
+            lauf.werk.stt_namen = list(neu["namen"])
             lauf.werk.kontext_stellen = neu["stellen"]
             lauf.werk.kontext_namen = neu["namen"]
         return {"quelle": quelle, "woerter": erg["woerter"],
@@ -5899,6 +5935,14 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
   <span id=sprachverdachttext></span>
   <button class=klein id=bSpracheUm onclick=spracheUmstellen()
           data-t=sprache_umstellen>Ausgangssprache umstellen</button></p>
+<!-- Thema und Bibelstellen fehlen. Steht HIER und nicht unter "Vor dem
+     Gottesdienst": der Abschnitt ist nach dem ersten Zuklappen zu, und
+     eine Erinnerung, die man erst aufklappen muss, erinnert niemanden.
+     Sichtbar vor und waehrend der Uebersetzung, an die Zuhoerer geht
+     davon nichts, und aufgehalten wird auch nichts. -->
+<p class=warnzeile id=kontextwarnung hidden>
+  <span data-t=kontext_fehlt>Thema und Bibelstellen fehlen. Prediger
+  fragen.</span></p>
 <p class=hin id=anhaltenHin data-t=anhalten_hin hidden>Anhalten stoppt die Auslieferung, ohne die
 Zuhörer zu trennen. Sie bleiben verbunden und hören weiter, sobald es
 weitergeht.</p>
@@ -6346,6 +6390,7 @@ const TEXTE={
      +"sich jederzeit wieder abschalten.",
    konto_kaputt:"Das angezeigte Spendenkonto ist ungültig. Bitte wende "
      +"dich an den Betreuer.",
+   kontext_fehlt:"Thema und Bibelstellen fehlen. Prediger fragen.",
    wartung_hin:"Diese Punkte halten den Gottesdienst nicht auf. Sie "
      +"gehören der Technik und stehen deshalb nicht im Briefkasten. "
      +"Vollständig mit: bash pruefen.sh",
@@ -6549,6 +6594,7 @@ const TEXTE={
      +"and can be switched off again at any time.",
    konto_kaputt:"The donation account shown is invalid. Please contact "
      +"the maintainer.",
+   kontext_fehlt:"Topic and Bible passages are missing. Ask the preacher.",
    wartung_hin:"These items do not hold up the service. They belong "
      +"to the technician and are therefore not in the inbox. "
      +"Full list: bash pruefen.sh",
@@ -7510,6 +7556,7 @@ async function lies(){
       gemeindefeld.value = d.gemeinde || "";
     meldeschalter.checked = !!d.nutzung_melden;
     kontowarnung.hidden = !d.spendenkonto;
+    kontextwarnung.hidden = !d.kontext_fehlt;
     if(d.spendenkonto) kontowarnungtext.textContent = TEXTE[UI].konto_kaputt;
     pruefprotokollreihe.hidden = !d.am_rechner;
     pruefprotokollAnzeigen(d.pruefprotokoll || null);
