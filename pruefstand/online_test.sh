@@ -640,6 +640,78 @@ pruefe "der Schalter bleibt dabei aus" "False" \
   "$(cd "$W" && "$ECHT/.venv/bin/python" -c \
      'import sys; sys.path.insert(0,"."); import wartungsfenster as w; print(w.einstellung()["autoupdate"])')"
 
+# ------------------------------------------- Zwei erlaubte Schluessel
+#
+# schluessel.erlaubt ist der Vertrauensanker. Dass dort MEHRERE
+# Schluessel stehen koennen, steht seit 0.3.1 in der Datei -- geprueft
+# wurde es nie. Ohne den Nachweis ist ein Schluesselwechsel eine
+# Vermutung, und ein Vertrauensanker, den man nicht wechseln kann, ist
+# einer, den man irgendwann verliert.
+#
+# ACHTUNG BEI DER REIHENFOLGE: erst das Tag in $FERN neu signieren,
+# DANN klonen. neuer_rechner() klont, und ein Klon bringt die Tags mit,
+# die es beim Klonen gab.
+titel_f "Zwei erlaubte Schluessel"
+
+ZWEITER="$BASIS/zweiter"
+ssh-keygen -q -t ed25519 -N "" -C zweiter -f "$ZWEITER"
+DRITTER="$BASIS/dritter"
+ssh-keygen -q -t ed25519 -N "" -C dritter -f "$DRITTER"
+
+neu_signieren() {  # $1 Schluesseldatei
+  git -C "$FERN" tag -d v0.9.1 >/dev/null
+  git -C "$FERN" config user.signingkey "$1.pub"
+  git -C "$FERN" tag -s v0.9.1 -m "Devarenu 0.9.1"
+}
+
+# 1) Mit dem ZWEITEN Schluessel signiert, beide erlaubt.
+neu_signieren "$ZWEITER"
+RZ="$BASIS/rz"; neuer_rechner "$RZ"
+# Mit Kommentaren und Leerzeilen dazwischen, wie die echte Datei sie hat.
+{
+  echo "# Wer ein Update signieren darf."
+  echo
+  echo "pruef@pruefstand $(cat "$ECHTER.pub")"
+  echo "pruef@pruefstand $(cat "$ZWEITER.pub")"
+  echo
+} > "$RZ/schluessel.erlaubt"
+AUSZ="$(lauf "$RZ")" || true
+pruefe "mit dem zweiten Schluessel signiert: angenommen" "ja" \
+  "$(printf '%s' "$AUSZ" | grep -q 'Signatur von v0.9.1 ist gueltig' \
+     && echo ja || echo nein)"
+pruefe "und das Update laeuft durch" "0.9.1" "$(cat "$RZ/VERSION")"
+
+# 2) Gegenprobe: ein DRITTER, nicht eingetragener Schluessel. Ohne sie
+#    hiesse "zwei gehen" nur "es prueft gar nichts".
+neu_signieren "$DRITTER"
+RZ2="$BASIS/rz2"; neuer_rechner "$RZ2"
+{
+  echo "pruef@pruefstand $(cat "$ECHTER.pub")"
+  echo "pruef@pruefstand $(cat "$ZWEITER.pub")"
+} > "$RZ2/schluessel.erlaubt"
+AUSZ2="$(lauf "$RZ2")" || true
+pruefe "ein dritter Schluessel wird abgewiesen" "ja" \
+  "$(printf '%s' "$AUSZ2" | grep -q 'Signatur von v0.9.1 ist ungueltig' \
+     && echo ja || echo nein)"
+pruefe "und die Fassung bleibt" "0.9.0" "$(cat "$RZ2/VERSION")"
+
+# 3) BEFUND: die Adresse vor dem Schluessel ist ein ETIKETT, keine
+#    Bedingung. git nimmt den Tag an, solange der SCHLUESSEL in der
+#    Datei steht -- auch wenn davor eine andere Adresse steht als im
+#    Tagger-Feld. Der Kommentar in schluessel.erlaubt behauptete bis
+#    0.3.8 das Gegenteil. Festgehalten, damit niemand glaubt, eine
+#    stehengebliebene Adresse entziehe einem Schluessel das Vertrauen.
+RZ3="$BASIS/rz3"; neuer_rechner "$RZ3"
+echo "ein-etikett-ohne-mailadresse $(cat "$DRITTER.pub")" \
+  > "$RZ3/schluessel.erlaubt"
+AUSZ3="$(lauf "$RZ3")" || true
+pruefe "die Adresse vor dem Schluessel ist nur ein Etikett" "ja" \
+  "$(printf '%s' "$AUSZ3" | grep -q 'Signatur von v0.9.1 ist gueltig' \
+     && echo ja || echo nein)"
+
+# Wieder aufraeumen fuer die folgenden Abschnitte.
+neu_signieren "$ECHTER"
+
 # ------------------------------------ Der Knopf "Jetzt aktualisieren"
 #
 # Angestossen wird er ueber eine Marke, abgeholt von einem root-Timer.

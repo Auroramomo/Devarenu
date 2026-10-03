@@ -11,17 +11,45 @@
 #
 #   <E-Mail> <Schluesseltyp> <Schluessel>
 #
-# Die E-Mail vorn ist kein Kommentar. git verify-tag nimmt die Adresse
-# aus dem Tagger-Feld des Tags und sucht genau diese Zeile. Steht dort
-# eine andere, schlaegt die Pruefung fehl, obwohl der Schluessel stimmt.
+# DIE E-MAIL VORN IST EIN ETIKETT, KEINE BEDINGUNG.
+#
+# Bis 0.3.8 stand hier das Gegenteil: git verify-tag nehme die Adresse
+# aus dem Tagger-Feld und verlange genau diese Zeile. Nachgemessen in
+# 0.4.0 (git 2.55.0, OpenSSH 10.5, pruefstand/online_test.sh,
+# Abschnitt "Zwei erlaubte Schluessel"): ein Tag wird angenommen,
+# solange der SCHLUESSEL hier steht -- auch wenn die Adresse davor eine
+# andere ist als im Tag. git schreibt dann die Adresse AUS DIESER DATEI
+# in seine Meldung, nicht die des Taggers.
+#
+# Was daraus folgt: eine Zeile zu entfernen entzieht das Vertrauen, eine
+# Adresse zu aendern nicht. Wer einen Schluessel sperren will, loescht
+# die ZEILE.
+#
+# Trotzdem gehoert die Adresse richtig eingetragen -- die, die auch
+# "git config user.email" benutzt. Sie ist das, was in der Meldung
+# steht, und sie sagt dem naechsten Betreuer, wessen Schluessel das ist.
+#
+# MEHRERE SCHLUESSEL GEHEN. Eine Zeile je Schluessel, Kommentare und
+# Leerzeilen dazwischen stoeren nicht. Geprueft mit zwei erlaubten
+# Schluesseln und einem dritten, der abgewiesen wird.
 #
 # Schluessel erzeugen:
 #   ssh-keygen -t ed25519 -C "devarenu-freigabe" -f ~/.ssh/devarenu_freigabe
 # Danach den Inhalt von ~/.ssh/devarenu_freigabe.pub hier eintragen, mit
-# der E-Mail davor, die auch git commit/tag benutzt (git config user.email).
+# der E-Mail davor.
 #
-# Einen Schluessel abloesen heisst: neuen Schluessel hier ergaenzen, mit
-# dem ALTEN signiert ausliefern, und erst im uebernaechsten Update den
-# alten entfernen. Andersherum sperrt man sich aus.
+# EINEN ZWEITEN SCHLUESSEL DAZUNEHMEN -- die Reihenfolge ist der ganze
+# Punkt, und sie steht ausfuehrlich in AUFSTELLEN.md:
+#
+#   1. Neuen Schluessel erzeugen (auf einem anderen Rechner).
+#   2. Zeile hier ergaenzen, den ALTEN Schluessel stehen lassen.
+#   3. Diese Fassung mit dem ALTEN Schluessel signieren und ausliefern.
+#   4. Warten, bis jeder Rechner sie hat.
+#   5. Erst danach mit dem neuen signieren.
+#   6. Den alten erst im uebernaechsten Update entfernen.
+#
+# Andersherum sperrt man sich aus: ein Rechner, der den neuen Schluessel
+# noch nicht kennt, nimmt kein Update mehr an -- auch nicht das, das ihn
+# mitbringen wuerde.
 
 maurice.wessel@adventisten.de ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOwRWgx/zc8CrgcjZ9NPhVQrdrgZPQWJwrYgyhhj//e6

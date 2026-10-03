@@ -1995,6 +1995,80 @@ Danach noch von Hand:
 bash anleitung_bauen.sh      # das Zuhörer-PDF in der neuen Sprache
 ```
 
+### Der Signierschlüssel
+
+`schluessel.erlaubt` ist der Vertrauensanker. Ein Update — über Stick
+oder über das Netz — wird nur eingespielt, wenn sein Tag mit einem
+Schlüssel aus dieser Datei signiert ist. Geprüft wird immer gegen die
+Datei, die auf dem Rechner **liegt**, nie gegen die im Bundle.
+
+**Mehrere Schlüssel gehen.** Eine Zeile je Schlüssel; Kommentare und
+Leerzeilen dazwischen stören nicht. Nachgewiesen in
+`pruefstand/online_test.sh`, Abschnitt *Zwei erlaubte Schlüssel*: ein
+Tag, das mit dem zweiten Schlüssel signiert ist, läuft durch, und ein
+dritter, nicht eingetragener wird abgewiesen.
+
+**Die Adresse vor dem Schlüssel ist ein Etikett, keine Bedingung.** Bis
+0.3.8 behauptete der Kommentar in der Datei das Gegenteil. Gemessen
+(git 2.55.0, OpenSSH 10.5): `git verify-tag` nimmt ein Tag an, solange
+der **Schlüssel** in der Datei steht — auch wenn davor eine andere
+Adresse steht als im Tagger-Feld. git schreibt dann die Adresse *aus
+der Datei* in seine Meldung. Wer einen Schlüssel sperren will, löscht
+die **Zeile**; eine Adresse zu ändern bewirkt nichts.
+
+#### Einen zweiten Schlüssel dazunehmen
+
+Die Reihenfolge ist der ganze Punkt. Andersherum sperrt man sich aus:
+ein Rechner, der den neuen Schlüssel noch nicht kennt, nimmt kein
+Update mehr an — auch nicht das, das ihn mitbringen würde.
+
+```fish
+ssh-keygen -t ed25519 -C "devarenu-freigabe-2" -f ~/.ssh/devarenu_freigabe2
+```
+
+1. Zeile in `schluessel.erlaubt` ergänzen, **den alten Schlüssel stehen
+   lassen**.
+2. Diese Fassung mit dem **alten** Schlüssel signieren und ausliefern:
+   ```fish
+   git config user.signingkey ~/.ssh/devarenu_freigabe.pub
+   ```
+   ```fish
+   git tag -s v0.4.1 -m "Devarenu 0.4.1"
+   ```
+3. Warten, bis **jeder** Rechner diese Fassung hat. Nachsehen über die
+   Nutzungsmeldung oder durch Nachfragen.
+4. Erst danach mit dem neuen Schlüssel signieren.
+5. Den alten erst im **übernächsten** Update entfernen.
+
+Zwischen Schritt 1 und 5 sind beide Schlüssel gültig. Das ist Absicht:
+in diesem Fenster lässt sich der Wechsel noch zurücknehmen.
+
+#### Den vorhandenen Schlüssel sichern
+
+Der private Schlüssel liegt in `~/.ssh/devarenu_freigabe` auf dem
+Entwicklungsrechner. **Geht er verloren, kann niemand mehr ein Update
+signieren** — die Gemeinderechner nehmen dann keine neue Fassung an,
+und es bleibt nur, auf jedem Rechner von Hand eine neue
+`schluessel.erlaubt` einzutragen. Vor Ort, an jedem Gerät.
+
+Darum zwei Kopien, und nicht beide am selben Ort:
+
+```fish
+ssh-keygen -y -f ~/.ssh/devarenu_freigabe
+```
+Zeigt den öffentlichen Teil — damit lässt sich prüfen, ob eine Kopie
+die richtige ist.
+
+Die private Datei gehört **verschlüsselt** auf zwei getrennte Medien.
+Wer mag, legt sie mit einer Passphrase an (`ssh-keygen -p -f …`) — dann
+ist eine Kopie auf einem Stick vertretbar, und die Passphrase gehört
+dann dorthin, wo sonst nichts liegt.
+
+Ein Schlüssel ohne Passphrase, der in einer Dateisicherung mitläuft,
+ist kein Schlüssel mehr. Das ist derselbe Gedanke wie bei
+`sichern.sh`: Geheimnisse nur verschlüsselt, und die Passphrase
+getrennt.
+
 ### Sicherung auf eine tragbare Platte
 
 `sichern.sh` und `zuruecksichern.sh`, seit 0.4.0. Gedacht für den Fall
