@@ -67,7 +67,7 @@
    ihn. .aufnahmehinweis{display:flex} tat das: der rote Balken mit
    dem roten Punkt stand auf jedem Handy, dauerhaft und ohne Text,
    weil der Text erst beim Einschalten gesetzt wird. Gesehen auf
-   einem Galaxy Z Fold 7, und zwar mit UND ohne Versuch.
+   einem Galaxy Z Fold 7.
    Dieselbe Regel steht aus demselben Grund im Pult. */
 [hidden]{display:none !important}
 html,body{height:100%}
@@ -230,16 +230,6 @@ h1{
 .fussleiste.urteil{opacity:.9}
 .fussleiste.urteil .werkzeug[aria-pressed="true"]{
   border-color:var(--cyan); color:var(--tinte); font-weight:600}
-
-/* Der Versuchskasten. Bewusst karg: er ist kein Teil der Bedienung,
-   sondern ein Messgeraet, das nur mitfaehrt, wenn jemand es bestellt. */
-.versuch{margin:.8rem var(--rand) 0; font-family:var(--schild);
-  font-size:.8rem; color:var(--leise)}
-.versuch summary{cursor:pointer; padding:.4rem 0}
-.versuchhin{margin:.2rem 0 .4rem; line-height:1.4}
-.versuch pre{margin:0; max-height:14rem; overflow:auto; font-size:.72rem;
-  line-height:1.5; white-space:pre-wrap; background:var(--blatt);
-  border:1px solid var(--kante); padding:.5rem}
 
 /* ---------- Bildschirm 2: Zuhören ---------- */
 #zuhoeren{padding:0}
@@ -563,16 +553,6 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
        Zwei Knoepfe, eine Stimme je Geraet und Gottesdienst, aenderbar.
        Gezaehlt wird nur, und zwar je Sprache -- keine Adresse, keine
        Kennung, kein Zeitpunkt. -->
-  <!-- Nur im Versuch (?versuch=stille). Ohne den Adresszusatz ist
-       dieser Kasten nicht da. Nichts davon geht an den Server. -->
-  <details class="versuch" id="versuchkasten" hidden>
-    <summary>Versuch: Tonprotokoll</summary>
-    <p class="versuchhin">Die letzten Ereignisse des Abspielers, neueste
-    oben. Bleibt der Ton stehen, steht hier, wann und woran. Nur auf
-    diesem Gerät, nichts davon geht irgendwohin.</p>
-    <pre id="versuchzeilen"></pre>
-  </details>
-
   <nav class="fussleiste urteil" id="urteil" aria-label="Rückmeldung">
     <button class="werkzeug klein" id="u-gut" aria-pressed="false">
       <span class="zeichen" aria-hidden="true">👍</span><span class="beschriftung"></span>
@@ -996,8 +976,9 @@ async function bildschirmWachhalten(){
   // HTTPS waere dafuer kein Weg: selbstsigniert heisst Warnseite auf
   // jedem Handy, und einen echten Namen gibt es ohne Internet nicht.
   // Ausserdem haelt Wake Lock nur den Bildschirm an -- es hilft gar
-  // nicht, wenn jemand bewusst sperrt. Darum geht es im Versuch
-  // oben (?versuch=stille) und in AENDERUNGEN 0.4.2, Anhang G.
+  // nicht, wenn jemand bewusst sperrt. Warum daran zwei Versuche
+  // gescheitert sind, steht in LIESMICH unter "Ton bei gesperrtem
+  // Handy" und in AENDERUNGEN 0.4.2, Anhang G.
   try{
     if("wakeLock" in navigator){
       wachschloss = await navigator.wakeLock.request("screen");
@@ -1021,18 +1002,8 @@ function systemleisteSetzen(){
     artist: (SPRACHEN[zustand.sprache] || {}).name || zustand.sprache,
     album: "Gottesdienst",
   });
-  if(Versuch.strom){
-    // Im Strom haengt die Mediensteuerung am Element selbst. Der
-    // Befund aus Versuch B war, dass sie immer "pausiert" zeigte --
-    // playbackState wurde nie gesetzt, und die Handler schalteten
-    // etwas anderes als das, was gerade lief.
-    navigator.mediaSession.setActionHandler("pause", () => Strom.pause());
-    navigator.mediaSession.setActionHandler("play",  () => Strom.weiter());
-    Strom._lage();
-  }else{
-    navigator.mediaSession.setActionHandler("pause", () => tonSchalten(false));
-    navigator.mediaSession.setActionHandler("play",  () => tonSchalten(true));
-  }
+  navigator.mediaSession.setActionHandler("pause", () => tonSchalten(false));
+  navigator.mediaSession.setActionHandler("play",  () => tonSchalten(true));
 }
 
 
@@ -1254,463 +1225,10 @@ const Messung = {
 if(Messung.an) addEventListener("pagehide", () => Messung.schicken());
 
 
-/* ============================================================
-   Versuch: Ton bei gesperrtem Handy  --  nur mit ?versuch=stille
-   ------------------------------------------------------------
-   Die Untersuchung zu 0.4.2 (AENDERUNGEN, Anhang G) hat vier Gruende
-   gefunden, warum der Ton beim Sperren aufhoert. Der erste ist der
-   billigste zu pruefen: das audio-Element wird zwischen zwei
-   Haeppchen LEER. iOS und Android behandeln ein pausiertes
-   Medienelement im Hintergrund als beendet und raeumen die
-   Audiositzung ab; das naechste play() aus einem WebSocket-Rueckruf
-   ist dann keine durch eine Geste gedeckte Fortsetzung mehr.
-
-   Der Versuch: das Element pausiert und endet nie. Ist die Schlange
-   leer, laeuft eine Sekunde Stille in Schleife, bis der naechste
-   Abschnitt kommt. Die Stille entsteht HIER im Browser, nicht auf
-   dem Server -- eine Datei mehr abzurufen waere genau die Pause, um
-   die es geht.
-
-   OHNE den Adresszusatz aendert sich fuer Zuhoerer nichts. Der
-   Hinweis "Bildschirm anlassen" bleibt stehen, bis auf echten
-   Geraeten gemessen ist, dass er nicht mehr noetig ist.
-
-       ?versuch=stille   Versuch B, einschalten
-       ?versuch=strom    Versuch C, einschalten
-       ?versuch=aus      wieder weg
-
-   VERSUCH C, seit 0.4.4
-   ---------------------
-   Versuch B half nicht. Gemessen auf einem Galaxy Z Fold 7 mit
-   Firefox: nach zehn bis fuenfzehn Sekunden gesperrt war der Ton
-   weg, und das Tonprotokoll zeigte, warum -- staendig "ended", auch
-   beim Stille-Fueller. Jedes Ende eines Mediums ist dem Browser ein
-   Anlass, die Tonsitzung abzuraeumen, und davon gab es im
-   Sekundentakt eines.
-
-   Also EIN Medium, das nie endet: ein MP3-Strom vom Server unter
-   /strom/<sprache>.mp3, einmal in der Nutzergeste gestartet, danach
-   kein src-Wechsel mehr -- ausser bei Sprachwechsel,
-   Wiederverbinden oder einem Sprung an den Live-Punkt. Der Text
-   laeuft unveraendert ueber die bestehende Verbindung.
-   ============================================================ */
-const Versuch = {
-  stille: false,
-  strom: false,
-  ereignisse: [],
-
-  starten(){
-    let wunsch = null;
-    try{
-      wunsch = new URLSearchParams(location.search).get("versuch");
-    }catch(e){}
-    try{
-      if(wunsch === "aus"){ localStorage.removeItem("versuch"); }
-      else if(wunsch){ localStorage.setItem("versuch", wunsch); }
-      const g = localStorage.getItem("versuch");
-      this.stille = g === "stille";
-      this.strom  = g === "strom";
-    }catch(e){
-      // Privates Fenster: dann gilt nur, was in der Adresse steht.
-      this.stille = wunsch === "stille";
-      this.strom  = wunsch === "strom";
-    }
-    if(!this.stille && !this.strom) return;
-    this._ziel();
-    const kasten = $("versuchkasten");
-    if(kasten) kasten.hidden = false;
-    document.addEventListener("visibilitychange", () => {
-      this.merken("sichtbar", document.visibilityState);
-      // Beim Zurueckkommen nachsehen, ob der Strom ueberhaupt noch
-      // laeuft. Genau diese Luecke war in Versuch B nicht zu sehen,
-      // weil niemand hinsah.
-      if(this.strom && document.visibilityState === "visible"
-         && zustand.laeuft && Strom.spieler && Strom.spieler.paused
-         && !Strom.pausiert)
-        Strom.neu("war beim Zurueckkommen pausiert");
-    });
-  },
-
-  /* Der Zielabstand fuer die Messung am echten Geraet.
-
-     DREI FEHLER AUF EINMAL, alle an dieser Stelle, alle gefunden,
-     weil am Handy "?ziel=0.5" nichts bewirkte und sich das Tempo
-     weiter wie bei Ziel 3 verhielt:
-
-       1. parseFloat("0,5") ist NULL, nicht 0,5. Auf einer deutschen
-          Tastatur tippt man ein Komma, und das ganze Projekt
-          schreibt 0,5 mit Komma. Jetzt gilt beides.
-       2. Ein unbrauchbarer Wert wurde STILL verworfen. Das war der
-          eigentliche Fehler: wer das Ziel setzt und nichts
-          passieren sieht, hat keine Chance zu erraten, woran es
-          liegt. Jetzt steht jede Entscheidung im Tonprotokoll, auch
-          die abgelehnte, mit Grund.
-       3. Das Ziel wurde nicht gemerkt. Ein Handy laedt die Seite
-          nach dem Entsperren schon mal neu, und dann stand wieder
-          die Vorgabe da -- waehrend in der Adresse noch das Ziel
-          stand, das niemand mehr las.
-
-     DIE ADRESSE GEWINNT IMMER gegen das Gemerkte. Das Gemerkte ist
-     nur dafuer da, ein Neuladen zu ueberstehen. */
-  _ziel(){
-    let roh = null;
-    try{
-      roh = new URLSearchParams(location.search).get("ziel");
-    }catch(e){}
-    if(roh === null || roh === ""){
-      // Nichts in der Adresse: dann gilt das Gemerkte, sonst die
-      // Vorgabe.
-      try{
-        const g = parseFloat(localStorage.getItem("versuch_ziel"));
-        if(!isNaN(g) && g >= 0.25 && g <= 10){
-          Strom.ZIEL = g;
-          this.merken("Ziel", g + " s (gemerkt)");
-          return;
-        }
-      }catch(e){}
-      this.merken("Ziel", Strom.ZIEL + " s (Vorgabe)");
-      return;
-    }
-    // Komma wie Punkt. parseFloat("0,5") waere null.
-    const z = parseFloat(String(roh).trim().replace(",", "."));
-    if(isNaN(z)){
-      this.merken("Ziel abgelehnt", JSON.stringify(roh) + " ist keine Zahl");
-    }else if(z < 0.25 || z > 10){
-      this.merken("Ziel abgelehnt",
-                  z + " s liegt ausserhalb von 0,25 bis 10");
-    }else{
-      Strom.ZIEL = z;
-      try{ localStorage.setItem("versuch_ziel", String(z)); }catch(e){}
-      this.merken("Ziel", z + " s (aus der Adresse)");
-      return;
-    }
-    this.merken("Ziel", Strom.ZIEL + " s (Vorgabe, weil abgelehnt)");
-  },
-
-  // Eine Sekunde Stille als WAV, im Browser gebaut. 8000 Hz, mono,
-  // 16 bit -- 16 KB, die nie ueber das Netz gehen.
-  stilleUrl(){
-    if(this._url) return this._url;
-    const rate = 8000, sekunden = 1;
-    const daten = rate * sekunden * 2;
-    const puffer = new ArrayBuffer(44 + daten);
-    const sicht = new DataView(puffer);
-    const text = (pos, w) => { for(let i = 0; i < w.length; i++)
-      sicht.setUint8(pos + i, w.charCodeAt(i)); };
-    text(0, "RIFF");  sicht.setUint32(4, 36 + daten, true);
-    text(8, "WAVEfmt ");
-    sicht.setUint32(16, 16, true);   sicht.setUint16(20, 1, true);
-    sicht.setUint16(22, 1, true);    sicht.setUint32(24, rate, true);
-    sicht.setUint32(28, rate * 2, true);
-    sicht.setUint16(32, 2, true);    sicht.setUint16(34, 16, true);
-    text(36, "data"); sicht.setUint32(40, daten, true);
-    // Der Rest ist schon null -- Stille braucht nichts geschrieben.
-    let roh = "";
-    const b = new Uint8Array(puffer);
-    for(let i = 0; i < b.length; i++) roh += String.fromCharCode(b[i]);
-    this._url = "data:audio/wav;base64," + btoa(roh);
-    return this._url;
-  },
-
-  merken(was, einzelheit){
-    if(!this.stille && !this.strom) return;
-    const t = new Date();
-    const uhr = String(t.getHours()).padStart(2, "0") + ":"
-              + String(t.getMinutes()).padStart(2, "0") + ":"
-              + String(t.getSeconds()).padStart(2, "0");
-    this.ereignisse.push(uhr + "  " + was
-                         + (einzelheit ? "  " + einzelheit : ""));
-    // Nur die letzten hundert. Drei Minuten gesperrter Bildschirm
-    // ergeben sonst eine Liste, die niemand abliest.
-    if(this.ereignisse.length > 100) this.ereignisse.shift();
-    const feld = $("versuchzeilen");
-    if(feld) feld.textContent = this.ereignisse.slice().reverse().join("\n");
-  },
-};
-
-/* ============================================================
-   Versuch C: der durchgehende Strom
-   ------------------------------------------------------------
-   Ein audio-Element, eine Quelle, kein Ende. Alles, was hier
-   passiert, passiert nur mit ?versuch=strom.
-   ============================================================ */
-const Strom = {
-  /* Wie weit hinter dem Live-Punkt der Ton laufen SOLL.
-     Nicht null: ein Puffer von null heisst Leerlauf beim ersten
-     Ruckler, und ein Leerlauf kostet in Firefox rund fuenf
-     Sekunden -- gemessen auf dem Galaxy Z Fold 7, wo genau dieser
-     Kreislauf den Ton zerhackte.
-
-     DREI SEKUNDEN, und zwar aus dem Feldbefund, nicht aus einer
-     Messung am Schreibtisch. Im Protokoll des Handys folgte auf
-     jeden Abstand von 0,0 nach zwei bis sechs Sekunden ein
-     "waiting" -- das ist die Luecke zwischen zwei Abschnitten, in
-     der nur Stille laeuft und nichts nachkommt, plus der Zappelei
-     des WLAN. Drei Sekunden decken diese Luecke.
-
-     Die Rechnung ist unsymmetrisch: ein Ziel zwei Sekunden zu hoch
-     kostet zwei Sekunden Verzoegerung, die niemand bemerkt. Ein
-     Ziel eine Sekunde zu niedrig kostet einen Leerlauf, und der
-     kostet fuenf Sekunden Stille mitten im Satz. Im Zweifel also
-     hoeher.
-
-     Am Schreibtisch liess sich das NICHT entscheiden: headless
-     Firefox ohne Tonausgabe laesst seine Medienuhr nur mit 87
-     Prozent der Echtzeit laufen, und damit schliesst sich der
-     Abstand nie, egal bei welchem Ziel. Messbar ist es nur auf
-     einem echten Geraet -- dafuer gibt es &ziel= (siehe unten) und
-     den Abschnitt in AUFSTELLEN.md. */
-  ZIEL: 3.0,
-  // Sechs Prozent schneller. Das holt eine Sekunde in gut sechzehn
-  // Sekunden auf. Mehr hoert man.
-  TEMPO: 1.06,
-  // Drei Prozent langsamer, um den Puffer wieder aufzubauen. Nach
-  // unten vorsichtiger als nach oben: zu viel Puffer kostet
-  // Verzoegerung, zu wenig kostet eine Luecke mitten im Satz.
-  BREMSE: 0.97,
-  // Darueber holt kein Tempo mehr auf -- dann hat die Seite lange
-  // stillgestanden, und es bleibt nur der Sprung.
-  NOTFALL: 15.0,
-
-  spieler: null,
-  sprache: null,
-  versuche: 0,
-  wachUhr: null,
-  pausiert: false,
-
-  url(sprache){
-    // Der Zufallsanhang ist kein Schmuck: ohne ihn nimmt der
-    // Browser beim Neustart denselben Eintrag aus seinem Puffer und
-    // spielt Ton von vorhin. Mit ihm ist es jedes Mal eine neue
-    // Quelle und damit der Live-Punkt.
-    // ziel= sagt dem Server, wie viele Sekunden Vorrat er beim
-    // Verbinden auf einen Schlag schicken soll. Ohne ihn faengt
-    // Firefox Android mit leerem Puffer an, und weil der Server
-    // Echtzeit liefert, entsteht danach nie einer -- jedes Zoegern
-    // des WLAN wird dann zur Luecke. Gemessen auf einem Galaxy Z
-    // Fold 7.
-    return "/strom/" + encodeURIComponent(sprache) + ".mp3?ziel="
-           + Strom.ZIEL + "&t=" + Date.now().toString(36)
-           + Math.random().toString(36).slice(2, 7);
-  },
-
-  // Muss aus einem Klick heraus aufgerufen werden.
-  starten(sprache){
-    this.sprache = sprache;
-    if(!this.spieler){
-      const a = document.createElement("audio");
-      a.setAttribute("playsinline", "");
-      a.preload = "auto";
-      for(const n of ["play", "playing", "pause", "ended", "waiting",
-                      "stalled", "suspend", "error", "emptied"])
-        a.addEventListener(n, () => {
-          Versuch.merken(n, n === "error"
-            ? String((a.error && a.error.code) || "?") : "");
-          this._lage();
-          // ended darf es hier gar nicht geben. Wenn doch, ist der
-          // Strom abgerissen -- dann neu, am Live-Punkt.
-          if(n === "ended" || n === "error") this.neu("nach " + n);
-        });
-      this.spieler = a;
-    }
-    this.versuche = 0;
-    this._anwerfen();
-    this._wachen();
-  },
-
-  _anwerfen(){
-    const a = this.spieler;
-    if(!a || !this.sprache) return;
-    a.src = this.url(this.sprache);
-    a.playbackRate = 1.0;
-    a.load();
-    Versuch.merken("quelle", this.sprache);
-    a.play().then(() => {
-      this.versuche = 0;
-      this.pausiert = false;
-      this._lage();
-      // WAS WIRKLICH GILT, als erste Zeile nach dem Start.
-      //
-      // Nicht was in der Adresse stand, sondern was angekommen ist:
-      // das Ziel, mit dem die Regel rechnet, und wie viele Sekunden
-      // der Server beim Verbinden tatsaechlich mitgeschickt hat.
-      // Genau diese beiden Zahlen haben beim letzten Handy-Test
-      // gefehlt -- ohne sie liess sich nicht sagen, ob das Ziel
-      // nicht ankam oder der Vorrat nicht.
-      //
-      // Erst nach kurzer Zeit: vorher steht im Puffer noch nichts.
-      setTimeout(() => {
-        if(!this.spieler) return;
-        const b = this.spieler.buffered;
-        const v = b && b.length ? b.end(b.length - 1) : 0;
-        Versuch.merken("ziel " + Strom.ZIEL + " s, vorrat "
-                       + v.toFixed(1) + " s erhalten",
-                       v + 0.2 < Strom.ZIEL ? "(weniger als das Ziel)" : "");
-      }, 700);
-    }).catch((e) => {
-      Versuch.merken("play() abgelehnt", String(e && e.name || e));
-      this.neu("play abgelehnt");
-    });
-  },
-
-  // Neu verbinden mit wachsender Wartezeit. Ein Handy, das gerade
-  // aus dem Netz gefallen ist, soll nicht zwanzigmal je Sekunde
-  // anklopfen -- und wenn es wieder da ist, nicht erst in einer
-  // Minute.
-  neu(grund){
-    if(!zustand.laeuft || this.pausiert) return;
-    if(this._wartet) return;
-    const warte = Math.min(8000, 300 * Math.pow(2, this.versuche++));
-    Versuch.merken("neu in " + warte + " ms", grund);
-    this._wartet = setTimeout(() => {
-      this._wartet = null;
-      this._anwerfen();
-    }, warte);
-  },
-
-  // Wie weit liegt der Ton hinter dem Live-Punkt? Der Puffer reicht
-  // bis dorthin, wo der Server gerade ist; currentTime sagt, wo das
-  // Element spielt.
-  abstand(){
-    const a = this.spieler;
-    if(!a || !a.buffered || !a.buffered.length) return 0;
-    return Math.max(0, a.buffered.end(a.buffered.length - 1)
-                       - a.currentTime);
-  },
-
-  /* AUFHOLEN OHNE SPRUNG.
-     0.4.4 sprang an den Live-Punkt. Auf einem Galaxy Z Fold 7 mit
-     Firefox ergab das einen Kreislauf, und das Tonprotokoll zeigte
-     ihn Zeile fuer Zeile:
-
-         aufgeholt 4.3 s -> abstand 0.0 -> nach 2 bis 6 s waiting
-         -> abstand 4.3 bis 5.3 -> wieder aufgeholt
-
-     Der Sprung leert den Puffer. Firefox puffert nach jedem
-     Leerlauf wieder rund fuenf Sekunden, und der naechste Sprung
-     wirft genau diese fuenf Sekunden weg. Der Ton setzte an und
-     brach ab.
-
-     Jetzt wird nicht gesprungen, sondern schneller gespielt: sechs
-     Prozent, mit erhaltener Tonhoehe. Das holt eine Sekunde in gut
-     sechzehn Sekunden auf, ohne den Puffer anzufassen -- und
-     niemand hoert es.
-
-     Ein Sprung bleibt als NOTFALL fuer den Fall, dass die Seite
-     lange eingefroren war: ueber fuenfzehn Sekunden Abstand holt
-     kein Tempo mehr auf. Er geht dann auf das ZIEL, nicht auf null
-     -- sonst beginnt der Kreislauf von vorn. */
-  _wachen(){
-    if(this.wachUhr) return;
-    this.wachUhr = setInterval(() => {
-      if(!zustand.laeuft || !this.spieler) return;
-      const a = this.spieler;
-      const d = this.abstand();
-      Versuch.merken("abstand", d.toFixed(1) + " s"
-        + (a.paused ? "  (pausiert)" : "")
-        + (a.playbackRate !== 1 ? "  x" + a.playbackRate : ""));
-      if(a.paused) return;
-
-      // Notfall: so weit hinterher, dass Tempo es nicht mehr holt.
-      if(d > Strom.NOTFALL){
-        const ziel = a.buffered.end(a.buffered.length - 1) - Strom.ZIEL;
-        const vorher = a.currentTime;
-        try{ a.currentTime = Math.max(0, ziel); }catch(e){}
-        this._rate(1.0);
-        setTimeout(() => {
-          if(!this.spieler) return;
-          if(Math.abs(this.spieler.currentTime - vorher) < 0.2){
-            Versuch.merken("Notsprung ging nicht, neue Quelle", "");
-            this.versuche = 0;
-            this._anwerfen();
-          }else{
-            Versuch.merken("Notsprung", d.toFixed(1) + " s -> "
-                           + Strom.ZIEL + " s");
-          }
-        }, 400);
-        return;
-      }
-
-      this._takt(d);
-    }, 2000);
-  },
-
-  /* Die eine Entscheidung, an einer Stelle.
-     Sie steht als eigene Methode da, damit der Pruefstand sie
-     AUFRUFEN kann statt sie nachzubauen. Eine nachgebaute Regel im
-     Pruefstand prueft irgendwann die Vergangenheit.
-
-     Schneller, wenn der Abstand zu gross wird. Langsamer, wenn er
-     zu klein wird -- das ist der Kern: faellt der Abstand auf null,
-     ist der Puffer leer, und der naechste Ruckler ist ein Leerlauf.
-     Drei Prozent langsamer bauen ihn wieder auf, und niemand hoert
-     es.
-
-     Die untere Grenze SKALIERT mit dem Ziel: bei 0,5 s Ziel waere
-     "eine Sekunde darunter" negativ, die Bremse griffe nie. Die
-     Haelfte des Ziels ist bei jedem Wert dasselbe Verhaeltnis. Nach
-     oben bleibt es bei einer halben Sekunde -- dort geht es um
-     Verzoegerung, nicht um Leerlauf, und die waechst nicht mit dem
-     Ziel. */
-  _takt(d){
-    if(d > Strom.ZIEL + 0.5) this._rate(Strom.TEMPO);
-    else if(d < Strom.ZIEL - Strom.ZIEL / 2) this._rate(Strom.BREMSE);
-    else this._rate(1.0);
-  },
-
-  _rate(r){
-    const a = this.spieler;
-    if(!a || a.playbackRate === r) return;
-    // Ohne das klingt schnelleres Abspielen nach Micky Maus.
-    try{ a.preservesPitch = true; a.mozPreservesPitch = true;
-         a.webkitPreservesPitch = true; }catch(e){}
-    a.playbackRate = r;
-    Versuch.merken("Tempo " + r, this.abstand().toFixed(1) + " s");
-  },
-
-  _lage(){
-    if(!("mediaSession" in navigator) || !this.spieler) return;
-    navigator.mediaSession.playbackState =
-      this.spieler.paused ? "paused" : "playing";
-  },
-
-  pause(){
-    this.pausiert = true;
-    if(this.spieler){ try{ this.spieler.pause(); }catch(e){} }
-    Versuch.merken("Mediensteuerung", "pause");
-    this._lage();
-  },
-
-  weiter(){
-    // Nach einer Pause NICHT im alten Puffer weiterspielen: dort
-    // steht, was vor der Pause war. Neu am Live-Punkt.
-    this.pausiert = false;
-    Versuch.merken("Mediensteuerung", "play");
-    this.versuche = 0;
-    this._anwerfen();
-  },
-
-  wechseln(sprache){
-    this.sprache = sprache;
-    this.versuche = 0;
-    this._anwerfen();
-  },
-
-  leeren(){
-    if(this._wartet){ clearTimeout(this._wartet); this._wartet = null; }
-    if(this.wachUhr){ clearInterval(this.wachUhr); this.wachUhr = null; }
-    if(this.spieler){
-      try{ this.spieler.pause(); this.spieler.removeAttribute("src");
-           this.spieler.load(); }catch(e){}
-    }
-  },
-};
-
 const Ton = {
   spieler: null,
   schlange: [],
   spielt: false,
-  stillLaeuft: false,
   hoechstens: 6,
   verworfen: 0,
 
@@ -1725,24 +1243,10 @@ const Ton = {
     a.play().catch(() => {});
     a.addEventListener("ended", () => this._fertig());
     a.addEventListener("error", () => this._fertig());
-    // Im Versuch wird jedes Ereignis des Elements mitgeschrieben --
-    // auf der Seite, nie an den Server. Danach laesst sich ablesen,
-    // wann es stehen blieb und woran.
-    if(Versuch.stille){
-      for(const n of ["play", "playing", "pause", "ended", "waiting",
-                      "stalled", "suspend", "error"])
-        a.addEventListener(n, () => Versuch.merken(n,
-          this.stillLaeuft ? "(Stille)" : ""));
-    }
     this.spieler = a;
   },
 
   einreihen(url, id){
-    // Im Versuch C kommt der Ton als durchgehender Strom. Die
-    // Haeppchen werden dann gar nicht erst abgerufen -- sie waeren
-    // dasselbe ein zweites Mal, und jedes Abspielen davon brauchte
-    // ein Ende.
-    if(Versuch.strom) return;
     if(!url || !zustand.tonAn || !this.spieler) return;
     this.schlange.push({url: url, id: id});
     Messung.zeile("empfangen", id);
@@ -1764,42 +1268,20 @@ const Ton = {
       Messung.zeile("geleert", this.schlange.length);
     this.schlange = [];
     if(this.spieler){
-      try{ this.spieler.loop = false; this.spieler.pause(); }catch(e){}
+      try{ this.spieler.pause(); }catch(e){}
     }
     this.spielt = false;
-    this.stillLaeuft = false;
   },
 
   _weiter(){
     if(this.spielt || !zustand.tonAn) return;
-    if(!this.schlange.length){ this._stille(); return; }
+    if(!this.schlange.length) return;
     const h = this.schlange.shift();
     this.spielt = true;
-    this.stillLaeuft = false;
     this.laeuftId = h.id;
-    this.spieler.loop = false;
     this.spieler.src = h.url;
     Messung.start(h.id);
-    Versuch.merken("haeppchen", String(h.id));
-    this.spieler.play().catch((e) => {
-      Versuch.merken("play() abgelehnt", String(e && e.name || e));
-      this._fertig();
-    });
-  },
-
-  // Nur im Versuch: statt stehenzubleiben, Stille in Schleife. Das
-  // Element pausiert damit nie, und die Audiositzung des Systems
-  // bleibt bestehen -- das ist die ganze Vermutung, die hier
-  // gemessen wird.
-  _stille(){
-    if(!Versuch.stille || this.stillLaeuft || !this.spieler) return;
-    this.stillLaeuft = true;
-    this.spieler.loop = true;
-    this.spieler.src = Versuch.stilleUrl();
-    this.spieler.play().catch((e) => {
-      this.stillLaeuft = false;
-      Versuch.merken("Stille abgelehnt", String(e && e.name || e));
-    });
+    this.spieler.play().catch(() => this._fertig());
   },
 
   _fertig(){
@@ -1837,10 +1319,6 @@ function spracheWechseln(neu){
   if(neu === zustand.sprache) return;
   Verbindung.trennen();
   Ton.leeren();
-  // Der Strom haengt an der Sprache: eine andere Sprache ist eine
-  // andere Quelle. Das ist einer der drei Faelle, in denen die
-  // Quelle ueberhaupt wechselt.
-  if(Versuch.strom) Strom.wechseln(neu);
 
   // Der halbfertige Abschnitt wird VERWORFEN, nicht ausgegeben.
   // abschnittSchliessen() in trennen() hat ihn eben noch geschrieben;
@@ -1955,11 +1433,7 @@ function fahneZeigen(text){
 function tonSchalten(an){
   zustand.tonAn = an;
   $("w-ton").setAttribute("aria-pressed", String(an));
-  if(Versuch.strom){
-    if(an) Strom.weiter(); else Strom.pause();
-  }else if(!an){
-    Ton.leeren();
-  }
+  if(!an) Ton.leeren();
   beschriftungenSetzen();
 }
 
@@ -1996,7 +1470,6 @@ function startauswahlBauen(){
     }
   });
 }
-Versuch.starten();
 startauswahlBauen();
 
 // Die tatsächlich angebotenen Sprachen kommen vom Server. Bis die Antwort
@@ -2008,10 +1481,9 @@ sprachenHolen().then(() => {
 $("starten").addEventListener("click", async () => {
   if(!zustand.sprache) return;
 
-  // Beides muss in der Klickgeste passieren: ohne eine echte
-  // Nutzergeste spielt weder ein Haeppchen noch ein Strom.
-  if(Versuch.strom) Strom.starten(zustand.sprache);
-  else Ton.freischalten();
+  // Muss in der Klickgeste passieren: ohne eine echte Nutzergeste
+  // spielt kein Haeppchen.
+  Ton.freischalten();
   const tonBereit = await tonFreischalten();
   const wach = await bildschirmWachhalten();
 
@@ -2224,7 +1696,6 @@ for(const kennung of ["dankblatt", "postblatt", "wechsel"]){
 $("zurueck").addEventListener("click", () => {
   Verbindung.trennen();
   Ton.leeren();
-  if(Versuch.strom) Strom.leeren();
   zustand.laeuft = false;
   $("strom").innerHTML =
     '<p class="leerlauf" id="leerlauf"></p>';
