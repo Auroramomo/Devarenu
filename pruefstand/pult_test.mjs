@@ -12,7 +12,7 @@
 //
 // Der zweite Teil (--bilder) rendert das Pult mit Attrappendaten in den
 // Geraetegroessen und misst, ob der Reiter Gottesdienst ohne Scrollen
-// passt. Er braucht firefox und schreibt NUR nach /tmp/devarenu_pult/,
+// passt. Er braucht firefox und schreibt NUR nach .tmp/pultbilder/,
 // nie ins Repo.
 
 import { readFileSync } from "node:fs";
@@ -924,7 +924,7 @@ if (process.argv.includes("--bilder")) {
   const { bilderMachen } = await import("./pultbilder.mjs");
   fehler += await bilderMachen(ZUSTAENDE, { ZUSTAND_LEER, PEGEL_LEER });
 } else {
-  console.log("\n(Die Geraetegroessen und die Bilder nach /tmp/devarenu_pult/"
+  console.log("\n(Die Geraetegroessen und die Bilder nach .tmp/pultbilder/"
             + " nur mit --bilder.)");
 }
 

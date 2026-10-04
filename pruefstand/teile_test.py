@@ -267,3 +267,70 @@ if _stueckel_fehler:
     print(f"\033[31m{_stueckel_fehler} Fehler beim Stueckeln.\033[0m")
     sys.exit(1)
 print("\033[32mStueckeln: alle Faelle wie erwartet.\033[0m")
+
+
+# ---------------------------------------------------------------------
+# Der Stick nimmt, was in teile.json STEHT -- nicht, was auf der
+# Platte liegt.
+#
+# Die Frage dahinter ist keine Kleinigkeit: liefe es andersherum,
+# wuerde eine Stimme, die aus config.STIMMEN herausgenommen wurde,
+# von jedem bestehenden Rechner weiterverteilt -- ihre Datei liegt
+# dort ja noch. Genau das waere bei ka_GE-natia-medium und
+# ar_JO-kareem-medium (0.4.5, Lizenz) der Fehler gewesen.
+#
+# Bis 0.4.1 war es auch so: erfassen() sammelte alles unter voices/
+# ein. Seit 0.4.2 zaehlt es auf. Dieser Abschnitt haelt fest, dass es
+# dabei bleibt.
+def stick_nimmt_nur_erfasstes():
+    fehler = 0
+
+    def pr(was, erwartet, ist):
+        nonlocal fehler
+        if erwartet == ist:
+            print(f"   ok    {was}")
+        else:
+            fehler += 1
+            print(f"   FEHLER {was}: erwartet {erwartet!r}, ist {ist!r}")
+
+    print("\n=== 9) Der Stick nimmt nur, was erfasst ist")
+    # Sauber aufsetzen: die Abschnitte davor haben teile.json von Hand
+    # um Eintraege erweitert, die auf dieser Platte gar nicht liegen.
+    assert teile.erfassen() == 0
+
+    # Eine Stimme, die auf der Platte liegt und NICHT in teile.json
+    # steht -- so sieht ein Rechner aus, auf dem eine herausgenommene
+    # Stimme noch herumliegt.
+    schreib(platte / "stimmen" / "verboten.onnx", "stimme-ohne-lizenz")
+    schreib(platte / "stimmen" / "verboten.onnx.json", "{}")
+    pr("sie liegt wirklich auf der Platte", True,
+       (platte / "stimmen" / "verboten.onnx").exists())
+    d = json.loads(teile.DATEI.read_text())
+    pr("und steht nicht in teile.json", [],
+       [e["pfad"] for e in d["teile"] if "verboten" in e["pfad"]])
+
+    stick2 = ord_ / "stick-nur-erfasstes"
+    pr("auf_stick geht durch", 0, teile.auf_stick(str(stick2), voll=True))
+    gelandet = sorted(p.name for p in (stick2 / "stimmen").glob("*"))
+    pr("auf dem Stick liegt nur die erfasste Stimme", ["de.onnx"], gelandet)
+    pr("die unerfasste ist NICHT mitgekommen", False,
+       (stick2 / "stimmen" / "verboten.onnx").exists())
+
+    # Und erfassen() holt sie auch nicht nachtraeglich herein: es
+    # zaehlt auf, was eingestellt ist, statt den Ordner zu lesen.
+    assert teile.erfassen() == 0
+    d2 = json.loads(teile.DATEI.read_text())
+    pr("erfassen() nimmt sie auch nicht auf", [],
+       [e["pfad"] for e in d2["teile"] if "verboten" in e["pfad"]])
+
+    (platte / "stimmen" / "verboten.onnx").unlink()
+    (platte / "stimmen" / "verboten.onnx.json").unlink()
+    return fehler
+
+
+_stick_fehler = stick_nimmt_nur_erfasstes()
+print()
+if _stick_fehler:
+    print(f"\033[31m{_stick_fehler} Fehler beim Stick.\033[0m")
+    sys.exit(1)
+print("\033[32mStick: alle Faelle wie erwartet.\033[0m")

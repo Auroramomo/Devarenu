@@ -3,7 +3,7 @@
 //     node pruefstand/pult_test.mjs --bilder
 //
 // Gerendert wird mit firefox --headless. Die Bilder gehen nach
-// /tmp/devarenu_pult/ und NIE ins Repo: ein Bildschirmfoto je Zustand
+// .tmp/pultbilder/ und NIE ins Repo: ein Bildschirmfoto je Zustand
 // und Groesse waeren vierzig Dateien, die bei jeder Aenderung anders
 // aussehen und trotzdem niemandem sagen, ob etwas kaputt ist.
 //
@@ -21,13 +21,17 @@
 
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync,
          copyFileSync, existsSync } from "node:fs";
-import { tmpdir } from "node:os";
+
 import { join } from "node:path";
 import { execFile, execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import { pultLesen } from "./pultnachbau.mjs";
 
-export const AUSGABE = "/tmp/devarenu_pult";
+// Alles Fluechtige bleibt im Arbeitsordner. .tmp steht in .gitignore
+// und ist genau dafuer da; /tmp liegt ausserhalb und ist bei jedem
+// Zugriff eine Rueckfrage.
+export const AUSGABE = new URL("../.tmp/pultbilder", import.meta.url).pathname;
+const ZWISCHEN = new URL("../.tmp/pultbilder/bau", import.meta.url).pathname;
 
 // Breite, Hoehe, Name. Hoch und einmal quer, dazu ein Tablet und der
 // Laptop. 320x568 ist das kleinste Geraet, mit dem im Saal zu rechnen
@@ -132,8 +136,9 @@ export async function bilderMachen(zustaende, { ZUSTAND_LEER, PEGEL_LEER }) {
     return 1;
   }
   mkdirSync(AUSGABE, { recursive: true });
-  const profil = mkdtempSync(join(tmpdir(), "devarenu-ff-"));
-  const arbeit = mkdtempSync(join(tmpdir(), "devarenu-pult-"));
+  mkdirSync(ZWISCHEN, { recursive: true });
+  const profil = mkdtempSync(join(ZWISCHEN, "ff-"));
+  const arbeit = mkdtempSync(join(ZWISCHEN, "seiten-"));
   const server = new URL("../server.py", import.meta.url).pathname;
   // Dieselbe Datei, die /logo.png im Betrieb ausliefert. Fehlt sie,
   // faellt das Logo still weg -- auch hier, und das ist richtig so.
