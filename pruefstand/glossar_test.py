@@ -104,7 +104,13 @@ titel("2) en, ru und fa sind unverändert -- der Vergleichslauf")
 #       "Prophetie = prophecy" vor. Jetzt steht der ganze Begriff da:
 #       "Geist der Prophetie = Spirit of Prophecy". Das ist der Zweck
 #       der Variante.
-ERLAUBT = ["Geist der Weissagung"]
+#   "Prediger" (0.4.2 Nachbesserung, A021 gegen D028)
+#       "Prediger" heisst das Bibelbuch UND die Person. Bis dahin
+#       gewann immer das Buch: "this Ecclesiastes wanted to preach".
+#       A021 greift jetzt nur noch im Stellenzusammenhang, sonst
+#       D028. Die Uebersetzungen beider Zeilen sind unberuehrt --
+#       geprueft in pruefstand/prediger_test.py.
+ERLAUBT = ["Geist der Weissagung", "Prediger", "Pred "]
 abweichungen, fremd = vergleichen_ausser(ALT, NEU, ["en", "ru", "fa"],
                                          ERLAUBT)
 pruefe("keine Sprache hat sich unerlaubt geändert", 0, fremd)
@@ -132,11 +138,29 @@ gewachsen = [
     and set(filter(None, (alt_zeilen[i].get(k) or "").split("|")))
         <= set(filter(None, (neu_zeilen[i].get(k) or "").split("|")))
 ]
-pruefe("keine alte Zelle angefasst ausser gewachsenen Suchvarianten",
-       [], [x for x in unterschiede if x not in gewachsen])
+# Zwei Zeilen duerfen Suchvarianten auch VERLIEREN: A021 und D028
+# teilen sich das Wort "Prediger", und die Kollision laesst sich nur
+# aufloesen, indem eine der beiden die blosse Form abgibt. Was dabei
+# NICHT angefasst werden darf, sind die Uebersetzungen -- und genau
+# das steht unten.
+UMGEHAENGT = {"A021", "D028"}
+erlaubt_leer = [(i, k) for i, k in unterschiede
+                if i in UMGEHAENGT and k in ("suchvarianten", "anmerkung")]
+pruefe("keine alte Zelle angefasst ausser Suchvarianten",
+       [], [x for x in unterschiede
+            if x not in gewachsen and x not in erlaubt_leer])
 if gewachsen:
     print("        (Suchvarianten ergaenzt: "
           + ", ".join(i for i, _ in gewachsen) + ")")
+if erlaubt_leer:
+    print("        (Prediger-Kollision umgehaengt: "
+          + ", ".join(sorted({i for i, _ in erlaubt_leer})) + ")")
+# Die Werte dieser beiden Zeilen muessen Zeichen fuer Zeichen stehen.
+werte = [k for k in spalten_alt
+         if k not in ("suchvarianten", "anmerkung")]
+pruefe("und an A021/D028 keine Uebersetzung geaendert", [],
+       [(i, k) for i in UMGEHAENGT for k in werte
+        if (alt_zeilen[i].get(k) or "") != (neu_zeilen[i].get(k) or "")])
 pruefe("keine alte Zeile verschwunden", [],
        [i for i in alt_zeilen if i not in neu_zeilen])
 
