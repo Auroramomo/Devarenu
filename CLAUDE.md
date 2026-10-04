@@ -1,5 +1,11 @@
 # Arbeitsregeln für Claude in diesem Repo
 
+## Commits
+
+Keine `Co-Authored-By`-Zeile und keine sonstige Zuschreibung an Claude,
+weder in Commit-Nachrichten noch in PR-Beschreibungen. Claude ist hier
+ein Werkzeug, kein Autor.
+
 ## Dateien ändern
 
 Dateien **nur** mit dem Edit- oder Write-Werkzeug ändern. Nie per
