@@ -567,7 +567,19 @@ fi
 # Haben sich venv oder grosse Teile geaendert, kommt der Selbsttest
 # dazu. Er dauert Minuten -- das ist hier egal: eingespielt wird nur,
 # wenn niemand zuhoert.
-if [ "$VENV_GEWECHSELT" = ja ] || [ -f "$ORDNER/teile.json" ]; then
+#
+# Bis 0.4.1 hiess die Bedingung "[ -f teile.json ]", also "dieses
+# Update bringt grosse Teile mit". Seit 0.4.2 steht die Datei IMMER
+# im Repo, und damit lief der Selbsttest nach jedem Update -- und
+# jedes Update scheiterte, wenn er aus einem beliebigen anderen
+# Grund nicht durchkam. Gefragt wird jetzt dasselbe wie damals
+# gemeint: hat sich an den grossen Teilen etwas GEAENDERT?
+TEILE_NEU=nein
+if ! als_benutzer git diff --quiet "$ALT_SHA" HEAD -- teile.json 2>/dev/null
+then
+  TEILE_NEU=ja
+fi
+if [ "$VENV_GEWECHSELT" = ja ] || [ "$TEILE_NEU" = ja ]; then
   info "venv oder grosse Teile geaendert -- Selbsttest laeuft mit."
   if ! als_benutzer "$PY_AKTIV" "$ORDNER/selbsttest.py" >/dev/null 2>&1; then
     fehl "Der Selbsttest schlaegt fehl."
@@ -587,7 +599,10 @@ if [ "$VENV_GEWECHSELT" = ja ]; then
     gut "$ALT_VENV entfernt"
   fi
 fi
-if [ -f "$ORDNER/teile.json" ]; then
+# Nur, wenn tatsaechlich etwas beiseitegelegt wurde. Dieselbe
+# Verwechslung wie oben: "teile.json da" heisst nicht mehr "es wurde
+# eingespielt".
+if [ -d "$SICHERUNG/teile" ]; then
   als_benutzer "$PY_AKTIV" "$ORDNER/teile.py" --aufraeumen \
     --sicherung "$SICHERUNG/teile" 2>/dev/null \
     && gut "alte grosse Teile entfernt"

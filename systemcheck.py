@@ -1131,8 +1131,18 @@ def _stimmen(befunde):
     if not fehlend:
         return
     liste = ", ".join(sorted(fehlend))
+    # HINWEIS, nicht FEHLT -- und das ist eine Entscheidung mit
+    # Narben. Mit FEHLT rollte der Gesundheitscheck nach JEDEM Update
+    # zurueck: er wertet einen neuen FEHLT-Befund als "der Rechner
+    # ist nach dem Update nicht gesund". Eine Gemeinde, der eine
+    # Stimme fehlt, haette damit nie wieder ein Update bekommen --
+    # und ausgerechnet das Update haette die Stimme mitgebracht.
+    #
+    # Es passt auch zur Einteilung dieser Datei: FEHLT heisst "der
+    # Betrieb ist gefaehrdet". Ohne Stimme laeuft die Sprache als
+    # Untertitel weiter. Das ist schlechter, aber es laeuft.
     befunde.append(Befund(
-        "stimme_fehlt", FEHLT,
+        "stimme_fehlt", HINWEIS,
         f"Zu {liste} ist die Stimme nicht da. Diese Sprache laeuft am "
         f"Sonntag als Untertitel, ohne Ton.",
         "Vom Stick:  python teile.py --einspielen --quelle <Stick>/teile "

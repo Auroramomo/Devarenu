@@ -434,7 +434,25 @@ def aus_dem_netz(nur_stimmen=True):
     if not noetig:
         return 1 if andere else 0
 
+    # Kein Netz? Dann gar nicht erst anfangen. 21 Stimmen mal zwei
+    # Minuten Zeitgrenze sind fast eine Stunde, in der ein Rechner
+    # ohne Leitung nichts tut als warten -- und das im
+    # Wartungsfenster, in dem er danach wieder schlafen soll.
+    #
+    # DEVARENU_KEIN_NETZ=1 schaltet es ausdruecklich ab. Der
+    # Pruefstand setzt es: er soll beweisen, dass ein Update OHNE
+    # Netz durchlaeuft, und nicht zehn Gigabyte ziehen.
+    import os
     import urllib.request
+    if os.environ.get("DEVARENU_KEIN_NETZ"):
+        print("  Kein Netz (DEVARENU_KEIN_NETZ). Es wird nichts geholt.")
+        return 1
+    try:
+        urllib.request.urlopen(PIPER_BASIS, timeout=8).close()
+    except Exception as fehler:
+        print(f"  Der Piper-Vorrat ist nicht erreichbar "
+              f"({type(fehler).__name__}). Es wird nichts geholt.")
+        return 1
     wurzel = orte()["stimmen"]
     wurzel.mkdir(parents=True, exist_ok=True)
     geholt, misslungen = 0, []

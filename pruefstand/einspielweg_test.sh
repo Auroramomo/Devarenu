@@ -53,7 +53,7 @@ export PATH="$ECHT/pruefstand/attrappen:$PATH"
 
 GRUEN="\033[32m"; ROT="\033[31m"; GELB="\033[33m"; AUS="\033[0m"
 FEHLER=0
-VON="v0.3.7 v0.3.8"
+VON="v0.3.7 v0.3.8 v0.4.1"
 
 aufraeumen() {
   for t in $VON; do
@@ -96,9 +96,10 @@ for t in $VON; do
     || { printf "   ${ROT}FEHL${AUS}  worktree fuer %s ging nicht\n" "$t"
          exit 1; }
 done
-pruefe "beide alten Baeume liegen da" "ja" \
+pruefe "alle alten Baeume liegen da" "ja" \
   "$([ -f "$BASIS/baum-v0.3.7/aktualisieren.sh" ] \
-    && [ -f "$BASIS/baum-v0.3.8/aktualisieren.sh" ] && echo ja || echo nein)"
+    && [ -f "$BASIS/baum-v0.3.8/aktualisieren.sh" ] \
+    && [ -f "$BASIS/baum-v0.4.1/aktualisieren.sh" ] && echo ja || echo nein)"
 # Der Beweis, dass es wirklich die ALTEN Dateien sind: 0.3.7 kennt den
 # schluesselweisen Vergleich von zustand.json noch nicht.
 pruefe "v0.3.7 hat noch die alte zustand-Pruefung" "nein" \
@@ -109,7 +110,7 @@ pruefe "v0.3.8 hat sie schon" "ja" \
      && echo ja || echo nein)"
 
 # ------------------------------------------------- Das Fernrepo bauen
-titel "1) Ein Fernrepo mit drei echten Baeumen"
+titel "1) Ein Fernrepo mit vier echten Baeumen"
 SCHLUESSEL="$BASIS/freigabe"
 ssh-keygen -q -t ed25519 -N "" -C einspielweg -f "$SCHLUESSEL"
 FERN="$BASIS/fern"
@@ -140,6 +141,18 @@ baum_hinein() {  # $1 Quellordner, $2 Fassung, $3 Tag
   # Gemeinderechner im Commit steht.
   echo "pruef@pruefstand $(cat "$SCHLUESSEL.pub")" \
     > "$FERN/schluessel.erlaubt"
+  # DER SELBSTTEST IST EINE ATTRAPPE, wie sudo und systemctl.
+  #
+  # Er laedt Whisper, Piper und das Sprachmodell -- zusammen zehn
+  # Gigabyte, von denen in diesem Wegwerfordner nichts liegt. Seit
+  # 0.4.2 laeuft er bei jedem Update, das teile.json aendert, und das
+  # tut der Weg hierher. Ohne Attrappe scheiterte jeder Lauf an
+  # etwas, das dieser Pruefstand gar nicht prueft.
+  #
+  # Geprueft wird dafuer, DASS die Kette ihn aufruft: unten steht
+  # "der Selbsttest lief mit".
+  printf '#!/usr/bin/env python3\nimport sys\nprint("Attrappe")\nsys.exit(0)\n' \
+    > "$FERN/selbsttest.py"
   git -C "$FERN" add -A >/dev/null 2>&1
   git -C "$FERN" commit -q -m "$2" >/dev/null 2>&1
   git -C "$FERN" tag -s "$3" -m "Devarenu $2" >/dev/null 2>&1
@@ -147,6 +160,9 @@ baum_hinein() {  # $1 Quellordner, $2 Fassung, $3 Tag
 
 baum_hinein "$BASIS/baum-v0.3.7" "0.3.7" "v0.3.7"
 baum_hinein "$BASIS/baum-v0.3.8" "0.3.8" "v0.3.8"
+# v0.4.1 ist die letzte Fassung OHNE teile.json im Repo. Der Weg von
+# dort auf 0.4.2 ist der, den die Gemeinde als naechstes geht.
+baum_hinein "$BASIS/baum-v0.4.1" "0.4.1" "v0.4.1"
 # Der neue Stand: das Arbeitsverzeichnis, so wie es jetzt ist.
 baum_hinein "$ECHT" "$NEU" "v$NEU"
 
@@ -154,7 +170,7 @@ baum_hinein "$ECHT" "$NEU" "v$NEU"
 # allowedSignersFile. Hier geht es nur darum, DASS eine Signatur im
 # Tag-Objekt steht -- geprueft wird sie unten von aktualisieren.sh,
 # und das ist der Punkt des Laufs.
-for t in v0.3.7 v0.3.8 "v$NEU"; do
+for t in v0.3.7 v0.3.8 v0.4.1 "v$NEU"; do
   pruefe "$t traegt eine Signatur" "ja" \
     "$(git -C "$FERN" cat-file -p "$t" 2>/dev/null \
        | grep -q 'BEGIN SSH SIGNATURE' && echo ja || echo nein)"
@@ -208,8 +224,31 @@ durchlauf() {
   # Die Ablage wie im Feld: durchgehbar, aber nicht auflistbar.
   mkdir -p "$d"; chmod 711 "$d"
 
-  # OHNE HOME: ein root-Dienst bringt keines mit, und git braucht es.
-  # Genau daran hing devarenu-update.service bis 0.2.12.
+  # MIT HOME, seit 0.4.2 -- und das ist keine Nachlaessigkeit,
+  # sondern die Lage im Feld.
+  #
+  # Bis hierher lief dieser Fall mit "env -u HOME": ein root-Dienst
+  # bringt keines mit, und git braucht es. Genau daran hing
+  # devarenu-update.service bis 0.2.12. Seit 0.4.0 steht in JEDER
+  # Unit-Vorlage "Environment=HOME=/root" -- der Dienst hat also
+  # eines, und ein Lauf ohne HOME prueft eine Welt, die das Projekt
+  # nicht mehr ausliefert.
+  #
+  # Es kostete ausserdem jedes Mal dasselbe: die ALTEN systemcheck.py
+  # aus v0.3.7 und v0.3.8 fragen kreadconfig6 nach den
+  # Energieeinstellungen, und ohne HOME loest "$HOME/.config" zu
+  # "//.config" auf. kreadconfig6 beschwert sich darueber auf dem
+  # TERMINAL -- weder "2>/dev/null" noch capture_output noch setsid
+  # halten das auf, weil die Meldung nicht durch die umgeleiteten
+  # Kanaele geht. Wer den Prueflauf fuhr, bekam sie quer ueber den
+  # Schirm, jedes Mal.
+  #
+  # Zwei Riegel, beide im Wegwerfordner und beide ohne eine Zeile an
+  # den alten Baeumen zu aendern:
+  #   HOME             git findet seine Einstellungen, wie im Feld
+  #   XDG_CONFIG_HOME  kreadconfig6 findet einen schreibbaren Ort
+  #                    und hat nichts mehr zu melden
+  mkdir -p "$BASIS/home-$start/.config"
   #
   # STUB_FASSUNG ist nicht Schmuck: der Gesundheitscheck fragt den
   # laufenden Dienst ueber HTTP nach seiner Fassung. Ohne die Attrappe
@@ -218,19 +257,14 @@ durchlauf() {
   # rollt zurueck. Genau das ist beim Bauen dieses Falles passiert.
   # OHNE EIGENES TERMINAL (setsid).
   #
-  # Die alte systemcheck.py fragt kreadconfig6 nach den
-  # Energieeinstellungen. Ohne HOME loest das "$HOME/.config" zu
-  # "//.config" auf und beschwert sich -- auf dem TERMINAL, nicht auf
-  # stderr. Weder "2>/dev/null" noch capture_output halten das auf;
-  # was hilft, ist kein Terminal zu haben.
-  #
-  # Behoben ist es seit 0.4.0 in systemcheck.py selbst. Dieser Lauf
-  # startet aber absichtlich die ALTE Fassung, und die bleibt alt.
-  ( cd "$ziel" && setsid env -u HOME DEVARENU_DATEN="$d" \
+  ( cd "$ziel" && setsid env HOME="$BASIS/home-$start" \
+      XDG_CONFIG_HOME="$BASIS/home-$start/.config" \
+      DEVARENU_DATEN="$d" \
       DEVARENU_UNIT_ORDNER="$BASIS/units-$start" \
       DEVARENU_UDEV_REGEL="$BASIS/udev-$start.rules" \
       STUB_LOG="$BASIS/stub-$start.log" \
       STUB_FASSUNG="$NEU" \
+      DEVARENU_KEIN_NETZ=1 \
       bash ./aktualisieren.sh 2>&1 )
 }
 
@@ -242,6 +276,26 @@ for start in $VON; do
     > "$BASIS/lauf-$start.txt"
 
   pruefe "der Lauf geht durch" "0" "$RC"
+  # SEIT 0.4.2 STEHT teile.json IMMER IM REPO.
+  #
+  # Bis dahin hiess "Datei da" so viel wie "dieses Update bringt
+  # grosse Teile mit", und aktualisierung.sh brach ab, wenn der Stick
+  # sie nicht mitbrachte. Dieser Lauf hier ist der ONLINE-Weg: es gibt
+  # gar keinen Stick. Er darf daran nicht scheitern -- und tut es
+  # auch nicht, wenn kein Netz da ist, um Fehlendes nachzuholen.
+  pruefe "teile.json liegt im neuen Stand" "ja" \
+    "$([ -f "$ZIEL/teile.json" ] && echo ja || echo nein)"
+  pruefe "das Update ohne Stick scheitert nicht daran" "nein" \
+    "$(grep -q 'Grosse Teile liessen sich nicht einspielen' \
+       "$BASIS/lauf-$start.txt" && echo ja || echo nein)"
+  pruefe "und sagt, dass etwas fehlt, statt es zu verschweigen" "ja" \
+    "$(grep -qE 'grosse Teile|Stimmen werden aus dem Netz' \
+       "$BASIS/lauf-$start.txt" && echo ja || echo nein)"
+  # teile.json ist mit 0.4.2 neu dazugekommen, also haben sich die
+  # grossen Teile geaendert -- der Selbsttest gehoert dann dazu.
+  pruefe "der Selbsttest lief mit" "ja" \
+    "$(grep -q 'Selbsttest bestanden' "$BASIS/lauf-$start.txt" \
+       && echo ja || echo nein)"
   pruefe "die Fassung steht auf $NEU" "$NEU" \
     "$(tr -d '[:space:]' < "$ZIEL/VERSION" 2>/dev/null)"
   pruefe "die Signatur wurde geprueft" "ja" \
@@ -293,10 +347,11 @@ done
 # ------------------------------------------------ Was NICHT geprueft ist
 titel "3) Was dieser Lauf NICHT prueft"
 cat <<'ENDE'
-         sudo, systemctl, pacman und udevadm laufen als Attrappe.
-         Also: dass die Units wirklich scharf werden, dass pacman die
-         Pakete findet und dass der Dienst wieder hochkommt, sagt
-         dieser Lauf NICHT.
+         sudo, systemctl, pacman, udevadm und der SELBSTTEST laufen
+         als Attrappe. Also: dass die Units wirklich scharf werden,
+         dass pacman die Pakete findet, dass der Dienst wieder
+         hochkommt und dass Whisper, Piper und das Sprachmodell
+         danach wirklich rechnen, sagt dieser Lauf NICHT.
 
          Dafuer ist die virtuelle Testmaschine da -- VM-TESTUMGEBUNG.md.
          Dort laeuft dasselbe gegen ein echtes systemd.
