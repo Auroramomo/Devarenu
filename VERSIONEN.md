@@ -4,6 +4,16 @@ Was sich für Gemeinde und Pult geändert hat. Ausführlich:
 `AENDERUNGEN.md`. Hier stehen nur die letzten Fassungen — ältere
 fallen heraus, damit dies ein Blatt bleibt.
 
+**0.4.5 — 04.10.2026**
+
+- **Eine Bedienleiste statt dreier Reihen:** Ton, Text, Dunkler,
+  Sprache, Mehr. Unter *Mehr* steht das Seltenere — die beiden
+  Rückmeldeknöpfe, *Melden* und *Zurück*. Nichts ist weggefallen.
+- **Georgisch und Arabisch ohne Stimme.** Beide laufen als reiner
+  Untertitel weiter. Grund ist die Lizenz der Stimmen; vorhandene
+  Dateien werden nicht gelöscht. Englisch, Russisch und Persisch
+  bleiben unberührt.
+
 **0.4.4 — 04.10.2026**
 
 - **Der rote Balken ist weg.** Auf jedem Handy stand dauerhaft ein
@@ -24,31 +34,15 @@ fallen heraus, damit dies ein Blatt bleibt.
   Hinweis, wenn das Sprachmodell nicht ganz auf der Karte liegt.
 - **Hörprobe** für Englisch und Russisch: drei Stimmen, blind.
 
-**0.4.2 — 04.10.2026**
-
-- **Alles vom Stick.** Stimmen, Spracherkennung und Sprachmodell
-  kommen bei Erstinstallation und Update nach Prüfsumme geprüft mit.
-  Fehlt die Stimme einer eingeschalteten Sprache, steht das am Pult.
-- **Die Statuspille ist ein Knopf.** Ein Tipp sagt, was nicht stimmt
-  und was zu tun ist. Der Briefkasten ist nur noch für Zuschriften.
-- **Zwei Knöpfe für die Zuhörer:** *verständlich* und *schwer
-  verständlich*. Gezählt wird je Sprache, ohne Gerät und Uhrzeit.
-- **Bibelstellen** auf Englisch und Russisch mit Doppelpunkt.
-
-**0.4.0 und 0.4.1 — 03.10.2026**
-
-- **Das Pult hat vier Reiter**, die Startseite passt auf einen
-  Handybildschirm. Die Mindestlautstärke hat drei Modi; Vorgabe
-  ist Aus.
-- **Spanisch und Portugiesisch** sind geprüft und am Pult wählbar.
-- **Bibelstellen stehen in der Zählung der Zielsprache.** Aus
-  „Joel 3,1" wird englisch „Joel 2:28".
-- **„Jetzt aus dem Netz aktualisieren"** als Knopf am Pult,
-  **Aufnahmen löschen** von Hand, **Sicherung auf eine Platte**.
-
-**0.2.1 bis 0.3.8 — die Anfänge**
+**0.2.1 bis 0.4.2 — die Anfänge**
 
 - Übersetzung in mehrere Sprachen zugleich, Ton und Text auf jedem
   Handy, ohne App, WLAN vom Rechner selbst. Aufnahmen nur nach
   Rückfrage. Update per Stick und aus dem Netz, signiert geprüft.
   GPLv3, DATENSCHUTZ.md, Aufnahme als MP3.
+- Mit 0.4.0 und 0.4.1: das Pult mit vier Reitern, Spanisch und
+  Portugiesisch, Bibelstellen in der Zählung der Zielsprache,
+  Aktualisieren und Sichern als Knopf am Pult.
+- Mit 0.4.2: alles vom Stick, nach Prüfsumme geprüft. Die Statuspille
+  sagt im Klartext, was fehlt. Zwei Rückmeldeknöpfe für die Zuhörer,
+  gezählt je Sprache — ohne Gerät und ohne Uhrzeit.

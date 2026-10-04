@@ -6,6 +6,83 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.4.5 — Eine Leiste, zwei Stimmen weniger
+
+*04.10.2026.*
+
+### Für alle
+
+**Die Bedienung steht in einer Leiste.** Vorher waren es neun Knöpfe in
+drei Reihen; „Zurück" und „Sprache" führten dabei beinahe zum selben
+Ziel. Jetzt fünf Einträge nebeneinander:
+
+| | |
+|---|---|
+| **Ton** | Ton an und aus |
+| **Text** | Mitlesen an und aus |
+| **Dunkler** | Bildschirm abdunkeln, zwei Stufen, zurück zu hell |
+| **Sprache** | eine andere Sprache wählen |
+| **Mehr** | alles Übrige |
+
+Unter **Mehr** steht, was seltener gebraucht wird: *verständlich* und
+*schwer verständlich*, *Melden*, *Rückmeldung* und *Zurück*. **Keine
+Funktion ist weggefallen.** Abdunkeln ist mit einem Tipp erreichbar
+geblieben — wer im dunklen Saal sitzt, soll dafür kein Blatt
+aufklappen müssen.
+
+**Georgisch und Arabisch haben keine Stimme mehr.** Beide laufen
+weiter, aber als reiner Untertitel. Der Grund ist die Lizenz der
+Stimmen, nicht ihre Qualität; Einzelheiten unten. Wer die Dateien
+schon auf dem Rechner hat, behält sie — gelöscht wird nichts.
+
+### Für die Technik
+
+* **Eine Leiste.** Die Knöpfe unter „Mehr" haben dieselben Kennungen
+  wie vorher, also auch dieselben Handler; `rueckmeldungSetzen()` und
+  `urteilZeichnen()` sind unverändert. Der Prüfstand
+  `pruefstand/fussleiste_test.mjs` zählt alle neun Funktionen einzeln
+  nach.
+* **Fünf Spalten auf 320 px sind knapp.** Die Beschriftungen sind kurz
+  gehalten und brechen nicht um. Russisch hieß „Звук выкл." und
+  „Текст выкл." und heißt jetzt „Без звука" und „Без текста". Der
+  Abdunkeln-Knopf hat zwei Wörter statt dreier: solange es dunkler
+  werden kann „Dunkler", auf der letzten Stufe „Heller".
+* **Der Abdunkler ist von 0,82 auf 0,78 zurück.** Eine schwarze Decke
+  senkt jede Leuchtdichte auf (1−d), im Kontrastbruch steht aber die
+  0,05 im Nenner — das Verhältnis fällt also schneller als die
+  Helligkeit. Bei 0,82 lag der Abschnittstext bei **4,33:1** und damit
+  unter den 4,5:1 aus WCAG 1.4.3. Bei 0,78 sind es 5,02:1, die
+  Zeitstempel 3,08:1. Gerechnet im Prüfstand, nicht geschätzt.
+* **Die Decke liegt auch über der Leiste**, und daran ist nichts zu
+  machen: `.schirm` hat `z-index:1` und damit einen eigenen
+  Stapelkontext. Die bisherigen Regeln dagegen waren wirkungslos — an
+  den Bildpunkten nachgemessen wurde die Leiste genauso dunkel wie der
+  Rest. Sie sind heraus; dunkel werden soll ohnehin der ganze
+  Bildschirm.
+* **Versuch `?versuch=wach`.** Wake Lock gibt es im Saal nicht (kein
+  sicherer Kontext unter `http://10.0.0.1`), und Handys sperren nach 30
+  Sekunden bis 2 Minuten ohne Berührung. Der Versuch hält stattdessen
+  ein winziges stummes Video in Schleife — Prinzip wie bei NoSleep.js,
+  nachgebaut, nichts kopiert. Vier Sekunden Schwarz, 16×16, zwei Bilder
+  je Sekunde, ohne Tonspur, mit ffmpeg erzeugt; 1591 Byte als MP4 und
+  696 Byte als WebM, als `data:`-URI in der Seite. **Ohne den
+  Adresszusatz ändert sich nichts.** Testanleitung in `AUFSTELLEN.md`.
+* **Zwei Stimmen heraus.** `ka_GE-natia-medium` ist ausdrücklich nur
+  für Privatpersonen freigegeben, Organisationen sind untersagt;
+  `ar_JO-kareem-medium` nennt gar keine Lizenz. „Nicht eingeschaltet"
+  genügte dafür nicht: beide lagen trotzdem auf jedem Stick, und ein
+  Stick wird von Gemeinde zu Gemeinde weitergereicht. Sie sind aus
+  `config.STIMMEN` und `teile.json` heraus, 126 MB weniger. Grund und
+  Datum in `LIZENZEN.md`, geprüft in
+  `pruefstand/stimmlizenz_test.py` — einschließlich dessen, dass
+  Rostock (en, ru, fa) unberührt bleibt.
+* Neu: `pruefstand/hoererbilder.mjs` rendert die Höransicht bei
+  320×568, 390×844 und 390×844 mit 150 Prozent Schrift. Die Bilder
+  gehen nach `.tmp/` und nie ins Repo, wie bei `pultbilder.mjs`.
+* Neu: `CLAUDE.md` mit den Arbeitsregeln für dieses Repo.
+
+---
+
 ## 0.4.4 — Roter Balken behoben, Strom erprobt und verworfen
 
 *04.10.2026.*

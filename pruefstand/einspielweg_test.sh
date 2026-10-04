@@ -53,7 +53,7 @@ export PATH="$ECHT/pruefstand/attrappen:$PATH"
 
 GRUEN="\033[32m"; ROT="\033[31m"; GELB="\033[33m"; AUS="\033[0m"
 FEHLER=0
-VON="v0.3.7 v0.3.8 v0.4.1 v0.4.2 v0.4.3"
+VON="v0.3.7 v0.3.8 v0.4.1 v0.4.2 v0.4.3 v0.4.4"
 
 aufraeumen() {
   for t in $VON; do
@@ -96,12 +96,11 @@ for t in $VON; do
     || { printf "   ${ROT}FEHL${AUS}  worktree fuer %s ging nicht\n" "$t"
          exit 1; }
 done
-pruefe "alle alten Baeume liegen da" "ja" \
-  "$([ -f "$BASIS/baum-v0.3.7/aktualisieren.sh" ] \
-    && [ -f "$BASIS/baum-v0.3.8/aktualisieren.sh" ] \
-    && [ -f "$BASIS/baum-v0.4.1/aktualisieren.sh" ] \
-    && [ -f "$BASIS/baum-v0.4.2/aktualisieren.sh" ] \
-    && [ -f "$BASIS/baum-v0.4.3/aktualisieren.sh" ] && echo ja || echo nein)"
+fehlt=""
+for t in $VON; do
+  [ -f "$BASIS/baum-$t/aktualisieren.sh" ] || fehlt="$fehlt $t"
+done
+pruefe "alle alten Baeume liegen da" "" "$fehlt"
 # Der Beweis, dass es wirklich die ALTEN Dateien sind: 0.3.7 kennt den
 # schluesselweisen Vergleich von zustand.json noch nicht.
 pruefe "v0.3.7 hat noch die alte zustand-Pruefung" "nein" \
@@ -160,16 +159,19 @@ baum_hinein() {  # $1 Quellordner, $2 Fassung, $3 Tag
   git -C "$FERN" tag -s "$3" -m "Devarenu $2" >/dev/null 2>&1
 }
 
-baum_hinein "$BASIS/baum-v0.3.7" "0.3.7" "v0.3.7"
-baum_hinein "$BASIS/baum-v0.3.8" "0.3.8" "v0.3.8"
-# v0.4.1 ist die letzte Fassung OHNE teile.json im Repo. Der Weg von
-# dort auf 0.4.2 ist der, den die Gemeinde als naechstes geht.
-baum_hinein "$BASIS/baum-v0.4.1" "0.4.1" "v0.4.1"
-# v0.4.2 ist die erste Fassung MIT teile.json. Der Weg von dort auf
-# 0.4.3 prueft, dass die Datei auch dann nichts aufhaelt, wenn sie
-# auf beiden Seiten steht und sich nicht geaendert hat.
-baum_hinein "$BASIS/baum-v0.4.2" "0.4.2" "v0.4.2"
-baum_hinein "$BASIS/baum-v0.4.3" "0.4.3" "v0.4.3"
+# Der Reihe nach, aus $VON -- NICHT aufgezaehlt. Eine zweite Liste
+# neben $VON war schon einmal der Fehler: v0.4.4 kam oben dazu und
+# hier nicht, und der Lauf scheiterte an einem Tag, das es im
+# Fernrepo gar nicht gab.
+#
+# Was an einzelnen Fassungen besonders ist:
+#   v0.4.1  die letzte Fassung OHNE teile.json im Repo. Der Weg von
+#           dort aus ist der, den eine Gemeinde als naechstes geht.
+#   v0.4.2  die erste Fassung MIT teile.json. Von dort aus steht die
+#           Datei auf beiden Seiten.
+for t in $VON; do
+  baum_hinein "$BASIS/baum-$t" "${t#v}" "$t"
+done
 # Der neue Stand: das Arbeitsverzeichnis, so wie es jetzt ist.
 baum_hinein "$ECHT" "$NEU" "v$NEU"
 
@@ -177,7 +179,7 @@ baum_hinein "$ECHT" "$NEU" "v$NEU"
 # allowedSignersFile. Hier geht es nur darum, DASS eine Signatur im
 # Tag-Objekt steht -- geprueft wird sie unten von aktualisieren.sh,
 # und das ist der Punkt des Laufs.
-for t in v0.3.7 v0.3.8 v0.4.1 v0.4.2 v0.4.3 "v$NEU"; do
+for t in $VON "v$NEU"; do
   pruefe "$t traegt eine Signatur" "ja" \
     "$(git -C "$FERN" cat-file -p "$t" 2>/dev/null \
        | grep -q 'BEGIN SSH SIGNATURE' && echo ja || echo nein)"
@@ -298,12 +300,16 @@ for start in $VON; do
   pruefe "und sagt, dass etwas fehlt, statt es zu verschweigen" "ja" \
     "$(grep -qE 'grosse Teile|Stimmen werden aus dem Netz' \
        "$BASIS/lauf-$start.txt" && echo ja || echo nein)"
-  # teile.json ist mit 0.4.2 neu dazugekommen, also haben sich die
-  # grossen Teile geaendert -- der Selbsttest gehoert dann dazu.
-  # Der Selbsttest gehoert dazu, wenn sich die grossen Teile
-  # geaendert haben. teile.json kam mit 0.4.2 -- von davor aus ist
-  # sie also neu, von v0.4.2 aus unveraendert. Beides ist richtig.
-  if [ "$start" = "v0.4.2" ] || [ "$start" = "v0.4.3" ]; then
+  # Der Selbsttest gehoert dazu, wenn sich die grossen Teile geaendert
+  # haben -- und das steht in teile.json.
+  #
+  # NICHT an Fassungsnummern festgemacht. Hier stand einmal "von
+  # v0.4.2 und v0.4.3 aus kein Selbsttest", und das stimmte genau so
+  # lange, bis teile.json sich wieder aenderte (0.4.5, zwei Stimmen
+  # heraus). Dann meldete der Lauf einen Fehler, wo keiner war.
+  # Gefragt wird jetzt das, worauf es ankommt.
+  if git -C "$ECHT" diff --quiet "$start" HEAD -- teile.json 2>/dev/null
+  then
     pruefe "ohne Aenderung an teile.json kein Selbsttest" "nein" \
       "$(grep -q 'Selbsttest' "$BASIS/lauf-$start.txt" \
          && echo ja || echo nein)"
