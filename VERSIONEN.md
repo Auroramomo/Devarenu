@@ -6,9 +6,14 @@ fallen heraus, damit dies ein Blatt bleibt.
 
 **0.4.4 — 04.10.2026**
 
-- **Versuch:** ein durchgehender Tonstrom statt einzelner Häppchen,
-  damit der Ton bei gesperrtem Handy weiterläuft. Nur mit
-  Adresszusatz; ohne ihn ändert sich nichts.
+- **Der rote Balken ist weg.** Auf jedem Handy stand dauerhaft ein
+  roter Streifen ohne Text. Er meinte die Tonaufnahme und erscheint
+  jetzt nur, wenn eine läuft.
+- **Bildschirm abdunkeln.** Anbleiben muss er, hell sein nicht: ein
+  Knopf dimmt die Seite in zwei Stufen, Ton und Text laufen weiter.
+- **Der Tonstrom ist erprobt und verworfen.** Beim gesperrten Handy
+  bleibt es bei „Bildschirm anlassen"; warum, steht in
+  `AENDERUNGEN.md`.
 
 **0.4.3 — 04.10.2026**
 
@@ -17,22 +22,17 @@ fallen heraus, damit dies ein Blatt bleibt.
   und eines, das begrenzt.
 - **Die Grafikkarte schreibt mit:** je Tag eine Zeile, und ein
   Hinweis, wenn das Sprachmodell nicht ganz auf der Karte liegt.
-- **Versuch** für den Ton bei gesperrtem Handy, hinter einem
-  Adresszusatz. Ohne ihn ändert sich nichts.
 - **Hörprobe** für Englisch und Russisch: drei Stimmen, blind.
 
 **0.4.2 — 04.10.2026**
 
-- **Alles vom Stick.** Ein Rechner ohne Internet bekommt bei
-  Erstinstallation und bei jedem Update alle Stimmen, die
-  Spracherkennung und das Sprachmodell, nach Prüfsumme geprüft. Fehlt
-  die Stimme einer eingeschalteten Sprache, steht das am Pult.
-- **Die Statuspille ist ein Knopf.** Ein Tipp zeigt in einfachen
-  Worten, was nicht stimmt und was zu tun ist. Der Briefkasten ist
-  nur noch für Zuschriften aus dem Saal.
+- **Alles vom Stick.** Stimmen, Spracherkennung und Sprachmodell
+  kommen bei Erstinstallation und Update nach Prüfsumme geprüft mit.
+  Fehlt die Stimme einer eingeschalteten Sprache, steht das am Pult.
+- **Die Statuspille ist ein Knopf.** Ein Tipp sagt, was nicht stimmt
+  und was zu tun ist. Der Briefkasten ist nur noch für Zuschriften.
 - **Zwei Knöpfe für die Zuhörer:** *verständlich* und *schwer
-  verständlich*. Gezählt wird nur, je Sprache — ohne Gerät, ohne
-  Uhrzeit.
+  verständlich*. Gezählt wird je Sprache, ohne Gerät und Uhrzeit.
 - **Bibelstellen** auf Englisch und Russisch mit Doppelpunkt.
 
 **0.4.0 und 0.4.1 — 03.10.2026**
