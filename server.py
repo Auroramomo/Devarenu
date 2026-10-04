@@ -57,6 +57,7 @@ import spendenkonto
 import sprachwache
 import drossel
 import pultschutz
+import rueckmeldung
 import qr_texte
 import zustand as zustandsdatei
 from glossar import Glossar, glossarzeilen, vokalisieren
@@ -4627,6 +4628,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 # den Betrieb verhindert, gehoert ans Pult und nicht nur
                 # in pruefen.sh -- sonntags liest das niemand.
                 "netz": netzpruefung.lage(),
+                # Wie verstaendlich die Uebersetzung heute ankommt,
+                # je Sprache. Zwei Zahlen, sonst nichts.
+                "rueckmeldung": rueckmeldung.stand(),
                 "letzte": list(lauf.letzte)[-8:]}
 
     @app.post("/api/steuerung/{was}")
@@ -5517,6 +5521,22 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         stand["live"] = lauf.laeuft
         return stand
 
+    @app.post("/api/rueckmeldung")
+    async def rueckmeldung_nehmen(daten: dict):
+        """Eine Stimme von einem Handy: verstaendlich oder nicht.
+
+        Gezaehlt wird nur, und zwar je Sprache. Keine Adresse, keine
+        Kennung, kein Zeitpunkt je Stimme -- aus einer Liste von
+        Zeitpunkten laesst sich herauslesen, wer gedrueckt hat, aus
+        zwei Zaehlern nicht.
+
+        Dass ein Geraet nur einmal zaehlt, merkt sich das Geraet. Es
+        schickt seine alte Stimme mit, und der Zaehler geht zurueck."""
+        rueckmeldung.zaehlen(daten.get("sprache", ""),
+                             daten.get("wert", ""),
+                             daten.get("vorher", ""))
+        return {"ok": True}
+
     @app.post("/api/update/jetzt")
     async def update_jetzt():
         """Setzt die Marke, auf die stick_update.sh wartet.
@@ -6198,6 +6218,10 @@ h2{font:600 .72rem var(--schild);text-transform:uppercase;
 .sprachen{display:flex;flex-wrap:wrap;gap:.3rem .7rem;margin-top:.2rem;
           font-size:.82rem;color:var(--grau)}
 .sprachen b{color:var(--text);font-variant-numeric:tabular-nums}
+/* Die Stimmen der Zuhoerer, je Sprache. Klein und ohne Farbe: sie
+   sind eine Auskunft, kein Zustand -- Gruen und Rot gehoeren denen. */
+.sprachen s{text-decoration:none;color:var(--grau);font-size:.78rem;
+            white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* Hoechstens ein Satz Erklaerung steht offen da. Der Rest -- und das
    sind die heutigen Erklaertexte, Wort fuer Wort -- haengt hinter
@@ -6884,6 +6908,7 @@ const TEXTE={
    k_verzoegerung:"Verzögerung steigt",
    k_fehlt:"fehlt", k_gesetzt:"gesetzt",
    k_namen:"{n} Namen",
+   u_titel:"Rückmeldungen: verständlich / schwer verständlich",
    zuletzt:"Zuletzt erkannt",
    hilfe_ton:"Pegel und Schwelle", hilfe_hoerer:"Je Sprache",
    hilfe_thema:"Was erkannt wurde", hilfe_manuskript:"Was damit geschieht",
@@ -7215,6 +7240,7 @@ const TEXTE={
    k_verzoegerung:"delay rising",
    k_fehlt:"missing", k_gesetzt:"set",
    k_namen:"{n} names",
+   u_titel:"Feedback: clear / hard to follow",
    zuletzt:"Last recognised",
    hilfe_ton:"Level and threshold", hilfe_hoerer:"Per language",
    hilfe_thema:"What was recognised", hilfe_manuskript:"What happens to it",
@@ -8812,9 +8838,20 @@ async function lies(){
     // --- Kachel Zuhoerer ---
     const hoerer = Object.entries(d.hoerer||{});
     hoererzahl.textContent = d.gesamt;
+    // Je Sprache Kuerzel, Zahl -- und was die Zuhoerer gesagt haben.
+    // Zwei Zahlen, sonst nichts: keine Adresse, keine Kennung, kein
+    // Zeitpunkt. Siehe rueckmeldung.py.
+    const urteil = d.rueckmeldung || {};
     hoerersprachen.innerHTML = hoerer
       .filter(([a,b])=>b>0)
-      .map(([a,b])=>`<span>${a.toUpperCase()} <b>${b}</b></span>`).join("");
+      .map(([a,b])=>{
+        const u = urteil[a];
+        const stimmen = u && (u.gut || u.schwer)
+          ? ` <s class=urteil title="${t.u_titel}">`
+            + `${u.gut||0} 👍 ${u.schwer||0} 👎</s>`
+          : "";
+        return `<span>${a.toUpperCase()} <b>${b}</b>${stimmen}</span>`;
+      }).join("");
     kachelSetzen(kHoerer, d.gesamt > 0 ? "ok" : null, "");
     zahlen.innerHTML=hoerer.map(([a,b])=>
       `<tr><td>${NAMEN[a]||a}</td><td>${b}</td></tr>`).join("");

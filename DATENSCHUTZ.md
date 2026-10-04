@@ -41,6 +41,11 @@ ersetzt.*
 > Technikpult angezeigt und danach verworfen. Bitte schreiben Sie
 > dort **nichts Persönliches**.
 >
+> Die beiden Schaltflächen „verständlich" und „schwer verständlich"
+> zählen nur mit — je Sprache, als zwei Zahlen. Es wird weder
+> gespeichert, von welchem Gerät eine Stimme kam, noch wann sie
+> abgegeben wurde.
+>
 > Wird ausnahmsweise eine **Tonaufnahme** der Predigt gemacht, wird
 > die predigende Person vorher gefragt, und es ist während der
 > Aufnahme auf Ihrem Bildschirm sichtbar.
@@ -68,6 +73,16 @@ Wartungsfenster nur den, den die Gemeinde einschaltet.
 | **Empfänger** | Niemand. Alles bleibt auf dem Gerät, es gibt keine Verbindung nach draußen |
 | **Speicherdauer** | Nichts wird gespeichert. Ton und Text bestehen für Sekunden im Arbeitsspeicher; zuletzt gesendete Abschnitte liegen so lange, wie ein Handy verbunden ist |
 | **Schalter** | Keiner — das ist der Zweck des Geräts |
+
+### 1b. Rückmeldung „verständlich / schwer verständlich"
+
+| | |
+|---|---|
+| **Zweck** | Die Gemeinde soll sagen können, ob die Übersetzung taugt, ohne jemanden ansprechen zu müssen |
+| **Daten** | Zwei Zähler je Sprache und Tag. **Keine** Geräteadresse, **keine** Kennung, **kein** Zeitpunkt je Stimme |
+| **Empfänger** | Niemand. Die Zahlen liegen auf dem Gerät. Sie dürfen dem Fehlerbericht an den Betreuer und der Nutzungsmeldung beiliegen, wenn diese eingeschaltet sind |
+| **Speicherdauer** | Eine Zeile je Tag und Sprache in `ergebnisse/rueckmeldung.csv`, bis jemand sie löscht |
+| **Schalter** | Die Schaltflächen erscheinen in der Höransicht. Eine Stimme je Gerät und Tag, änderbar; gemerkt wird sie **im Browser**, nicht auf dem Gerät im Saal |
 
 ### 2. Netzwerk für die Handys im Saal
 

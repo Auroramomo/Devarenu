@@ -208,6 +208,12 @@ h1{
   margin:.9rem 0 0;
 }
 
+/* Die Rueckmeldezeile. Noch kleiner als die zweite Reihe: sie ist
+   ein Angebot, keine Bedienung. Gedrueckt wird sie einmal. */
+.fussleiste.urteil{opacity:.9}
+.fussleiste.urteil .werkzeug[aria-pressed="true"]{
+  border-color:var(--cyan); color:var(--tinte); font-weight:600}
+
 /* ---------- Bildschirm 2: Zuhören ---------- */
 #zuhoeren{padding:0}
 
@@ -525,6 +531,19 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
       <span class="zeichen" aria-hidden="true">☺</span><span class="beschriftung"></span>
     </button>
   </nav>
+
+  <!-- Die einzige Rueckmeldung, die jemand ohne Aufwand geben kann.
+       Zwei Knoepfe, eine Stimme je Geraet und Gottesdienst, aenderbar.
+       Gezaehlt wird nur, und zwar je Sprache -- keine Adresse, keine
+       Kennung, kein Zeitpunkt. -->
+  <nav class="fussleiste urteil" id="urteil" aria-label="Rückmeldung">
+    <button class="werkzeug klein" id="u-gut" aria-pressed="false">
+      <span class="zeichen" aria-hidden="true">👍</span><span class="beschriftung"></span>
+    </button>
+    <button class="werkzeug klein" id="u-schwer" aria-pressed="false">
+      <span class="zeichen" aria-hidden="true">👎</span><span class="beschriftung"></span>
+    </button>
+  </nav>
   </div>
 </section>
 
@@ -686,6 +705,7 @@ const TEXTE = {
       postGekuerzt:"Angekommen, aber gekürzt: nur die ersten 200 Zeichen.",
       postFehler:"Ließ sich nicht senden. Bitte noch einmal.",
       zurueck:"Zurück", rueckmeldung:"Rückmeldung", schliessen:"Schließen",
+      uGut:"verständlich", uSchwer:"schwer verständlich", uDank:"Danke!",
       dankText:"Du möchtest mir Rückmeldung geben? Ich arbeite ständig an besseren Fassungen. Schreib mir gern:",
       dankSpende:"Du möchtest das Projekt unterstützen? Nicht nötig, als Pastor werde ich schon durch deinen Zehnten getragen. Wenn du trotzdem etwas geben möchtest, spende gern an die Freikirche. Der Betrag im Code ist nur ein Vorschlag und in der Banking-App änderbar:",
       becherKaffee:"Kaffee", becherTee:"Tee",
@@ -715,6 +735,7 @@ const TEXTE = {
       postGekuerzt:"Received, but shortened: the first 200 characters only.",
       postFehler:"Could not be sent. Please try again.",
       zurueck:"Back", rueckmeldung:"Feedback", schliessen:"Close",
+      uGut:"clear", uSchwer:"hard to follow", uDank:"Thank you!",
       dankText:"Want to give feedback? I keep working on better versions. Write to me:",
       dankSpende:"Want to support the project? No need, as a pastor I am already carried by your tithe. But if you would still like to give something, please donate to the church. The amount in the code is only a suggestion and can be changed in your banking app:",
       becherKaffee:"Coffee", becherTee:"Tea",
@@ -744,6 +765,7 @@ const TEXTE = {
       postGekuerzt:"Получено, но сокращено: только первые 200 знаков.",
       postFehler:"Не удалось отправить. Попробуйте ещё раз.",
       zurueck:"Назад", rueckmeldung:"Отзыв", schliessen:"Закрыть",
+      uGut:"понятно", uSchwer:"трудно понять", uDank:"Спасибо!",
       dankText:"Хотите оставить отзыв? Я постоянно работаю над улучшениями. Напишите мне:",
       dankSpende:"Хотите поддержать проект? Не нужно: как пастор я уже получаю поддержку через вашу десятину. Если вы всё же хотите что-то дать, пожертвуйте церкви. Сумма в коде — только предложение, её можно изменить в банковском приложении:",
       becherKaffee:"Кофе", becherTee:"Чай",
@@ -773,6 +795,7 @@ const TEXTE = {
       postGekuerzt:"دریافت شد، اما کوتاه شد: تنها ۲۰۰ نویسهٔ نخست.",
       postFehler:"ارسال نشد. لطفاً دوباره تلاش کنید.",
       zurueck:"بازگشت", rueckmeldung:"بازخورد", schliessen:"بستن",
+      uGut:"قابل فهم", uSchwer:"سخت‌فهم", uDank:"ممنون!",
       dankText:"می‌خواهید بازخورد بدهید؟ من پیوسته روی نسخه‌های بهتر کار می‌کنم. برایم بنویسید:",
       dankSpende:"می‌خواهید از پروژه حمایت کنید؟ لازم نیست؛ به عنوان شبان از طریق ده‌یک شما پشتیبانی می‌شوم. اگر باز هم مایل به کمک هستید، لطفاً به کلیسا کمک کنید. مبلغ در کد فقط پیشنهاد است و در برنامهٔ بانکی قابل تغییر است:",
       becherKaffee:"قهوه", becherTee:"چای",
@@ -794,6 +817,9 @@ const zustand = {
   abschnitte: 0,
   amEnde: true,      // liest der Nutzer gerade unten mit?
   ungelesen: 0,
+  // "gut", "schwer" oder "" -- die eigene Stimme dieses Geraets zu
+  // diesem Gottesdienst. Steht im Browser, nie im Server.
+  urteil: "",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -1331,6 +1357,7 @@ function beschriftungenSetzen(){
   $("w-post").querySelector(".beschriftung").textContent = x.post;
   $("zurueck").querySelector(".beschriftung").textContent = x.zurueck;
   $("rueckmeldung").querySelector(".beschriftung").textContent = x.rueckmeldung;
+  urteilZeichnen();
   $("post-titel").textContent  = x.postTitel;
   $("post-hin").textContent    = x.postHin;
   $("post-senden").textContent = x.postSenden;
@@ -1416,6 +1443,9 @@ $("starten").addEventListener("click", async () => {
   const wach = await bildschirmWachhalten();
 
   zustand.laeuft = true;
+  // Die eigene Stimme von vorhin -- wer die Seite neu laedt, soll
+  // nicht ein zweites Mal gefragt werden.
+  zustand.urteil = urteilLesen();
   $("ankommen").classList.remove("an");
   $("zuhoeren").classList.add("an");
 
@@ -1455,6 +1485,46 @@ $("wechsel-zu").addEventListener("click", () => $("wechsel").close());
    sie nicht an die Technik vor Ort, sondern an den, der das Programm
    betreut. Ohne hinterlegte Adresse erscheint der Knopf gar nicht. */
 let rueckAdresse = "", spendeDaten = null;
+
+/* ---------- Rückmeldung: verständlich oder nicht ----------
+   Eine Stimme je Gerät und Gottesdienst. Gemerkt wird sie im Browser,
+   nicht im Server: dort läge sonst eine Kennung, und zwei Zähler
+   sollen nicht zu einer Liste werden, aus der sich ablesen lässt, wer
+   wann gedrückt hat.
+
+   Der Tag gehört zum Schlüssel. Am nächsten Sonntag ist es ein
+   anderer Gottesdienst und eine neue Stimme. */
+function urteilSchluessel(){
+  return "urteil:" + new Date().toISOString().slice(0, 10);
+}
+function urteilLesen(){
+  try{ return localStorage.getItem(urteilSchluessel()) || ""; }
+  catch(e){ return ""; }
+}
+function urteilZeichnen(){
+  const x = t();
+  const w = zustand.urteil;
+  $("u-gut").setAttribute("aria-pressed", String(w === "gut"));
+  $("u-schwer").setAttribute("aria-pressed", String(w === "schwer"));
+  $("u-gut").querySelector(".beschriftung").textContent = w ? x.uDank : x.uGut;
+  $("u-schwer").querySelector(".beschriftung").textContent = x.uSchwer;
+}
+async function urteilen(wert){
+  const vorher = zustand.urteil || "";
+  // Noch einmal dasselbe drücken ändert nichts. Zurücknehmen geht
+  // nicht: eine Stimme, die verschwindet, sähe nach einem Fehler aus.
+  if(vorher === wert) return;
+  zustand.urteil = wert;
+  try{ localStorage.setItem(urteilSchluessel(), wert); }catch(e){}
+  urteilZeichnen();
+  try{
+    await fetch("/api/rueckmeldung", {method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({sprache: zustand.sprache, wert, vorher})});
+  }catch(e){ /* keine Verbindung: die Stimme ist dann eben weg */ }
+}
+$("u-gut").addEventListener("click", () => urteilen("gut"));
+$("u-schwer").addEventListener("click", () => urteilen("schwer"));
 
 function rueckmeldungSetzen(adresse, spende){
   rueckAdresse = adresse || "";
