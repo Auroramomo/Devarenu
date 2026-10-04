@@ -32,8 +32,8 @@ sound from the hall to your phone. **Please stay connected anyway.**
 - **Keep the screen on.** Some phones stop playback when the screen
   turns off.
 - **Dim the screen.** The screen has to stay on — it does not have to
-  stay bright. The **Dim screen** button at the bottom darkens the
-  page in two steps; sound and text carry on unchanged.
+  stay bright. The **Dimmer** button in the bar at the bottom darkens
+  the page in two steps; sound and text carry on unchanged.
 - **Use headphones.** Through the loudspeaker the microphone at the
   front picks up the translation and translates it again.
 - **Check the side switch on an iPhone.** If it is set to silent,
@@ -57,15 +57,15 @@ can be changed in your banking app.
 
 ## Was it clear?
 
-Right at the bottom there are two buttons: *clear* and *hard to
-follow*. One tap is enough, and you can change it. Only the totals per
+The bar at the bottom has a **More** entry. Behind it are two
+buttons: *clear* and *hard to follow*. One tap is enough, and you can change it. Only the totals per
 language are counted — **not** which phone, and **not** when. It is
 the one piece of feedback that costs nothing, and it shows which
 language still needs work.
 
 ## Telling us something
 
-At the bottom of the page there is a *Report* button. One sentence is
+Under **More** in the bar at the bottom there is *Report*. One sentence is
 enough — is a language missing, is the sound too quiet? The sound desk
 sees it immediately. You will not get a reply; there is no time for
 that during the service.

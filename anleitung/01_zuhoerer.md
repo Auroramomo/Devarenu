@@ -34,8 +34,9 @@ trotzdem verbunden.**
 - **Bildschirm anlassen.** Schaltet sich der Bildschirm ab, stoppen
   manche Handys die Wiedergabe.
 - **Display abdunkeln.** Anbleiben muss der Bildschirm — hell sein
-  muss er nicht. Der Knopf **Abdunkeln** unten legt die Seite in zwei
-  Stufen dunkler; Ton und Text laufen unverändert weiter.
+  muss er nicht. Der Knopf **Dunkler** in der Leiste unten legt die
+  Seite in zwei Stufen dunkler; Ton und Text laufen unverändert
+  weiter.
 - **Kopfhörer benutzen.** Über den Lautsprecher hört das Mikrofon vorn
   die Übersetzung mit und übersetzt sie noch einmal.
 - **Am iPhone den seitlichen Schalter prüfen.** Steht er auf lautlos,
@@ -59,8 +60,8 @@ Vorschlag und lässt sich in der Banking-App ändern.
 
 ## War es verständlich?
 
-Ganz unten stehen zwei Knöpfe: *verständlich* und *schwer
-verständlich*. Ein Tipp genügt, und er lässt sich ändern. Gezählt wird
+Unten in der Leiste steht **Mehr**. Dahinter zwei Knöpfe:
+*verständlich* und *schwer verständlich*. Ein Tipp genügt, und er lässt sich ändern. Gezählt wird
 nur, wie oft jede Sprache beides bekommt — **nicht**, von welchem
 Handy und **nicht**, wann. Es ist die einzige Rückmeldung, die ohne
 Aufwand geht, und sie hilft zu sehen, welche Sprache noch Arbeit
@@ -68,6 +69,6 @@ braucht.
 
 ## Etwas melden
 
-Auf der Seite gibt es unten den Knopf *Melden*. Ein Satz genügt — fehlt
+Unter **Mehr** in der Leiste unten steht *Melden*. Ein Satz genügt — fehlt
 eine Sprache, ist der Ton zu leise? Die Technik sieht es sofort. Eine
 Antwort kommt nicht; dafür ist während des Gottesdienstes keine Zeit.

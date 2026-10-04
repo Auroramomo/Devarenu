@@ -39,6 +39,10 @@ function browserBauen() {
     set innerHTML(v) { this._html = String(v); this.kinder = []; }
     append(...k) { this.kinder.push(...k); }
     appendChild(k) { this.kinder.push(k); return k; }
+    // Ein dauerhafter Elternknoten. dankZeigen() blendet die Zeile um
+    // die Mailadresse ueber parentElement aus; ein undefined dort
+    // waere ein Absturz im Nachbau, nicht im Programm.
+    get parentElement() { return (this._eltern ||= new Element("div")); }
     get firstChild() { return this.kinder[0] ?? null; }
     get lastChild() { return this.kinder[this.kinder.length - 1] ?? null; }
     get children() { return this.kinder; }

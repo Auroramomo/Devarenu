@@ -49,6 +49,8 @@ function laden({ suche = "", gemerkt = {}, wakeLock = false } = {}) {
   return { ...p, umgebung, kasten };
 }
 const video = (u) => u.document.getElementById("wachvideo");
+// Ein echter Klick loest ALLE Horcher aus, nicht nur den ersten.
+const klick = (el) => (el.horcher.click || []).forEach((f) => f());
 
 titel("1) Ohne Adresszusatz aendert sich NICHTS");
 {
@@ -94,7 +96,7 @@ titel("3) Ohne Wake Lock laeuft das Video");
          p.Versuch.ereignisse.some((z) => z.includes("Video startet")));
 
   // Zurueck zur Sprachwahl heisst: Bildschirm nicht weiter wachhalten.
-  p.umgebung.document.getElementById("zurueck").horcher.click[0]();
+  klick(p.umgebung.document.getElementById("zurueck"));
   pruefe("zurueck haelt es an", false, p.Wach.laeuft);
   pruefe("und das Element steht", true, video(p.umgebung).paused);
 }

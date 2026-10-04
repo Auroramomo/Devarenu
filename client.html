@@ -332,19 +332,34 @@ h1{
    Also kein Eingriff in die Helligkeit des Geraets (die kann eine
    Webseite nicht stellen), sondern eine schwarze Decke darueber.
 
-   Gedeckelt bei 0,82: ganz schwarz saehe aus wie ein Geraet, das aus
-   ist. Und die Fussleiste liegt DARUEBER und bleibt heller als der
-   Rest -- wer abgedunkelt hat, muss den Weg zurueck noch finden. */
+   Die Decke liegt ueber ALLEM, auch ueber der Fussleiste. Anders geht
+   es nicht: .schirm hat z-index:1 und macht damit einen eigenen
+   Stapelkontext -- was darin liegt, kommt mit keinem z-index ueber
+   eine Decke, die am Koerper haengt. An den Bildpunkten nachgemessen:
+   die Leiste wird genauso dunkel wie der Rest. Das ist kein Schaden,
+   sondern der Zweck; dunkel werden soll ja der ganze Bildschirm.
+
+   DIE GRENZE SETZT DER KONTRAST, nicht das Augenmass. Eine schwarze
+   Decke mit Deckkraft d senkt jede Leuchtdichte auf (1-d) -- im
+   Kontrastbruch steht aber die 0,05 im Nenner, also faellt das
+   Verhaeltnis schneller als die Helligkeit. Gerechnet im Pruefstand,
+   Abschnitt 3b:
+
+       Deckkraft   Text auf Blatt   Zeitstempel (--leise)
+       0,55             8,65:1            3,94:1
+       0,78             5,02:1            3,08:1
+       0,82             4,33:1            2,85:1   <- unter 4,5:1
+
+   Darum 0,78 und nicht mehr. Bei 0,82 faellt der Text unter die
+   4,5:1 aus WCAG 1.4.3, und abgedunkelt mitlesen ist der halbe Sinn
+   der Sache. Geprueft in pruefstand/abdunkeln_test.mjs. */
 #abdunkler{
   position:fixed; inset:0; background:#000;
   opacity:0; pointer-events:none;
   transition:opacity .3s; z-index:5;
 }
 html[data-dunkel="1"] #abdunkler{opacity:.55}
-html[data-dunkel="2"] #abdunkler{opacity:.82}
-html[data-dunkel] .fussblock{z-index:6}
-html[data-dunkel="1"] .fussblock{opacity:.8}
-html[data-dunkel="2"] .fussblock{opacity:.6}
+html[data-dunkel="2"] #abdunkler{opacity:.78}
 @media (prefers-reduced-motion:reduce){
   #abdunkler{transition:none}
 }
@@ -360,7 +375,15 @@ html[data-dunkel="2"] .fussblock{opacity:.6}
 }
 .fussleiste{
   padding:.55rem var(--rand);
-  display:grid; grid-template-columns:repeat(3,1fr); gap:.4rem;
+  display:grid; grid-template-columns:repeat(5,1fr); gap:.25rem;
+}
+/* Fuenf Eintraege auf 320 px: jede Zelle ist dann rund 56 px breit.
+   Die Beschriftung muss hineinpassen, ohne zu brechen -- die Woerter
+   sind dafuer kurz gehalten (siehe TEXTE), und hier wird gestaucht
+   statt umgebrochen. */
+.fussleiste .beschriftung{
+  display:block; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;
 }
 .werkzeug{
   font-family:var(--schild); font-size:.76rem; letter-spacing:.03em;
@@ -369,6 +392,11 @@ html[data-dunkel="2"] .fussblock{opacity:.6}
   border-radius:3px; min-height:44px;
 }
 .werkzeug[aria-pressed="false"]{color:var(--leise)}
+/* Ausser beim Abdunkeln. Dort heisst "nicht gedrueckt" nicht "aus",
+   sondern "steht bereit" -- blass wie ein abgeschaltetes "Ton aus"
+   gelesen zu werden waere falsch. Das aria-pressed bleibt, es stimmt
+   fuer die Vorlesefunktion; nur die Farbe nicht. */
+#w-dunkel[aria-pressed="false"]{color:var(--tinte-hell)}
 .werkzeug .zeichen{display:block; font-size:1.15rem; line-height:1.25; margin-bottom:.05rem}
 
 .fahne{
@@ -424,14 +452,20 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
 #dank-spende{border-top:1px solid var(--linie,#d9dce4);margin-top:.4rem;
   padding-top:.9rem}
 
-/* Zweite Reihe: Wege aus der Seite heraus, nicht Wiedergabe. Kleiner und
-   blasser, damit sie die Bedienung nicht verdraengen. */
-.fussleiste.neben{border-top:1px solid var(--linie);
-  padding-top:.2rem;padding-bottom:.35rem;
-  /* Drei Knoepfe, mit der Rueckmeldung vier. Feste Spalten liessen
-     bei jeder anderen Zahl eine Luecke am Rand stehen. */
-  grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:1fr}
-.werkzeug.klein{opacity:.6;font-size:.82rem;padding:.45rem .3rem;
+/* Im Mehr-Blatt: die beiden Urteilsknoepfe nebeneinander, der Rest als
+   Zeilen untereinander. Keine Fussleiste mehr, aber dieselben Knoepfe. */
+.fussleiste.urteil{grid-template-columns:repeat(2,1fr)}
+/* Im Blatt braucht die Urteilsreihe den Seitenrand der Fussleiste
+   nicht -- das Blatt hat seinen eigenen. */
+.blatt-innen .fussleiste{padding:.2rem 0}
+.mehrliste{display:grid; gap:.2rem; margin:.6rem 0 .9rem}
+.werkzeug.zeile{
+  display:flex; align-items:center; gap:.7rem;
+  text-align:start; font-size:.92rem; padding:.7rem .5rem;
+  border:1px solid var(--linie); border-radius:4px;
+}
+.werkzeug.zeile .zeichen{display:inline; font-size:1.1rem; margin:0}
+.werkzeug.klein{opacity:.75;font-size:.82rem;padding:.45rem .3rem;
   text-decoration:none}
 .werkzeug.klein .zeichen{font-size:1rem}
 .werkzeug.klein:hover,.werkzeug.klein:focus-visible{opacity:1}
@@ -594,42 +628,10 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
 
   <button class="nachschub" id="nachschub"></button>
 
-  <div class="fussblock">
-  <nav class="fussleiste">
-    <button class="werkzeug" id="w-ton" aria-pressed="true">
-      <span class="zeichen" aria-hidden="true">◍</span><span class="beschriftung"></span>
-    </button>
-    <button class="werkzeug" id="w-text" aria-pressed="true">
-      <span class="zeichen" aria-hidden="true">≡</span><span class="beschriftung"></span>
-    </button>
-    <button class="werkzeug" id="w-sprache" aria-pressed="true">
-      <span class="zeichen" aria-hidden="true">◇</span><span class="beschriftung"></span>
-    </button>
-  </nav>
-
-  <!-- Zweite Reihe: was nicht die Wiedergabe betrifft. Bewusst kleiner,
-       damit die Bedienung darueber die Hauptsache bleibt. -->
-  <nav class="fussleiste neben">
-    <button class="werkzeug klein" id="zurueck">
-      <span class="zeichen" aria-hidden="true">←</span><span class="beschriftung"></span>
-    </button>
-    <button class="werkzeug klein" id="w-post">
-      <span class="zeichen" aria-hidden="true">✉</span><span class="beschriftung"></span>
-    </button>
-    <button class="werkzeug klein" id="w-dunkel" aria-pressed="false">
-      <span class="zeichen" aria-hidden="true">◐</span><span class="beschriftung"></span>
-    </button>
-    <button class="werkzeug klein" id="rueckmeldung" hidden>
-      <span class="zeichen" aria-hidden="true">☺</span><span class="beschriftung"></span>
-    </button>
-  </nav>
-
-  <!-- Die einzige Rueckmeldung, die jemand ohne Aufwand geben kann.
-       Zwei Knoepfe, eine Stimme je Geraet und Gottesdienst, aenderbar.
-       Gezaehlt wird nur, und zwar je Sprache -- keine Adresse, keine
-       Kennung, kein Zeitpunkt. -->
   <!-- Nur im Versuch (?versuch=wach). Ohne den Adresszusatz ist
-       dieser Kasten nicht da. Nichts davon geht an den Server. -->
+       dieser Kasten nicht da. Nichts davon geht an den Server. Er steht
+       UEBER dem Fussblock: ein wachsendes <pre> im klebenden Fuss
+       haette die halbe Seite gefressen. -->
   <details class="versuch" id="versuchkasten" hidden>
     <summary>Versuch: Protokoll</summary>
     <p class="versuchhin">Die letzten Ereignisse, neueste oben. Bleibt
@@ -638,14 +640,33 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
     <pre id="versuchzeilen"></pre>
   </details>
 
-  <nav class="fussleiste urteil" id="urteil" aria-label="Rückmeldung">
-    <button class="werkzeug klein" id="u-gut" aria-pressed="false">
-      <span class="zeichen" aria-hidden="true">👍</span><span class="beschriftung"></span>
+  <div class="fussblock">
+  <!-- EINE Leiste, fuenf Eintraege. Bis 0.4.4 waren es drei Reihen mit
+       neun Knoepfen; "Zurueck" und "Sprache" fuehrten dabei beinahe zum
+       selben Ziel. Was selten gebraucht wird, steht jetzt unter "Mehr":
+       die beiden Rueckmeldeknoepfe, die Meldung ans Pult, die
+       Rueckmeldung zum Programm und der Weg zur Sprachwahl.
+
+       Abdunkeln bleibt in der Leiste, mit EINEM Tipp erreichbar -- wer
+       im dunklen Saal sitzt, soll dafuer kein Blatt aufklappen. -->
+  <nav class="fussleiste" aria-label="Bedienung">
+    <button class="werkzeug" id="w-ton" aria-pressed="true">
+      <span class="zeichen" aria-hidden="true">◍</span><span class="beschriftung"></span>
     </button>
-    <button class="werkzeug klein" id="u-schwer" aria-pressed="false">
-      <span class="zeichen" aria-hidden="true">👎</span><span class="beschriftung"></span>
+    <button class="werkzeug" id="w-text" aria-pressed="true">
+      <span class="zeichen" aria-hidden="true">≡</span><span class="beschriftung"></span>
+    </button>
+    <button class="werkzeug" id="w-dunkel" aria-pressed="false">
+      <span class="zeichen" aria-hidden="true">◐</span><span class="beschriftung"></span>
+    </button>
+    <button class="werkzeug" id="w-sprache">
+      <span class="zeichen" aria-hidden="true">◇</span><span class="beschriftung"></span>
+    </button>
+    <button class="werkzeug" id="w-mehr">
+      <span class="zeichen" aria-hidden="true">⋯</span><span class="beschriftung"></span>
     </button>
   </nav>
+
   </div>
 </section>
 
@@ -703,6 +724,40 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
     <textarea id="post-text" rows="3" maxlength="200"></textarea>
     <button class="knopf-klein" id="post-senden">Senden</button>
     <button class="knopf-klein knopf-still" id="post-zu">Abbrechen</button>
+  </div>
+</dialog>
+
+<!-- Was selten gebraucht wird. Die Knoepfe darin sind dieselben wie
+     vorher in der zweiten Reihe, mit denselben Kennungen -- nur stehen
+     sie jetzt hier statt dauerhaft am unteren Rand. -->
+<dialog id="mehrblatt">
+  <div class="blatt-innen">
+    <h2 id="mehr-titel">Mehr</h2>
+
+    <!-- Die Rueckmeldung zuerst: sie ist das einzige hier, was jemand
+         im Gottesdienst von sich aus geben will. -->
+    <nav class="fussleiste urteil" id="urteil" aria-label="Rückmeldung">
+      <button class="werkzeug klein" id="u-gut" aria-pressed="false">
+        <span class="zeichen" aria-hidden="true">👍</span><span class="beschriftung"></span>
+      </button>
+      <button class="werkzeug klein" id="u-schwer" aria-pressed="false">
+        <span class="zeichen" aria-hidden="true">👎</span><span class="beschriftung"></span>
+      </button>
+    </nav>
+
+    <div class="mehrliste">
+      <button class="werkzeug zeile" id="w-post">
+        <span class="zeichen" aria-hidden="true">✉</span><span class="beschriftung"></span>
+      </button>
+      <button class="werkzeug zeile" id="rueckmeldung" hidden>
+        <span class="zeichen" aria-hidden="true">☺</span><span class="beschriftung"></span>
+      </button>
+      <button class="werkzeug zeile" id="zurueck">
+        <span class="zeichen" aria-hidden="true">←</span><span class="beschriftung"></span>
+      </button>
+    </div>
+
+    <button class="knopf-klein knopf-still" id="mehr-zu">Schließen</button>
   </div>
 </dialog>
 
@@ -807,7 +862,7 @@ const TEXTE = {
       postGekuerzt:"Angekommen, aber gekürzt: nur die ersten 200 Zeichen.",
       postFehler:"Ließ sich nicht senden. Bitte noch einmal.",
       zurueck:"Zurück", rueckmeldung:"Rückmeldung", schliessen:"Schließen",
-      dunkel:"Abdunkeln", dunkler:"Dunkler", heller:"Heller",
+      dunkel:"Dunkler", heller:"Heller", mehr:"Mehr", mehrTitel:"Mehr",
       uGut:"verständlich", uSchwer:"schwer verständlich", uDank:"Danke!",
       dankText:"Du möchtest mir Rückmeldung geben? Ich arbeite ständig an besseren Fassungen. Schreib mir gern:",
       dankSpende:"Du möchtest das Projekt unterstützen? Nicht nötig, als Pastor werde ich schon durch deinen Zehnten getragen. Wenn du trotzdem etwas geben möchtest, spende gern an die Freikirche. Der Betrag im Code ist nur ein Vorschlag und in der Banking-App änderbar:",
@@ -838,7 +893,7 @@ const TEXTE = {
       postGekuerzt:"Received, but shortened: the first 200 characters only.",
       postFehler:"Could not be sent. Please try again.",
       zurueck:"Back", rueckmeldung:"Feedback", schliessen:"Close",
-      dunkel:"Dim screen", dunkler:"Dimmer", heller:"Brighter",
+      dunkel:"Dimmer", heller:"Brighter", mehr:"More", mehrTitel:"More",
       uGut:"clear", uSchwer:"hard to follow", uDank:"Thank you!",
       dankText:"Want to give feedback? I keep working on better versions. Write to me:",
       dankSpende:"Want to support the project? No need, as a pastor I am already carried by your tithe. But if you would still like to give something, please donate to the church. The amount in the code is only a suggestion and can be changed in your banking app:",
@@ -849,7 +904,7 @@ const TEXTE = {
       keinGlossar:"There is no glossary for this language yet. Terms like Sabbath, church or conference are translated literally and may sound off. The translation works, but it is experimental."},
   ru:{titel:"Синхронный перевод", waehlen:"Выберите язык", zuhoeren:"Слушать",
       erst:"Сначала выберите язык.",
-      ton:"Звук", tonAus:"Звук выкл.", text:"Текст", textAus:"Текст выкл.", sprache:"Язык",
+      ton:"Звук", tonAus:"Без звука", text:"Текст", textAus:"Без текста", sprache:"Язык",
       warten:"Первый отрывок появится, как только начнётся проповедь.",
       neu:"Новые отрывки", verbinde:"соединение", live:"эфир", pause:"пауза",
       getrennt:"нет связи",
@@ -869,7 +924,7 @@ const TEXTE = {
       postGekuerzt:"Получено, но сокращено: только первые 200 знаков.",
       postFehler:"Не удалось отправить. Попробуйте ещё раз.",
       zurueck:"Назад", rueckmeldung:"Отзыв", schliessen:"Закрыть",
-      dunkel:"Затемнить", dunkler:"Темнее", heller:"Светлее",
+      dunkel:"Темнее", heller:"Светлее", mehr:"Ещё", mehrTitel:"Ещё",
       uGut:"понятно", uSchwer:"трудно понять", uDank:"Спасибо!",
       dankText:"Хотите оставить отзыв? Я постоянно работаю над улучшениями. Напишите мне:",
       dankSpende:"Хотите поддержать проект? Не нужно: как пастор я уже получаю поддержку через вашу десятину. Если вы всё же хотите что-то дать, пожертвуйте церкви. Сумма в коде — только предложение, её можно изменить в банковском приложении:",
@@ -900,7 +955,7 @@ const TEXTE = {
       postGekuerzt:"دریافت شد، اما کوتاه شد: تنها ۲۰۰ نویسهٔ نخست.",
       postFehler:"ارسال نشد. لطفاً دوباره تلاش کنید.",
       zurueck:"بازگشت", rueckmeldung:"بازخورد", schliessen:"بستن",
-      dunkel:"کم‌نور کردن", dunkler:"تاریک‌تر", heller:"روشن‌تر",
+      dunkel:"تاریک‌تر", heller:"روشن‌تر", mehr:"بیشتر", mehrTitel:"بیشتر",
       uGut:"قابل فهم", uSchwer:"سخت‌فهم", uDank:"ممنون!",
       dankText:"می‌خواهید بازخورد بدهید؟ من پیوسته روی نسخه‌های بهتر کار می‌کنم. برایم بنویسید:",
       dankSpende:"می‌خواهید از پروژه حمایت کنید؟ لازم نیست؛ به عنوان شبان از طریق ده‌یک شما پشتیبانی می‌شوم. اگر باز هم مایل به کمک هستید، لطفاً به کلیسا کمک کنید. مبلغ در کد فقط پیشنهاد است و در برنامهٔ بانکی قابل تغییر است:",
@@ -1602,6 +1657,9 @@ function beschriftungenSetzen(){
   $("w-ton").querySelector(".beschriftung").textContent   = zustand.tonAn ? x.ton : x.tonAus;
   $("w-text").querySelector(".beschriftung").textContent  = zustand.textAn ? x.text : x.textAus;
   $("w-sprache").querySelector(".beschriftung").textContent = x.sprache;
+  $("w-mehr").querySelector(".beschriftung").textContent = x.mehr;
+  $("mehr-titel").textContent = x.mehrTitel;
+  $("mehr-zu").textContent = x.schliessen;
 
   $("wechsel-titel").textContent = x.wechseln;
   $("wechsel-zu").textContent = x.abbrechen;
@@ -1758,13 +1816,27 @@ function dunkelZeichnen(){
   const x = t();
   k.setAttribute("aria-pressed", String(Dunkel.stufe > 0));
   k.querySelector(".beschriftung").textContent =
-    Dunkel.stufe === 0 ? x.dunkel : (Dunkel.stufe === 1 ? x.dunkler : x.heller);
+    (Dunkel.stufe < Dunkel.STUFEN - 1) ? x.dunkel : x.heller;
 }
 
 /* ---------- Fußleiste ---------- */
 $("w-ton").addEventListener("click", () => tonSchalten(!zustand.tonAn));
 
 $("w-dunkel").addEventListener("click", () => Dunkel.weiter());
+
+$("w-mehr").addEventListener("click", () => $("mehrblatt").showModal());
+$("mehr-zu").addEventListener("click", () => $("mehrblatt").close());
+/* Wer eine der drei Zeilen drueckt, ist woanders. Das Blatt schliesst
+   dabei von selbst, und zwar VOR dem eigentlichen Handler: diese
+   Horcher sind hier zuerst registriert. So geht kein zweites Blatt
+   ueber einem offenen auf.
+
+   Die beiden Urteilsknoepfe bleiben ausdruecklich aussen vor -- sie
+   antworten mit "Danke!" in der Beschriftung, und das will man noch
+   lesen koennen. */
+for(const kennung of ["w-post", "rueckmeldung", "zurueck"]){
+  $(kennung).addEventListener("click", () => $("mehrblatt").close());
+}
 // Gleich jetzt, nicht erst beim Zuhoeren: wer abgedunkelt neu laedt,
 // soll nicht fuer einen Moment ins helle Bild sehen.
 Dunkel.laden();
@@ -1947,7 +2019,7 @@ $("dank-zu").addEventListener("click", () => $("dankblatt").close());
 /* Ein Klick neben das Blatt schliesst es. Das Ereignis trifft bei einem
    dialog-Element den Rahmen selbst, sobald daneben geklickt wird; innen
    trifft es das Blatt. Also nur schliessen, wenn das Ziel der Dialog ist. */
-for(const kennung of ["dankblatt", "postblatt", "wechsel"]){
+for(const kennung of ["dankblatt", "postblatt", "wechsel", "mehrblatt"]){
   const blatt = $(kennung);
   if(!blatt) continue;
   blatt.addEventListener("click", (e) => {

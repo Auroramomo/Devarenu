@@ -65,7 +65,9 @@ titel("1) Drei Stufen im Kreis");
   Dunkel.weiter();
   pruefe("ein Druck: Stufe 1", 1, Dunkel.stufe);
   pruefe("das Dokument trägt sie", "1", stufeAmDokument(umgebung));
-  pruefe("der Knopf bietet mehr an", TEXTE.de.dunkler, schrift());
+  // Solange es dunkler werden kann, steht dasselbe Wort da. Zwei
+  // kurze Woerter statt dreier -- fuenf Spalten auf 320 px.
+  pruefe("der Knopf bietet weiter mehr an", TEXTE.de.dunkel, schrift());
   pruefe("und gilt als gedrückt", "true", knopf.getAttribute("aria-pressed"));
 
   Dunkel.weiter();
@@ -108,18 +110,6 @@ titel("3) Abgedunkelt bleibt alles bedienbar");
   pruefe("die Decke lässt Berührungen durch", true,
          /pointer-events:\s*none/.test(decke));
   pruefe("sie liegt über dem Inhalt", true, /z-index:\s*5/.test(decke));
-  // Ganz schwarz saehe aus wie ein Geraet, das aus ist.
-  const hoechste = parseFloat(
-    (STIL.match(/data-dunkel="2"\] #abdunkler\{opacity:([\d.]+)\}/) || [])[1]);
-  pruefe("die dunkelste Stufe ist nicht ganz schwarz", true,
-         hoechste > 0 && hoechste <= 0.85);
-  // Und die Fussleiste liegt darueber: wer abgedunkelt hat, muss den
-  // Weg zurueck finden.
-  pruefe("die Fußleiste liegt über der Decke", true,
-         /html\[data-dunkel\] \.fussblock\{z-index:6\}/.test(STIL));
-  const leiste = parseFloat(
-    (STIL.match(/data-dunkel="2"\] \.fussblock\{opacity:([\d.]+)\}/) || [])[1]);
-  pruefe("und bleibt heller als der Rest", true, leiste > 1 - hoechste);
 
   // Am Ton und am Mitlesen aendert das Abdunkeln nichts.
   const p = laden();
@@ -135,19 +125,56 @@ titel("3) Abgedunkelt bleibt alles bedienbar");
   pruefe("und der Ton ist weiterhin an", true, p.zustand.tonAn);
 }
 
+titel("3b) Abgedunkelt bleibt der Text lesbar");
+{
+  /* Die Grenze fuer die dunkelste Stufe ist keine Geschmacksfrage.
+     Eine schwarze Decke mit Deckkraft d senkt jede Leuchtdichte auf
+     (1-d) -- im Kontrastbruch steht aber die 0,05 im Nenner, also
+     faellt das Verhaeltnis schneller als die Helligkeit. Bei 0,82
+     waere der Text bei 4,33:1 und damit unter WCAG 1.4.3. */
+  const marke = {};
+  for (const m of STIL.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})/g))
+    marke[m[1]] = m[2];
+  const L = (hex) => {
+    const k = [1, 3, 5].map((i) => parseInt(hex.substr(i, 2), 16) / 255)
+      .map((c) => c <= 0.03928 ? c / 12.92
+                               : Math.pow((c + 0.055) / 1.055, 2.4));
+    return 0.2126 * k[0] + 0.7152 * k[1] + 0.0722 * k[2];
+  };
+  const K = (a, b, d) => {
+    const x = L(a) * (1 - d), y = L(b) * (1 - d);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  };
+  const stufen = [...STIL.matchAll(
+    /data-dunkel="(\d)"\] #abdunkler\{opacity:([\d.]+)\}/g)]
+    .map((m) => parseFloat(m[2]));
+  pruefe("zwei Stufen im Stil", 2, stufen.length);
+  pruefe("keine ist ganz schwarz", true, stufen.every((d) => d > 0 && d < 1));
+  for (const d of stufen) {
+    // 4,5:1 fuer den Abschnittstext, 3:1 fuer den Zeitstempel.
+    const text = K(marke.tinte, marke.blatt, d);
+    const leise = K(marke.leise, marke.blatt, d);
+    pruefe(`bei ${d}: Text ${text.toFixed(2)}:1`, true, text >= 4.5);
+    pruefe(`bei ${d}: Zeitstempel ${leise.toFixed(2)}:1`, true, leise >= 3);
+  }
+}
+
 titel("4) Der Knopf spricht alle Oberflächensprachen");
 {
   const { TEXTE } = laden();
   for (const s of Object.keys(TEXTE)) {
-    pruefe(`${s} hat alle drei Beschriftungen`, true,
-           !!(TEXTE[s].dunkel && TEXTE[s].dunkler && TEXTE[s].heller));
+    pruefe(`${s} hat beide Beschriftungen`, true,
+           !!(TEXTE[s].dunkel && TEXTE[s].heller));
+    // Sie muessen in eine Zelle von rund 56 px passen.
+    pruefe(`${s} bleibt kurz`, true,
+           TEXTE[s].dunkel.length <= 9 && TEXTE[s].heller.length <= 9);
   }
   // Der Knopf zieht beim Sprachwechsel mit.
   const p = laden();
   p.zustand.sprache = "ru";
   p.umgebung.__pruef.Dunkel.setzen(1);
   const knopf = p.umgebung.document.getElementById("w-dunkel");
-  pruefe("auf Russisch steht Russisch darauf", TEXTE.ru.dunkler,
+  pruefe("auf Russisch steht Russisch darauf", TEXTE.ru.dunkel,
          knopf.querySelector(".beschriftung").textContent);
 }
 
@@ -157,10 +184,14 @@ titel("5) Der Knopf ist zu treffen");
   const werkzeug = STIL.split(".werkzeug{")[1].split("}")[0];
   const hoch = parseFloat((werkzeug.match(/min-height:\s*(\d+)px/) || [])[1]);
   pruefe("mindestens 44 px hoch", true, hoch >= 44);
-  // Vier Knoepfe in der zweiten Reihe duerfen keine Luecke lassen.
-  const neben = STIL.split(".fussleiste.neben{")[1].split("}")[0];
-  pruefe("die zweite Reihe teilt sich auf, so viele es sind", true,
-         /grid-auto-flow:\s*column/.test(neben));
+  // Eine Leiste, fuenf Eintraege -- und Abdunkeln ist einer davon.
+  const leiste = STIL.split(".fussleiste{")[1].split("}")[0];
+  pruefe("die Leiste hat fünf Spalten", true,
+         /grid-template-columns:repeat\(5,1fr\)/.test(leiste));
+  const bar = QUELLE.split('<nav class="fussleiste" aria-label')[1]
+                    .split("</nav>")[0];
+  pruefe("Abdunkeln steht darin, nicht unter Mehr", true,
+         bar.includes('id="w-dunkel"'));
 }
 
 console.log("");
