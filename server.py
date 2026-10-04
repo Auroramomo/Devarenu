@@ -59,6 +59,7 @@ import drossel
 import pultschutz
 import grafikwacht
 import rueckmeldung
+import tonstrom
 import qr_texte
 import zustand as zustandsdatei
 from glossar import Glossar, glossarzeilen, vokalisieren
@@ -1531,6 +1532,9 @@ class Lauf:
         # Einrichtung erscheint und nicht im Briefkasten.
         self.wartungsbefunde = []
         self.befunde = []
+        # Versuch C: ein durchgehender MP3-Strom je Sprache, solange
+        # jemand darueber zuhoert. Siehe tonstrom.py.
+        self.stroeme = tonstrom.Stroeme()
         self.sprachwache = sprachwache.Sprachwache(
             zustandsdatei.laden()[0].get("quelle", config.AUSGANGSSPRACHE))
         self.schleife = None
@@ -1802,6 +1806,13 @@ class Lauf:
             if e["datei"]:
                 self.toene[(e["sprache"], nummer)] = e["datei"]
                 nachricht["audio"] = f"/ton/{e['sprache']}/{nummer}"
+                # ... und in den durchgehenden Strom, falls einer
+                # laeuft. Laeuft keiner, hoert niemand so zu, und die
+                # Datei zu lesen waere Arbeit fuer niemanden.
+                try:
+                    self.stroeme.einreihen(e["sprache"], e["datei"])
+                except Exception as fehler:
+                    print(f"        Strom: {str(fehler)[:70]}")
             await self._streuen(e["sprache"], nachricht)
             if self.messung:
                 m = self.messung
@@ -3701,7 +3712,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                          WebSocketDisconnect)
     from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
                                    PlainTextResponse, RedirectResponse,
-                                   Response)
+                                   Response, StreamingResponse)
     from html import escape as html_escape
 
     @asynccontextmanager
@@ -4085,6 +4096,49 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             return JSONResponse({"fehler": "kein Ton"}, status_code=404)
         return FileResponse(datei, media_type="audio/wav",
                             headers={"Cache-Control": "no-store"})
+
+    @app.get("/strom/{sprache}.mp3")
+    async def tonstrom_mp3(sprache: str):
+        """Ein durchgehender MP3-Strom. Versuch C.
+
+        Ohne Laengenangabe und ohne Zwischenspeicher: der Strom hat
+        kein Ende, und ein Handy, das ihn aus dem Cache holte,
+        bekaeme Ton von vorgestern.
+
+        Jeder Zuhoerer steigt dort ein, wo der Koder gerade ist --
+        nicht am Anfang. Das ist der Unterschied zu einer Datei und
+        der Grund, warum zwei Handys dasselbe zur selben Zeit
+        hoeren."""
+        if sprache not in lauf.sprachen:
+            return JSONResponse({"fehler": "unbekannte Sprache"},
+                                status_code=404)
+        koder, q = lauf.stroeme.anmelden(sprache)
+        if koder is None:
+            return JSONResponse({"fehler": "kein Koder",
+                                 "grund": lauf.stroeme.hinweis},
+                                status_code=503)
+
+        async def brocken():
+            schlaufe = asyncio.get_running_loop()
+            try:
+                while True:
+                    # q.get blockiert. Im Ereignisfaden stuenden
+                    # dabei ALLE Zuhoerer still -- derselbe Grund,
+                    # aus dem der Mikrofonfaden ein eigener ist.
+                    stueck = await schlaufe.run_in_executor(None, q.get)
+                    if stueck is None:
+                        break
+                    yield stueck
+            finally:
+                lauf.stroeme.abmelden(sprache, q)
+
+        return StreamingResponse(
+            brocken(), media_type="audio/mpeg",
+            headers={"Cache-Control": "no-store, no-transform",
+                     "Pragma": "no-cache",
+                     # Kein Puffern durch einen Zwischenserver. Im
+                     # Saal steht keiner, aber es kostet nichts.
+                     "X-Accel-Buffering": "no"})
 
     # Offene Stroeme je Adresse. Ein Handy braucht genau einen; beim
     # Sprachwechsel kurz zwei, weil der alte noch schliesst. Acht ist

@@ -948,7 +948,9 @@ def _mp3(befunde):
         "mp3_koder", HINWEIS,
         hinweis + " Die Predigt wird darum als WAV aufgenommen: rund "
         "115 MB je Stunde statt 22, und die Frist von sieben Tagen "
-        "fuellt damit die Platte deutlich schneller.",
+        "fuellt damit die Platte deutlich schneller. Ausserdem gibt "
+        "es keinen durchgehenden Tonstrom -- die Handys bleiben beim "
+        "bisherigen Weg mit einzelnen Haeppchen.",
         "Vom Stick nachruesten, ohne Netz:  "
         "sudo pacman -U lame-*.pkg.tar.zst",
         was_en="This computer cannot write MP3. Sermons are recorded as "
