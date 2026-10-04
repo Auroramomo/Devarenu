@@ -4,6 +4,15 @@ Was sich für Gemeinde und Pult geändert hat. Ausführlich:
 `AENDERUNGEN.md`. Hier stehen nur die letzten Fassungen — ältere
 fallen heraus, damit dies ein Blatt bleibt.
 
+**0.4.6 — 04.10.2026**
+
+- **Der Bildschirm bleibt von selbst an**, ab der ersten Berührung —
+  auch für alle, die nur mitlesen. Unter *Mehr* abschaltbar. Auf dem
+  iPhone noch nicht erprobt; bei Ärger dort ausschalten.
+- **Nach einem Update kommt sicher die neue Seite.**
+- **Am Pult ein Hinweis, bevor die Grafikkarte voll wird**, mit dem,
+  was zu tun ist.
+
 **0.4.5 — 04.10.2026**
 
 - **Eine Bedienleiste statt dreier Reihen:** Ton, Text, Dunkler,
@@ -25,16 +34,7 @@ fallen heraus, damit dies ein Blatt bleibt.
   bleibt es bei „Bildschirm anlassen"; warum, steht in
   `AENDERUNGEN.md`.
 
-**0.4.3 — 04.10.2026**
-
-- **Umrisse wieder sichtbar.** Knöpfe, Felder und Kacheln hatten
-  einen Rand, den man kaum sah. Jetzt gibt es ein Grau, das trennt,
-  und eines, das begrenzt.
-- **Die Grafikkarte schreibt mit:** je Tag eine Zeile, und ein
-  Hinweis, wenn das Sprachmodell nicht ganz auf der Karte liegt.
-- **Hörprobe** für Englisch und Russisch: drei Stimmen, blind.
-
-**0.2.1 bis 0.4.2 — die Anfänge**
+**0.2.1 bis 0.4.3 — die Anfänge**
 
 - Übersetzung in mehrere Sprachen zugleich, Ton und Text auf jedem
   Handy, ohne App, WLAN vom Rechner selbst. Aufnahmen nur nach
@@ -46,3 +46,5 @@ fallen heraus, damit dies ein Blatt bleibt.
 - Mit 0.4.2: alles vom Stick, nach Prüfsumme geprüft. Die Statuspille
   sagt im Klartext, was fehlt. Zwei Rückmeldeknöpfe für die Zuhörer,
   gezählt je Sprache — ohne Gerät und ohne Uhrzeit.
+- Mit 0.4.3: sichtbare Umrisse, die Grafikkarte schreibt mit, blinde
+  Hörprobe für Englisch und Russisch.

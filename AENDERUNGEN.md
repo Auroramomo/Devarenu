@@ -6,6 +6,81 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.4.6 — Der Bildschirm bleibt an
+
+*04.10.2026.*
+
+### Für alle
+
+**Die Seite hält den Bildschirm selbst an.** Bis 0.4.5 stand dort nur
+„Bildschirm anlassen, sonst stoppt die Wiedergabe" — und wer das Handy
+hinlegte, verlor nach 30 Sekunden den Ton. Jetzt bleibt der Bildschirm
+an, sobald man die Seite einmal berührt hat, auch wer nur mitliest und
+nie „Zuhören" drückt. Unter **Mehr** lässt es sich mit **„Bildschirm
+anlassen"** abschalten; die Wahl merkt sich das Handy.
+
+**Auf dem iPhone ist das noch nicht erprobt.** Wer dort Probleme hat,
+schaltet es unter *Mehr* aus und lässt den Bildschirm von Hand an.
+
+**Nach einem Update kommt sicher die neue Seite.** Bis hierher konnte
+ein Handy, das die Seite schon kannte, nach einem Update noch tagelang
+die alte zeigen.
+
+### Für die Technik
+
+* **Bildschirm anlassen als Normalfall.** Erst der echte Wake Lock, wo
+  es ihn gibt (nur unter https, im Saal also nicht); fehlt er, wird er
+  abgelehnt oder geht er verloren, das Video mit stiller Tonspur aus
+  0.4.5. Gestartet in der **ersten Geste** — das Dokument horcht im
+  Einfang auf `click`, `touchend` und `keydown`, also liegt `play()`
+  noch in derselben Geste wie der Tipp auf eine Sprachkachel. Der
+  Schalter unter *Mehr* steht im Browser unter `bildschirm`; aus heißt
+  Wake Lock freigegeben und kein Video im Dokument.
+* **Adresszusätze:** `?versuch=wach` und `?versuch=aus` setzen den
+  Schalter. Neu `?versuch=protokoll`: das Protokollkästchen sieht ein
+  normaler Zuhörer nicht mehr; der Zusatz wird nicht gemerkt. Mehrere
+  gehen zusammen, Leerzeichen und Groß/Klein zählen nicht.
+* Der Hinweis „Bildschirm anlassen" kommt nur noch, wenn nichts den
+  Bildschirm anhält. „Zurück" hält das Video nicht mehr an.
+* **Zwischenspeicher.** Hörerseite, Pult, QR-Seite, Logo und
+  Anleitungs-PDFs kommen mit `Cache-Control: no-cache` und einem ETag
+  aus dem Inhalt; unverändert antwortet der Server mit 304 ohne
+  Inhalt. Vorher: kein `Cache-Control`, aber `Last-Modified` — damit
+  durfte ein Browser die Seite heuristisch ein Zehntel ihres Alters
+  lang für frisch halten. Mit einem echten Firefox belegt, bevor
+  etwas geändert war.
+* **Wake Lock robuster.** Geht er bei sichtbarer Seite verloren oder
+  lehnt die erneute Anforderung nach der Rückkehr ab, springt das Video
+  ein. Vorher wurde das Ergebnis nicht angesehen.
+* **Der Entwicklungsrechner** wird erkannt — an der Marke
+  `ENTWICKLUNG` (in `.gitignore`, nie auf dem Stick) **und** dem
+  privaten Signierschlüssel. Nur dann: keine Fehlerberichte, kein
+  Senden über `meldung.sh`, im Systemcheck ein Hinweis statt FEHLT für
+  Dienst und Autologin. Eine Bedingung allein bewirkt nichts.
+  `entwicklung.py`, Abschnitt in `AUFSTELLEN.md`.
+* **Grafikspeicher.** Ein Hinweis, sobald die Tagesspitze 90 Prozent
+  erreicht, und einer, sobald `ollama ps` mehr als ein Modell zeigt —
+  im Systemcheck und, aus der laufenden Messung, in der
+  Störungsansicht, mit einem Satz für Laien. Gemessen: Devarenu
+  selbst braucht rund 10,8 GB, gleich ob mit einer oder vier
+  Zielsprachen. Die Grafikwacht zählt in „sprachen" nur noch
+  Zielsprachen; die neue Spalte `zaehlt` sagt in der Datei selbst,
+  welche Zeile wie zählt.
+* **Prüfstände räumen auf**, auch wenn sie scheitern
+  (`hilfe.wegwerfordner`). Unter `/tmp` lagen über 700 Ordner.
+* **Fahrplan nachgezogen:** `joe`, `dmitri` und `denis` sind aus
+  `lessac` feinabgestimmt, nur `ljspeech` von Grund auf trainiert —
+  das betrifft Englisch und Russisch. Neu darin: ein Versuch mit einer
+  arabischen Stimme, das iPhone, und das Löschen der beiden
+  herausgenommenen Stimmdateien in Rostock von Hand.
+* Im Mehr-Blatt wurde „schwer verständlich" bei 150 Prozent Schrift
+  abgeschnitten (seit 0.4.5). Behoben.
+* Neue Prüfstände: `zwischenspeicher_test.py`, `aufraeumen_test.py`,
+  `entwicklung_test.py`; `wachvideo_test.mjs` neu geschrieben,
+  `grafikwacht_test.py` erweitert.
+
+---
+
 ## 0.4.5 — Eine Leiste, zwei Stimmen weniger
 
 *04.10.2026.*
