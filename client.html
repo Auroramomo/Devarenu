@@ -964,6 +964,23 @@ $("nachschub").addEventListener("click", () => {
 let wachschloss = null;
 
 async function bildschirmWachhalten(){
+  // ACHTUNG: IM SAAL LAEUFT DIESER ZWEIG NIE.
+  //
+  // navigator.wakeLock gibt es nur im sicheren Kontext -- https,
+  // localhost oder 127.0.0.1. Die Zuhoererseite kommt im Saal unter
+  // http://10.0.0.1, und das ist keiner. "wakeLock" in navigator ist
+  // dort schlicht false, und die Funktion gibt sofort false zurueck.
+  //
+  // Am Schreibtisch ueber localhost greift sie, und genau das hat sie
+  // bis 0.4.2 glauben lassen, der Bildschirm bliebe im Saal wach. Er
+  // bleibt es nicht. Was den Ton heute am Leben haelt, ist allein der
+  // Satz "Bildschirm anlassen" auf der Seite.
+  //
+  // HTTPS waere dafuer kein Weg: selbstsigniert heisst Warnseite auf
+  // jedem Handy, und einen echten Namen gibt es ohne Internet nicht.
+  // Ausserdem haelt Wake Lock nur den Bildschirm an -- es hilft gar
+  // nicht, wenn jemand bewusst sperrt. Darum geht es im Versuch
+  // oben (?versuch=stille) und in AENDERUNGEN 0.4.2, Anhang G.
   try{
     if("wakeLock" in navigator){
       wachschloss = await navigator.wakeLock.request("screen");
