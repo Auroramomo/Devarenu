@@ -58,7 +58,6 @@ const TABELLE = [
   ["anhaltenHin",           "gottesdienst"],
   ["aufnahmelaeuft",        "gottesdienst"],
   ["aufnahmedauer",         "gottesdienst"],
-  ["kontextwarnung",        "gottesdienst"],
   ["kTon",                  "gottesdienst"],
   ["tonZustand",            "gottesdienst"],
   ["fuell",                 "gottesdienst"],
@@ -291,8 +290,14 @@ const ZUSTAENDE = [
   ["bereit", {}, {}],
   ["laeuft", { live: true, laeuft_seit: 754, gesamt: 23,
                hoerer: { en: 11, ru: 9, fa: 3 } }, {}],
-  ["kein Ton", { ton: { lage: "still", name: "SQ5" } }, { lage: "alarm",
-                 lage_text: "Es wird gesprochen, aber nichts kommt durch." }],
+  // "kein_ton" ist eine der drei Lagen, die Tonquelle.lage() wirklich
+  // schickt. In den ersten Pruefbildern stand hier "still" -- ein Wort
+  // aus der Kanalliste, das als rote Meldung im Kopf landete.
+  ["kein Ton", { ton: { lage: "kein_ton", name: "SQ5",
+                        einzelheit: "Device unavailable" } },
+                { lage: "alarm", modus: "automatisch",
+                  lage_text: "Es wird gesprochen, aber zu leise für die "
+                           + "eingestellte Schwelle." }],
   ["Thema fehlt", { kontext_fehlt: true }, {}],
   ["Aufnahme laeuft", { live: true, mitschnitt: { sekunden: 192 } }, {}],
   ["Update wartet", { update: { lage: "bereit", version: "0.4.2" } }, {}],
@@ -311,9 +316,51 @@ for (const [name, z, pg] of ZUSTAENDE) {
          p.g("warnung").textContent);
 }
 
+block("4b. Der Pillentext folgt dem Zustand, nicht nur die Farbe");
+{
+  const faelle = [
+    ["bereit",   {},                 "aus",    /Angehalten|Paused/],
+    ["laeuft",   { live: true },     "an",     /Läuft|Running/],
+    ["Stoerung", { ton: { lage: "kein_ton", name: "SQ5" } },
+                                     "kaputt", /Störung|Fault/],
+  ];
+  for (const [name, z, klasse, wort] of faelle) {
+    const p = await pult(z);
+    pruefe(`${name}: die Pille heisst richtig`,
+           wort.test(p.g("pille").textContent),
+           JSON.stringify(p.g("pille").textContent));
+    pruefe(`${name}: und hat die passende Farbe`,
+           p.g("pille").classList.contains(klasse), p.g("pille").className);
+  }
+  // Der Fehler, der in den Bildern stand: uiZeichnen setzte jedes
+  // data-t neu und schrieb der Pille wieder "Angehalten" hinein.
+  const p = await pult({ live: true });
+  p.fenster.uiZeichnen();
+  pruefe("uiZeichnen schreibt den Pillentext nicht zurueck",
+         /Läuft|Running/.test(p.g("pille").textContent),
+         JSON.stringify(p.g("pille").textContent));
+}
+
+block("4c. Banner tragen nur uebersetzte Meldungen");
+{
+  // Eine Lage, die es nicht gibt, darf nichts erzeugen -- erst recht
+  // kein Wort aus der Kanalliste.
+  for (const lage of ["still", "ruht", "offen", "unlesbar", "quatsch"]) {
+    const p = await pult({ ton: { lage, name: "SQ5" } });
+    pruefe(`"${lage}" erscheint nicht als rote Meldung`,
+           p.g("tonhin").hidden, p.g("tonhin").textContent);
+  }
+  for (const lage of ["kein_ton", "warte_auf_geraet", "neu_geoeffnet"]) {
+    const p = await pult({ ton: { lage, name: "SQ5" } });
+    pruefe(`"${lage}" ergibt einen Satz`,
+           !p.g("tonhin").hidden && p.g("tonhin").textContent.length > 12,
+           p.g("tonhin").textContent);
+  }
+}
+
 block("5. Rote Meldungen stehen in JEDEM Reiter");
 {
-  const p = await pult({ ton: { lage: "still", name: "SQ5" } });
+  const p = await pult({ ton: { lage: "kein_ton", name: "SQ5" } });
   for (const r of ["gottesdienst", "vorbereiten", "aufnahmen", "einrichtung"]) {
     p.fenster.reiterWaehlen(r);
     const band = p.g("tonhin");
@@ -327,9 +374,10 @@ block("5. Rote Meldungen stehen in JEDEM Reiter");
   const p = await pult({ kontext_fehlt: true });
   pruefe("ein gelber Hinweis genuegt als Punkt am Reiter",
          !p.g("punktVorbereiten").hidden);
-  p.fenster.reiterWaehlen("aufnahmen");
-  pruefe("und steht nicht als Banner in den anderen Reitern",
-         !p.g("kontextwarnung").sichtbar());
+  pruefe("und als gelbe Kachel -- kein zusaetzliches Banner",
+         p.g("kThema").classList.contains("warn")
+         && p.body.querySelectorAll(".banner")
+              .filter(b => !b.hidden).length === 0);
 }
 
 block("6. Die Kacheln sagen den Zustand in einem Wort");
@@ -411,7 +459,7 @@ block("7. Verzoegerung und Rueckstau");
 }
 
 block("8. Schwelle: drei Modi am Pult");
-for (const [modus, wort] of [["aus", /Keine|No minimum/],
+for (const [modus, wort] of [["aus", /Schwelle: aus|Threshold: off/],
                              ["automatisch", /automatisch|automatic/i],
                              ["fest", /[Ff]est|[Ff]ixed/]]) {
   const p = await pult({}, { modus, gemessen: modus === "fest"
@@ -428,6 +476,72 @@ for (const [modus, wort] of [["aus", /Keine|No minimum/],
   pruefe("fest nennt den Zeitpunkt",
          /9:41|09:41/.test(p.g("schwellestand").textContent),
          p.g("schwellestand").textContent);
+}
+
+block("8b. Branding");
+{
+  const p = await pult();
+  const logo = p.body.querySelector(".logo");
+  pruefe("das Logo steht im Kopf",
+         !!logo && logo.vorfahren().some(v => v.classList.contains("top")));
+  pruefe("und damit in jedem Reiter", !!logo && logo.sichtbar());
+  pruefe('"Uebersetzung starten" traegt .start',
+         p.g("bStart").classList.contains("start"), p.g("bStart").className);
+  const q = await pult({ live: true });
+  pruefe("angehalten wird dunkelblau, ohne .start",
+         !q.g("bStart").classList.contains("start"), q.g("bStart").className);
+  const quelle = readFileSync(SERVER, "utf8");
+  const stil = quelle.split('PULT = """')[1].split("<style>")[1].split("</style>")[0];
+  pruefe(".start traegt den Verlauf von 0.4.0",
+         /\.btn\.primaer\.start\{background:linear-gradient\(100deg,#3b1e73,#1c3a8f 52%,/
+           .test(stil.replace(/\s+/g, " ").replace(/ \{/g, "{")),
+         "Verlauf fehlt");
+  pruefe("der Kopf traegt die Linie im selben Verlauf",
+         /\.top\{[^}]*border-image:linear-gradient\(100deg,#3b1e73/
+           .test(stil.replace(/\s+/g, "")));
+}
+
+block("8c. Aufnahmeknopf in Ruhe");
+{
+  const quelle = readFileSync(SERVER, "utf8");
+  const stil = quelle.split('PULT = """')[1].split("<style>")[1]
+                     .split("</style>")[0].replace(/\s+/g, "");
+  pruefe("kein roter Rahmen und keine rote Schrift in Ruhe",
+         !/\.rec\{[^}]*(border-color:var\(--rot\)|color:var\(--rot\))/.test(stil),
+         "rec traegt noch Rot");
+  pruefe("der Ring ist leer, nicht gefuellt",
+         /\.rec::before\{[^}]*border:2pxsolidvar\(--rot\)/.test(stil)
+         && !/\.rec::before\{[^}]*background:var\(--rot\)/.test(stil));
+  pruefe("gefuellt wird er erst, wenn aufgenommen wird",
+         /\.rec\[aria-pressed=true\]\{[^}]*background:var\(--rot\)/.test(stil));
+}
+
+block("8d. Kopf und Reiter bei enger Schrift");
+{
+  const quelle = readFileSync(SERVER, "utf8");
+  const stil = quelle.split('PULT = """')[1].split("<style>")[1]
+                     .split("</style>")[0].replace(/\s+/g, "");
+  pruefe("der Kopf darf umbrechen",
+         /\.top\{[^}]*flex-wrap:wrap/.test(stil));
+  pruefe("das Wort im Reiter wird ausgeblendet, nicht abgeschnitten",
+         /\.reiter\.nurzeichen\.wort\{display:none\}/.test(stil)
+         && !/\.reiter\.wort\{[^}]*text-overflow:ellipsis/.test(stil));
+  const p = await pult();
+  for (const k of ["rGottesdienst", "rVorbereiten", "rAufnahmen",
+                   "rEinrichtung"])
+    pruefe(`${k} traegt einen Namen ohne Wort`,
+           (p.g(k).getAttribute("aria-label") || "").length > 3,
+           p.g(k).getAttribute("aria-label"));
+}
+
+block("8e. Abstand unter der Knopfzeile");
+{
+  const quelle = readFileSync(SERVER, "utf8");
+  const stil = quelle.split('PULT = """')[1].split("<style>")[1]
+                     .split("</style>")[0].replace(/\s+/g, "");
+  pruefe("die Knopfzeile hat Abstand nach unten",
+         /\.haupt\{[^}]*margin:00 ?1rem/.test(stil)
+         || /\.haupt\{[^}]*margin:001rem/.test(stil), "kein margin an .haupt");
 }
 
 block("9. Aufnahmen");

@@ -6006,14 +6006,28 @@ h1,h2,h3{font-family:var(--display);font-weight:400}
 /* Kopf. Am Handy stehen hier nur die Statuspille und die
    Oberflaechensprache -- fuer mehr ist die Zeile zu schmal, und was
    wegfaellt, steht unter Einrichtung. */
-.top{display:flex;align-items:center;gap:.6rem;
+/* Umbrechen statt ueberlappen. Bei 150 Prozent Schriftgroesse schob
+   sich die Pille bisher ueber "Devarenu" -- ein Kopf, in dem zwei
+   Dinge uebereinanderliegen, sieht kaputt aus, ein Kopf in zwei
+   Zeilen nur voll. */
+.top{display:flex;align-items:center;gap:.4rem .6rem;flex-wrap:wrap;
      padding:.7rem 1rem;padding-top:calc(.7rem + env(safe-area-inset-top));
-     border-bottom:1px solid var(--linie);background:#fff}
-.top .logo{height:1.7rem;width:auto;flex:0 0 auto}
-.titel{display:flex;align-items:baseline;gap:.4rem;min-width:0}
+     background:#fff}
+/* Die Unterkante traegt das Band der Urkunde, dieselben drei Farben
+   wie der Startknopf. Der einzige Verlauf ausser ihm: Gruen, Gelb und
+   Rot bleiben den Zustaenden vorbehalten. */
+.app::after{content:none}
+.top{border-bottom:3px solid transparent;
+     border-image:linear-gradient(100deg,#3b1e73,#1c3a8f 52%,#1fa5d8) 1}
+.top .logo{height:28px;width:auto;flex:0 0 auto}
+.titel{display:flex;align-items:baseline;gap:.4rem;min-width:0;
+       flex:0 1 auto}
 .titel b{font:400 1.05rem/1.2 var(--display);letter-spacing:.05em;
          white-space:nowrap}
+/* Das kleine "Pult" ist das erste, was weggeht, wenn es eng wird: der
+   Name traegt, der Zusatz nicht. */
 .titel span{font-size:.75rem;color:var(--grau);white-space:nowrap}
+@media (max-width:460px){ .titel span{display:none} }
 .meta{display:none;align-items:center;gap:.45rem}
 .luecke{margin-inline-start:auto}
 .laufzeit{font-size:.8rem;color:var(--grau);
@@ -6050,8 +6064,14 @@ h1,h2,h3{font-family:var(--display);font-weight:400}
 .reiter button[aria-selected=true]{color:var(--navy);font-weight:600;
                                    border-top-color:var(--navy)}
 .reiter .sym{font-size:1.15rem;line-height:1}
-.reiter .wort{max-width:100%;overflow:hidden;text-overflow:ellipsis;
-              white-space:nowrap}
+/* Kein Ellipsenwort. "Gottesd…" ist schlechter als gar kein Wort:
+   es sieht nach einem Fehler aus, und das Zeichen darueber sagt
+   ohnehin schon, worum es geht. Passt das Wort nicht, traegt der
+   Knopf nur noch das Zeichen -- und sein aria-label den Namen. */
+.reiter .wort{max-width:100%;white-space:nowrap}
+.reiter.nurzeichen .wort{display:none}
+.reiter.nurzeichen button{min-height:48px}
+.reiter.nurzeichen .sym{font-size:1.4rem}
 /* Ein offener Punkt am Reiter. Gelb heisst: dort wartet etwas, das den
    Gottesdienst nicht aufhaelt. Rot steht nie hier, sondern als Banner
    in jedem Reiter. */
@@ -6094,24 +6114,33 @@ h2{font:600 .72rem var(--schild);text-transform:uppercase;
              background:var(--navy);border-color:var(--navy);color:#fff;
              font:1.05rem var(--display);letter-spacing:.06em}
 .btn.primaer:hover{background:#1c2a6b;border-color:#1c2a6b}
+/* "Uebersetzung starten" traegt das Band der Urkunde wie bis 0.4.0.
+   Angehalten wird dunkelblau: dieselbe Handlung, aber keine, die
+   eingeladen werden muss. */
+.btn.primaer.start{background:linear-gradient(100deg,#3b1e73,#1c3a8f 52%,
+                   #1fa5d8);border-color:#1c3a8f}
+.btn.primaer.start:hover{background:linear-gradient(100deg,#331a64,
+                         #17307a 52%,#1b96c6)}
 .btn.gefahr{color:var(--rot);border-color:#eccac5}
 .btn.gefahr:hover{border-color:var(--rot)}
 .btn.an{border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy);
         font-weight:600}
 .reihe{display:flex;gap:.5rem;flex-wrap:wrap}
-.haupt{display:grid;gap:.5rem}
+.haupt{display:grid;gap:.5rem;margin:0 0 1rem}
 /* Die Aufnahme ist die Ausnahme, nicht der Normalfall: weiss, mit
    rotem Ring. Laeuft sie, fuellt sich der Ring. */
-.rec{box-shadow:inset 0 0 0 2px var(--rot);border-color:var(--rot);
-     color:var(--rot)}
-.rec::before{content:"";width:.7rem;height:.7rem;border-radius:50%;
-             background:var(--rot);flex:0 0 auto}
-.rec[aria-pressed=true]{background:var(--rot);color:#fff}
-.rec[aria-pressed=true]::before{background:#fff}
+/* In Ruhe ist die Aufnahme ein Knopf wie jeder andere: grauer Rand,
+   dunkle Schrift. Nur der leere rote Ring sagt, worum es geht. Rot
+   gefuellt heisst, dass gerade aufgenommen wird -- und nur dann. */
+.rec::before{content:"";width:.75rem;height:.75rem;border-radius:50%;
+             border:2px solid var(--rot);flex:0 0 auto}
+.rec[aria-pressed=true]{background:var(--rot);border-color:var(--rot);
+                        color:#fff}
+.rec[aria-pressed=true]::before{background:#fff;border-color:#fff}
 
 /* Kacheln: ein Wort Zustand oben rechts, farbiger Rand an der
    Textanfangsseite -- logisch, damit Farsi nicht springt. */
-.kacheln{display:grid;grid-template-columns:1fr;gap:.6rem;margin:.9rem 0 .8rem}
+.kacheln{display:grid;grid-template-columns:1fr;gap:.6rem;margin:0 0 .8rem}
 .kachel{background:var(--fl);border:1px solid var(--linie);
         border-inline-start:4px solid var(--hell);padding:.7rem .85rem}
 .kachel.ok{border-inline-start-color:var(--gruen)}
@@ -6189,7 +6218,7 @@ input[type=range]{width:100%;min-height:44px}
 .mit div{display:flex;gap:.6rem;padding:.3rem 0;
          border-top:1px solid var(--linie)}
 .mit .sek{flex:0 0 3rem;font-variant-numeric:tabular-nums;text-align:end}
-.leise{margin:1.6rem 0 0;text-align:center}
+.leise{margin:1.1rem 0 0;text-align:center}
 .leise .btn{border-color:transparent;color:var(--grau);font-size:.8rem}
 .leise .btn:hover{border-color:var(--linie)}
 
@@ -6359,7 +6388,11 @@ h2.klapp{display:flex;justify-content:space-between;align-items:center;
                  M4 14h2M18 14h2M6 19l2-2M18 19l-2-2"/></svg>
       <span data-t=fehler_melden>Fehler melden</span></button>
   </div>
-  <span class="pille aus" id=pille data-t=p_aus>Angehalten</span>
+  <!-- KEIN data-t: uiZeichnen setzt jedes data-t neu, und die Pille
+       haette damit bei jedem Sprachzeichnen wieder "Angehalten"
+       gestanden -- gruen, rot, egal. Genau das war in den Bildern zu
+       sehen. Ihren Text setzt lies(), und nur lies(). -->
+  <span class="pille aus" id=pille>Angehalten</span>
   <button class=ikon id=sprachknopf onclick=uiSprache()>EN</button>
 </header>
 
@@ -6369,20 +6402,24 @@ h2.klapp{display:flex;justify-content:space-between;align-items:center;
      und am Pult steht nicht immer eine Maus. -->
 <nav class=reiter role=tablist aria-label="Bereiche">
   <button role=tab id=rGottesdienst aria-selected=true
-          aria-controls=gottesdienst onclick="reiterWaehlen('gottesdienst')">
+          aria-controls=gottesdienst onclick="reiterWaehlen('gottesdienst')"
+          aria-label="Gottesdienst">
     <span class=sym aria-hidden=true>◉</span>
     <span class=wort data-t=r_gottesdienst>Gottesdienst</span></button>
   <button role=tab id=rVorbereiten aria-selected=false tabindex=-1
+          aria-label="Vorbereiten"
           aria-controls=vorbereiten onclick="reiterWaehlen('vorbereiten')">
     <span class=sym aria-hidden=true>✎</span>
     <span class=wort data-t=r_vorbereiten>Vorbereiten</span>
     <span class=punkt id=punktVorbereiten hidden></span></button>
   <button role=tab id=rAufnahmen aria-selected=false tabindex=-1
+          aria-label="Aufnahmen"
           aria-controls=aufnahmen onclick="reiterWaehlen('aufnahmen')">
     <span class=sym aria-hidden=true>♫</span>
     <span class=wort data-t=r_aufnahmen>Aufnahmen</span>
     <span class=zahl id=zahlAufnahmen hidden></span></button>
   <button role=tab id=rEinrichtung aria-selected=false tabindex=-1
+          aria-label="Einrichtung"
           aria-controls=einrichtung onclick="reiterWaehlen('einrichtung')">
     <span class=sym aria-hidden=true>⚙</span>
     <span class=wort data-t=r_einrichtung>Einrichtung</span>
@@ -6420,17 +6457,12 @@ h2.klapp{display:flex;justify-content:space-between;align-items:center;
   <button class="btn rec" id=bSchnitt onclick=aufnahmeUmschalten()
           aria-pressed="false" data-t=aufnahme>Aufnahme</button>
 </div>
-<p class=hin id=anhaltenHin data-t=anhalten_hin hidden>Anhalten stoppt die
-Auslieferung, ohne die Sitzung zu beenden. Die Handys bleiben verbunden.</p>
+<p class=hin id=anhaltenHin data-t=anhalten_hin hidden>Anhalten trennt
+niemanden — die Zuhörer bleiben verbunden.</p>
 <p class=laeuftauf id=aufnahmelaeuft hidden>
   <span class=rotpunkt aria-hidden=true></span>
   <b data-t=aufnahme_laeuft>Aufnahme läuft</b>
   <span class=dauer id=aufnahmedauer>0:00</span></p>
-<p class="banner gelb" id=kontextwarnung hidden>
-  <span data-t=kontext_fehlt>Thema und Bibelstellen fehlen. Prediger fragen.</span>
-  <button class="link wohin" onclick="reiterWaehlen('vorbereiten','kontext')"
-          data-t=eintragen>Eintragen</button></p>
-
 <div class=kacheln>
   <div class=kachel id=kTon>
     <div class=kkopf><span data-t=k_ton>Ton</span>
@@ -6808,8 +6840,8 @@ const TEXTE={
      +"viel verwerfen.",
    ton_ueber:"Ton",
    m_aus:"Aus", m_auto:"Automatisch", m_fest:"Fest",
-   s_aus:"Keine Mindestlautstärke.", s_auto:"Mindestlautstärke automatisch.",
-   s_fest:"Mindestlautstärke fest.", s_fest_seit:"Fest seit {z}.",
+   s_aus:"Schwelle: aus", s_auto:"Schwelle: automatisch",
+   s_fest:"Schwelle: fest", s_fest_seit:"Schwelle: fest seit {z}",
    modus_hin:"„Aus“ heißt: keine Mindestlautstärke, geschnitten wird an "
      +"Sprechpausen. „Automatisch“ folgt dem Raumpegel. „Fest“ hält den "
      +"Wert, den das Einmessen ergeben hat.",
@@ -6893,7 +6925,7 @@ const TEXTE={
    ew_start:"Aufnahme starten",
    ew_beide:"Beide Punkte müssen bestätigt sein.",
    manuskript:"Predigtmanuskript",start:"Übersetzung starten",
-   pause:"Übersetzung anhalten",reset:"Von vorn",uebernehmen:"Übernehmen",
+   pause:"Übersetzung anhalten",reset:"Von vorn beginnen …",uebernehmen:"Übernehmen",
    einmessen:"Einmessen: Prediger sprechen lassen",
    fest:"Regler festnageln",auto:"Mitlaufend",
    schnittstart:"Aufnahme starten",schnittstop:"Aufnahme beenden",
@@ -6989,9 +7021,8 @@ const TEXTE={
    gespeichert:"Gespeichert.",
    qr_hin:"Mit QR oben rechts öffnet sich die Seite für den Beamer. "
      +"Dort scannen die Zuhörer sich selbst ein.",
-   anhalten_hin:"Anhalten stoppt die Auslieferung, ohne die Zuhörer zu "
-     +"trennen. Sie bleiben verbunden und hören weiter, sobald es "
-     +"weitergeht.",
+   anhalten_hin:"Anhalten trennt niemanden — die Zuhörer bleiben "
+     +"verbunden.",
    zuhoerer_ueber:"Zuhörer je Sprache",
    vorbereitung:"Vor dem Gottesdienst",kontext:"Thema und Bibelstellen",
    zuklappen:"zuklappen",ausklappen:"ausklappen",
@@ -7127,8 +7158,8 @@ const TEXTE={
      +"someone speaks quietly.",
    ton_ueber:"Audio",
    m_aus:"Off", m_auto:"Automatic", m_fest:"Fixed",
-   s_aus:"No minimum volume.", s_auto:"Minimum volume automatic.",
-   s_fest:"Minimum volume fixed.", s_fest_seit:"Fixed since {z}.",
+   s_aus:"Threshold: off", s_auto:"Threshold: automatic",
+   s_fest:"Threshold: fixed", s_fest_seit:"Threshold: fixed since {z}",
    modus_hin:"\u201cOff\u201d means no minimum volume; cuts happen at "
      +"pauses. \u201cAutomatic\u201d follows the room level. "
      +"\u201cFixed\u201d keeps the calibrated value.",
@@ -7208,7 +7239,7 @@ const TEXTE={
    ew_start:"Start recording",
    ew_beide:"Both points must be confirmed.",
    manuskript:"Sermon manuscript",start:"Start translation",
-   pause:"Pause translation",reset:"Start over",uebernehmen:"Apply",
+   pause:"Pause translation",reset:"Start over …",uebernehmen:"Apply",
    einmessen:"Calibrate: let the preacher speak",
    fest:"Lock the slider",auto:"Follow the room",
    schnittstart:"Start recording",schnittstop:"Stop recording",
@@ -7291,8 +7322,7 @@ const TEXTE={
    gespeichert:"Saved.",
    qr_hin:"The QR button at the top right opens the page for the projector. "
      +"Listeners scan themselves in from there.",
-   anhalten_hin:"Pausing stops delivery without disconnecting listeners. "
-     +"They stay connected and continue as soon as it resumes.",
+   anhalten_hin:"Pausing disconnects nobody — listeners stay connected.",
    zuhoerer_ueber:"Listeners per language",
    vorbereitung:"Before the service",kontext:"Topic and Bible passages",
    zuklappen:"collapse",ausklappen:"expand",
@@ -7447,6 +7477,27 @@ function reiterWaehlen(name, ziel){
   uiZeichnen();
 }
 
+// Passen die Woerter in die Leiste? Das laesst sich nicht als
+// Medienabfrage schreiben: es haengt nicht an der Breite allein,
+// sondern auch daran, wie gross jemand seine Schrift gestellt hat.
+// Bei 150 Prozent stand in den Pruefbildern "Gottesd…".
+function reiterBreitePruefen(){
+  const leiste = document.querySelector(".reiter");
+  if(!leiste) return;
+  leiste.classList.remove("nurzeichen");
+  // Am Laptop stehen die Reiter nebeneinander und duerfen wachsen --
+  // dort gibt es kein Gedraenge, nur am Handy.
+  if(!SCHMAL()) return;
+  for(const k of leiste.querySelectorAll("button")){
+    const w = k.querySelector(".wort");
+    if(w && w.scrollWidth > w.clientWidth + 1){
+      leiste.classList.add("nurzeichen");
+      return;
+    }
+  }
+}
+window.addEventListener("resize", reiterBreitePruefen);
+
 // Pfeiltasten in der Reiterleiste, wie bei einer Reiterleiste ueblich.
 document.querySelector(".reiter").addEventListener("keydown", e=>{
   const i = REITER.indexOf(reiterJetzt);
@@ -7539,6 +7590,9 @@ function uiZeichnen(){
   // wenn man ihn drueckt. Zwei Knoepfe, von denen einer wirkungslos ist,
   // zwingen zum Nachdenken darueber, in welchem Zustand man gerade ist.
   bStart.textContent = zustandLive ? t.pause : t.start;
+  // Starten traegt das Band, Anhalten das Dunkelblau. Dieselbe Regel
+  // wie bis 0.4.0, nur dass der Knopf heute einer ist statt zweier.
+  bStart.className = "btn primaer" + (zustandLive ? "" : " start");
   // Erklaert, was Anhalten bewirkt. Solange nichts laeuft, erklaert er
   // etwas, das gerade niemanden beschaeftigt.
   anhaltenHin.hidden = !zustandLive;
@@ -7548,6 +7602,14 @@ function uiZeichnen(){
   // Beschriftung springt, laesst im Gottesdienst offen, ob er den
   // Zustand nennt oder die Handlung.
   bSchnitt.textContent=t.aufnahme;
+  // Die Reiterbeschriftung steht zweimal: sichtbar als Wort, und als
+  // aria-label fuer den Fall, dass nur das Zeichen uebrigbleibt.
+  for(const [k, n] of [[rGottesdienst,"r_gottesdienst"],
+                       [rVorbereiten,"r_vorbereiten"],
+                       [rAufnahmen,"r_aufnahmen"],
+                       [rEinrichtung,"r_einrichtung"]])
+    k.setAttribute("aria-label", t[n]);
+  reiterBreitePruefen();
   sprachknopf.textContent=UI==="de"?"EN":"DE";
   unterseitenZeichnen();
   document.documentElement.lang=UI;
@@ -8169,8 +8231,18 @@ async function wlanSetzen(){
 // Dasselbe fuer die Tonquelle. Die Einzelheit haengt hinten dran und
 // bleibt unuebersetzt: sie kommt aus dem Treiber, ist meist ohnehin
 // englisch, und wer damit suchen geht, braucht sie im Wortlaut.
+// Nur diese drei Lagen schickt Tonquelle.lage(). Die Liste steht hier
+// ausdruecklich, weil "ton_" + Lage sonst in dieselbe Tabelle greift,
+// in der auch die Kanalwoerter stehen -- "still", "ruht", "offen". Eine
+// unbekannte Lage haette damit ein rohes Zustandswort als rote Meldung
+// an den Kopf geschrieben, und genau das stand in den Pruefbildern.
+const TONLAGEN = ["kein_ton", "warte_auf_geraet", "neu_geoeffnet"];
 function tonSatz(d){
   if(!d || !d.lage) return "";
+  if(!TONLAGEN.includes(d.lage)){
+    console.error("Unbekannte Tonlage:", d.lage);
+    return "";
+  }
   let s = TEXTE[UI]["ton_"+d.lage] || "";
   if(!s) return "";
   s = s.split("{name}").join(d.name || "?");
@@ -8630,7 +8702,6 @@ async function lies(){
       gemeindefeld.value = d.gemeinde || "";
     meldeschalter.checked = !!d.nutzung_melden;
     kontowarnung.hidden = !d.spendenkonto;
-    kontextwarnung.hidden = !d.kontext_fehlt;
     onlineUpdateAnzeigen(d);
     if(d.spendenkonto) kontowarnungtext.textContent = TEXTE[UI].konto_kaputt;
     pruefprotokollreihe.hidden = !d.am_rechner;
