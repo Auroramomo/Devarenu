@@ -1530,6 +1530,85 @@ python pruefstand/bericht_test.py
 python pruefstand/netz_alt_test.py
 ```
 
+## Versuch: Ton bei gesperrtem Handy
+
+Die Hörerseite sagt heute „Bildschirm anlassen, sonst stoppt die
+Wiedergabe". Der Grund steht ausführlich in `AENDERUNGEN.md` unter
+0.4.2, Anhang G. Der erste von vier Gründen ist der billigste zu
+prüfen: **das `audio`-Element wird zwischen zwei Häppchen leer**, und
+iOS wie Android räumen dann die Audiositzung ab.
+
+Der Versuch lässt es nie leer werden — ist die Schlange leer, läuft
+eine Sekunde Stille in Schleife, im Browser erzeugt. Er hängt an einem
+Adresszusatz:
+
+| | |
+|---|---|
+| `?versuch=stille` | einschalten, im Browser gemerkt |
+| `?versuch=aus` | wieder weg |
+
+**Ohne den Zusatz ändert sich nichts.** Geprüft in
+`pruefstand/versuch_test.mjs`.
+
+### So wird getestet
+
+Acht Durchgänge: iPhone (Safari) und Android (Chrome), je mit und ohne
+Versuch, je einmal.
+
+1. **Auf dem Rechner starten**, mit einer Aufnahme statt des Mikrofons
+   — dann redet niemand drei Minuten lang ins Leere:
+   ```
+   bash start.sh --datei predigt2.mp3
+   ```
+2. **Handy ins selbe Netz** wie der Rechner.
+3. **Seite öffnen:** `http://<Adresse>:8000/?versuch=stille`
+   (ohne Versuch: nur `http://<Adresse>:8000/`).
+4. Sprache wählen, auf **Zuhören** tippen, Ton prüfen.
+5. **Bildschirm sperren.** Drei Minuten warten, ohne das Handy
+   anzufassen.
+6. **Entsperren.** Läuft der Ton noch? Kam etwas nach?
+7. Unten auf der Seite **„Versuch: Tonprotokoll"** aufklappen und
+   **fotografieren**. Dort steht mit Uhrzeit, was das Element getan
+   hat — `play`, `pause`, `ended`, abgelehnte `play()`-Aufrufe und
+   wann die Seite unsichtbar wurde.
+
+Das Protokoll steht nur auf dem Gerät. Es geht nichts an den Server,
+und es wird nichts gespeichert, was über den Tab hinaus bestehen
+bleibt.
+
+### Damit das Handy den Rechner erreicht
+
+Der Server hört auf **allen** Adressen (`0.0.0.0`), Port **8000**.
+Port 80 kommt nur dazu, wenn der Rechner selbst das Saalnetz stellt —
+beim Testen im Heimnetz also nicht. Die Portnummer gehört darum in die
+Adresse.
+
+Zwei Dinge können im Weg stehen:
+
+**Die Adresse.** Welche der Rechner im Heimnetz hat:
+```
+ip -4 -o addr show scope global | awk '{print $2, $4}'
+```
+
+**Die Firewall.** Läuft eine, ist Port 8000 von außen zu:
+```
+sudo ufw status verbose
+```
+Öffnen — nur für das eigene Netz, nicht für alle. `<NETZ>` ist das
+Netz aus der Ausgabe des `ip`-Befehls oben, mit `.0/24` am Ende: aus
+`192.0.2.17/24` wird also `192.0.2.0/24`.
+```
+sudo ufw allow from <NETZ> to any port 8000 proto tcp comment "Devarenu Test"
+```
+Und hinterher wieder zu:
+```
+sudo ufw delete allow from <NETZ> to any port 8000 proto tcp
+```
+
+> Eine Regel ohne `from` öffnet den Port für jeden, der den Rechner
+> erreicht. Zum Testen ist das nicht nötig, und offen bleibt sie
+> erfahrungsgemäß länger als geplant.
+
 ### Das Pult
 
 ```

@@ -177,7 +177,7 @@ export function skriptLaden(umgebung, pfad) {
   vm.runInContext(stuecke.join("\n;\n"), umgebung, { filename: pfad });
   vm.runInContext(
     "globalThis.__pruef = {zustand, Verbindung, Ton, spracheWechseln, " +
-    "SPRACHEN, zustandZeigen, TEXTE};", umgebung);
+    "SPRACHEN, zustandZeigen, TEXTE, Versuch};", umgebung);
   return umgebung.__pruef;
 }
 

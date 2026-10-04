@@ -214,6 +214,16 @@ h1{
 .fussleiste.urteil .werkzeug[aria-pressed="true"]{
   border-color:var(--cyan); color:var(--tinte); font-weight:600}
 
+/* Der Versuchskasten. Bewusst karg: er ist kein Teil der Bedienung,
+   sondern ein Messgeraet, das nur mitfaehrt, wenn jemand es bestellt. */
+.versuch{margin:.8rem var(--rand) 0; font-family:var(--schild);
+  font-size:.8rem; color:var(--leise)}
+.versuch summary{cursor:pointer; padding:.4rem 0}
+.versuchhin{margin:.2rem 0 .4rem; line-height:1.4}
+.versuch pre{margin:0; max-height:14rem; overflow:auto; font-size:.72rem;
+  line-height:1.5; white-space:pre-wrap; background:var(--blatt);
+  border:1px solid var(--linie); padding:.5rem}
+
 /* ---------- Bildschirm 2: Zuhören ---------- */
 #zuhoeren{padding:0}
 
@@ -536,6 +546,16 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
        Zwei Knoepfe, eine Stimme je Geraet und Gottesdienst, aenderbar.
        Gezaehlt wird nur, und zwar je Sprache -- keine Adresse, keine
        Kennung, kein Zeitpunkt. -->
+  <!-- Nur im Versuch (?versuch=stille). Ohne den Adresszusatz ist
+       dieser Kasten nicht da. Nichts davon geht an den Server. -->
+  <details class="versuch" id="versuchkasten" hidden>
+    <summary>Versuch: Tonprotokoll</summary>
+    <p class="versuchhin">Die letzten Ereignisse des Abspielers, neueste
+    oben. Bleibt der Ton stehen, steht hier, wann und woran. Nur auf
+    diesem Gerät, nichts davon geht irgendwohin.</p>
+    <pre id="versuchzeilen"></pre>
+  </details>
+
   <nav class="fussleiste urteil" id="urteil" aria-label="Rückmeldung">
     <button class="werkzeug klein" id="u-gut" aria-pressed="false">
       <span class="zeichen" aria-hidden="true">👍</span><span class="beschriftung"></span>
@@ -1190,10 +1210,100 @@ const Messung = {
 if(Messung.an) addEventListener("pagehide", () => Messung.schicken());
 
 
+/* ============================================================
+   Versuch: Ton bei gesperrtem Handy  --  nur mit ?versuch=stille
+   ------------------------------------------------------------
+   Die Untersuchung zu 0.4.2 (AENDERUNGEN, Anhang G) hat vier Gruende
+   gefunden, warum der Ton beim Sperren aufhoert. Der erste ist der
+   billigste zu pruefen: das audio-Element wird zwischen zwei
+   Haeppchen LEER. iOS und Android behandeln ein pausiertes
+   Medienelement im Hintergrund als beendet und raeumen die
+   Audiositzung ab; das naechste play() aus einem WebSocket-Rueckruf
+   ist dann keine durch eine Geste gedeckte Fortsetzung mehr.
+
+   Der Versuch: das Element pausiert und endet nie. Ist die Schlange
+   leer, laeuft eine Sekunde Stille in Schleife, bis der naechste
+   Abschnitt kommt. Die Stille entsteht HIER im Browser, nicht auf
+   dem Server -- eine Datei mehr abzurufen waere genau die Pause, um
+   die es geht.
+
+   OHNE den Adresszusatz aendert sich fuer Zuhoerer nichts. Der
+   Hinweis "Bildschirm anlassen" bleibt stehen, bis auf echten
+   Geraeten gemessen ist, dass er nicht mehr noetig ist.
+
+       ?versuch=stille   einschalten, im Browser gemerkt
+       ?versuch=aus      wieder weg
+   ============================================================ */
+const Versuch = {
+  stille: false,
+  ereignisse: [],
+
+  starten(){
+    let wunsch = null;
+    try{
+      wunsch = new URLSearchParams(location.search).get("versuch");
+    }catch(e){}
+    try{
+      if(wunsch === "aus"){ localStorage.removeItem("versuch"); }
+      else if(wunsch){ localStorage.setItem("versuch", wunsch); }
+      this.stille = localStorage.getItem("versuch") === "stille";
+    }catch(e){
+      // Privates Fenster: dann gilt nur, was in der Adresse steht.
+      this.stille = wunsch === "stille";
+    }
+    if(!this.stille) return;
+    const kasten = $("versuchkasten");
+    if(kasten) kasten.hidden = false;
+    document.addEventListener("visibilitychange", () =>
+      this.merken("sichtbar", document.visibilityState));
+  },
+
+  // Eine Sekunde Stille als WAV, im Browser gebaut. 8000 Hz, mono,
+  // 16 bit -- 16 KB, die nie ueber das Netz gehen.
+  stilleUrl(){
+    if(this._url) return this._url;
+    const rate = 8000, sekunden = 1;
+    const daten = rate * sekunden * 2;
+    const puffer = new ArrayBuffer(44 + daten);
+    const sicht = new DataView(puffer);
+    const text = (pos, w) => { for(let i = 0; i < w.length; i++)
+      sicht.setUint8(pos + i, w.charCodeAt(i)); };
+    text(0, "RIFF");  sicht.setUint32(4, 36 + daten, true);
+    text(8, "WAVEfmt ");
+    sicht.setUint32(16, 16, true);   sicht.setUint16(20, 1, true);
+    sicht.setUint16(22, 1, true);    sicht.setUint32(24, rate, true);
+    sicht.setUint32(28, rate * 2, true);
+    sicht.setUint16(32, 2, true);    sicht.setUint16(34, 16, true);
+    text(36, "data"); sicht.setUint32(40, daten, true);
+    // Der Rest ist schon null -- Stille braucht nichts geschrieben.
+    let roh = "";
+    const b = new Uint8Array(puffer);
+    for(let i = 0; i < b.length; i++) roh += String.fromCharCode(b[i]);
+    this._url = "data:audio/wav;base64," + btoa(roh);
+    return this._url;
+  },
+
+  merken(was, einzelheit){
+    if(!this.stille) return;
+    const t = new Date();
+    const uhr = String(t.getHours()).padStart(2, "0") + ":"
+              + String(t.getMinutes()).padStart(2, "0") + ":"
+              + String(t.getSeconds()).padStart(2, "0");
+    this.ereignisse.push(uhr + "  " + was
+                         + (einzelheit ? "  " + einzelheit : ""));
+    // Nur die letzten hundert. Drei Minuten gesperrter Bildschirm
+    // ergeben sonst eine Liste, die niemand abliest.
+    if(this.ereignisse.length > 100) this.ereignisse.shift();
+    const feld = $("versuchzeilen");
+    if(feld) feld.textContent = this.ereignisse.slice().reverse().join("\n");
+  },
+};
+
 const Ton = {
   spieler: null,
   schlange: [],
   spielt: false,
+  stillLaeuft: false,
   hoechstens: 6,
   verworfen: 0,
 
@@ -1208,6 +1318,15 @@ const Ton = {
     a.play().catch(() => {});
     a.addEventListener("ended", () => this._fertig());
     a.addEventListener("error", () => this._fertig());
+    // Im Versuch wird jedes Ereignis des Elements mitgeschrieben --
+    // auf der Seite, nie an den Server. Danach laesst sich ablesen,
+    // wann es stehen blieb und woran.
+    if(Versuch.stille){
+      for(const n of ["play", "playing", "pause", "ended", "waiting",
+                      "stalled", "suspend", "error"])
+        a.addEventListener(n, () => Versuch.merken(n,
+          this.stillLaeuft ? "(Stille)" : ""));
+    }
     this.spieler = a;
   },
 
@@ -1232,18 +1351,43 @@ const Ton = {
     if(Messung.an && this.schlange.length)
       Messung.zeile("geleert", this.schlange.length);
     this.schlange = [];
-    if(this.spieler){ try{ this.spieler.pause(); }catch(e){} }
+    if(this.spieler){
+      try{ this.spieler.loop = false; this.spieler.pause(); }catch(e){}
+    }
     this.spielt = false;
+    this.stillLaeuft = false;
   },
 
   _weiter(){
-    if(this.spielt || !this.schlange.length || !zustand.tonAn) return;
+    if(this.spielt || !zustand.tonAn) return;
+    if(!this.schlange.length){ this._stille(); return; }
     const h = this.schlange.shift();
     this.spielt = true;
+    this.stillLaeuft = false;
     this.laeuftId = h.id;
+    this.spieler.loop = false;
     this.spieler.src = h.url;
     Messung.start(h.id);
-    this.spieler.play().catch(() => this._fertig());
+    Versuch.merken("haeppchen", String(h.id));
+    this.spieler.play().catch((e) => {
+      Versuch.merken("play() abgelehnt", String(e && e.name || e));
+      this._fertig();
+    });
+  },
+
+  // Nur im Versuch: statt stehenzubleiben, Stille in Schleife. Das
+  // Element pausiert damit nie, und die Audiositzung des Systems
+  // bleibt bestehen -- das ist die ganze Vermutung, die hier
+  // gemessen wird.
+  _stille(){
+    if(!Versuch.stille || this.stillLaeuft || !this.spieler) return;
+    this.stillLaeuft = true;
+    this.spieler.loop = true;
+    this.spieler.src = Versuch.stilleUrl();
+    this.spieler.play().catch((e) => {
+      this.stillLaeuft = false;
+      Versuch.merken("Stille abgelehnt", String(e && e.name || e));
+    });
   },
 
   _fertig(){
@@ -1427,6 +1571,7 @@ function startauswahlBauen(){
     }
   });
 }
+Versuch.starten();
 startauswahlBauen();
 
 // Die tatsächlich angebotenen Sprachen kommen vom Server. Bis die Antwort
