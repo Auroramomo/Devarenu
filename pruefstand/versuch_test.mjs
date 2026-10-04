@@ -301,6 +301,80 @@ titel("9d) Das Ziel laesst sich fuer die Messung einstellen");
   pruefe("ohne Angabe bleibt es bei 3 s", 3, c.Strom.ZIEL);
 }
 
+titel("9d2) Die Adresse gewinnt immer gegen das Gemerkte");
+{
+  // Der Fehler vom Handy: ?ziel=0.5 bewirkte nichts, das Tempo
+  // verhielt sich weiter wie bei Ziel 3.
+  const kasten = { versuch: "strom", versuch_ziel: "3" };
+  const mit = (suche) => {
+    const umgebung = browserBauen();
+    umgebung.location.search = suche;
+    umgebung.localStorage = {
+      getItem: (k) => (k in kasten ? kasten[k] : null),
+      setItem: (k, w) => { kasten[k] = String(w); },
+      removeItem: (k) => { delete kasten[k]; },
+    };
+    umgebung.btoa = (s) => Buffer.from(s, "binary").toString("base64");
+    umgebung.URLSearchParams = URLSearchParams;
+    return skriptLaden(umgebung, SEITE);
+  };
+
+  const p = mit("?versuch=strom&ziel=0.5");
+  pruefe("Ziel 0,5 schlaegt das gemerkte 3", 0.5, p.Strom.ZIEL);
+  pruefe("und steht auch im Abruf an den Server", true,
+         p.Strom.url("en").startsWith("/strom/en.mp3?ziel=0.5&"));
+  // Und die Regel rechnet damit, nicht mit 3.
+  const a = { paused: false, playbackRate: 1,
+              buffered: { length: 1, end: () => 10 }, currentTime: 9.1 };
+  p.Strom.spieler = a;                       // Abstand 0,9 s
+  p.Strom._takt(p.Strom.abstand());
+  pruefe("0,9 s bei Ziel 0,5: kein Bremsen", 1, a.playbackRate);
+  a.currentTime = 10 - 1.4;                  // Abstand 1,4 s
+  p.Strom._takt(p.Strom.abstand());
+  pruefe("1,4 s bei Ziel 0,5: beschleunigt", p.Strom.TEMPO, a.playbackRate);
+  a.currentTime = 10 - 0.2;                  // Abstand 0,2 s
+  p.Strom._takt(p.Strom.abstand());
+  pruefe("0,2 s bei Ziel 0,5: gebremst", p.Strom.BREMSE, a.playbackRate);
+
+  pruefe("das neue Ziel wird gemerkt", "0.5", kasten.versuch_ziel);
+  const q = mit("?versuch=strom");
+  pruefe("ohne Angabe gilt das Gemerkte", 0.5, q.Strom.ZIEL);
+}
+
+titel("9d3) Komma wie Punkt, und nichts faellt still unter den Tisch");
+{
+  const mit = (suche) => {
+    const umgebung = browserBauen();
+    umgebung.location.search = suche;
+    const kasten = {};
+    umgebung.localStorage = {
+      getItem: (k) => (k in kasten ? kasten[k] : null),
+      setItem: (k, w) => { kasten[k] = String(w); },
+      removeItem: (k) => { delete kasten[k]; },
+    };
+    umgebung.btoa = (s) => Buffer.from(s, "binary").toString("base64");
+    umgebung.URLSearchParams = URLSearchParams;
+    return skriptLaden(umgebung, SEITE);
+  };
+  // parseFloat("0,5") ist 0 -- auf einer deutschen Tastatur tippt
+  // man ein Komma, und das ganze Projekt schreibt 0,5 mit Komma.
+  pruefe("Komma gilt wie Punkt", 0.5, mit("?versuch=strom&ziel=0,5").Strom.ZIEL);
+  pruefe("0,25 mit Komma", 0.25, mit("?versuch=strom&ziel=0,25").Strom.ZIEL);
+  // Und was nicht genommen wird, steht im Protokoll -- STILL
+  // verwerfen war der eigentliche Fehler.
+  const schlecht = mit("?versuch=strom&ziel=quatsch");
+  pruefe("Unsinn bleibt bei der Vorgabe", 3, schlecht.Strom.ZIEL);
+  pruefe("und wird gemeldet", true,
+         schlecht.Versuch.ereignisse.some(z => z.includes("abgelehnt")),
+         JSON.stringify(schlecht.Versuch.ereignisse.slice(0, 3)));
+  const zuklein = mit("?versuch=strom&ziel=0.1");
+  pruefe("zu klein wird gemeldet", true,
+         zuklein.Versuch.ereignisse.some(z => z.includes("abgelehnt")));
+  const ohne = mit("?versuch=strom");
+  pruefe("ohne Angabe steht die Vorgabe im Protokoll", true,
+         ohne.Versuch.ereignisse.some(z => z.includes("Vorgabe")));
+}
+
 titel("9e) Ein Hinweis ohne Text bleibt unsichtbar");
 {
   // Der rote Balken mit dem roten Punkt stand auf jedem Handy,

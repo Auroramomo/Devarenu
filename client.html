@@ -1316,17 +1316,7 @@ const Versuch = {
       this.strom  = wunsch === "strom";
     }
     if(!this.stille && !this.strom) return;
-    // Fuer die Messung am echten Geraet: ?versuch=strom&ziel=2
-    // setzt den Zielabstand. Ohne Angabe bleibt es bei drei
-    // Sekunden. Nur ein Messschalter, kein Bedienelement.
-    try{
-      const z = parseFloat(
-        new URLSearchParams(location.search).get("ziel"));
-      if(!isNaN(z) && z >= 0.25 && z <= 10){
-        Strom.ZIEL = z;
-        this.merken("Ziel", z + " s (aus der Adresse)");
-      }
-    }catch(e){}
+    this._ziel();
     const kasten = $("versuchkasten");
     if(kasten) kasten.hidden = false;
     document.addEventListener("visibilitychange", () => {
@@ -1339,6 +1329,62 @@ const Versuch = {
          && !Strom.pausiert)
         Strom.neu("war beim Zurueckkommen pausiert");
     });
+  },
+
+  /* Der Zielabstand fuer die Messung am echten Geraet.
+
+     DREI FEHLER AUF EINMAL, alle an dieser Stelle, alle gefunden,
+     weil am Handy "?ziel=0.5" nichts bewirkte und sich das Tempo
+     weiter wie bei Ziel 3 verhielt:
+
+       1. parseFloat("0,5") ist NULL, nicht 0,5. Auf einer deutschen
+          Tastatur tippt man ein Komma, und das ganze Projekt
+          schreibt 0,5 mit Komma. Jetzt gilt beides.
+       2. Ein unbrauchbarer Wert wurde STILL verworfen. Das war der
+          eigentliche Fehler: wer das Ziel setzt und nichts
+          passieren sieht, hat keine Chance zu erraten, woran es
+          liegt. Jetzt steht jede Entscheidung im Tonprotokoll, auch
+          die abgelehnte, mit Grund.
+       3. Das Ziel wurde nicht gemerkt. Ein Handy laedt die Seite
+          nach dem Entsperren schon mal neu, und dann stand wieder
+          die Vorgabe da -- waehrend in der Adresse noch das Ziel
+          stand, das niemand mehr las.
+
+     DIE ADRESSE GEWINNT IMMER gegen das Gemerkte. Das Gemerkte ist
+     nur dafuer da, ein Neuladen zu ueberstehen. */
+  _ziel(){
+    let roh = null;
+    try{
+      roh = new URLSearchParams(location.search).get("ziel");
+    }catch(e){}
+    if(roh === null || roh === ""){
+      // Nichts in der Adresse: dann gilt das Gemerkte, sonst die
+      // Vorgabe.
+      try{
+        const g = parseFloat(localStorage.getItem("versuch_ziel"));
+        if(!isNaN(g) && g >= 0.25 && g <= 10){
+          Strom.ZIEL = g;
+          this.merken("Ziel", g + " s (gemerkt)");
+          return;
+        }
+      }catch(e){}
+      this.merken("Ziel", Strom.ZIEL + " s (Vorgabe)");
+      return;
+    }
+    // Komma wie Punkt. parseFloat("0,5") waere null.
+    const z = parseFloat(String(roh).trim().replace(",", "."));
+    if(isNaN(z)){
+      this.merken("Ziel abgelehnt", JSON.stringify(roh) + " ist keine Zahl");
+    }else if(z < 0.25 || z > 10){
+      this.merken("Ziel abgelehnt",
+                  z + " s liegt ausserhalb von 0,25 bis 10");
+    }else{
+      Strom.ZIEL = z;
+      try{ localStorage.setItem("versuch_ziel", String(z)); }catch(e){}
+      this.merken("Ziel", z + " s (aus der Adresse)");
+      return;
+    }
+    this.merken("Ziel", Strom.ZIEL + " s (Vorgabe, weil abgelehnt)");
   },
 
   // Eine Sekunde Stille als WAV, im Browser gebaut. 8000 Hz, mono,
@@ -1483,6 +1529,24 @@ const Strom = {
       this.versuche = 0;
       this.pausiert = false;
       this._lage();
+      // WAS WIRKLICH GILT, als erste Zeile nach dem Start.
+      //
+      // Nicht was in der Adresse stand, sondern was angekommen ist:
+      // das Ziel, mit dem die Regel rechnet, und wie viele Sekunden
+      // der Server beim Verbinden tatsaechlich mitgeschickt hat.
+      // Genau diese beiden Zahlen haben beim letzten Handy-Test
+      // gefehlt -- ohne sie liess sich nicht sagen, ob das Ziel
+      // nicht ankam oder der Vorrat nicht.
+      //
+      // Erst nach kurzer Zeit: vorher steht im Puffer noch nichts.
+      setTimeout(() => {
+        if(!this.spieler) return;
+        const b = this.spieler.buffered;
+        const v = b && b.length ? b.end(b.length - 1) : 0;
+        Versuch.merken("ziel " + Strom.ZIEL + " s, vorrat "
+                       + v.toFixed(1) + " s erhalten",
+                       v + 0.2 < Strom.ZIEL ? "(weniger als das Ziel)" : "");
+      }, 700);
     }).catch((e) => {
       Versuch.merken("play() abgelehnt", String(e && e.name || e));
       this.neu("play abgelehnt");
