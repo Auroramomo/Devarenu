@@ -123,6 +123,110 @@ stellen(smi="500, 16303, 2\n", ps="NAME\ngemma4:12b x 8.1 GB 100% GPU\n")
 grafikwacht.einmal(2)
 pruefe("und misst weiter", 500, grafikwacht.heute()["speicher_hoechst_mb"])
 
+print("\n10. Die Spalte \"sprachen\" zaehlt seit 0.4.6 nur Zielsprachen")
+from datetime import date, timedelta  # noqa: E402
+heute_s = date.today().isoformat()
+gestern = (date.today() - timedelta(days=1)).isoformat()
+# Eine Datei, wie 0.4.5 sie schrieb: ohne Spalte "zaehlt", gestern und
+# heute frueh je eine Zeile mit der alten Zaehlung (Ziele + Ausgang).
+alt_kopf = ("datum;speicher_hoechst_mb;speicher_gesamt_mb;last_hoechst;"
+            "last_mittel;sprachen;cpu_anteil;messungen\n")
+grafikwacht.DATEI.write_text(
+    alt_kopf + f"{gestern};15037;16303;96;12;4;nein;269\n"
+               f"{heute_s};9000;16303;5;5;4;nein;3\n", encoding="utf-8")
+grafikwacht._tage.clear()
+pruefe("alte Zeile: Zaehlung leer", "", grafikwacht._tage.get(gestern, {})
+       .get("zaehlt", "?") if grafikwacht.heute() else "?")
+stellen(smi="9100, 16303, 5\n", ps="NAME\ngemma4:12b x 8.1 GB 100% GPU\n")
+grafikwacht.einmal(3)
+h = grafikwacht.heute()
+pruefe("heute gilt die neue Zaehlung", "ziele", h["zaehlt"])
+pruefe("und die Sprachzahl faengt neu an: 3 Ziele, nicht max(4, 3)", 3,
+       h["sprachen"])
+zeilen_ = grafikwacht.DATEI.read_text(encoding="utf-8").splitlines()
+pruefe("der Kopf traegt die neue Spalte", True,
+       zeilen_[0].endswith(";zaehlt"))
+pruefe("die alte Zeile steht unveraendert da (4 Sprachen, leer)",
+       f"{gestern};15037;16303;96;12;4;nein;269;", zeilen_[1])
+pruefe("die neue traegt \"ziele\"", True, zeilen_[2].endswith(";ziele"))
+text = "\n".join(grafikwacht.zeilen())
+pruefe("die alte Zeile sagt es dazu", True,
+       "4 Sprachen mit Ausgangssprache" in text)
+pruefe("die neue sagt Zielsprachen", True, "3 Zielsprachen" in text)
+# Und der Server zaehlt ohne "+ 1".
+server_quelle = (WURZEL / "server.py").read_text(encoding="utf-8")
+pruefe("server.py zaehlt len(lauf.ziele), ohne + 1", True,
+       "lambda: len(lauf.ziele))" in server_quelle
+       and "len(lauf.ziele) + 1" not in server_quelle)
+
+print("\n11. Hinweis ab 90 Prozent Tagesspitze")
+for belegt, erwartet in ((14000, False), (14672, False), (14673, True),
+                         (16000, True)):
+    grafikwacht._tage.clear()
+    grafikwacht.DATEI.unlink()
+    stellen(smi=f"{belegt}, 16303, 5\n",
+            ps="NAME\ngemma4:12b x 8.1 GB 100% GPU\n")
+    grafikwacht.einmal(3)
+    voll = [h for h in grafikwacht.hinweise() if h["kennung"] == "grafik_voll"]
+    pruefe(f"{belegt} von 16303 ({100 * belegt / 16303:.1f} %): "
+           f"Hinweis {'ja' if erwartet else 'nein'}", erwartet, bool(voll))
+h = voll[0]
+pruefe("sagt die Prozentzahl", True, "98 Prozent" in h["was"])
+pruefe("sagt, was zu tun ist", True, "keine weiteren Programme" in h["tun"])
+pruefe("und hat eine englische Fassung", True,
+       bool(h["was_en"]) and bool(h["tun_en"]))
+
+print("\n12. Hinweis bei mehr als einem geladenen Modell")
+zwei = ("NAME ID SIZE PROCESSOR\n"
+        "gemma4:12b x 8.1 GB 100% GPU\n"
+        "qwen3:4b y 3.2 GB 100% GPU\n")
+grafikwacht._tage.clear()
+grafikwacht.DATEI.unlink()
+stellen(smi="11000, 16303, 5\n", ps=zwei)
+pruefe("zwei Zeilen in ollama ps: zwei Modelle", 2,
+       grafikwacht.geladene_modelle())
+grafikwacht.einmal(3)
+m = [h for h in grafikwacht.hinweise() if h["kennung"] == "grafik_modelle"]
+pruefe("aus der laufenden Messung: Hinweis", True, bool(m))
+pruefe("nennt die Zahl", True, "2 Sprachmodelle" in m[0]["was"])
+pruefe("und was zu tun ist", True, "neu starten" in m[0]["tun"])
+stellen(smi="11000, 16303, 5\n", ps="NAME\ngemma4:12b x 8.1 GB 100% GPU\n")
+pruefe("frisch gefragt, nur eines: kein Hinweis", [],
+       [h for h in grafikwacht.hinweise(frisch=True)
+        if h["kennung"] == "grafik_modelle"])
+stellen(smi="11000, 16303, 5\n", ps="NAME ID SIZE PROCESSOR\n")
+pruefe("keines geladen: kein Hinweis", [],
+       [h for h in grafikwacht.hinweise(frisch=True)
+        if h["kennung"] == "grafik_modelle"])
+stellen(smi="11000, 16303, 5\n", ps=None)
+pruefe("ohne ollama: kein Hinweis", [],
+       [h for h in grafikwacht.hinweise(frisch=True)
+        if h["kennung"] == "grafik_modelle"])
+
+print("\n13. Im Systemcheck: Hinweis, keine Stoerung, fuer Laien")
+import systemcheck  # noqa: E402
+grafikwacht._tage.clear()
+grafikwacht.DATEI.unlink()
+stellen(smi="15500, 16303, 5\n", ps=zwei)
+grafikwacht.einmal(3)
+b = []
+systemcheck._grafikspeicher(b)
+pruefe("beide Hinweise", ["grafik_modelle", "grafik_voll"],
+       sorted(x.kennung for x in b))
+pruefe("als HINWEIS, nicht als FEHLT", [systemcheck.HINWEIS] * 2,
+       [x.schwere for x in b])
+pruefe("am Pult, nicht unter Wartung", [False, False],
+       [x.wartung for x in b])
+pruefe("mit einem Satz fuer Laien", [True, True], [x.laie for x in b])
+pruefe("der Systemcheck ruft ihn auf", True,
+       "_grafikspeicher(befunde)" in
+       (WURZEL / "systemcheck.py").read_text(encoding="utf-8"))
+# Im laufenden Betrieb mischt der Server sie in die Stoerungsansicht.
+pruefe("der Server mischt sie in /api/zustand", True,
+       '"befunde": befunde_mit_grafik()' in server_quelle)
+pruefe("die Stoerungsansicht zeigt den Laien-Satz", True,
+       "b.laie ?" in server_quelle)
+
 grafikwacht._lauf = echt
 if fehler:
     print(f"\n{fehler} FEHLER")

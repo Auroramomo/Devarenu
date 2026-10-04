@@ -69,9 +69,14 @@ WARTUNG = {
 class Befund:
     """Ein einzelner Punkt. Kennung bleibt stabil, Text darf sich aendern."""
 
-    def __init__(self, kennung, schwere, was, tun="", tun_en="", was_en=""):
+    def __init__(self, kennung, schwere, was, tun="", tun_en="", was_en="",
+                 laie=False):
         self.kennung = kennung
         self.schwere = schwere
+        # laie=True: "tun" ist ein Satz fuer jemanden am Pult, kein
+        # Befehl fuer den Betreuer. Die Stoerungsansicht zeigt ihn dann
+        # selbst an, statt ihn unter "Fuer den Betreuer" einzuklappen.
+        self.laie = laie
         # Wartung heisst: nicht ans Pult, nur in die Einrichtung und
         # in pruefen.sh. Am Befund selbst, damit die Zuordnung an
         # einer Stelle steht und nicht in jeder Anzeige neu.
@@ -1175,9 +1180,28 @@ def pruefen():
     _stimmen(befunde)
     _units_veraltet(befunde)
     _stick(befunde)
+    _grafikspeicher(befunde)
     befunde = _entwicklungsrechner(befunde)
     befunde.sort(key=lambda b: 0 if b.schwere == FEHLT else 1)
     return befunde
+
+
+def _grafikspeicher(befunde):
+    """Wird die Grafikkarte eng? Hinweise, bevor es zu spaet ist.
+
+    Die Regeln stehen in grafikwacht.hinweise(): Tagesspitze ab 90
+    Prozent, oder mehr als ein geladenes Sprachmodell. Beides ist ein
+    HINWEIS -- die Uebersetzung laeuft. Beim Start wird ollama frisch
+    gefragt; im laufenden Betrieb mischt der Server dieselben Hinweise
+    aus der Grafikwacht in die Stoerungsansicht."""
+    try:
+        import grafikwacht
+        for h in grafikwacht.hinweise(frisch=True):
+            befunde.append(Befund(h["kennung"], HINWEIS, h["was"], h["tun"],
+                                  was_en=h["was_en"], tun_en=h["tun_en"],
+                                  laie=True))
+    except Exception:
+        pass
 
 
 # Was auf dem Entwicklungsrechner FEHLT meldet, ohne ein Fehler zu sein:

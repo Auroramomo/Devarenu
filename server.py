@@ -4447,6 +4447,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             return {"kennung": b.kennung,
                     "schwer": b.schwere == systemcheck.FEHLT,
                     "wartung": bool(b.wartung),
+                    "laie": bool(getattr(b, "laie", False)),
                     "was": b.was, "was_en": b.was_en,
                     "tun": b.tun, "tun_en": b.tun_en}
         lauf.befunde = [_befund(b) for b in befunde]
@@ -4660,6 +4661,24 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             zustandsdatei.speichern(lauf.zustand)
         return {"quittiert": neu}
 
+    def befunde_mit_grafik():
+        """lauf.befunde plus die aktuellen Hinweise der Grafikwacht.
+
+        Billig: grafikwacht.hinweise() ruft hier nichts auf, sondern
+        liest die letzte Messung. Was der Systemcheck beim Start schon
+        gemeldet hat, steht nicht doppelt da."""
+        try:
+            schon = {b["kennung"] for b in lauf.befunde}
+            dazu = [{"kennung": h["kennung"], "schwer": False,
+                     "wartung": False, "laie": True, "was": h["was"],
+                     "was_en": h["was_en"], "tun": h["tun"],
+                     "tun_en": h["tun_en"]}
+                    for h in grafikwacht.hinweise()
+                    if h["kennung"] not in schon]
+            return lauf.befunde + dazu
+        except Exception:
+            return lauf.befunde
+
     @app.get("/api/zustand")
     def zustand(request: Request):
         return {"live": lauf.laeuft, "gesendet": lauf.n, "hoerer": lauf.anzahl,
@@ -4707,8 +4726,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                     request.client.host if request.client else ""),
                 "wartung": lauf.wartungsbefunde,
                 # Alles, was der Systemcheck gefunden hat -- fuer die
-                # Stoerungsansicht hinter der Statuspille.
-                "befunde": lauf.befunde,
+                # Stoerungsansicht hinter der Statuspille. Dazu die
+                # Hinweise der Grafikwacht aus dem LAUFENDEN Betrieb:
+                # der Systemcheck sieht nur den Start, eng wird es
+                # aber mitten im Gottesdienst.
+                "befunde": befunde_mit_grafik(),
                 "gemeinde": lauf.zustand.get("gemeinde", ""),
                 "nutzung_melden": bool(lauf.zustand.get("nutzung_melden")),
                 "spendenkonto": KONTO_GRUND,
@@ -5762,7 +5784,10 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
     # Mitschreiben, wie voll die Grafikkarte wird -- aber nur,
     # solange uebersetzt wird. Zwischen zwei Gottesdiensten misst es
     # eine Karte im Leerlauf, und das sagt nichts.
-    grafikwacht.anwerfen(lambda: lauf.laeuft, lambda: len(lauf.ziele) + 1)
+    # Gezaehlt werden seit 0.4.6 nur die ZIELsprachen. Bis dahin stand
+    # hier "+ 1" fuer die Ausgangssprache, und aus "4 Sprachen" in
+    # der Grafikwacht las man vier Zielsprachen, wo es drei waren.
+    grafikwacht.anwerfen(lambda: lauf.laeuft, lambda: len(lauf.ziele))
 
     try:
         systemnachricht()
@@ -7118,7 +7143,7 @@ const TEXTE={
    grafik_ueber:"Grafikkarte", grafik_tage:"Die letzten Tage",
    grafik_zeile:"Heute höchstens {belegt} von {gesamt} MB belegt "
      +"({voll} %), Auslastung {spitze} % Spitze / {mittel} % mittel, "
-     +"{sprachen} Sprachen.",
+     +"{sprachen} Zielsprachen.",
    grafik_cpu:"ein Teil lag auf der CPU.",
    grafik_cpu_lang:"Das Sprachmodell liegt nicht ganz auf der "
      +"Grafikkarte. Die Übersetzung läuft weiter, aber deutlich "
@@ -7459,7 +7484,7 @@ const TEXTE={
    e_gemeinde:"Congregation", e_update:"Update", e_fehlersuche:"Diagnostics",
    grafik_ueber:"Graphics card", grafik_tage:"The last few days",
    grafik_zeile:"Today at most {belegt} of {gesamt} MB used ({voll} %), "
-     +"load {spitze} % peak / {mittel} % average, {sprachen} languages.",
+     +"load {spitze} % peak / {mittel} % average, {sprachen} target languages.",
    grafik_cpu:"part of it was on the CPU.",
    grafik_cpu_lang:"The translation model is not entirely on the "
      +"graphics card. Translation continues, but much more slowly.",
@@ -8612,7 +8637,15 @@ function stoerungZeichnen(){
     sofort.push({schwer:false, was:t.grafik_cpu_lang,
                  tun:t.st_tun_betreuer,
                  technik:"ollama ps   |   nvidia-smi"});
-  const ausDemCheck = letzteBefunde.map(b => ({
+  // Ein Befund "fuer Laien" (seit 0.4.6, etwa der Grafikspeicher)
+  // traegt seinen eigenen Satz, was zu tun ist -- der steht dann
+  // sichtbar da und nicht als Befehl unter "Fuer den Betreuer".
+  const ausDemCheck = letzteBefunde.map(b => b.laie ? ({
+    schwer: b.schwer,
+    was: (UI === "de" ? b.was : b.was_en) || b.was,
+    tun: (UI === "de" ? b.tun : b.tun_en) || b.tun,
+    technik: "",
+  }) : ({
     schwer: b.schwer,
     was: (UI === "de" ? b.was : b.was_en) || b.was,
     tun: b.schwer ? t.st_tun_betreuer : t.st_tun_spaeter,
@@ -9151,7 +9184,9 @@ async function lies(){
         .split("{mittel}").join(gk.last_mittel)
         .split("{sprachen}").join(gk.sprachen)
         + (gk.cpu_anteil ? " \u2014 " + t.grafik_cpu : "");
-      grafikheute.classList.toggle("warnung", !!gk.cpu_anteil);
+      // Auffaellig auch schon ab 90 Prozent, nicht erst, wenn ein
+      // Teil auf der CPU liegt -- dieselbe Schwelle wie der Hinweis.
+      grafikheute.classList.toggle("warnung", !!gk.cpu_anteil || voll >= 90);
     }
     punktVorbereiten.hidden = !d.kontext_fehlt;
     punktEinrichtung.hidden = !((d.wartung||[]).length || d.update);

@@ -46,9 +46,27 @@ from pathlib import Path
 import config
 
 DATEI = config.ERGEBNIS_ORDNER / "grafik.csv"
+# DIE SPALTE "sprachen" HAT IHRE BEDEUTUNG GEWECHSELT, und die Datei
+# sagt es selbst, Zeile fuer Zeile, in der Spalte "zaehlt":
+#
+#   leer     bis 0.4.5: Zielsprachen PLUS die Ausgangssprache
+#   "ziele"  seit 0.4.6: nur die Zielsprachen
+#
+# Aus "4 Sprachen" in einer alten Zeile wurde so beim Lesen leicht
+# "vier Zielsprachen", gemeint waren drei. Alte Zeilen werden nicht
+# umgerechnet: was dort steht, war so gemessen.
 SPALTEN = ["datum", "speicher_hoechst_mb", "speicher_gesamt_mb",
            "last_hoechst", "last_mittel", "sprachen", "cpu_anteil",
-           "messungen"]
+           "messungen", "zaehlt"]
+ZAEHLT = "ziele"
+
+# Ab welcher Tagesspitze ein Hinweis kommt. Gemessen in 0.4.5-Vorarbeit
+# (RTX 5080, 16 GB): Devarenu selbst braucht rund 10,8 GB, gleich ob mit
+# einer oder vier Zielsprachen; die Spitzen liegen nur etwa 100 MB ueber
+# dem Dauerwert. 90 Prozent heisst auf 16 GB noch rund 1,6 GB frei --
+# Luft fuer das Uebliche, aber nicht fuer ein zweites Sprachmodell.
+# Davor warnt der zweite Hinweis, unabhaengig von der Prozentzahl.
+SCHWELLE = 0.90
 TAKT = 30.0
 
 _schloss = threading.Lock()
@@ -96,13 +114,11 @@ def karte():
 _NUR_GPU = re.compile(r"\b100%\s*GPU\b", re.IGNORECASE)
 
 
-def modell_auf_cpu():
-    """True, wenn das Live-Modell NICHT ganz auf der Karte liegt.
+def _ollama_ps():
+    return _lauf(["ollama", "ps"])
 
-    None heisst: nicht feststellbar (ollama fehlt, oder das Modell
-    ist gerade gar nicht geladen). None ist kein Befund -- zwischen
-    zwei Gottesdiensten laedt ollama das Modell von selbst ab."""
-    aus = _lauf(["ollama", "ps"])
+
+def _auf_cpu(aus):
     if not aus:
         return None
     modell = config.LIVE_MODELL.split(":")[0]
@@ -111,6 +127,32 @@ def modell_auf_cpu():
             continue
         return not bool(_NUR_GPU.search(zeile))
     return None
+
+
+def _modelle(aus):
+    """Wie viele Modelle ollama gerade geladen hat, oder None."""
+    if not aus:
+        return None
+    return sum(1 for z in aus.splitlines()[1:] if z.strip())
+
+
+def modell_auf_cpu():
+    """True, wenn das Live-Modell NICHT ganz auf der Karte liegt.
+
+    None heisst: nicht feststellbar (ollama fehlt, oder das Modell
+    ist gerade gar nicht geladen). None ist kein Befund -- zwischen
+    zwei Gottesdiensten laedt ollama das Modell von selbst ab."""
+    return _auf_cpu(_ollama_ps())
+
+
+def geladene_modelle():
+    """Wie viele Modelle ollama gerade geladen hat, oder None."""
+    return _modelle(_ollama_ps())
+
+
+# Zuletzt gesehene Zahl geladener Modelle, aus der laufenden Messung.
+# Nicht in der Datei: sie gilt fuer den Augenblick, nicht fuer den Tag.
+_zuletzt_modelle = None
 
 
 # ------------------------------------------------------ Mitschreiben
@@ -129,7 +171,9 @@ def _laden():
                                   * int(z["messungen"] or 1),
                     "sprachen": int(z["sprachen"] or 0),
                     "cpu_anteil": z["cpu_anteil"] == "ja",
-                    "messungen": int(z["messungen"] or 0)}
+                    "messungen": int(z["messungen"] or 0),
+                    # Fehlt in Dateien bis 0.4.5 ganz -- dann leer.
+                    "zaehlt": (z.get("zaehlt") or "").strip()}
     except Exception:
         _tage.clear()
 
@@ -146,25 +190,37 @@ def _speichern():
                             d["speicher_gesamt_mb"], d["last_hoechst"],
                             round(d["last_summe"] / n), d["sprachen"],
                             "ja" if d["cpu_anteil"] else "nein",
-                            d["messungen"]])
+                            d["messungen"], d.get("zaehlt", "")])
     except OSError:
         pass
 
 
 def einmal(sprachen=0):
-    """Eine Messung eintragen. Gibt zurueck, was abgelesen wurde."""
+    """Eine Messung eintragen. Gibt zurueck, was abgelesen wurde.
+
+    sprachen ist die Zahl der ZIELsprachen (seit 0.4.6)."""
+    global _zuletzt_modelle
     k = karte()
     if k is None:
         return None
     belegt, gesamt, last = k
-    cpu = modell_auf_cpu()
+    aus = _ollama_ps()
+    cpu = _auf_cpu(aus)
+    _zuletzt_modelle = _modelle(aus)
     tag = date.today().isoformat()
     with _schloss:
         _laden()
         d = _tage.setdefault(tag, {
             "speicher_hoechst_mb": 0, "speicher_gesamt_mb": gesamt,
             "last_hoechst": 0, "last_summe": 0, "sprachen": 0,
-            "cpu_anteil": False, "messungen": 0})
+            "cpu_anteil": False, "messungen": 0, "zaehlt": ZAEHLT})
+        if d.get("zaehlt") != ZAEHLT:
+            # Der Tag des Updates: heute frueh noch mit der alten
+            # Zaehlung geschrieben. Ab hier gilt die neue, und die
+            # Sprachzahl faengt neu an -- sonst stuende in derselben
+            # Zeile das Maximum aus zwei Bedeutungen.
+            d["zaehlt"] = ZAEHLT
+            d["sprachen"] = 0
         d["speicher_hoechst_mb"] = max(d["speicher_hoechst_mb"], belegt)
         d["speicher_gesamt_mb"] = gesamt
         d["last_hoechst"] = max(d["last_hoechst"], last)
@@ -217,6 +273,7 @@ def heute():
                 "last_hoechst": d["last_hoechst"],
                 "last_mittel": round(d["last_summe"] / n),
                 "sprachen": d["sprachen"],
+                "zaehlt": d.get("zaehlt", ""),
                 "cpu_anteil": d["cpu_anteil"],
                 "messungen": d["messungen"]}
 
@@ -236,8 +293,69 @@ def zeilen(hoechstens=14):
             f"{d['speicher_gesamt_mb']} MB ({voll:.0f} %), "
             f"Last {d['last_hoechst']} % Spitze / "
             f"{round(d['last_summe'] / n)} % mittel, "
-            f"{d['sprachen']} Sprachen"
+            + (f"{d['sprachen']} Zielsprachen" if d.get("zaehlt") == ZAEHLT
+               else f"{d['sprachen']} Sprachen mit Ausgangssprache")
             + (", TEILS AUF DER CPU" if d["cpu_anteil"] else ""))
+    return aus
+
+
+# ------------------------------------------------------- Hinweise
+#
+# Bis 0.4.5 sagten Pult und Systemcheck erst etwas, wenn es zu spaet
+# war: wenn das Sprachmodell schon teilweise auf die CPU ausgewichen
+# war. Jetzt vorher, an zwei Stellen:
+#
+#   * die Tagesspitze erreicht SCHWELLE (90 Prozent) der Karte;
+#   * ollama hat mehr als ein Modell geladen. Das ist der eine Weg, auf
+#     dem es bei unveraenderter Sprachzahl ploetzlich eng wird -- ein
+#     zweites Modell braucht Gigabytes, und ollama haelt von selbst
+#     mehrere vor.
+#
+# Beides ist ein HINWEIS, keine Stoerung: die Uebersetzung laeuft.
+# Geschrieben fuer jemanden am Pult, der mit dem Wort "Grafikspeicher"
+# nichts anfangen muss.
+
+def _hinweis(kennung, was, tun, was_en, tun_en):
+    return {"kennung": kennung, "was": was, "tun": tun,
+            "was_en": was_en, "tun_en": tun_en}
+
+
+def hinweise(frisch=False):
+    """Die Hinweise zur Grafikkarte, als Liste.
+
+    frisch=True fragt ollama jetzt (Systemcheck beim Start); sonst gilt
+    die letzte Messung der laufenden Grafikwacht -- billig genug fuer
+    jeden Abruf des Pults."""
+    aus = []
+    d = heute()
+    if d and d["speicher_gesamt_mb"]:
+        anteil = d["speicher_hoechst_mb"] / d["speicher_gesamt_mb"]
+        if anteil >= SCHWELLE:
+            p = round(100 * anteil)
+            aus.append(_hinweis(
+                "grafik_voll",
+                f"Die Grafikkarte war heute zu {p} Prozent belegt. Die "
+                f"Übersetzung läuft, aber es ist kaum noch Platz. Wird es "
+                f"voller, wird sie langsamer.",
+                "Während des Gottesdienstes keine weiteren Programme auf "
+                "diesem Rechner öffnen. Kommt der Hinweis öfter, dem "
+                "Betreuer Bescheid geben.",
+                f"The graphics card was {p} % full today. Translation "
+                f"works, but there is hardly any room left.",
+                "Do not open other programs on this computer during the "
+                "service. If this happens again, tell the maintainer."))
+    n = geladene_modelle() if frisch else _zuletzt_modelle
+    if n is not None and n > 1:
+        aus.append(_hinweis(
+            "grafik_modelle",
+            f"Auf der Grafikkarte sind {n} Sprachmodelle geladen. Gebraucht "
+            f"wird eines; jedes weitere nimmt Platz weg und kann die "
+            f"Übersetzung verlangsamen.",
+            "Nach dem Gottesdienst den Rechner neu starten. Dann lädt nur "
+            "das richtige Modell.",
+            f"{n} language models are loaded on the graphics card. Only "
+            f"one is needed; each extra one takes space.",
+            "Restart the computer after the service."))
     return aus
 
 
@@ -247,6 +365,9 @@ if __name__ == "__main__":
         k = karte()
         print("nvidia-smi:", k if k else "nicht verfuegbar")
         print("Modell teils auf der CPU:", modell_auf_cpu())
+        print("Geladene Modelle:", geladene_modelle())
+        for h in hinweise(frisch=True):
+            print("HINWEIS:", h["was"])
     else:
         for z in zeilen():
             print(z)
