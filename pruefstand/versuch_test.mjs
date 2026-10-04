@@ -114,6 +114,69 @@ titel("6) Nichts davon geht an den Server");
          .test(quelle));
 }
 
+titel("7) Versuch C: der durchgehende Strom");
+{
+  const { Versuch, Strom, Ton, zustand } = laden({ suche: "?versuch=strom" });
+  pruefe("der Stromversuch laeuft", true, Versuch.strom);
+  pruefe("der Stille-Fueller nicht", false, Versuch.stille);
+  zustand.sprache = "en";
+  zustand.laeuft = true;
+  zustand.tonAn = true;
+  Strom.starten("en");
+  const q = String(Strom.spieler.src);
+  pruefe("eine Quelle, und zwar der Strom", true,
+         q.startsWith("/strom/en.mp3?t="));
+  // OHNE den Zufallsanhang nimmt der Browser beim Neustart seinen
+  // Puffer und spielt Ton von vorhin.
+  const q2 = Strom.url("en");
+  pruefe("jeder Aufruf ergibt eine andere Quelle", true, q !== q2);
+  // Haeppchen werden im Strom gar nicht erst abgerufen.
+  Ton.freischalten();
+  Ton.schlange = [];
+  Ton.einreihen("/ton/en/7", 7);
+  pruefe("Haeppchen werden ignoriert", 0, Ton.schlange.length);
+}
+
+titel("8) Nach einer Pause wird am Live-Punkt angesetzt");
+{
+  const { Strom, zustand } = laden({ suche: "?versuch=strom" });
+  zustand.sprache = "en"; zustand.laeuft = true;
+  Strom.starten("en");
+  const vorher = String(Strom.spieler.src);
+  Strom.pause();
+  pruefe("pausiert gemerkt", true, Strom.pausiert);
+  Strom.weiter();
+  pruefe("nicht mehr pausiert", false, Strom.pausiert);
+  pruefe("und eine NEUE Quelle, nicht der alte Puffer", true,
+         String(Strom.spieler.src) !== vorher);
+}
+
+titel("9) Abstand zum Live-Punkt");
+{
+  const { Strom, zustand } = laden({ suche: "?versuch=strom" });
+  zustand.sprache = "en"; zustand.laeuft = true;
+  Strom.starten("en");
+  const a = Strom.spieler;
+  pruefe("ohne Puffer kein Abstand", 0, Strom.abstand());
+  a.buffered = { length: 1, end: () => 12.5 };
+  a.currentTime = 4.2;
+  pruefe("mit Puffer: 8,3 s", "8.3", Strom.abstand().toFixed(1));
+}
+
+titel("10) Ohne Adresszusatz bleibt alles beim Alten");
+{
+  const { Versuch, Strom, Ton, zustand } = laden();
+  pruefe("kein Stromversuch", false, Versuch.strom);
+  pruefe("der Strom hat kein Element", null, Strom.spieler);
+  // Haeppchen laufen wie bisher.
+  Ton.freischalten();
+  zustand.tonAn = true;
+  Ton.schlange = [];
+  Ton.spielt = true;             // damit _weiter nichts abzieht
+  Ton.einreihen("/ton/de/1", 1);
+  pruefe("das Haeppchen wird eingereiht", 1, Ton.schlange.length);
+}
+
 console.log("");
 if (fehler) { console.log(`${fehler} FEHLER`); process.exit(1); }
 console.log("\x1b[32mAlle Faelle wie erwartet.\x1b[0m");

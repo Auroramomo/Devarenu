@@ -1012,8 +1012,18 @@ function systemleisteSetzen(){
     artist: (SPRACHEN[zustand.sprache] || {}).name || zustand.sprache,
     album: "Gottesdienst",
   });
-  navigator.mediaSession.setActionHandler("pause", () => tonSchalten(false));
-  navigator.mediaSession.setActionHandler("play",  () => tonSchalten(true));
+  if(Versuch.strom){
+    // Im Strom haengt die Mediensteuerung am Element selbst. Der
+    // Befund aus Versuch B war, dass sie immer "pausiert" zeigte --
+    // playbackState wurde nie gesetzt, und die Handler schalteten
+    // etwas anderes als das, was gerade lief.
+    navigator.mediaSession.setActionHandler("pause", () => Strom.pause());
+    navigator.mediaSession.setActionHandler("play",  () => Strom.weiter());
+    Strom._lage();
+  }else{
+    navigator.mediaSession.setActionHandler("pause", () => tonSchalten(false));
+    navigator.mediaSession.setActionHandler("play",  () => tonSchalten(true));
+  }
 }
 
 
@@ -1256,11 +1266,28 @@ if(Messung.an) addEventListener("pagehide", () => Messung.schicken());
    Hinweis "Bildschirm anlassen" bleibt stehen, bis auf echten
    Geraeten gemessen ist, dass er nicht mehr noetig ist.
 
-       ?versuch=stille   einschalten, im Browser gemerkt
+       ?versuch=stille   Versuch B, einschalten
+       ?versuch=strom    Versuch C, einschalten
        ?versuch=aus      wieder weg
+
+   VERSUCH C, seit 0.4.4
+   ---------------------
+   Versuch B half nicht. Gemessen auf einem Galaxy Z Fold 7 mit
+   Firefox: nach zehn bis fuenfzehn Sekunden gesperrt war der Ton
+   weg, und das Tonprotokoll zeigte, warum -- staendig "ended", auch
+   beim Stille-Fueller. Jedes Ende eines Mediums ist dem Browser ein
+   Anlass, die Tonsitzung abzuraeumen, und davon gab es im
+   Sekundentakt eines.
+
+   Also EIN Medium, das nie endet: ein MP3-Strom vom Server unter
+   /strom/<sprache>.mp3, einmal in der Nutzergeste gestartet, danach
+   kein src-Wechsel mehr -- ausser bei Sprachwechsel,
+   Wiederverbinden oder einem Sprung an den Live-Punkt. Der Text
+   laeuft unveraendert ueber die bestehende Verbindung.
    ============================================================ */
 const Versuch = {
   stille: false,
+  strom: false,
   ereignisse: [],
 
   starten(){
@@ -1271,16 +1298,27 @@ const Versuch = {
     try{
       if(wunsch === "aus"){ localStorage.removeItem("versuch"); }
       else if(wunsch){ localStorage.setItem("versuch", wunsch); }
-      this.stille = localStorage.getItem("versuch") === "stille";
+      const g = localStorage.getItem("versuch");
+      this.stille = g === "stille";
+      this.strom  = g === "strom";
     }catch(e){
       // Privates Fenster: dann gilt nur, was in der Adresse steht.
       this.stille = wunsch === "stille";
+      this.strom  = wunsch === "strom";
     }
-    if(!this.stille) return;
+    if(!this.stille && !this.strom) return;
     const kasten = $("versuchkasten");
     if(kasten) kasten.hidden = false;
-    document.addEventListener("visibilitychange", () =>
-      this.merken("sichtbar", document.visibilityState));
+    document.addEventListener("visibilitychange", () => {
+      this.merken("sichtbar", document.visibilityState);
+      // Beim Zurueckkommen nachsehen, ob der Strom ueberhaupt noch
+      // laeuft. Genau diese Luecke war in Versuch B nicht zu sehen,
+      // weil niemand hinsah.
+      if(this.strom && document.visibilityState === "visible"
+         && zustand.laeuft && Strom.spieler && Strom.spieler.paused
+         && !Strom.pausiert)
+        Strom.neu("war beim Zurueckkommen pausiert");
+    });
   },
 
   // Eine Sekunde Stille als WAV, im Browser gebaut. 8000 Hz, mono,
@@ -1309,7 +1347,7 @@ const Versuch = {
   },
 
   merken(was, einzelheit){
-    if(!this.stille) return;
+    if(!this.stille && !this.strom) return;
     const t = new Date();
     const uhr = String(t.getHours()).padStart(2, "0") + ":"
               + String(t.getMinutes()).padStart(2, "0") + ":"
@@ -1321,6 +1359,167 @@ const Versuch = {
     if(this.ereignisse.length > 100) this.ereignisse.shift();
     const feld = $("versuchzeilen");
     if(feld) feld.textContent = this.ereignisse.slice().reverse().join("\n");
+  },
+};
+
+/* ============================================================
+   Versuch C: der durchgehende Strom
+   ------------------------------------------------------------
+   Ein audio-Element, eine Quelle, kein Ende. Alles, was hier
+   passiert, passiert nur mit ?versuch=strom.
+   ============================================================ */
+const Strom = {
+  spieler: null,
+  sprache: null,
+  versuche: 0,
+  wachUhr: null,
+  pausiert: false,
+
+  url(sprache){
+    // Der Zufallsanhang ist kein Schmuck: ohne ihn nimmt der
+    // Browser beim Neustart denselben Eintrag aus seinem Puffer und
+    // spielt Ton von vorhin. Mit ihm ist es jedes Mal eine neue
+    // Quelle und damit der Live-Punkt.
+    return "/strom/" + encodeURIComponent(sprache) + ".mp3?t="
+           + Date.now().toString(36)
+           + Math.random().toString(36).slice(2, 7);
+  },
+
+  // Muss aus einem Klick heraus aufgerufen werden.
+  starten(sprache){
+    this.sprache = sprache;
+    if(!this.spieler){
+      const a = document.createElement("audio");
+      a.setAttribute("playsinline", "");
+      a.preload = "auto";
+      for(const n of ["play", "playing", "pause", "ended", "waiting",
+                      "stalled", "suspend", "error", "emptied"])
+        a.addEventListener(n, () => {
+          Versuch.merken(n, n === "error"
+            ? String((a.error && a.error.code) || "?") : "");
+          this._lage();
+          // ended darf es hier gar nicht geben. Wenn doch, ist der
+          // Strom abgerissen -- dann neu, am Live-Punkt.
+          if(n === "ended" || n === "error") this.neu("nach " + n);
+        });
+      this.spieler = a;
+    }
+    this.versuche = 0;
+    this._anwerfen();
+    this._wachen();
+  },
+
+  _anwerfen(){
+    const a = this.spieler;
+    if(!a || !this.sprache) return;
+    a.src = this.url(this.sprache);
+    a.load();
+    Versuch.merken("quelle", this.sprache);
+    a.play().then(() => {
+      this.versuche = 0;
+      this.pausiert = false;
+      this._lage();
+    }).catch((e) => {
+      Versuch.merken("play() abgelehnt", String(e && e.name || e));
+      this.neu("play abgelehnt");
+    });
+  },
+
+  // Neu verbinden mit wachsender Wartezeit. Ein Handy, das gerade
+  // aus dem Netz gefallen ist, soll nicht zwanzigmal je Sekunde
+  // anklopfen -- und wenn es wieder da ist, nicht erst in einer
+  // Minute.
+  neu(grund){
+    if(!zustand.laeuft || this.pausiert) return;
+    if(this._wartet) return;
+    const warte = Math.min(8000, 300 * Math.pow(2, this.versuche++));
+    Versuch.merken("neu in " + warte + " ms", grund);
+    this._wartet = setTimeout(() => {
+      this._wartet = null;
+      this._anwerfen();
+    }, warte);
+  },
+
+  // Wie weit liegt der Ton hinter dem Live-Punkt? Der Puffer reicht
+  // bis dorthin, wo der Server gerade ist; currentTime sagt, wo das
+  // Element spielt.
+  abstand(){
+    const a = this.spieler;
+    if(!a || !a.buffered || !a.buffered.length) return 0;
+    return Math.max(0, a.buffered.end(a.buffered.length - 1)
+                       - a.currentTime);
+  },
+
+  _wachen(){
+    if(this.wachUhr) return;
+    this.wachUhr = setInterval(() => {
+      if(!zustand.laeuft || !this.spieler) return;
+      const d = this.abstand();
+      Versuch.merken("abstand", d.toFixed(1) + " s"
+        + (this.spieler.paused ? "  (pausiert)" : ""));
+      // Mehr als vier Sekunden hinterher: aufholen. Erst im
+      // Puffer -- das ist der billige Weg und kostet keinen neuen
+      // Abruf. Geht das nicht (manche Browser lassen in einem
+      // Strom ohne Laengenangabe nicht springen), dann eben neu.
+      if(d > 4 && !this.spieler.paused){
+        const ziel = this.spieler.buffered.end(
+          this.spieler.buffered.length - 1) - 0.3;
+        const vorher = this.spieler.currentTime;
+        try{ this.spieler.currentTime = ziel; }catch(e){}
+        setTimeout(() => {
+          if(!this.spieler) return;
+          if(Math.abs(this.spieler.currentTime - vorher) < 0.2){
+            Versuch.merken("Sprung ging nicht, neue Quelle", "");
+            this.versuche = 0;
+            this._anwerfen();
+          }else{
+            Versuch.merken("aufgeholt", d.toFixed(1) + " s");
+          }
+        }, 400);
+      }
+    // Alle zwei Sekunden, nicht alle fuenf. Gemessen mit Firefox:
+    // der Browser puffert beim Start rund fuenfeinhalb Sekunden und
+    // bleibt danach genau so weit hinter dem Live-Punkt zurueck. Der
+    // erste Aufholsprung holt das weg -- je frueher er kommt, desto
+    // kuerzer hoert jemand Ton von vorhin.
+    }, 2000);
+  },
+
+  _lage(){
+    if(!("mediaSession" in navigator) || !this.spieler) return;
+    navigator.mediaSession.playbackState =
+      this.spieler.paused ? "paused" : "playing";
+  },
+
+  pause(){
+    this.pausiert = true;
+    if(this.spieler){ try{ this.spieler.pause(); }catch(e){} }
+    Versuch.merken("Mediensteuerung", "pause");
+    this._lage();
+  },
+
+  weiter(){
+    // Nach einer Pause NICHT im alten Puffer weiterspielen: dort
+    // steht, was vor der Pause war. Neu am Live-Punkt.
+    this.pausiert = false;
+    Versuch.merken("Mediensteuerung", "play");
+    this.versuche = 0;
+    this._anwerfen();
+  },
+
+  wechseln(sprache){
+    this.sprache = sprache;
+    this.versuche = 0;
+    this._anwerfen();
+  },
+
+  leeren(){
+    if(this._wartet){ clearTimeout(this._wartet); this._wartet = null; }
+    if(this.wachUhr){ clearInterval(this.wachUhr); this.wachUhr = null; }
+    if(this.spieler){
+      try{ this.spieler.pause(); this.spieler.removeAttribute("src");
+           this.spieler.load(); }catch(e){}
+    }
   },
 };
 
@@ -1356,6 +1555,11 @@ const Ton = {
   },
 
   einreihen(url, id){
+    // Im Versuch C kommt der Ton als durchgehender Strom. Die
+    // Haeppchen werden dann gar nicht erst abgerufen -- sie waeren
+    // dasselbe ein zweites Mal, und jedes Abspielen davon brauchte
+    // ein Ende.
+    if(Versuch.strom) return;
     if(!url || !zustand.tonAn || !this.spieler) return;
     this.schlange.push({url: url, id: id});
     Messung.zeile("empfangen", id);
@@ -1450,6 +1654,10 @@ function spracheWechseln(neu){
   if(neu === zustand.sprache) return;
   Verbindung.trennen();
   Ton.leeren();
+  // Der Strom haengt an der Sprache: eine andere Sprache ist eine
+  // andere Quelle. Das ist einer der drei Faelle, in denen die
+  // Quelle ueberhaupt wechselt.
+  if(Versuch.strom) Strom.wechseln(neu);
 
   // Der halbfertige Abschnitt wird VERWORFEN, nicht ausgegeben.
   // abschnittSchliessen() in trennen() hat ihn eben noch geschrieben;
@@ -1559,7 +1767,11 @@ function fahneZeigen(text){
 function tonSchalten(an){
   zustand.tonAn = an;
   $("w-ton").setAttribute("aria-pressed", String(an));
-  if(!an) Ton.leeren();
+  if(Versuch.strom){
+    if(an) Strom.weiter(); else Strom.pause();
+  }else if(!an){
+    Ton.leeren();
+  }
   beschriftungenSetzen();
 }
 
@@ -1608,7 +1820,10 @@ sprachenHolen().then(() => {
 $("starten").addEventListener("click", async () => {
   if(!zustand.sprache) return;
 
-  Ton.freischalten();                             // muss in der Klickgeste passieren
+  // Beides muss in der Klickgeste passieren: ohne eine echte
+  // Nutzergeste spielt weder ein Haeppchen noch ein Strom.
+  if(Versuch.strom) Strom.starten(zustand.sprache);
+  else Ton.freischalten();
   const tonBereit = await tonFreischalten();
   const wach = await bildschirmWachhalten();
 
@@ -1821,6 +2036,7 @@ for(const kennung of ["dankblatt", "postblatt", "wechsel"]){
 $("zurueck").addEventListener("click", () => {
   Verbindung.trennen();
   Ton.leeren();
+  if(Versuch.strom) Strom.leeren();
   zustand.laeuft = false;
   $("strom").innerHTML =
     '<p class="leerlauf" id="leerlauf"></p>';

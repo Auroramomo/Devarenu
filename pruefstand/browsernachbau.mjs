@@ -29,6 +29,7 @@ function browserBauen() {
       };
       this._text = "";
       this._html = "";
+      this.paused = true;
       this.attribute = {};
       this.horcher = {};
     }
@@ -64,8 +65,14 @@ function browserBauen() {
     focus() {}
     showModal() { this.offen = true; }
     close() { this.offen = false; }
-    play() { return Promise.resolve(); }
-    pause() {}
+    play() { this.paused = false; return Promise.resolve(); }
+    pause() { this.paused = true; }
+    // Ein audio-Element kann mehr als abspielen. Was der Nachbau
+    // nicht kennt, faellt beim ersten Aufruf auf -- und ein
+    // Prueflauf, dem eine Methode fehlt, meldet einen Fehler im
+    // Programm, wo keiner ist.
+    load() {}
+    canPlayType() { return "maybe"; }
     // Alles, was im Baum an Text haengt. Der Abschnitt baut eine
     // <article> mit Kindern; nur deren eigenen Text zu lesen faende
     // NIE etwas -- und ein Test, der nie etwas findet, bestaetigt
@@ -177,7 +184,7 @@ export function skriptLaden(umgebung, pfad) {
   vm.runInContext(stuecke.join("\n;\n"), umgebung, { filename: pfad });
   vm.runInContext(
     "globalThis.__pruef = {zustand, Verbindung, Ton, spracheWechseln, " +
-    "SPRACHEN, zustandZeigen, TEXTE, Versuch};", umgebung);
+    "SPRACHEN, zustandZeigen, TEXTE, Versuch, Strom};", umgebung);
   return umgebung.__pruef;
 }
 
