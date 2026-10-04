@@ -504,6 +504,12 @@ class Werk:
         self.letzter_satz = ""
         self.kontext_stellen = []
         self.kontext_namen = []
+        # Soll das, was am Pult unter Thema und Bibelstellen steht,
+        # auch in den UEBERSETZUNGS-Prompt? Bis 0.4.1 ging es nur an
+        # Whisper. Vorgabe AUS -- ein Hinweis mehr im Prompt ist ein
+        # Hinweis mehr, den das Modell missverstehen kann, und das
+        # faellt erst im Gottesdienst auf.
+        self.thema_im_prompt = False
         self.skript_namen = []
         self.skript_info = None
         self.verlauf = deque(maxlen=3)
@@ -1040,6 +1046,21 @@ class Werk:
         anrede = getattr(config, "ANREDE", {}).get(sprache)
         if anrede:
             system += f"\n- {anrede}"
+        # Thema und Bibelstellen auch fuer die Uebersetzung. Nur hinter
+        # dem Schalter, und bewusst als EINORDNUNG, nicht als Auftrag:
+        # das Modell soll wissen, worum es geht, und nicht anfangen,
+        # den Abschnitt zum Thema passend zu machen.
+        if self.thema_im_prompt:
+            worum = []
+            if self.kontext_stellen:
+                worum.append(", ".join(self.kontext_stellen))
+            if self.kontext_namen:
+                worum.append(", ".join(self.kontext_namen[:20]))
+            if worum:
+                system += (f"\n- In diesem Gottesdienst geht es um: "
+                           f"{' -- '.join(worum)}. Das dient NUR der "
+                           f"Einordnung von Namen und Begriffen. "
+                           f"Uebersetze trotzdem genau das Gegebene.")
         # Bibelstellen in die Zaehlung der Zielsprache. Vorgegeben wird
         # die FERTIGE Angabe, nicht die Regel -- ein Sprachmodell, das
         # rechnen soll, rechnet falsch.
@@ -4591,6 +4612,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 # Eigennamen des Kapitels vorlegt, und das ist genau der
                 # Unterschied zwischen "Sanballat" und "San Ballard".
                 "kontext_fehlt": not lauf.werk.stt_prompt,
+                "thema_im_prompt": bool(
+                    getattr(lauf.werk, "thema_im_prompt", False)),
                 # Der Knopf "Jetzt aus dem Netz": steht er zur
                 # Verfuegung, und laeuft gerade einer?
                 "online_lauf": online_lauf() or None,
@@ -5520,6 +5543,18 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         stand["gedrueckt"] = (basis / "update" / "jetzt").exists()
         stand["live"] = lauf.laeuft
         return stand
+
+    @app.post("/api/thema-im-prompt")
+    async def thema_im_prompt(daten: dict):
+        """Geht das Thema auch in den Uebersetzungsprompt?
+
+        Vorgabe AUS. Eingeschaltet wird es je Gemeinde, nicht je
+        Gottesdienst -- darum steht es in zustand.json."""
+        an = bool(daten.get("an"))
+        lauf.werk.thema_im_prompt = an
+        lauf.zustand["thema_im_prompt"] = an
+        zustandsdatei.speichern(lauf.zustand)
+        return {"an": an}
 
     @app.post("/api/rueckmeldung")
     async def rueckmeldung_nehmen(daten: dict):
@@ -6697,6 +6732,13 @@ geschnitten wird an Sprechpausen. „Automatisch“ folgt dem Raumpegel.
 <div id=zielwahl></div>
 <p class=hin data-t=sprachen_hin>Alle Sprachen liegen auf dem Rechner. Nur
 die ausgewählten laufen mit, das spart Rechenzeit.</p>
+<label class=haken><input type=checkbox id=themaschalter
+  onchange=themaSetzen()> <span data-t=thema_an>Thema und Bibelstellen
+  auch der Übersetzung mitgeben</span></label>
+<p class=hin data-t=thema_hin>Aus. Das Thema geht dann nur an die
+Spracherkennung. Eingeschaltet bekommt auch das Übersetzungsmodell
+einen Satz dazu — das kann Namen treffsicherer machen und in
+Einzelfällen den Abschnitt zum Thema hin verbiegen.</p>
 </div>
 
 <div class=unterseite id=eTonquelle hidden>
@@ -6956,6 +6998,11 @@ const TEXTE={
    erkannt_namen:"{n} von {g} Namen im Prompt:",
    // --- Einrichtung ---
    e_gemeinde:"Gemeinde", e_update:"Update", e_fehlersuche:"Fehlersuche",
+   thema_an:"Thema und Bibelstellen auch der Übersetzung mitgeben",
+   thema_hin:"Aus. Das Thema geht dann nur an die Spracherkennung. "
+     +"Eingeschaltet bekommt auch das Übersetzungsmodell einen Satz "
+     +"dazu — das kann Namen treffsicherer machen und in Einzelfällen "
+     +"den Abschnitt zum Thema hin verbiegen.",
    pw_kurz_ueber:"Pult-Passwort",
    tonquelle_wo:"Kanalwahl, Pegel und „Sprache prüfen“ stehen unter "
      +"Vorbereiten → Feineinstellung.",
@@ -7285,6 +7332,11 @@ const TEXTE={
    erkannt_vor:"Recognised:",
    erkannt_namen:"{n} of {g} names in the prompt:",
    e_gemeinde:"Congregation", e_update:"Update", e_fehlersuche:"Diagnostics",
+   thema_an:"Give topic and Bible references to the translation too",
+   thema_hin:"Off. The topic then only goes to speech recognition. "
+     +"Switched on, the translation model gets a sentence about it as "
+     +"well \u2014 that can make names more accurate and in rare cases "
+     +"bend a passage towards the topic.",
    pw_kurz_ueber:"Desk password",
    tonquelle_wo:"Channel, level and \u201ccheck language\u201d live under "
      +"Prepare \u2192 Fine tuning.",
@@ -8498,6 +8550,14 @@ function pultPasswortAnzeigen(gesetzt){
   bPwWeg.hidden = !gesetzt;
 }
 
+async function themaSetzen(){
+  const a = await fetch("/api/thema-im-prompt",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({an: themaschalter.checked})});
+  const d = await a.json().catch(()=>({}));
+  if(d.an !== undefined) themaschalter.checked = !!d.an;
+}
+
 async function protokollSetzen(){
   const an = protokollschalter.checked;
   await fetch("/api/protokoll",{method:"POST",
@@ -8884,6 +8944,8 @@ async function lies(){
     if(document.activeElement !== gemeindefeld)
       gemeindefeld.value = d.gemeinde || "";
     meldeschalter.checked = !!d.nutzung_melden;
+    if(d.thema_im_prompt!==undefined)
+      themaschalter.checked = !!d.thema_im_prompt;
     kontowarnung.hidden = !d.spendenkonto;
     onlineUpdateAnzeigen(d);
     if(d.spendenkonto) kontowarnungtext.textContent = TEXTE[UI].konto_kaputt;
@@ -9212,6 +9274,7 @@ def main():
             "gesprochene Satz steht dann im Journal. Nur zur "
             "Fehlersuche; danach am Pult wieder ausschalten."))
     lauf.wlan = dict(stand["wlan"])
+    lauf.werk.thema_im_prompt = bool(stand.get("thema_im_prompt"))
     # Der Modus uebersteht den Neustart, nicht nur der Wert. Bis 0.4.0
     # stand hier allein die Zahl, und ein Pult ohne Schwelle sah nach
     # einem Dienstneustart aus wie eines mit Automatik.

@@ -205,6 +205,11 @@ def vorgabe():
         # Hier und nicht in config.py: ein geaenderter Wert in einer
         # versionierten Datei laesst jedes Update abbrechen.
         "protokoll_mitschrift": False,
+        # Geht das, was am Pult unter Thema und Bibelstellen steht,
+        # auch in den UEBERSETZUNGS-Prompt? Bis 0.4.1 ging es nur an
+        # Whisper. Vorgabe AUS: ein Hinweis mehr im Prompt ist ein
+        # Hinweis mehr, den das Modell missverstehen kann.
+        "thema_im_prompt": False,
         # Der Name der Gemeinde. Erscheint auf der QR-Seite als
         # "Devarenu . <Name>". Leer heisst: nichts anzeigen -- und
         # das ist die Vorgabe, denn dieser Rechner weiss nicht, wo er
