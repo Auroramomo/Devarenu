@@ -242,12 +242,22 @@ class Segmentierer:
     # so, wie es gemeint ist.
     AUS_SCHWELLE = 0.0005
 
+    # Die Untergrenze der mitlaufenden Schwelle. Sie soll verhindern,
+    # dass die Automatik in einem totenstillen Raum auf null faellt
+    # und jedes Rascheln durchlaesst. Bei sauberem Leitungston -- ein
+    # Mischpultausgang, wie in Rostock -- liegt der Grundpegel aber so
+    # tief, dass IMMER diese Zahl gilt und nie der gemessene Raum.
+    # Als Klassenattribut, damit werkzeuge/schwellenmessung.py sie
+    # fuer eine Messreihe umstellen kann, ohne den Segmentierer
+    # umzubauen.
+    AUTO_UNTERGRENZE = 0.0025
+
     @property
     def schwelle(self):
         if self.modus == "fest" and self.feste_schwelle is not None:
             return self.feste_schwelle
         if self.modus == "automatisch":
-            return max(0.0025, self.grundpegel * 3.5)
+            return max(self.AUTO_UNTERGRENZE, self.grundpegel * 3.5)
         return self.AUS_SCHWELLE
 
     def modus_setzen(self, modus, wert=None):

@@ -164,6 +164,9 @@ def main():
     p.add_argument("--rauschen", default=None,
                    help="Rauschdatei, die unter den Ton gelegt wird")
     p.add_argument("--rauschanteil", type=float, default=0.3)
+    p.add_argument("--untergrenzen", default="",
+                   help="Automatik mit diesen Untergrenzen messen, "
+                        "z.B. 0.0025,0.0015,0.001,0.0005")
     p.add_argument("--minuten", type=float, default=0.0,
                    help="nur die ersten N Minuten, zum Ausprobieren")
     p.add_argument("--pause", type=float, default=0.45)
@@ -196,6 +199,27 @@ def main():
     else:
         fest = 0.0060
         print(f"Einmessen ergab nichts Brauchbares, ersatzweise {fest:.5f}")
+
+    if args.untergrenzen:
+        # Nur die Automatik, mit verschiedenen Untergrenzen. Bei
+        # sauberem Leitungston -- Mischpult, wie in Rostock -- liegt
+        # der Grundpegel so tief, dass max(Untergrenze, Grundpegel*3,5)
+        # immer die Untergrenze nimmt. Dann ist sie die Schwelle, und
+        # 0,0025 liegt nahe am Median der Tonbloecke.
+        grenzen = [float(x) for x in args.untergrenzen.split(",") if x]
+        ergebnisse = []
+        for g in grenzen:
+            print(f"\n--- automatisch, Untergrenze {g:.4f} ---")
+            werk.erfunden_zahl = 0
+            werk.verlauf.clear()
+            server.Segmentierer.AUTO_UNTERGRENZE = g
+            e = lauf(audio, werk, "automatisch", None, args)
+            e["schwelle"] = f"auto, min {g:.4f}"
+            print(f"    {e['abschnitte']} Abschnitte, {e['woerter']} Woerter")
+            ergebnisse.append(e)
+        server.Segmentierer.AUTO_UNTERGRENZE = 0.0025
+        tabelle(ergebnisse, "Automatik mit verschiedenen Untergrenzen")
+        return
 
     laeufe = [("aus", None), ("automatisch", None), ("fest", fest)]
 
