@@ -10,7 +10,7 @@ heute davon fehlt.
 Die Antwort auf „ist es fertig?" lautet bis dahin: nein, und hier
 steht warum.
 
-*Stand: 0.4.0, 03.10.2026.*
+*Stand: 0.4.6, 04.10.2026.*
 
 ---
 
@@ -82,7 +82,9 @@ Internet, keine Tastatur.
 Zusicherungen belegt — darunter der echte alte Kern aus
 `git show v0.2.11:stick_update.sh`, der sich beim Update selbst
 überschreibt, und seit 0.4.0 der Weg auf die jeweils neue Fassung von
-`v0.3.7` und `v0.3.8` aus (`pruefstand/einspielweg_test.sh`). Alles
+sieben Startfassungen aus, `v0.3.7` bis `v0.4.5`
+(`pruefstand/einspielweg_test.sh`), jede mit ihrem eigenen alten
+`aktualisieren.sh`. Alles
 mit Attrappen für `systemctl`, `sudo`, `runuser`, `curl` und
 `udevadm`.
 
@@ -212,17 +214,28 @@ verteilt das Projekt die Stimme weiter.
 Englisch ist keine Nebensache: es ist nach Deutsch die Sprache, die
 eine aufnehmende Gemeinde am ehesten einschaltet.
 
-**Was fehlt:** Eine Entscheidung. Lizenzfreier Ersatz liegt
-gemessen bereit (siehe [LIZENZEN.md](LIZENZEN.md)):
+**Was fehlt:** Eine Entscheidung. Gemessene Kandidaten (siehe
+[LIZENZEN.md](LIZENZEN.md)):
 
-| Stimme | Lizenz | Tempo |
-|---|---|---|
-| `en_US-joe-medium` | **CC0** | 1,15 |
-| `en_US-ljspeech-medium` | public domain | 1,28 |
-| `en_US-lessac-medium` *(heute)* | nur Forschung | 1,07 |
+| Stimme | Lizenz des Datensatzes | trainiert | Tempo |
+|---|---|---|---|
+| `en_US-joe-medium` | **CC0** | **feinabgestimmt aus `lessac`** | 1,15 |
+| `en_US-ljspeech-medium` | public domain | **von Grund auf** | 1,28 |
+| `en_US-lessac-medium` *(heute)* | nur Forschung | — | 1,07 |
 
 dazu `john`, `kristin`, `norman`, `bryce` (public domain),
 `libritts_r` (CC BY 4.0), `sam` (Apache-2.0).
+
+**Richtiggestellt mit 0.4.6:** Bis hierher stand hier, lizenzfreier
+Ersatz liege bereit. Das stimmt so nicht. `joe` ist aus genau der
+`lessac`-Stimme feinabgestimmt, deren Datensatz „nur Forschung" sagt —
+ob diese Beschränkung auf weitertrainierte Gewichte durchschlägt, ist
+dieselbe offene Frage, nur eine Stufe später. **Von den gemessenen
+Kandidaten ist allein `ljspeech` von Grund auf trainiert**, und damit
+der einzige, bei dem sich die Frage nicht stellt. Dasselbe betrifft
+**Russisch** (S5): beide lizenzfreien Kandidaten dort sind ebenfalls
+aus `lessac` feinabgestimmt. Festgestellt in `LIZENZEN.md` seit 0.4.3;
+der Fahrplan war nicht nachgezogen. Eine Entscheidung ist das nicht.
 
 **Entschieden wird nach einer Hörprobe, nicht nach der Tabelle.** Das
 Projekt wählt Stimmen so: `werkzeuge/sprachpaket.py --bauen en` baut
@@ -270,7 +283,8 @@ Die englische Stimme steht als **B4** für sich. Hier geht es um den
 Rest.
 
 **Stand:** Seit 0.4.0 erhoben. `werkzeuge/stimmlizenzen.py` liest die
-Modellkarte jeder der 21 ausgelieferten Piper-Stimmen; die Tabelle
+Modellkarte jeder ausgelieferten Piper-Stimme — seit 0.4.5 sind es
+19, vorher 21; die Tabelle
 steht in [LIZENZEN.md](LIZENZEN.md), dazu Whisper, Gemma, Ollama und
 `piper-tts`.
 
@@ -294,6 +308,27 @@ Für zwei ist sie mit 0.4.5 gefallen, und zwar auf den dritten Weg:
 „Nicht eingeschaltet" genügte nicht — sie lagen trotzdem auf jedem
 Stick, und ein Stick wird weitergereicht. Bleiben Italienisch (CC0,
 geklärt), Suaheli, Serbisch und Türkisch.
+
+**Von Hand in Rostock:** Auf dem Rostocker Rechner liegen die beiden
+herausgenommenen Stimmdateien noch — kein Update löscht Stimmen. Sie
+werden **von Hand gelöscht, sobald 0.4.6 dort läuft**: je `.onnx` und
+`.onnx.json` von `ar_JO-kareem-medium` und `ka_GE-natia-medium` unter
+`voices/`, zusammen rund 126 MB. Erst nach 0.4.6, weil ein Rückfall
+auf eine ältere Fassung sie sonst vermisste.
+
+**Versuch: eine arabische Stimme mit Lizenz.** Im Gespräch ist
+OpenVoiceOS *Miro V2* bzw. *Dii*. Was davon bekannt ist, und was nicht:
+
+* Lizenz **CC BY-NC-ND 4.0** — nichtkommerziell und **ohne
+  Bearbeitungen**. Ob eine Gemeinde, die Devarenu weitergibt, darunter
+  fällt, ist dieselbe Frage wie bei Serbisch und Türkisch; „ohne
+  Bearbeitungen" kommt dazu.
+* Das Format ist **phoonnx**, nicht Piper. **Ob Piper sie überhaupt
+  laden kann, ist ungeprüft.**
+* Ob sie gut klingt, sagt nur jemand, der **Arabisch spricht**. Ohne
+  diese Hörprobe wird nichts eingebaut.
+
+Bis dahin läuft Arabisch als reiner Untertitel.
 
 Dazu ein Satz zu Gemma in der Übergabe an eine Gemeinde: sie nimmt
 die Bedingungen entgegen, nicht das Projekt.
@@ -477,6 +512,13 @@ beantwortet (`netzpruefung.py`).
   Die QR-Seite sagt „bis zu einer Minute warten, nicht neu
   verbinden" — das ist eine Umschreibung des Problems, keine Lösung.
   Ob die beantworteten Prüfadressen reichen, ist **nicht gemessen**.
+- **„Bildschirm anlassen" auf dem iPhone.** Seit 0.4.6 hält die
+  Hörerseite den Bildschirm selbst an — Wake Lock, sonst ein Video mit
+  stiller Tonspur. Belegt ist das im Quelltext von Firefox und
+  Chromium und am Galaxy Z Fold 7; **auf einem iPhone ist es
+  ungetestet.** Wer dort Probleme hat, schaltet es unter *Mehr* aus.
+  Zu prüfen in demselben Durchgang wie oben: bleibt der Bildschirm
+  fünf Minuten ohne Berührung an, läuft der Ton, wird er leiser?
 - **Ein zweiter Aufbau.** Jede Gemeinde hat ein anderes Hausnetz,
   einen anderen Zugangspunkt, andere Kabel. Dass es zweimal
   funktioniert, ist nicht gezeigt.
@@ -501,23 +543,28 @@ nur ein, wenn sie russische Zuhörer hat — und dann ist es ihre
 Entscheidung, nicht eine, die sie erbt. Englisch (**B4**) steht
 anders da: das schaltet fast jeder ein.
 
-**Der Ersatz liegt gemessen bereit, und er wäre ein Gewinn in beide
-Richtungen:**
+**Gemessene Kandidaten:**
 
-| Stimme | Lizenz | Tempo |
-|---|---|---|
-| `ru_RU-dmitri-medium` | **CC0** | **0,92** |
-| `ru_RU-denis-medium` | **CC0** | 1,14 |
-| `ru_RU-irina-medium` *(heute)* | „Unknown" | 1,22 |
+| Stimme | Lizenz des Datensatzes | trainiert | Tempo |
+|---|---|---|---|
+| `ru_RU-dmitri-medium` | **CC0** | **feinabgestimmt aus `lessac`** | **0,92** |
+| `ru_RU-denis-medium` | **CC0** | **feinabgestimmt aus `lessac`** | 1,14 |
+| `ru_RU-irina-medium` *(heute)* | „Unknown" | — | 1,22 |
 
-`dmitri` ist lizenzfrei **und** knapp dreißig Prozent schneller als
-die heutige Stimme — weniger Sprechzeit je Abschnitt heißt weniger
-Rückstand über die Predigt.
+**Richtiggestellt mit 0.4.6:** Bis hierher stand hier, der Ersatz sei
+lizenzfrei und „ein Gewinn in beide Richtungen". Lizenzfrei ist der
+**Datensatz** — aber beide Stimmen sind aus der englischen
+`lessac`-Stimme feinabgestimmt, deren Datensatz „nur Forschung" sagt.
+Ob das auf die Gewichte durchschlägt, ist dieselbe offene Frage wie
+bei Englisch (**B4**). **Damit ist auch Russisch davon betroffen**, und
+anders als bei Englisch gibt es in dieser Auswahl keine von Grund auf
+trainierte russische Stimme. Schneller als `irina` ist `dmitri`
+weiterhin, um knapp dreißig Prozent.
 
-**Was fehlt:** Eine Hörprobe. **Das entscheiden die russischen
-Zuhörer in Rostock**, nicht eine Tabelle und nicht der Entwickler.
-Eine Stimme, die lizenzfrei und schnell ist, aber niemandem gefällt,
-ist die falsche Wahl.
+**Was fehlt:** Eine Hörprobe — das Paket liegt seit 0.4.3 unter
+`pruefung/` bereit. **Das entscheiden die russischen Zuhörer in
+Rostock**, nicht eine Tabelle und nicht der Entwickler. Dazu, getrennt
+davon, eine Entscheidung zur Lizenzfrage oben.
 
 **Wie man es prüft:** `werkzeuge/sprachpaket.py --bauen ru` baut ein
 Paket mit drei Kandidaten; wer Russisch spricht, hört sie an und
@@ -533,7 +580,8 @@ den einen Gemeinderechner.
 
 Dagegen steht einiges: alles ist aufgeschrieben und begründet
 (`AUFSTELLEN.md`, 2000 Zeilen mit der Geschichte jeder Entscheidung),
-23 Prüfstände halten die Zusicherungen fest, das Repo ist öffentlich
+39 Prüfstände halten die Zusicherungen fest (Stand 0.4.6: 35 in
+Python und JavaScript, vier als Shell-Skript), das Repo ist öffentlich
 und unter GPLv3, und seit 0.4.0 gibt es eine Erstinstallation für
 Fremde.
 
@@ -601,7 +649,9 @@ ihnen noch offen ist.
 
 ### Ton bei gesperrtem Handy: ein eigener Abspieler
 
-**Stand:** Die Hörerseite sagt „Bildschirm anlassen". Zwei Versuche,
+**Stand:** Seit 0.4.6 hält die Hörerseite den Bildschirm selbst an
+(siehe S4) — das hilft, solange niemand das Handy bewusst sperrt.
+Gegen das bewusste Sperren hilft es nicht. Zwei Versuche,
 das zu beheben, sind auf echten Geräten gescheitert — der Stille-Füller
 (0.4.2) und der durchgehende MP3-Strom (0.4.4). Beides ist ausgebaut.
 Die Messwerte stehen in `messungen/tonstrom_verzoegerung.json`, die
