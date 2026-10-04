@@ -155,7 +155,7 @@ legt sie offen.
 
 | Sprache | Stimme | Lizenz des Datensatzes | Anmerkung |
 |---|---|---|---|
-| Arabisch | `ar_JO-kareem-medium` | „See URL" | **unklar** |
+| Arabisch | `ar_JO-kareem-medium` | keine genannt (0.4.3 nachgesehen) | **keine Lizenz** |
 | Tschechisch | `cs_CZ-jirka-medium` | CC0 | |
 | Deutsch | `de_DE-thorsten-medium` | CC0 | |
 | Griechisch | `el_GR-rapunzelina-medium` | CC0 | |
@@ -164,15 +164,15 @@ legt sie offen.
 | Persisch | `fa_IR-amir-medium` | CC0 | |
 | Französisch | `fr_FR-siwis-medium` | CC-BY 4.0 | |
 | Ungarisch | `hu_HU-anna-medium` | CC0 | |
-| Italienisch | `it_IT-paola-medium` | „See URL" | **unklar** |
-| Georgisch | `ka_GE-natia-medium` | „See LICENSE file" (RHVoice) | **unklar** |
+| Italienisch | `it_IT-paola-medium` | CC0 1.0 (0.4.3 nachgesehen) | geklärt |
+| Georgisch | `ka_GE-natia-medium` | nur Privatpersonen (0.4.3 nachgesehen) | **Organisationen untersagt** |
 | Niederländisch | `nl_NL-mls-medium` | CC-BY 4.0 | |
 | Polnisch | `pl_PL-darkman-medium` | CC0 | |
 | Portugiesisch | `pt_BR-jeff-medium` | CC0 | |
 | Rumänisch | `ro_RO-mihai-medium` | CC0 | |
 | **Russisch** | `ru_RU-irina-medium` | „Unknown" (RHVoice) | **keine Lizenz genannt** |
 | Serbisch | `sr_RS-serbski_institut-medium` | CC-BY-NC-SA 4.0 | **nichtkommerziell** |
-| Suaheli | `sw_CD-lanfrica-medium` | „See URL" | **unklar** |
+| Suaheli | `sw_CD-lanfrica-medium` | keine formale, „non-profit, educational, public benefit" (0.4.3) | eingeschränkt |
 | Türkisch | `tr_TR-dfki-medium` | CC-BY-NC-SA 4.0 | **nichtkommerziell** |
 | Ukrainisch | `uk_UA-ukrainian_tts-medium` | CC0 | |
 | Vietnamesisch | `vi_VN-vais1000-medium` | CC-BY 4.0 | |
@@ -194,12 +194,61 @@ und das RHVoice-Repository `irina-rus` führt keine Lizenzdatei (die
 RHVoice-*Software* ist GPL-2.0, die Stimmdaten sind davon getrennt).
 Ohne Lizenz gibt es keine ausdrückliche Erlaubnis.
 
-Die übrigen fünf markierten Stimmen (Arabisch, Italienisch, Georgisch,
+Die übrigen markierten Stimmen (Arabisch, Italienisch, Georgisch,
 Suaheli, Serbisch, Türkisch) sind **nicht eingeschaltet** — sie liegen
 im Repo und laufen nur, wenn eine Gemeinde sie am Pult wählt. Die zwei
 mit `NC` schließen eine kommerzielle Nutzung aus; eine Gemeinde handelt
 nicht kommerziell, aber Devarenu wird weitergegeben, und das ist der
 Punkt, an dem „nichtkommerziell" unbestimmt wird.
+
+### Die vier „See URL" — mit 0.4.3 nachgelesen
+
+Vier Stimmen verwiesen auf eine Quelle, ohne die Lizenz zu nennen. Was
+dort steht:
+
+| Stimme | Quelle | Was dort steht |
+|---|---|---|
+| `ar_JO-kareem-medium` | [arabicttstrain][arjo] | **Nichts.** Das Repository führt keine Lizenzdatei und keine Lizenzangabe. Ohne Lizenz gibt es keine ausdrückliche Erlaubnis — dieselbe Lage wie bei Russisch. |
+| `it_IT-paola-medium` | [Voice-Dataset-Italian][itit] | **CC0 1.0.** Damit ist dieser Fall erledigt. |
+| `sw_CD-lanfrica-medium` | [Kiswahili TTS Dataset][swcd] | Keine formale Lizenz, aber ein Satz: „The authors permit use for non-profit, educational, and public benefit purposes." Eine Gemeinde fällt darunter. Weitergabe an andere Gemeinden ist davon gedeckt, der Verkauf nicht. |
+| `ka_GE-natia-medium` | [RHVoice, `licenses/voices/natia`][kage] | **Ausdrücklich eingeschränkt:** „can be used free of charge **only by individuals for personal use**" und „It is **prohibited** to copy, modify, distribute, sell or use this voice **by Organizations**". Eine Gemeinde, die sie auf einem Stick weitergibt, ist eine Organisation. |
+
+[arjo]: https://github.com/AliMokhammad/arabicttstrain/
+[itit]: https://huggingface.co/datasets/paolapersico1/Voice-Dataset-Italian
+[swcd]: https://lanfrica.com/record/kiswahili-tts-dataset
+[kage]: https://github.com/Olga-Yakovleva/RHVoice/blob/master/licenses/voices/natia/license-eng.txt
+
+### Die Kandidaten für Englisch und Russisch
+
+Bestätigt am `MODEL_CARD` im Piper-Vorrat:
+
+| Stimme | Datensatz | Lizenz des Datensatzes | Trainiert |
+|---|---|---|---|
+| `en_US-joe-medium` | [OHF-Voice/voice-datasets][ohf] | **CC0** | feinabgestimmt aus `lessac` |
+| `en_US-ljspeech-medium` | [LJ Speech][ljs] | **public domain** | **von Grund auf** |
+| `ru_RU-dmitri-medium` | [OHF-Voice/voice-datasets][ohf] | **CC0** | feinabgestimmt aus `lessac` |
+| `ru_RU-denis-medium` | [OHF-Voice/voice-datasets][ohf] | **CC0** | feinabgestimmt aus `lessac` |
+
+[ohf]: https://github.com/OHF-Voice/voice-datasets
+[ljs]: https://keithito.com/LJ-Speech-Dataset/
+
+> **Das ist der Haken, und er war vorher nicht gesehen.** Drei der
+> vier Kandidaten sind aus `en_US-lessac-medium` feinabgestimmt — also
+> aus genau der Stimme, deren Lizenz „nur Forschung" sagt und derer
+> man sich entledigen wollte. Ob eine Beschränkung auf die daraus
+> weitertrainierten Gewichte durchschlägt, ist dieselbe offene Frage
+> wie oben bei Englisch, nur eine Stufe später. Fast jede Piper-Stimme
+> ist so entstanden; auch Arabisch, Italienisch, Suaheli und Georgisch
+> tragen den Satz „Finetuned from U.S. English lessac voice".
+>
+> **`en_US-ljspeech-medium` ist die einzige in dieser Liste, die von
+> Grund auf trainiert wurde** — sie ist damit die einzige, bei der
+> sich die Frage gar nicht stellt. Für Russisch gibt es in dieser
+> Auswahl keine solche Stimme.
+>
+> Das ist eine Feststellung, keine Empfehlung: `ljspeech` ist mit
+> Längenfaktor 1,28 die langsamste der drei englischen Kandidaten,
+> und wie sie klingt, entscheidet die Hörprobe (`AUFSTELLEN.md`).
 
 **Es ist nichts entfernt worden.** Diese Tabelle ist die Grundlage für
 eine Entscheidung, nicht die Entscheidung.
