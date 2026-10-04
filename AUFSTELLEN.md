@@ -1530,6 +1530,31 @@ python pruefstand/bericht_test.py
 python pruefstand/netz_alt_test.py
 ```
 
+## Reicht die Grafikkarte?
+
+Die Frage stellt sich erst, wenn eine Gemeinde eine vierte Sprache
+einschaltet oder ein größeres Modell kommt — und dann steht jemand im
+Gottesdienst davor. Seit 0.4.3 wird sie vorher beantwortet, aus dem
+laufenden Betrieb.
+
+Solange übersetzt wird, misst `grafikwacht.py` alle 30 Sekunden:
+belegter und gesamter Grafikspeicher und Auslastung über `nvidia-smi`,
+und über `ollama ps`, ob das Sprachmodell **ganz** auf der Karte
+liegt. Das zweite ist das wichtigere: fällt ein Teil auf die CPU,
+läuft alles weiter — nur zehnmal langsamer, und niemand sieht warum.
+
+Zu sehen am Pult unter *Einrichtung → Fehlersuche*, je Tag eine Zeile.
+Lag etwas auf der CPU, steht es zusätzlich in der Störungsansicht. Im
+Terminal:
+
+```
+python grafikwacht.py --jetzt     einmal nachsehen
+python grafikwacht.py             die letzten Tage
+```
+
+Fehlt `nvidia-smi` oder schlägt es fehl, wird **still** nichts
+gemessen. Eine Messung ist eine Auskunft, kein Betriebsteil.
+
 ## Hörprobe: welche Stimme für Englisch und Russisch?
 
 Beide laufen heute mit einer Stimme, deren Lizenz fraglich ist

@@ -220,6 +220,32 @@ def _journal():
     return zeilen or ["keine Warnungen oder Fehler in den letzten zwei Tagen"]
 
 
+def _grafik():
+    """Wie voll die Karte in den letzten Tagen wurde.
+
+    Steht hier, weil es die Frage beantwortet, die der Betreuer sonst
+    raten muss: reicht die Karte noch? Darin steht nichts ueber
+    Menschen, sondern ueber eine Grafikkarte."""
+    try:
+        import grafikwacht
+        zeilen = grafikwacht.zeilen(7)
+    except Exception:
+        return ["(nicht verfuegbar)"]
+    return zeilen or ["(noch nichts gemessen)"]
+
+
+def _rueckmeldung():
+    """Zwei Zahlen je Sprache und Tag. Keine Adresse, keine Uhrzeit."""
+    try:
+        import rueckmeldung
+        zeilen = rueckmeldung.zeilen()[-14:]
+    except Exception:
+        return ["(nicht verfuegbar)"]
+    if not zeilen:
+        return ["(noch keine)"]
+    return ["Datum;Sprache;verstaendlich;schwer"] + zeilen
+
+
 def bauen():
     jetzt = datetime.now().strftime("%d.%m.%Y %H:%M")
     kopf = [
@@ -237,6 +263,8 @@ def bauen():
         _abschnitt("Systemcheck", _systemcheck()),
         _abschnitt("Durchsicht (pruefen.sh)", _pruefen_zusammen()),
         _abschnitt("Letztes Update", _update()),
+        _abschnitt("Grafikkarte", _grafik()),
+        _abschnitt("Rueckmeldung der Zuhoerer", _rueckmeldung()),
         _abschnitt("Meldungen ab Warnstufe", _journal()),
     ]
     text = "\n".join(kopf) + "\n" + "".join(teile)

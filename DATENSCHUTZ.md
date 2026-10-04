@@ -84,6 +84,16 @@ Wartungsfenster nur den, den die Gemeinde einschaltet.
 | **Speicherdauer** | Eine Zeile je Tag und Sprache in `ergebnisse/rueckmeldung.csv`, bis jemand sie löscht |
 | **Schalter** | Die Schaltflächen erscheinen in der Höransicht. Eine Stimme je Gerät und Tag, änderbar; gemerkt wird sie **im Browser**, nicht auf dem Gerät im Saal |
 
+### 1c. Messwerte der Grafikkarte
+
+| | |
+|---|---|
+| **Zweck** | Die Frage beantworten, ob die Karte noch reicht — bevor jemand im Gottesdienst davorsteht |
+| **Daten** | Je Tag eine Zeile: belegter und gesamter Grafikspeicher, Auslastung, Zahl der Zielsprachen, ob ein Teil des Modells auf der CPU lag. **Nichts über Menschen** |
+| **Empfänger** | Niemand. Die Zahlen liegen auf dem Gerät. Sie dürfen dem Fehlerbericht und der Nutzungsmeldung beiliegen, wenn diese eingeschaltet sind |
+| **Speicherdauer** | Eine Zeile je Tag in `ergebnisse/grafik.csv`, bis jemand sie löscht |
+| **Schalter** | Keiner. Fehlt `nvidia-smi`, wird still nichts gemessen |
+
 ### 2. Netzwerk für die Handys im Saal
 
 | | |

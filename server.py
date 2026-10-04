@@ -57,6 +57,7 @@ import spendenkonto
 import sprachwache
 import drossel
 import pultschutz
+import grafikwacht
 import rueckmeldung
 import qr_texte
 import zustand as zustandsdatei
@@ -4681,6 +4682,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 # Wie verstaendlich die Uebersetzung heute ankommt,
                 # je Sprache. Zwei Zahlen, sonst nichts.
                 "rueckmeldung": rueckmeldung.stand(),
+                # Wie voll die Grafikkarte heute wurde. None, wenn es
+                # keine gibt oder nvidia-smi fehlt.
+                "grafik": grafikwacht.heute(),
                 "letzte": list(lauf.letzte)[-8:]}
 
     @app.post("/api/steuerung/{was}")
@@ -5698,6 +5702,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
     #
     # Ein Fehler im Systemcheck darf den Server nicht aufhalten -- er
     # ist eine Auskunft, kein Betriebsteil.
+    # Mitschreiben, wie voll die Grafikkarte wird -- aber nur,
+    # solange uebersetzt wird. Zwischen zwei Gottesdiensten misst es
+    # eine Karte im Leerlauf, und das sagt nichts.
+    grafikwacht.anwerfen(lambda: lauf.laeuft, lambda: len(lauf.ziele) + 1)
+
     try:
         systemnachricht()
         schwer = sum(1 for b in lauf.befunde if b["schwer"])
@@ -6874,6 +6883,11 @@ wenn der Dienst neu startet, und wird nach sieben Tagen gelöscht.</p>
   <span class=rotpunkt aria-hidden=true></span>
   <b data-t=pp_laeuft>Testprotokoll läuft</b>
   <span id=pruefprotokollzeilen></span></p>
+<h3 id=grafikkopf data-t=grafik_ueber hidden>Grafikkarte</h3>
+<p class=hin id=grafikheute hidden></p>
+<details class=hilfe id=grafiktage hidden>
+  <summary data-t=grafik_tage>Die letzten Tage</summary>
+  <div><ul class=wartungliste id=grafikliste></ul></div></details>
 </div>
 
 </div>
@@ -7033,6 +7047,14 @@ const TEXTE={
    erkannt_namen:"{n} von {g} Namen im Prompt:",
    // --- Einrichtung ---
    e_gemeinde:"Gemeinde", e_update:"Update", e_fehlersuche:"Fehlersuche",
+   grafik_ueber:"Grafikkarte", grafik_tage:"Die letzten Tage",
+   grafik_zeile:"Heute höchstens {belegt} von {gesamt} MB belegt "
+     +"({voll} %), Auslastung {spitze} % Spitze / {mittel} % mittel, "
+     +"{sprachen} Sprachen.",
+   grafik_cpu:"ein Teil lag auf der CPU.",
+   grafik_cpu_lang:"Das Sprachmodell liegt nicht ganz auf der "
+     +"Grafikkarte. Die Übersetzung läuft weiter, aber deutlich "
+     +"langsamer.",
    thema_an:"Thema und Bibelstellen auch der Übersetzung mitgeben",
    thema_hin:"Aus. Das Thema geht dann nur an die Spracherkennung. "
      +"Eingeschaltet bekommt auch das Übersetzungsmodell einen Satz "
@@ -7367,6 +7389,12 @@ const TEXTE={
    erkannt_vor:"Recognised:",
    erkannt_namen:"{n} of {g} names in the prompt:",
    e_gemeinde:"Congregation", e_update:"Update", e_fehlersuche:"Diagnostics",
+   grafik_ueber:"Graphics card", grafik_tage:"The last few days",
+   grafik_zeile:"Today at most {belegt} of {gesamt} MB used ({voll} %), "
+     +"load {spitze} % peak / {mittel} % average, {sprachen} languages.",
+   grafik_cpu:"part of it was on the CPU.",
+   grafik_cpu_lang:"The translation model is not entirely on the "
+     +"graphics card. Translation continues, but much more slowly.",
    thema_an:"Give topic and Bible references to the translation too",
    thema_hin:"Off. The topic then only goes to speech recognition. "
      +"Switched on, the translation model gets a sentence about it as "
@@ -8489,6 +8517,7 @@ async function updateLaden(){
 // Befehlen. Bis 0.4.1 standen die Befehle mitten im Betrieb da, und
 // dazwischen ging unter, was wirklich zu tun war.
 let letzteBefunde = [];
+let grafikCpu = false;
 function stoerungZeigen(){
   unteransicht = unteransicht === "stoerung" ? null : "stoerung";
   ansichtZeichnen();
@@ -8509,6 +8538,12 @@ function stoerungZeichnen(){
   if(!zweiterdhcp.hidden && zweiterdhcp.textContent)
     sofort.push({schwer:true, was:zweiterdhcp.textContent,
                  tun:t.st_tun_netz});
+  // Ein Modell, das teils auf der CPU liegt, laeuft weiter -- nur
+  // zehnmal langsamer, und niemand sieht warum.
+  if(grafikCpu)
+    sofort.push({schwer:false, was:t.grafik_cpu_lang,
+                 tun:t.st_tun_betreuer,
+                 technik:"ollama ps   |   nvidia-smi"});
   const ausDemCheck = letzteBefunde.map(b => ({
     schwer: b.schwer,
     was: (UI === "de" ? b.was : b.was_en) || b.was,
@@ -9030,6 +9065,26 @@ async function lies(){
     // Gelb am Reiter Vorbereiten, solange das Thema fehlt. Rote
     // Meldungen stehen als Banner in jedem Reiter, dafuer braucht es
     // keinen Punkt.
+    // Grafikkarte. Ohne Karte oder ohne nvidia-smi steht hier
+    // nichts -- eine leere Ueberschrift waere eine Frage, die sich
+    // nicht stellt.
+    const gk = d.grafik;
+    grafikCpu = !!(gk && gk.cpu_anteil);
+    grafikkopf.hidden = !gk;
+    grafikheute.hidden = !gk;
+    if(gk){
+      const voll = Math.round(100 * gk.speicher_hoechst_mb
+                              / Math.max(1, gk.speicher_gesamt_mb));
+      grafikheute.textContent = t.grafik_zeile
+        .split("{belegt}").join(gk.speicher_hoechst_mb)
+        .split("{gesamt}").join(gk.speicher_gesamt_mb)
+        .split("{voll}").join(voll)
+        .split("{spitze}").join(gk.last_hoechst)
+        .split("{mittel}").join(gk.last_mittel)
+        .split("{sprachen}").join(gk.sprachen)
+        + (gk.cpu_anteil ? " \u2014 " + t.grafik_cpu : "");
+      grafikheute.classList.toggle("warnung", !!gk.cpu_anteil);
+    }
     punktVorbereiten.hidden = !d.kontext_fehlt;
     punktEinrichtung.hidden = !((d.wartung||[]).length || d.update);
     if(d.stellen&&d.stellen.length&&!erkannt.innerHTML)
