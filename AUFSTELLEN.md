@@ -1530,6 +1530,61 @@ python pruefstand/bericht_test.py
 python pruefstand/netz_alt_test.py
 ```
 
+## Laptop ans Saalnetz, ohne sein Internet zu verlieren
+
+Der Techniker sitzt oft an einem Laptop, der im Gemeinde-WLAN hängt
+und dort Internet hat. Das Pult liegt aber im Saalnetz, hinter dem
+Zugangspunkt. Beides gleichzeitig geht — über ein **Kabel**.
+
+Ein LAN-Kabel vom Laptop in eine freie LAN-Buchse der Fritzbox (nicht
+WAN). Der Laptop bekommt dort eine **feste Adresse** außerhalb des
+DHCP-Bereichs, den Devarenu vergibt (`10.0.0.50` bis `10.0.0.200`):
+
+| | |
+|---|---|
+| Adresse | `10.0.0.20` |
+| Maske | `255.255.255.0` |
+| Gateway | **leer lassen** |
+| DNS | **leer lassen** |
+
+> Gateway und DNS sind der ganze Trick. Trägt man sie ein, schickt
+> der Laptop seinen gesamten Verkehr ins Saalnetz — und das hat kein
+> Internet. Bleiben beide leer, geht über das Kabel nur, was nach
+> `10.0.0.x` adressiert ist; alles andere läuft weiter über das WLAN.
+
+Das Pult steht dann unter **http://10.0.0.1/pult**.
+
+### Windows
+
+1. **Einstellungen → Netzwerk und Internet → Ethernet**
+2. Bei *IP-Zuweisung* auf **Bearbeiten**
+3. Von *Automatisch (DHCP)* auf **Manuell** stellen, **IPv4** einschalten
+4. IP-Adresse `10.0.0.20`, Subnetzmaske `255.255.255.0`
+5. **Gateway und DNS leer lassen**, speichern
+
+### macOS
+
+1. **Systemeinstellungen → Netzwerk → Ethernet**
+2. **Details…**, dann Reiter **TCP/IP**
+3. *IPv4 konfigurieren* auf **Manuell**
+4. IP-Adresse `10.0.0.20`, Teilnetzmaske `255.255.255.0`
+5. **Router-Feld leer lassen**; im Reiter **DNS** nichts eintragen
+6. **OK**, dann **Anwenden**
+
+### Zwei Dinge, die dabei zu wissen sind
+
+**Ein Laptop im Saalnetz zählt nicht als „am Rechner".** Devarenu
+unterscheidet, ob das Pult am Gemeinde-PC selbst offen ist oder
+irgendwo im Netz — davon hängen die Aufnahmen, das Testprotokoll und
+„Jetzt aus dem Netz aktualisieren" ab. Über das Kabel ist der Laptop
+im Netz, nicht am Rechner. Das ist richtig so: wer vom Laptop aus
+alles dürfte, dürfte es auch vom Handy eines Besuchers aus.
+
+**Alternative ohne Kabel:** ein zweiter WLAN-Stick am Laptop, mit dem
+er sich ins Saal-WLAN hängt — dieselben Einstellungen, dieselbe feste
+Adresse, auch dort Gateway und DNS leer. Das eingebaute WLAN bleibt
+im Gemeindenetz.
+
 ## Reicht die Grafikkarte?
 
 Die Frage stellt sich erst, wenn eine Gemeinde eine vierte Sprache
