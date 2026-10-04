@@ -2369,6 +2369,16 @@ Bei jeder Fassung:
 
       **Ein Fund, der schon gepusht ist, lässt sich nicht zurückholen.**
       Entfernen hilft für die Zukunft, nicht für die Vergangenheit.
+
+      Damit niemand daran denken muss, legt
+      ```
+      bash werkzeuge/hook_einrichten.sh
+      ```
+      einen `pre-push`-Hook an: ein Push mit Fund bricht ab. Der Hook
+      liegt in `.git/hooks` und wird nicht mitversioniert — er muss
+      auf jedem Rechner einmal eingerichtet werden. Umgehen geht mit
+      `git push --no-verify`, und das ist Absicht: ein Hook, den man
+      nicht umgehen kann, wird irgendwann gelöscht statt verstanden.
 - [ ] Ändern sich große Teile (Modell, Stimmen, Spracherkennung):
       ```
       python teile.py --erfassen

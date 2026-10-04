@@ -674,6 +674,26 @@ block("8e. Abstand unter der Knopfzeile");
          || /\.haupt\{[^}]*margin:001rem/.test(stil), "kein margin an .haupt");
 }
 
+block("8f. Der Stick-Knopf bleibt aus dem Saal erreichbar");
+{
+  // Das ist der Update-Weg ab 1.0. Ein Knopf, den nur jemand am
+  // Gemeinde-PC druecken kann, hilft einer Gemeinde nicht, die den
+  // Rechner im Schrank stehen hat. Geschuetzt wird er, wenn
+  // ueberhaupt, durch das Pult-Passwort -- nicht durch den Ort.
+  const p = await pult({ am_rechner: false });
+  p.fenster.reiterWaehlen("einrichtung");
+  p.fenster.unterseiteWaehlen("eUpdate");
+  pruefe("der Knopf steckt nicht hinter nur_am_rechner",
+         p.g("updateknopf").vorfahren().every(v => !v.hidden));
+  pruefe('aber "Jetzt aus dem Netz" bleibt am Rechner',
+         p.g("onlinereihe").hidden);
+  const quelle = readFileSync(SERVER, "utf8");
+  const stelle = quelle.slice(quelle.indexOf('"/api/update/jetzt"'),
+                              quelle.indexOf('"/api/update/jetzt"') + 1400);
+  pruefe("auch der Server sperrt ihn nicht nach Ort",
+         !/vom_rechner_selbst|am_rechner/.test(stelle));
+}
+
 block("9. Aufnahmen");
 {
   const p = await pult();
