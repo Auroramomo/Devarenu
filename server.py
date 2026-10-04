@@ -6076,7 +6076,18 @@ PULT = """<!doctype html><html lang=de><meta charset=utf-8>
   --text:#1f2433;
   --grau:#5c6475;      /* 5,9:1 auf Weiss -- die hellste erlaubte Schrift */
   --hell:#9aa3b2;      /* nur Linien und Flaechen, nie Schrift */
+  /* ZWEI GRAUS, UND SIE MEINEN VERSCHIEDENES.
+     --linie trennt: Zeilen in einer Liste, der Strich unter einem
+     Abschnitt. Dass man sie kaum sieht, ist der Zweck.
+     --kante begrenzt ein BEDIENELEMENT: einen Knopf, ein Feld, eine
+     Kachel. Ein weisser Knopf auf weissem Grund ist nur an seiner
+     Kante als Knopf zu erkennen -- ist sie zu blass, sieht man ihn
+     nicht. Bis 0.4.2 stand ueberall --linie, auch dort: 1,26:1 auf
+     Weiss, also praktisch unsichtbar. WCAG 1.4.11 verlangt fuer
+     solche Kanten 3:1; --kante hat 3,6:1 auf Weiss und 3,3:1 auf
+     --fl. */
   --linie:#e3e5ea;
+  --kante:#7f8796;
   --fl:#f5f6f8;
   --gruen:#146b38; --gruenbg:#e6f4ec;
   --gelb:#8a6208;  --gelbbg:#fdf4dc;
@@ -6149,7 +6160,7 @@ h1,h2,h3{font-family:var(--display);font-weight:400}
 .kzahn:hover{color:var(--text)}
 /* Die Stoerungsansicht. Ein Punkt je Problem, darunter in einem Satz,
    was die Technik tun kann. Die Befehle stehen eine Ebene tiefer. */
-.stoerpunkt{border:1px solid var(--linie);border-inline-start:4px solid;
+.stoerpunkt{border:1px solid var(--kante);border-inline-start:4px solid;
   padding:.7rem .85rem;margin:0 0 .6rem;background:var(--fl)}
 .stoerpunkt.schwer{border-inline-start-color:var(--rot)}
 .stoerpunkt.leicht{border-inline-start-color:var(--gelb)}
@@ -6158,23 +6169,23 @@ h1,h2,h3{font-family:var(--display);font-weight:400}
   color:var(--grau)}
 .stoerpunkt .tun b{color:var(--text)}
 .pille.an{background:var(--gruenbg);border-color:var(--gruen);color:var(--gruen)}
-.pille.aus{background:var(--fl);border-color:var(--hell);color:var(--grau)}
+.pille.aus{background:var(--fl);border-color:var(--kante);color:var(--grau)}
 .pille.kaputt{background:var(--rotbg);border-color:var(--rot);color:var(--rot)}
 /* Kopfknoepfe: weiss mit grauem Rand wie jeder Nebenknopf. Mit Wort,
    nicht nur mit Zeichen -- ein Kaefer allein sagt niemandem, dass man
    damit den Betreuer erreicht. */
 .ikon{display:inline-flex;align-items:center;gap:.35rem;
       min-height:44px;padding:.35rem .6rem;
-      border:1px solid var(--linie);background:#fff;color:var(--grau);
+      border:1px solid var(--kante);background:#fff;color:var(--grau);
       font:.78rem var(--schild);letter-spacing:.04em;cursor:pointer}
-.ikon:hover{border-color:var(--hell);color:var(--text)}
+.ikon:hover{border-color:var(--navy);color:var(--text)}
 .ikon svg{display:block}
 
 /* Reiterleiste. Am Handy fest unten, mit Zeichen und Wort; die
    Fusszone des Geraets (Home-Balken) ist eingerechnet. */
 .reiter{position:fixed;inset-inline:0;bottom:0;z-index:5;
         display:flex;justify-content:space-around;background:#fff;
-        border-top:1px solid var(--linie);
+        border-top:1px solid var(--kante);
         padding-bottom:env(safe-area-inset-bottom)}
 .reiter button{flex:1 1 0;min-width:0;min-height:44px;
                display:flex;flex-direction:column;align-items:center;gap:.1rem;
@@ -6226,9 +6237,9 @@ h2{font:600 .72rem var(--schild);text-transform:uppercase;
 /* Knoepfe. Genau einer ist dunkelblau. */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;
      min-height:44px;padding:.6rem 1rem;
-     border:1px solid var(--linie);background:#fff;color:var(--text);
+     border:1px solid var(--kante);background:#fff;color:var(--text);
      font:.95rem var(--schild);cursor:pointer}
-.btn:hover{border-color:var(--hell)}
+.btn:hover{border-color:var(--navy)}
 .btn:disabled{opacity:.45;cursor:default}
 .btn.primaer{width:100%;min-height:3.4rem;
              background:var(--navy);border-color:var(--navy);color:#fff;
@@ -6261,8 +6272,8 @@ h2{font:600 .72rem var(--schild);text-transform:uppercase;
 /* Kacheln: ein Wort Zustand oben rechts, farbiger Rand an der
    Textanfangsseite -- logisch, damit Farsi nicht springt. */
 .kacheln{display:grid;grid-template-columns:1fr;gap:.6rem;margin:0 0 .8rem}
-.kachel{background:var(--fl);border:1px solid var(--linie);
-        border-inline-start:4px solid var(--hell);padding:.7rem .85rem}
+.kachel{background:var(--fl);border:1px solid var(--kante);
+        border-inline-start:4px solid var(--kante);padding:.7rem .85rem}
 .kachel.ok{border-inline-start-color:var(--gruen)}
 .kachel.warn{border-inline-start-color:var(--gelb)}
 .kachel.schlecht{border-inline-start-color:var(--rot)}
@@ -6306,7 +6317,7 @@ details.hilfe>summary{display:flex;align-items:center;gap:.4rem;
   font:.78rem var(--schild);color:var(--grau)}
 details.hilfe>summary::-webkit-details-marker{display:none}
 details.hilfe>summary::before{content:"?";flex:0 0 auto;
-  width:1.35rem;height:1.35rem;border:1px solid var(--hell);
+  width:1.35rem;height:1.35rem;border:1px solid var(--kante);
   border-radius:50%;display:grid;place-items:center;
   font:600 .75rem var(--schild)}
 details.hilfe[open]>summary{color:var(--text)}
@@ -6320,7 +6331,7 @@ label{display:block;font:.8rem var(--schild);color:var(--grau);
       margin:1rem 0 .3rem}
 input[type=text],input[type=password],input[type=number],textarea,select{
   width:100%;font:.95rem var(--schild);padding:.6rem;min-height:44px;
-  border:1px solid var(--linie);background:#fff;color:var(--text)}
+  border:1px solid var(--kante);background:#fff;color:var(--text)}
 textarea{min-height:5rem;resize:vertical;line-height:1.5}
 input[type=range]{width:100%;min-height:44px}
 .zeileein{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
@@ -6347,7 +6358,7 @@ input[type=range]{width:100%;min-height:44px}
 .mit .sek{flex:0 0 3rem;font-variant-numeric:tabular-nums;text-align:end}
 .leise{margin:1.1rem 0 0;text-align:center}
 .leise .btn{border-color:transparent;color:var(--grau);font-size:.8rem}
-.leise .btn:hover{border-color:var(--linie)}
+.leise .btn:hover{border-color:var(--kante)}
 
 /* Was laeuft, muss man sehen, ohne danach zu suchen. */
 .laeuftauf{display:flex;align-items:center;gap:.5rem;
@@ -6368,7 +6379,7 @@ input[type=range]{width:100%;min-height:44px}
 .chips{display:flex;flex-wrap:wrap;gap:.4rem;margin:.3rem 0}
 .chips label{display:inline-flex;align-items:center;gap:.4rem;
   min-height:44px;margin:0;padding:.4rem .7rem;cursor:pointer;
-  border:1px solid var(--linie);background:#fff;
+  border:1px solid var(--kante);background:#fff;
   font:.88rem var(--schild);color:var(--text)}
 .chips label.an{background:#eef1f8;border-color:var(--navy);font-weight:600}
 .chips input{margin:0;width:auto;min-height:0}
@@ -6386,7 +6397,7 @@ input[type=range]{width:100%;min-height:44px}
 .seitennav{display:flex;flex-direction:column;gap:.35rem}
 .seitennav button{display:flex;align-items:center;justify-content:space-between;
   gap:.5rem;min-height:48px;padding:.6rem .8rem;text-align:start;
-  border:1px solid var(--linie);background:#fff;cursor:pointer;
+  border:1px solid var(--kante);background:#fff;cursor:pointer;
   font:.95rem var(--schild);color:var(--text)}
 .seitennav button[aria-current=page]{background:#eef1f8;
   border-color:var(--navy);font-weight:600}
@@ -6400,10 +6411,10 @@ input[type=range]{width:100%;min-height:44px}
 
 /* Kanalliste der Tonquelle. Die Zeile ist der Knopf. */
 .kanal{display:flex;align-items:center;gap:.6rem;width:100%;min-height:44px;
-  padding:.5rem .6rem;margin-bottom:.25rem;border:1px solid var(--linie);
+  padding:.5rem .6rem;margin-bottom:.25rem;border:1px solid var(--kante);
   background:#fff;cursor:pointer;text-align:start;flex-wrap:wrap;
   font:.85rem var(--schild);color:var(--text)}
-.kanal:hover{border-color:var(--hell)}
+.kanal:hover{border-color:var(--navy)}
 .kanal.an{border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
 .kanal.ruht{opacity:.6;cursor:default}
 .kanal .kname{flex:1 1 9rem;min-width:0;overflow:hidden;
@@ -6425,7 +6436,7 @@ input[type=range]{width:100%;min-height:44px}
 .liste .zeile .btn{min-height:44px;padding:.4rem .7rem;font-size:.82rem}
 .post{font:.9rem/1.5 var(--schild);margin:.2rem 0 .8rem}
 .post div{padding:.5rem .7rem;margin-bottom:.35rem;background:var(--fl);
-  border-inline-start:3px solid var(--hell);color:var(--text)}
+  border-inline-start:3px solid var(--kante);color:var(--text)}
 .post .systempost{border-inline-start-color:var(--navy);background:#eef1f8}
 .post .wann{color:var(--grau);font-size:.78rem;margin-inline-end:.4rem}
 .post .systempost .wann{color:var(--navy);font-weight:600}
@@ -6440,7 +6451,7 @@ input[type=range]{width:100%;min-height:44px}
 .betreuer{margin:.5rem 0 1rem;font-size:1.05rem}
 .betreuer code{font-size:.95rem;color:var(--link);word-break:break-all}
 .qrpaar{display:flex;gap:1.2rem;flex-wrap:wrap;margin:.4rem 0 1rem}
-.qrpaar img{border:1px solid var(--linie);background:#fff;
+.qrpaar img{border:1px solid var(--kante);background:#fff;
   width:min(100%,190px);height:auto}
 .qrpaar>div{flex:1 1 12rem;max-width:14rem}
 /* Der Knopf, der die Datei waehlt. Das nackte Browser-Feld sieht auf
@@ -6448,7 +6459,7 @@ input[type=range]{width:100%;min-height:44px}
 .dateiknopf input{position:absolute;width:1px;height:1px;opacity:0;
   overflow:hidden;clip:rect(0 0 0 0)}
 dialog#einwilligung{max-width:26rem;width:calc(100vw - 2rem);
-  border:1px solid var(--linie);padding:1.3rem;color:var(--text)}
+  border:1px solid var(--kante);padding:1.3rem;color:var(--text)}
 dialog#einwilligung h2{font:400 1.1rem var(--display);color:var(--text);
   text-transform:none;letter-spacing:0;margin:0 0 .4rem}
 dialog#einwilligung label{display:flex;gap:.5rem;align-items:flex-start;
@@ -6476,12 +6487,12 @@ h2.klapp{display:flex;justify-content:space-between;align-items:center;
 @media (min-width:701px){
   body{padding:0;background:var(--fl)}
   .app{max-width:66rem;margin:1.5rem auto;min-height:0;padding-bottom:0;
-       border:1px solid var(--linie)}
+       border:1px solid var(--kante)}
   body.tippt .app{padding-bottom:0}
   .top{padding:.9rem 1.4rem}
   .meta{display:flex}
   .reiter{position:static;justify-content:flex-start;gap:.1rem;padding:0 1rem;
-          border-top:0;border-bottom:1px solid var(--linie)}
+          border-top:0;border-bottom:1px solid var(--kante)}
   .reiter button{flex:0 0 auto;flex-direction:row;gap:.45rem;
                  min-height:48px;padding:.7rem 1rem;font-size:.92rem;
                  border-top:0;border-bottom:2px solid transparent}

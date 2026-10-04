@@ -40,6 +40,14 @@
   --papier-tief:  #e7e9ee;
   --blatt:        #ffffff;
   --linie:        #d9dce4;
+  /* ZWEI GRAUS, UND SIE MEINEN VERSCHIEDENES.
+     --linie trennt (Zeilen, Abschnittsstriche) -- dass man sie kaum
+     sieht, ist der Zweck. --kante begrenzt ein BEDIENELEMENT. Eine
+     weisse Sprachkachel auf weissem Grund ist nur an ihrer Kante als
+     Kachel zu erkennen; mit --linie waren das 1,37:1, also fast
+     nichts. WCAG 1.4.11 verlangt dafuer 3:1. --kante hat 3,7:1 auf
+     --blatt und 3,4:1 auf --papier. */
+  --kante:        #7f8796;
   --leise:        #6b7385;
 
   --rand: clamp(1rem, 4vw, 2.25rem);
@@ -167,7 +175,7 @@ h1{
   font:inherit; font-size:1.12rem;
   padding:.95rem .6rem;
   background:var(--blatt);
-  border:1px solid var(--linie);
+  border:1px solid var(--kante);
   color:var(--tinte);
   cursor:pointer;
   text-align:center;
@@ -222,7 +230,7 @@ h1{
 .versuchhin{margin:.2rem 0 .4rem; line-height:1.4}
 .versuch pre{margin:0; max-height:14rem; overflow:auto; font-size:.72rem;
   line-height:1.5; white-space:pre-wrap; background:var(--blatt);
-  border:1px solid var(--linie); padding:.5rem}
+  border:1px solid var(--kante); padding:.5rem}
 
 /* ---------- Bildschirm 2: Zuhören ---------- */
 #zuhoeren{padding:0}

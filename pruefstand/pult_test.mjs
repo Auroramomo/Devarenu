@@ -792,6 +792,47 @@ block("12. Gestaltung: was die Farbregel verlangt");
          /\.mini \.marke\{[^}]*inset-inline-start/.test(stil));
 }
 
+block("12b. Konturen: Kanten von Bedienelementen");
+{
+  // WCAG 1.4.11 verlangt fuer die Begrenzung eines Bedienelements
+  // 3:1 -- nicht 4,5:1 wie fuer Schrift, aber auch nicht nichts.
+  // Bis 0.4.2 stand ueberall --linie, auch an Knoepfen und Feldern:
+  // 1,26:1 auf Weiss, also praktisch unsichtbar. Ein weisser Knopf
+  // auf weissem Grund ist nur an seiner Kante als Knopf zu erkennen.
+  const quelle = readFileSync(SERVER, "utf8");
+  const stil = quelle.split('PULT = """')[1].split("<style>")[1]
+                     .split("</style>")[0];
+  const v = {};
+  for (const m of stil.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})/g))
+    v[m[1]] = m[2];
+  const L = (hex) => {
+    const k = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16) / 255)
+      .map(c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    return 0.2126 * k[0] + 0.7152 * k[1] + 0.0722 * k[2];
+  };
+  const K = (a, b) => { const x = L(a), y = L(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  for (const [was, a, b] of [["--kante auf Weiss", v.kante, "#ffffff"],
+                             ["--kante auf --fl", v.kante, v.fl]]) {
+    const k = K(a, b);
+    pruefe(`${was}: ${k.toFixed(2)}:1`, k >= 3, a);
+  }
+  // Und: keine Kante eines BEDIENELEMENTS auf --linie oder --hell.
+  // --linie bleibt fuer Trennstriche richtig, dort begrenzt sie
+  // nichts, was man anfassen kann.
+  const BEDIENT = /\.btn|\.ikon|\.pille|\.reiter|\.chips label|input\[|textarea|select|\.seitennav button|\.kanal|\.kachel|summary|dialog|\.stoerpunkt/;
+  const schwach = [];
+  for (const m of stil.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+    const wahl = m[1].replace(/\/\*[\s\S]*?\*\//g, "").trim();
+    if (!BEDIENT.test(wahl)) continue;
+    for (const r of m[2].matchAll(
+        /border[\w-]*\s*:\s*[^;]*var\(--(linie|hell)\)/g))
+      schwach.push(wahl.slice(-40) + " (" + r[1] + ")");
+  }
+  pruefe("keine Bedienkante auf --linie oder --hell",
+         schwach.length === 0, schwach.join(" | "));
+}
+
 block("13. Kontrast der Schriftfarben");
 {
   const quelle = readFileSync(SERVER, "utf8");
