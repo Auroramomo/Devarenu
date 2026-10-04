@@ -3704,6 +3704,59 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                                    Response)
     from html import escape as html_escape
 
+    # ------------------------------------------- Seiten und Zwischenspeicher
+    # Bis 0.4.5 kam client.html ohne Cache-Control, aber mit
+    # Last-Modified. Damit darf ein Browser HEURISTISCH speichern,
+    # ueblich ist ein Zehntel des Dateialters: eine halbes Jahr
+    # unveraenderte Seite gilt fast drei Wochen als frisch. Gesehen in
+    # pruefstand/zwischenspeicher_test.py mit einem echten Firefox --
+    # nach dem Update zeigte er weiter die alte Seite.
+    #
+    # "no-cache" heisst NICHT "nicht speichern", sondern "vor jeder
+    # Verwendung nachfragen". Die Nachfrage traegt das ETag; ist die
+    # Seite unveraendert, antwortet der Server mit 304 und ohne Inhalt.
+    # Im Saal geht also bei jedem Aufruf eine kurze Frage ueber das
+    # Netz und nicht 100 KB Seite -- spuerbar ist das nicht.
+    #
+    # Das ETag kommt aus dem INHALT, nicht aus Datum und Groesse wie bei
+    # FileResponse. Eine Wiederherstellung mit cp -a oder tar setzt das
+    # alte Datum wieder, und eine geaenderte Seite gleicher Laenge saehe
+    # dann aus wie die alte.
+    NACHFRAGEN = "no-cache"
+
+    def _kennung(inhalt):
+        return '"' + hashlib.sha256(inhalt).hexdigest()[:32] + '"'
+
+    def _schon_da(request, kennung):
+        frage = request.headers.get("if-none-match", "")
+        if not frage:
+            return False
+        if frage.strip() == "*":
+            return True
+        return kennung in [t.strip().removeprefix("W/")
+                           for t in frage.split(",")]
+
+    def ausliefern(request, inhalt, media_type, kopf=None):
+        """Eine Seite oder Datei, die sich mit einem Update aendern kann."""
+        if isinstance(inhalt, str):
+            inhalt = inhalt.encode("utf-8")
+        kennung = _kennung(inhalt)
+        h = {"Cache-Control": NACHFRAGEN, "ETag": kennung}
+        h.update(kopf or {})
+        if _schon_da(request, kennung):
+            # Ohne Content-Disposition und ohne Inhalt; nur was der
+            # Browser zum Wiederverwenden braucht.
+            return Response(status_code=304,
+                            headers={"Cache-Control": NACHFRAGEN,
+                                     "ETag": kennung})
+        return Response(content=inhalt, media_type=media_type, headers=h)
+
+    def datei_ausliefern(request, datei, media_type, dateiname=None):
+        kopf = {}
+        if dateiname:
+            kopf["Content-Disposition"] = f'attachment; filename="{dateiname}"'
+        return ausliefern(request, Path(datei).read_bytes(), media_type, kopf)
+
     @asynccontextmanager
     def systemhinweis_legen(text, text_en=""):
         """Ein Systemhinweis in den Briefkasten, wie der Systemcheck.
@@ -4019,11 +4072,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         zustandsdatei.speichern(lauf.zustand)
 
     @app.get("/")
-    def wurzel():
+    def wurzel(request: Request):
         if not client.exists():
             return HTMLResponse(f"<h1>client.html fehlt</h1><p>{client}</p>",
                                 status_code=500)
-        return FileResponse(client, media_type="text/html; charset=utf-8")
+        return datei_ausliefern(request, client, "text/html; charset=utf-8")
 
     @app.get("/spende.svg")
     def spende_qr():
@@ -4062,18 +4115,18 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             return Response(status_code=404)
 
     @app.get("/favicon.ico")
-    def favicon():
+    def favicon(request: Request):
         # Sonst steht in jeder Browserkonsole ein 404. Das Logo tut es.
         d = basis / "logo.png"
         if d.exists():
-            return FileResponse(d, media_type="image/png")
+            return datei_ausliefern(request, d, "image/png")
         return Response(status_code=404)
 
     @app.get("/logo.png")
-    def logo():
+    def logo(request: Request):
         d = basis / "logo.png"
         if d.exists():
-            return FileResponse(d, media_type="image/png")
+            return datei_ausliefern(request, d, "image/png")
         # Ohne Logo laeuft alles weiter; die Seiten blenden die Marke dann
         # selbst aus, statt ein kaputtes Bild zu zeigen.
         return Response(status_code=404)
@@ -5281,7 +5334,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             return HTMLResponse(seite, headers={
                 "Content-Disposition":
                     'attachment; filename="Devarenu-QR.html"'})
-        return HTMLResponse(seite)
+        # Die Seite am Beamer steht stundenlang offen; nach einem Update
+        # soll ein Neuladen die neue bringen, nicht die gespeicherte.
+        return ausliefern(request, seite, "text/html; charset=utf-8")
 
     @app.get("/fehlerbericht.txt")
     def fehlerbericht_txt(schnell: int = 0):
@@ -5396,7 +5451,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 "bericht_link": bericht_link()}
 
     @app.get("/anleitung.pdf")
-    def anleitung(teil: str = "alles", sprache: str = ""):
+    def anleitung(request: Request, teil: str = "alles", sprache: str = ""):
         """Die Bedienungsanleitung. Fertig gebaut, liegt im Repo.
 
         Gebaut wird sie auf dem Arbeitsrechner (bash anleitung_bauen.sh);
@@ -5431,8 +5486,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                  "abhilfe": "bash anleitung_bauen.sh (auf dem "
                             "Arbeitsrechner), dann einchecken"},
                 status_code=404)
-        return FileResponse(datei, media_type="application/pdf",
-                            filename=name)
+        return datei_ausliefern(request, datei, "application/pdf", name)
 
     @app.get("/qr.png")
     def qr_png(was: str = "seite"):
@@ -5690,9 +5744,12 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         return {"angenommen": True, "timer": timer}
 
     @app.get("/pult")
-    def pult():
-        return HTMLResponse((basis / "pult.html").read_text(encoding="utf-8")
-                            if (basis / "pult.html").exists() else PULT)
+    def pult(request: Request):
+        return ausliefern(
+            request,
+            (basis / "pult.html").read_text(encoding="utf-8")
+            if (basis / "pult.html").exists() else PULT,
+            "text/html; charset=utf-8")
 
     # Einmal beim Start nachsehen, wie der Rechner eingestellt ist.
     # Die Befunde landen in lauf.befunde und stehen damit hinter der
