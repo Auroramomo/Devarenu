@@ -52,6 +52,14 @@ something, please donate to the church. Under *Thank you* on the page
 you will find a bank QR code; the amount in it is only a suggestion and
 can be changed in your banking app.
 
+## Was it clear?
+
+Right at the bottom there are two buttons: *clear* and *hard to
+follow*. One tap is enough, and you can change it. Only the totals per
+language are counted — **not** which phone, and **not** when. It is
+the one piece of feedback that costs nothing, and it shows which
+language still needs work.
+
 ## Telling us something
 
 At the bottom of the page there is a *Report* button. One sentence is

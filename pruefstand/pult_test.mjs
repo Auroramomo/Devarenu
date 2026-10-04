@@ -305,6 +305,19 @@ const ZUSTAENDE = [
   ["Meldung aus dem Saal", { nachrichten: [
       { text: "Der Ton ist zu leise", zeit: "09:48", sprache: "de" }] }, {}],
   ["aus dem Saal geoeffnet", { am_rechner: false }, {}],
+  ["Stoerungsansicht offen", { befunde: [
+      { kennung: "dienst_devarenu", schwer: true, wartung: false,
+        was: "Der Dienst devarenu startet nicht von selbst. Ohne ihn "
+           + "gibt es nach einem Neustart keine Übersetzung.",
+        was_en: "The devarenu service does not start by itself.",
+        tun: "sudo systemctl enable --now devarenu",
+        tun_en: "sudo systemctl enable --now devarenu" },
+      { kennung: "vorrat", schwer: false, wartung: true,
+        was: "Es gibt keinen Reparaturvorrat.",
+        was_en: "There is no repair stock.",
+        tun: "sudo bash vorrat_bauen.sh",
+        tun_en: "sudo bash vorrat_bauen.sh" }],
+    _ansicht: "stoerung" }, {}],
   ["Hinweis", { live: true, wartung: [
       { kennung: "vorrat", schwer: false, wartung: true,
         was: "Es gibt keinen Reparaturvorrat.",
@@ -510,6 +523,15 @@ block("6. Die Kacheln sagen den Zustand in einem Wort");
          String(kopfknoepfe.length));
   pruefe("es fuehrt in die Feineinstellung",
          /feineinstellung/.test(kopfknoepfe[0].getAttribute("onclick") || ""));
+  // Es traegt ein Zeichen, kein Wort. Mit data-t haette uiZeichnen()
+  // das Zeichen durch "Feineinstellung" ersetzt -- genau so stand es
+  // im ersten Pruefbild.
+  pruefe("und bleibt ein Zeichen",
+         kopfknoepfe[0].textContent.trim().length <= 2,
+         JSON.stringify(kopfknoepfe[0].textContent));
+  pruefe("mit einem Namen fuer die Vorlesehilfe",
+         (kopfknoepfe[0].getAttribute("aria-label") || "").length > 3,
+         kopfknoepfe[0].getAttribute("aria-label"));
   pruefe("und nicht zum Einmessen",
          !p.g("bEinmessen").vorfahren().some(v => v.id === "kTon"));
   pruefe("der Einmessen-Knopf steht nur in der Feineinstellung",

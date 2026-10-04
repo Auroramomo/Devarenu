@@ -6,6 +6,75 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.4.2 — Alles auf dem Stick, und das Pult sagt, was es meint
+
+*04.10.2026.*
+
+### Für alle
+
+**Ein Rechner ohne Internet bekommt jetzt alles.** `teile.json` steht
+im Repo und nennt jede Stimme aus der Konfiguration, die
+Spracherkennung und das Sprachmodell mit Größe und Prüfsumme — 61
+Teile, 10,5 GB. Ein voller Stick bringt sie mit, ein Update spielt
+nach Prüfsumme nach, und `ERSTINSTALLATION.md` hat einen Weg ganz ohne
+Leitung, mit der Kontrolle „alle Stimmen da".
+
+Bis dahin lud nur `einrichten.sh` die Stimmen aus dem Netz, der Vorrat
+sicherte nur, was zufällig in `voices/` lag, und `teile.json` fehlte,
+obwohl das Programm behauptete, sie stehe im Repo.
+
+**Fehlt die Stimme einer eingeschalteten Sprache, steht das am Pult.**
+Vorher stand es nur im Journal — eine Gemeinde schaltet Farsi ein, und
+am Sonntag kommt Text ohne Ton.
+
+**Die Statuspille ist ein Knopf.** Ein Tipp darauf zeigt, was gerade
+nicht stimmt: in einfachen Worten, jeweils mit einem Satz, was zu tun
+ist. Die Befehle für die Technik stehen darunter eingeklappt. Neu ist
+eine vierte Stufe *Hinweis* (gelb): es läuft, es steht nur etwas
+offen.
+
+**Der Briefkasten ist nur noch für den Saal.** „Dienst startet nicht
+von selbst" und „keine automatische Anmeldung" standen dort zwischen
+den Zuschriften der Zuhörer. Wer drei Wochen dieselben zwei Punkte
+wegklickt, klickt die vierte Woche auch die eine Zeile weg, auf die es
+ankommt.
+
+**Zwei Knöpfe auf der Hörerseite:** *verständlich* und *schwer
+verständlich*, in der gewählten Sprache. Gezählt wird nur, je Sprache
+— keine Adresse, keine Kennung, kein Zeitpunkt. Am Pult steht es in
+der Zuhörer-Kachel.
+
+**Die Ton-Kachel** hat ein Zahnrad in die Feineinstellung, sagt bei
+Stille neutral *still* statt grün *gut*, und im Modus *Aus* nicht mehr
+„Mindestlautstärke zu hoch?" — dort gibt es keine.
+
+**Bibelstellen auf Englisch und Russisch** mit Doppelpunkt, auch in
+der Vorgabe der Umrechnung: „Joel 2:28", „Ин. 3:16".
+
+### Für die Technik
+
+* `glossar_v1.0.csv`: zwei neue Suchvarianten, „Geist der Weissagung"
+  an D009 und „28 Glaubensüberzeugungen" an D034. Vergleichslauf
+  gegen v0.4: für en, ru und fa ändert sich nur, was die erste
+  bewirkt.
+* Neu hinter einem Schalter (**Vorgabe aus**): Thema und Bibelstellen
+  gehen auch in den Übersetzungsprompt. Gemessen an 20 Abschnitten
+  ändert das bei en 8, bei ru 12 Abschnitte; der deutlichste Treffer
+  ist „Prediger", das ohne Einordnung zu „Ecclesiastes" wurde.
+* `werkzeuge/hook_einrichten.sh` legt `oeffentlich_pruefen.sh` als
+  `pre-push`-Hook an. Ein Push mit Fund bricht ab.
+* Der Stick-Knopf „Jetzt einspielen" bleibt ausdrücklich aus dem Saal
+  erreichbar — das ist der Update-Weg ab 1.0.
+* Gemessen, nichts umgestellt: die Untergrenze der mitlaufenden
+  Schwelle (0,0025) liegt bei Leitungston dicht am Median der
+  Tonblöcke. Mit 0,001 liefert die Automatik 2664 statt 2576 Wörter
+  und schneidet weiter nur 1,7 % der Abschnitte an der Höchstdauer —
+  gegen 12,3 % bei *Aus*.
+* `.teile-pruefsummen.json` stand nicht in `.gitignore` und nannte
+  volle Pfade. Jetzt steht er drin.
+
+---
+
 ## 0.4.1 — Das Pult neu geordnet
 
 *03.10.2026.*

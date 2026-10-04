@@ -51,6 +51,13 @@ function seiteBauen(server, zustand, pegel, lupe) {
   const pult = quelle.split('PULT = """')[1].split('"""')[0];
   const kopf = pult.slice(0, pult.indexOf("<div class=app>"));
   // Die Abrufe gegen Attrappen tauschen, bevor das Skript laeuft.
+  const vorab = (zustand._ansicht === "stoerung")
+    // Sofort UND noch einmal spaeter: firefox --screenshot wartet auf
+    // load, ein setTimeout danach kaeme womoeglich zu spaet.
+    ? '<script>function _auf(){try{if(stoerung.hidden)stoerungZeigen()}'
+      + 'catch(e){}}addEventListener("load",_auf);'
+      + 'setTimeout(_auf,200);setTimeout(_auf,600);<' + '/script>'
+    : "";
   const attrappe = `
 <script>
 window.fetch = function(u){
@@ -65,7 +72,7 @@ window.fetch = function(u){
 </script>`;
   const lupenstil = lupe
     ? `<style>html{font-size:${Math.round(16 * lupe)}px}</style>` : "";
-  return kopf + lupenstil + attrappe
+  return kopf + lupenstil + attrappe + vorab
        + koerper.slice(koerper.indexOf("<div class=app>"))
        + "<script>" + skript + "</script></html>";
 }

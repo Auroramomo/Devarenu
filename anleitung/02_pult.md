@@ -26,8 +26,19 @@ Gottesdienst nicht aufhält. **Rote Meldungen** stehen dagegen in
 während der Ton ausfällt, sieht es dort.
 
 Oben rechts sagt die **Statuspille** in einem Wort, wie es steht:
-*Läuft* (grün), *Angehalten* (grau), *Störung* (rot). Sie ist immer zu
-sehen.
+*Läuft* (grün), *Angehalten* (grau), *Hinweis* (gelb — es läuft, es
+steht nur etwas offen) und *Störung* (rot). Sie ist immer zu sehen.
+
+**Die Pille ist ein Knopf.** Ein Tipp darauf öffnet die
+*Störungsansicht*: alles, was gerade nicht stimmt, in einfachen
+Worten, jeweils mit einem Satz, was zu tun ist — „Mikrofon und Kabel
+prüfen", „Betreuer anrufen". Die Befehle für die Technik stehen
+darunter eingeklappt unter *Für den Betreuer*.
+
+> Systemcheck-Befunde stehen **nicht mehr im Briefkasten**. Der ist
+> seit 0.4.2 nur noch für Zuschriften aus dem Saal. Was der Rechner
+> selbst meldet, steht in der Störungsansicht, unter *Einrichtung →
+> Fehlersuche* und im Fehlerbericht an den Betreuer.
 
 Jedes „?" klappt die ausführliche Erklärung auf. Nichts davon ist
 verschwunden, es steht nur nicht mehr dauerhaft offen.
@@ -124,10 +135,14 @@ eine Seite je Sprache, zum Auslegen am Eingang.
   hören weiter, sobald es weitergeht.
 - **Die drei Kacheln** sagen jede in einem Wort, wie es steht, und
   färben ihren linken Rand danach:
-  - **Ton** — *gut*, *knapp* oder *kein Ton*. Darunter der Pegelbalken
-    mit der Schwellenmarke und der Modus.
+  - **Ton** — *gut*, *knapp*, *still* (grau: es kommt gerade nichts,
+    das ist vor dem Gottesdienst normal) oder *kein Ton* (rot).
+    Darunter der Pegelbalken mit der Schwellenmarke und der Modus.
+    Das **Zahnrad** oben rechts in der Kachel führt direkt in die
+    Feineinstellung.
   - **Zuhörer** — die Gesamtzahl groß, darunter je Sprache Kürzel und
-    Zahl.
+    Zahl. Dahinter stehen, sobald jemand gedrückt hat, die
+    Rückmeldungen: 👍 verständlich, 👎 schwer verständlich.
   - **Thema** — *fehlt* (gelb, mit einem Weg zum Eintragen) oder
     *gesetzt* (grün, mit den erkannten Stellen).
 - **„Zuletzt erkannt"** zeigt den letzten Abschnitt und wie lange er

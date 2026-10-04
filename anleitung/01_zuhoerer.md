@@ -54,6 +54,15 @@ möchten, spenden Sie gern an die Freikirche. Auf der Seite finden Sie
 dafür unter „Danke“ einen Bank-QR-Code; der Betrag darin ist nur ein
 Vorschlag und lässt sich in der Banking-App ändern.
 
+## War es verständlich?
+
+Ganz unten stehen zwei Knöpfe: *verständlich* und *schwer
+verständlich*. Ein Tipp genügt, und er lässt sich ändern. Gezählt wird
+nur, wie oft jede Sprache beides bekommt — **nicht**, von welchem
+Handy und **nicht**, wann. Es ist die einzige Rückmeldung, die ohne
+Aufwand geht, und sie hilft zu sehen, welche Sprache noch Arbeit
+braucht.
+
 ## Etwas melden
 
 Auf der Seite gibt es unten den Knopf *Melden*. Ein Satz genügt — fehlt

@@ -9,9 +9,7 @@ Ordner. Diesen **öffnen** — darin liegen vier Dateien. Alle vier
 markieren und auf den Stick ziehen, **direkt oben auf den Stick**.
 
 **Nicht den Ordner ziehen, sondern seinen Inhalt.** Liegen die Dateien
-in einem Ordner, findet der Rechner sie nicht und tut gar nichts —
-genau daran ist es beim letzten Versuch gescheitert.
-
+in einem Ordner, findet der Rechner sie nicht und tut gar nichts.
 Andere Dateien dürfen bleiben — nur die von einem früheren Mal nicht.
 
 ## 2. Die eine Zeile
@@ -31,8 +29,8 @@ bereit.*
 
 ## 4. Am Pult
 
-Unten (am Laptop oben) auf **Einrichtung**, dort in der Liste auf
-**Update**, dann **Jetzt einspielen**. Es dauert bis zu drei
+Auf **Einrichtung**, in der Liste auf **Update**, dann **Jetzt
+einspielen**. Es dauert bis zu drei
 Minuten, der Bildschirm wird kurz leer. Fertig, wenn dasteht:
 **Fassung 0.3.2 ist eingespielt und läuft.** Dann den Stick abziehen.
 
@@ -45,9 +43,10 @@ wieder ein.
 **Nicht weiterprobieren.** Der Rechner hat sich selbst auf den alten
 Stand zurückgeholt und läuft. Am Sabbat ist alles wie vorher.
 
-Am Pult auf **Einrichtung**, dort auf **Fehlersuche**, dann auf
-**Fehler melden** (am Laptop steht der Knopf oben rechts). Zwei
-Quadratmuster erscheinen. Das linke mit der Handykamera aufnehmen, es
+Oben rechts am Pult steht ein farbiges Wort. Darauf tippen: dann steht
+da, was nicht stimmt. Hilft das nicht, auf **Einrichtung**, dann
+**Fehlersuche**, dann **Fehler melden**. Zwei Quadratmuster
+erscheinen. Das linke mit der Handykamera aufnehmen, es
 öffnet eine fertige E-Mail; das rechte lädt einen Bericht aufs Handy,
 der angehängt wird. Die E-Mail geht raus, sobald das Handy Empfang
 hat. Danach bitte anrufen.

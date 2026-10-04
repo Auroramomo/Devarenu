@@ -6243,8 +6243,11 @@ h2{font:600 .72rem var(--schild);text-transform:uppercase;
 .kkopf{display:flex;justify-content:space-between;align-items:baseline;
        gap:.5rem;font:600 .7rem var(--schild);text-transform:uppercase;
        letter-spacing:.09em;color:var(--grau)}
+/* Der Zustand haengt rechts, neben dem Zahnrad -- nicht in der Mitte
+   zwischen Wort und Zahnrad. space-between mit drei Kindern schiebt
+   ihn sonst dorthin. */
 .zustand{font-weight:600;font-size:.8rem;text-transform:none;letter-spacing:0;
-         text-align:end}
+         text-align:end;margin-inline-start:auto}
 .kachel.ok .zustand{color:var(--gruen)}
 .kachel.warn .zustand{color:var(--gelb)}
 .kachel.schlecht .zustand{color:var(--rot)}
@@ -6568,8 +6571,13 @@ niemanden — die Zuhörer bleiben verbunden.</p>
       <span class=zustand id=tonZustand>–</span>
       <!-- Der kurze Weg in die Feineinstellung. Kein Verweis aufs
            Einmessen -- das steht dort und nur dort. -->
-      <button class=kzahn onclick="reiterWaehlen('vorbereiten','feineinstellung')"
-              data-t=ton_feiner title="Feineinstellung"
+      <!-- KEIN data-t: uiZeichnen setzt jedes data-t neu und haette
+           das Zeichen durch das Wort "Feineinstellung" ersetzt. Den
+           Namen bekommt der Knopf als aria-label und title, beides
+           aus derselben Tabelle. -->
+      <button class=kzahn id=tonzahn
+              onclick="reiterWaehlen('vorbereiten','feineinstellung')"
+              title="Feineinstellung"
               aria-label="Feineinstellung">⚙</button></div>
     <div class=mini><span class=fuell id=fuell></span>
       <span class=marke id=marke style="inset-inline-start:0"></span></div>
@@ -7772,6 +7780,8 @@ function uiZeichnen(){
                        [rAufnahmen,"r_aufnahmen"],
                        [rEinrichtung,"r_einrichtung"]])
     k.setAttribute("aria-label", t[n]);
+  tonzahn.title = t.ton_feiner;
+  tonzahn.setAttribute("aria-label", t.ton_feiner);
   reiterBreitePruefen();
   sprachknopf.textContent=UI==="de"?"EN":"DE";
   unterseitenZeichnen();
