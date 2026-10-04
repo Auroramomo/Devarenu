@@ -137,6 +137,60 @@ def _befehl(weg):
             "--nores", "-", "-"]
 
 
+# Wie viel fertiger Strom vorgehalten wird, damit ein neuer Zuhoerer
+# sofort einen Puffer hat. Mehr als die groesste erlaubte
+# Zielvorgabe, mit etwas Luft.
+VORRAT_S = 15.0
+
+# ---------------------------------------------------- MP3-Rahmen
+#
+# WARUM DER STROM IN RAHMEN ZERLEGT WIRD
+#
+# Befund vom Galaxy Z Fold 7: der Ton blieb abgehackt, und das
+# Tonprotokoll zeigte durchgehend "abstand 0.0". Nachgemessen mit
+# curl: sechzig Sekunden Abruf ergeben 59,9 Sekunden Ton -- der
+# Server liefert also exakt Echtzeit. Firefox Android faengt ohne
+# Vorpuffer an, und bei Lieferung in Echtzeit kann danach nie einer
+# entstehen. Jedes Zoegern des WLAN wird damit zu einer Luecke, und
+# Aufholen ueber das Tempo baut nur Abstand AB, nie auf.
+#
+# Also wie Icecast: ein neuer Zuhoerer bekommt zuerst die letzten
+# Sekunden auf einen Schlag und danach Echtzeit. Dafuer muessen es
+# ganze Rahmen sein -- ein halber Rahmen am Anfang ist fuer jeden
+# Abspieler Mull, und mit -reservoir 0 ist jeder fuer sich
+# dekodierbar.
+_BITRATEN = {3: [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192,
+                 224, 256, 320, 0],
+             2: [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128,
+                 144, 160, 0]}
+_RATEN = {3: {0: 44100, 1: 48000, 2: 32000},
+          2: {0: 22050, 1: 24000, 2: 16000}}
+
+
+def rahmen_kopf(daten, pos):
+    """(Laenge, Sekunden) eines MP3-Rahmens an pos, oder None."""
+    if pos + 4 > len(daten):
+        return None
+    k = (daten[pos] << 24) | (daten[pos + 1] << 16) \
+        | (daten[pos + 2] << 8) | daten[pos + 3]
+    if (k >> 21) & 0x7FF != 0x7FF:
+        return None
+    fassung = (k >> 19) & 0x3
+    schicht = (k >> 17) & 0x3
+    bi = (k >> 12) & 0xF
+    ri = (k >> 10) & 0x3
+    polster = (k >> 9) & 0x1
+    if schicht != 1 or fassung not in _RATEN or ri > 2 or bi in (0, 15):
+        return None
+    rate = _RATEN[fassung][ri]
+    bitrate = _BITRATEN[fassung][bi]
+    werte = 1152 if fassung == 3 else 576
+    laenge = int(werte / 8 * bitrate * 1000 / rate) + polster
+    if laenge < 8:
+        return None
+    return laenge, werte / rate
+
+
 def umrechnen(werte, von, nach=RATE):
     """Abtastrate aendern, mit numpy. Mono, float32 in [-1, 1].
 
@@ -187,6 +241,11 @@ class Koder:
         self._prozess = None
         self._bytes = 0
         self._seit = time.monotonic()
+        # Die letzten Sekunden als ganze Rahmen, fuer den Vorrat
+        # beim Verbinden. (bytes, Sekunden) je Rahmen.
+        self._vorrat = []
+        self._vorrat_s = 0.0
+        self._rest = b""
 
     # ---- hineingeben -------------------------------------------
     def einreihen(self, werte):
@@ -229,8 +288,33 @@ class Koder:
             return aus
 
     # ---- zuhoeren ----------------------------------------------
-    def anmelden(self):
+    def vorrat(self, sekunden):
+        """Die letzten N Sekunden als ganze Rahmen, am Stueck.
+
+        Von hinten gesammelt: der Zuhoerer soll die juengsten
+        Sekunden bekommen, nicht die aeltesten."""
+        if sekunden <= 0:
+            return b""
+        with self._schloss:
+            teile, summe = [], 0.0
+            for roh, dauer in reversed(self._vorrat):
+                teile.append(roh)
+                summe += dauer
+                if summe >= sekunden:
+                    break
+            return b"".join(reversed(teile))
+
+    def anmelden(self, ziel=0.0):
         q = queue.Queue(maxsize=ZUHOERER_PUFFER)
+        # DER VORRAT ZUERST, und zwar als EIN Stueck: als hundert
+        # einzelne Rahmen liefe die Warteschlange ueber, bevor der
+        # Zuhoerer das erste abgeholt hat.
+        anfang = self.vorrat(ziel)
+        if anfang:
+            try:
+                q.put_nowait(anfang)
+            except queue.Full:
+                pass
         with self._schloss:
             self.zuhoerer.add(q)
             self._leer_seit = None
@@ -291,14 +375,56 @@ class Koder:
             pass
 
     def _lesen(self):
-        """Liest MP3-Rahmen und verteilt sie."""
+        """Liest den Koder, zerlegt in ganze Rahmen und verteilt.
+
+        Frueher gingen rohe 1024-Byte-Stuecke hinaus. Das genuegte,
+        solange jeder von Anfang an zuhoerte. Fuer den Vorrat beim
+        Verbinden muessen es ganze Rahmen sein: ein halber Rahmen am
+        Anfang ist fuer jeden Abspieler Mull.
+
+        Weitergegeben wird weiter in Stuecken von rund 1024 Byte --
+        nur eben an Rahmengrenzen. Ein Stueck je Rahmen waere das
+        Sechsfache an Warteschlangeneintraegen fuer dieselbe Menge
+        Ton."""
         aus = self._prozess.stdout
+        puffer = b""
+        paket, paket_bytes = [], 0
         while not self._aus.is_set():
-            brocken = aus.read(BROCKEN)
-            if not brocken:
+            roh = aus.read(BROCKEN)
+            if not roh:
                 break
-            self._bytes += len(brocken)
-            self._streuen(brocken)
+            self._bytes += len(roh)
+            puffer += roh
+            # Auf den naechsten Rahmenkopf aufsetzen.
+            pos = 0
+            while True:
+                kopf = rahmen_kopf(puffer, pos)
+                if kopf is None:
+                    # Kein Kopf hier: ein Byte weiter suchen, aber
+                    # nur solange noch etwas da ist.
+                    if pos + 4 <= len(puffer):
+                        pos += 1
+                        continue
+                    break
+                laenge, dauer = kopf
+                if pos + laenge > len(puffer):
+                    break
+                rahmen = puffer[pos:pos + laenge]
+                pos += laenge
+                with self._schloss:
+                    self._vorrat.append((rahmen, dauer))
+                    self._vorrat_s += dauer
+                    while self._vorrat_s > VORRAT_S and self._vorrat:
+                        _, d = self._vorrat.pop(0)
+                        self._vorrat_s -= d
+                paket.append(rahmen)
+                paket_bytes += laenge
+                if paket_bytes >= BROCKEN:
+                    self._streuen(b"".join(paket))
+                    paket, paket_bytes = [], 0
+            puffer = puffer[pos:]
+        if paket:
+            self._streuen(b"".join(paket))
         self._streuen(None)
 
     def anhalten(self):
@@ -329,6 +455,7 @@ class Koder:
             return {"sprache": self.sprache, "zuhoerer": len(self.zuhoerer),
                     "wartet_s": round(self._wartet_s, 2),
                     "bytes": self._bytes,
+                    "vorrat_s": round(self._vorrat_s, 2),
                     "laeuft_s": round(time.monotonic() - self._seit, 1)}
 
 
@@ -360,13 +487,19 @@ class Stroeme:
             for k in fertig:
                 k.anhalten()
 
-    def anmelden(self, sprache):
-        """Gibt (koder, warteschlange) oder (None, None)."""
+    def anmelden(self, sprache, ziel=0.0):
+        """Gibt (koder, warteschlange) oder (None, None).
+
+        ziel ist der Vorrat in Sekunden, den dieser eine Zuhoerer
+        beim Verbinden auf einen Schlag bekommt. Zwei Zuhoerer
+        derselben Sprache duerfen verschiedene Ziele haben -- der
+        Koder ist derselbe, nur ihr Anfang ist verschieden."""
         if not self._weg:
             return None, None
         with self._schloss:
             k = self.koder.get(sprache)
-            if k is None:
+            neu_angelegt = k is None
+            if neu_angelegt:
                 k = Koder(sprache, self._weg)
                 self.koder[sprache] = k
                 k.starten()
@@ -375,7 +508,7 @@ class Stroeme:
                 self._aufraeumer = threading.Thread(target=self._aufraeumen,
                                                     daemon=True)
                 self._aufraeumer.start()
-        return k, k.anmelden()
+        return k, k.anmelden(0.0 if neu_angelegt else ziel)
 
     def abmelden(self, sprache, q):
         with self._schloss:

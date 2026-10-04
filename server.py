@@ -4098,7 +4098,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                             headers={"Cache-Control": "no-store"})
 
     @app.get("/strom/{sprache}.mp3")
-    async def tonstrom_mp3(sprache: str):
+    async def tonstrom_mp3(sprache: str, ziel: float = 3.0):
         """Ein durchgehender MP3-Strom. Versuch C.
 
         Ohne Laengenangabe und ohne Zwischenspeicher: der Strom hat
@@ -4108,11 +4108,25 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         Jeder Zuhoerer steigt dort ein, wo der Koder gerade ist --
         nicht am Anfang. Das ist der Unterschied zu einer Datei und
         der Grund, warum zwei Handys dasselbe zur selben Zeit
-        hoeren."""
+        hoeren.
+
+        VORRAT BEIM VERBINDEN, wie bei Icecast. Gemessen auf einem
+        Galaxy Z Fold 7: Firefox Android faengt ohne Vorpuffer an,
+        und weil der Server exakt Echtzeit liefert (mit curl
+        nachgemessen: 60 s Abruf ergeben 59,9 s Ton), kann danach nie
+        einer entstehen. Jedes Zoegern des WLAN wird damit zu einer
+        Luecke. Darum bekommt ein neuer Zuhoerer zuerst die letzten
+        Sekunden auf einen Schlag -- ganze MP3-Rahmen -- und erst
+        danach Echtzeit.
+
+        Wie viele Sekunden, sagt der Client ueber ?ziel=. Er kennt
+        seinen eigenen Zielabstand; der Server glaubt ihm, klemmt
+        aber auf das, was der Vorrat ueberhaupt hergibt."""
         if sprache not in lauf.sprachen:
             return JSONResponse({"fehler": "unbekannte Sprache"},
                                 status_code=404)
-        koder, q = lauf.stroeme.anmelden(sprache)
+        ziel = max(0.0, min(float(ziel or 0.0), tonstrom.VORRAT_S))
+        koder, q = lauf.stroeme.anmelden(sprache, ziel)
         if koder is None:
             return JSONResponse({"fehler": "kein Koder",
                                  "grund": lauf.stroeme.hinweis},

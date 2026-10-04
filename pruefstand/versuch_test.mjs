@@ -125,8 +125,8 @@ titel("7) Versuch C: der durchgehende Strom");
   zustand.tonAn = true;
   Strom.starten("en");
   const q = String(Strom.spieler.src);
-  pruefe("eine Quelle, und zwar der Strom", true,
-         q.startsWith("/strom/en.mp3?t="));
+  pruefe("eine Quelle, und zwar der Strom mit Ziel", true,
+         q.startsWith("/strom/en.mp3?ziel="));
   // OHNE den Zufallsanhang nimmt der Browser beim Neustart seinen
   // Puffer und spielt Ton von vorhin.
   const q2 = Strom.url("en");
@@ -177,14 +177,9 @@ titel("9b) Aufgeholt wird ueber das Tempo, nicht mit einem Sprung");
   a.paused = false;
   const quelleVorher = String(a.src);
 
-  const takt = () => {
-    // Was _wachen() alle zwei Sekunden tut, einmal von Hand.
-    const d = Strom.abstand();
-    if (a.paused) return;
-    if (d > Strom.NOTFALL) return;          // Notfall eigens geprueft
-    if (d > Strom.ZIEL + 0.5) Strom._rate(Strom.TEMPO);
-    else if (d <= Strom.ZIEL) Strom._rate(1.0);
-  };
+  // Die echte Entscheidung aufrufen, nicht nachbauen.
+  const takt = () => { if (!a.paused && Strom.abstand() <= Strom.NOTFALL)
+                         Strom._takt(Strom.abstand()); };
 
   // Weit hinterher, aber unter der Notfallgrenze.
   a.buffered = { length: 1, end: () => 9.0 };
@@ -209,7 +204,64 @@ titel("9b) Aufgeholt wird ueber das Tempo, nicht mit einem Sprung");
   // NIE unter das Ziel beschleunigen.
   a.currentTime = 9.0 - 0.2;                 // viel zu weit vorn
   takt();
-  pruefe("naeher als das Ziel: kein Tempo", 1, a.playbackRate);
+  pruefe("naeher als das Ziel: gebremst, nicht beschleunigt",
+         Strom.BREMSE, a.playbackRate);
+}
+
+titel("9b2) Unter dem Ziel wird gebremst, damit der Puffer wieder waechst");
+{
+  // Der Befund: "abstand 0.0 s" durchgehend. Der Server liefert
+  // Echtzeit, Firefox Android faengt ohne Vorpuffer an -- ohne
+  // Bremse entsteht nie einer, und jedes Zoegern des WLAN wird zur
+  // Luecke.
+  const { Strom, zustand } = laden({ suche: "?versuch=strom" });
+  zustand.sprache = "en"; zustand.laeuft = true;
+  Strom.starten("en");
+  const a = Strom.spieler;
+  a.paused = false;
+  // Die echte Entscheidung aufrufen, nicht nachbauen.
+  const takt = () => { if (!a.paused && Strom.abstand() <= Strom.NOTFALL)
+                         Strom._takt(Strom.abstand()); };
+  a.buffered = { length: 1, end: () => 10.0 };
+  // Abstand 0 -- genau der Befund vom Handy.
+  a.currentTime = 10.0;
+  takt();
+  pruefe("bei Abstand 0 wird gebremst", Strom.BREMSE, a.playbackRate);
+  pruefe("und zwar mit 0,97", 0.97, Strom.BREMSE);
+  // Zurueck am Ziel: wieder 1,0.
+  a.currentTime = 10.0 - Strom.ZIEL;
+  takt();
+  pruefe("am Ziel wieder 1,0", 1, a.playbackRate);
+}
+
+titel("9b3) Die Grenzen skalieren mit dem Ziel");
+{
+  // Bei 0,5 s Ziel waere "eine Sekunde darunter" negativ -- die
+  // Bremse griffe nie.
+  const { Strom, zustand } = laden({ suche: "?versuch=strom&ziel=0.5" });
+  pruefe("Kommazahlen werden genommen", 0.5, Strom.ZIEL);
+  zustand.sprache = "en"; zustand.laeuft = true;
+  Strom.starten("en");
+  const a = Strom.spieler;
+  a.paused = false;
+  // Die echte Entscheidung aufrufen, nicht nachbauen.
+  const takt = () => { if (!a.paused && Strom.abstand() <= Strom.NOTFALL)
+                         Strom._takt(Strom.abstand()); };
+  a.buffered = { length: 1, end: () => 10.0 };
+  a.currentTime = 10.0 - 0.2;               // Abstand 0,2 < 0,25
+  takt();
+  pruefe("0,2 s bei Ziel 0,5: gebremst", Strom.BREMSE, a.playbackRate);
+  a.currentTime = 10.0 - 0.5;               // genau am Ziel
+  takt();
+  pruefe("0,5 s: Tempo 1,0", 1, a.playbackRate);
+  a.currentTime = 10.0 - 1.2;               // Abstand 1,2 > 0,5 + 0,5
+  takt();
+  pruefe("1,2 s: beschleunigt", Strom.TEMPO, a.playbackRate);
+
+  const klein = laden({ suche: "?versuch=strom&ziel=0.25" });
+  pruefe("0,25 ist der kleinste Wert", 0.25, klein.Strom.ZIEL);
+  const zuklein = laden({ suche: "?versuch=strom&ziel=0.1" });
+  pruefe("0,1 wird nicht genommen", 3, zuklein.Strom.ZIEL);
 }
 
 titel("9c) Der Sprung bleibt dem Notfall");
@@ -241,6 +293,8 @@ titel("9d) Das Ziel laesst sich fuer die Messung einstellen");
 {
   const { Strom } = laden({ suche: "?versuch=strom&ziel=2" });
   pruefe("Ziel 2 s aus der Adresse", 2, Strom.ZIEL);
+  const halb = laden({ suche: "?versuch=strom&ziel=0.75" });
+  pruefe("auch Kommazahlen", 0.75, halb.Strom.ZIEL);
   const b = laden({ suche: "?versuch=strom&ziel=99" });
   pruefe("Unsinn wird nicht genommen", 3, b.Strom.ZIEL);
   const c = laden({ suche: "?versuch=strom" });

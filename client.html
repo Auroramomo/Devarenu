@@ -1322,7 +1322,7 @@ const Versuch = {
     try{
       const z = parseFloat(
         new URLSearchParams(location.search).get("ziel"));
-      if(!isNaN(z) && z >= 0.5 && z <= 10){
+      if(!isNaN(z) && z >= 0.25 && z <= 10){
         Strom.ZIEL = z;
         this.merken("Ziel", z + " s (aus der Adresse)");
       }
@@ -1418,6 +1418,10 @@ const Strom = {
   // Sechs Prozent schneller. Das holt eine Sekunde in gut sechzehn
   // Sekunden auf. Mehr hoert man.
   TEMPO: 1.06,
+  // Drei Prozent langsamer, um den Puffer wieder aufzubauen. Nach
+  // unten vorsichtiger als nach oben: zu viel Puffer kostet
+  // Verzoegerung, zu wenig kostet eine Luecke mitten im Satz.
+  BREMSE: 0.97,
   // Darueber holt kein Tempo mehr auf -- dann hat die Seite lange
   // stillgestanden, und es bleibt nur der Sprung.
   NOTFALL: 15.0,
@@ -1433,8 +1437,14 @@ const Strom = {
     // Browser beim Neustart denselben Eintrag aus seinem Puffer und
     // spielt Ton von vorhin. Mit ihm ist es jedes Mal eine neue
     // Quelle und damit der Live-Punkt.
-    return "/strom/" + encodeURIComponent(sprache) + ".mp3?t="
-           + Date.now().toString(36)
+    // ziel= sagt dem Server, wie viele Sekunden Vorrat er beim
+    // Verbinden auf einen Schlag schicken soll. Ohne ihn faengt
+    // Firefox Android mit leerem Puffer an, und weil der Server
+    // Echtzeit liefert, entsteht danach nie einer -- jedes Zoegern
+    // des WLAN wird dann zur Luecke. Gemessen auf einem Galaxy Z
+    // Fold 7.
+    return "/strom/" + encodeURIComponent(sprache) + ".mp3?ziel="
+           + Strom.ZIEL + "&t=" + Date.now().toString(36)
            + Math.random().toString(36).slice(2, 7);
   },
 
@@ -1557,12 +1567,31 @@ const Strom = {
         return;
       }
 
-      // Sonst ueber das Tempo. Nie unter das Ziel: wer zu weit vorn
-      // ist, laeuft in den Leerlauf, und der kostet wieder fuenf
-      // Sekunden.
-      if(d > Strom.ZIEL + 0.5) this._rate(Strom.TEMPO);
-      else if(d <= Strom.ZIEL) this._rate(1.0);
+      this._takt(d);
     }, 2000);
+  },
+
+  /* Die eine Entscheidung, an einer Stelle.
+     Sie steht als eigene Methode da, damit der Pruefstand sie
+     AUFRUFEN kann statt sie nachzubauen. Eine nachgebaute Regel im
+     Pruefstand prueft irgendwann die Vergangenheit.
+
+     Schneller, wenn der Abstand zu gross wird. Langsamer, wenn er
+     zu klein wird -- das ist der Kern: faellt der Abstand auf null,
+     ist der Puffer leer, und der naechste Ruckler ist ein Leerlauf.
+     Drei Prozent langsamer bauen ihn wieder auf, und niemand hoert
+     es.
+
+     Die untere Grenze SKALIERT mit dem Ziel: bei 0,5 s Ziel waere
+     "eine Sekunde darunter" negativ, die Bremse griffe nie. Die
+     Haelfte des Ziels ist bei jedem Wert dasselbe Verhaeltnis. Nach
+     oben bleibt es bei einer halben Sekunde -- dort geht es um
+     Verzoegerung, nicht um Leerlauf, und die waechst nicht mit dem
+     Ziel. */
+  _takt(d){
+    if(d > Strom.ZIEL + 0.5) this._rate(Strom.TEMPO);
+    else if(d < Strom.ZIEL - Strom.ZIEL / 2) this._rate(Strom.BREMSE);
+    else this._rate(1.0);
   },
 
   _rate(r){

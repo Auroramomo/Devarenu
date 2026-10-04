@@ -169,29 +169,52 @@ pruefe("die Warteschlange ist danach leer",
 tmp.unlink(missing_ok=True)
 
 titel("3) Zwei Zuhoerer, dieselbe Zeitachse")
+# Erst den Rueckstand des ersten abholen. Sonst liest er noch
+# Stuecke von vorhin, waehrend der zweite schon beim Live-Punkt ist
+# -- und dann sind es verschiedene Stellen des Stroms, obwohl die
+# Zeitachse stimmt.
+while True:
+    try:
+        q.get_nowait()
+    except Exception:
+        break
 k2, q2 = s.anmelden("de")
 pruefe("derselbe Koder, kein zweiter", k2 is k)
 pruefe("zwei Zuhoerer", k.lage()["zuhoerer"] == 2, str(k.lage()["zuhoerer"]))
-a, b = bytearray(), bytearray()
+# Verglichen werden die STUECKE, nicht die Bytes: seit der Strom in
+# ganzen Rahmen weitergegeben wird, sind sie verschieden lang, und
+# ein Byte-Vergleich vom Ende her traefe mitten in ein Stueck.
+# Dieselben Stuecke heisst dieselbe Zeitachse.
+a, b = [], []
 ende = time.monotonic() + 2.0
 while time.monotonic() < ende:
-    try:
-        x = q.get(timeout=0.3)
-        if x: a += x
-    except Exception:
-        pass
-    try:
-        y = q2.get(timeout=0.3)
-        if y: b += y
-    except Exception:
-        pass
-# Der zweite ist spaeter dazugekommen, bekommt also weniger -- aber
-# was beide haben, muss am Ende dasselbe sein.
-kurz = min(len(a), len(b))
-pruefe("beide bekommen Daten", kurz > 2000, f"{len(a)} / {len(b)}")
-pruefe("und zwar dieselben Rahmen am Ende",
-       bytes(a[-kurz:]) == bytes(b[-kurz:]),
-       "die Zeitachsen laufen auseinander")
+    for ziel_liste, quelle in ((a, q), (b, q2)):
+        try:
+            x = quelle.get(timeout=0.2)
+        except Exception:
+            continue
+        if x:
+            ziel_liste.append(x)
+pruefe("beide bekommen Daten", len(a) > 2 and len(b) > 2,
+       f"{len(a)} / {len(b)} Stuecke")
+# DIE EIGENTLICHE ZUSAGE: jedes Stueck geht an beide, in derselben
+# Reihenfolge. Wie viele jeder davon in zwei Sekunden abgeholt hat,
+# haengt an der Taktung des Pruefstandes und sagt nichts -- ein
+# Vergleich der Laengen waere flatterig. Geprueft wird darum, dass
+# die Folge des einen in der des anderen steckt, Stueck fuer Stueck.
+def steckt_drin(kurz, lang):
+    if not kurz:
+        return False
+    for i in range(len(lang) - len(kurz) + 1):
+        if lang[i:i + len(kurz)] == kurz:
+            return True
+    return False
+
+kurz, lang = (a, b) if len(a) <= len(b) else (b, a)
+pruefe("dieselben Stuecke in derselben Reihenfolge",
+       steckt_drin(kurz, lang),
+       f"{len(a)} gegen {len(b)} Stuecke -- die Zeitachsen "
+       f"laufen auseinander")
 
 titel("4) Ein langsamer Zuhoerer bremst niemanden")
 k3, q3 = s.anmelden("de")      # dieser holt nie ab
@@ -226,8 +249,78 @@ pruefe("ein einzelner langer Abschnitt wird nicht zerschnitten",
        k5.lage()["wartet_s"] > tonstrom.RUECKSTAU_S,
        f"{k5.lage()['wartet_s']} s")
 
+titel("5b) Vorrat beim Verbinden -- der Grund, warum es vorher hakte")
+# Befund vom Galaxy Z Fold 7: Firefox Android faengt ohne Vorpuffer
+# an, und weil der Server exakt Echtzeit liefert, entsteht danach nie
+# einer. Jedes Zoegern des WLAN wird dann zur Luecke.
+k6, q6 = s.anmelden("fa")
+time.sleep(6)                       # Vorrat fuellen lassen
+pruefe(f"der Koder haelt Vorrat vor ({k6.lage()['vorrat_s']} s)",
+       k6.lage()["vorrat_s"] > 4.0, str(k6.lage()["vorrat_s"]))
+# Ein NEUER Zuhoerer derselben Sprache bekommt ihn sofort.
+k7, q7 = s.anmelden("fa", ziel=3.0)
+pruefe("derselbe Koder", k7 is k6)
+t0 = time.monotonic()
+anfang = b""
+while time.monotonic() - t0 < 0.5:
+    try:
+        b = q7.get(timeout=0.1)
+    except Exception:
+        break
+    if b is None: break
+    anfang += b
+n7, sek7, _, _ = rahmen_zaehlen(anfang)
+pruefe(f"in der ersten halben Sekunde {sek7:.1f} s Ton",
+       2.5 < sek7 < 4.5, f"{sek7:.2f} s")
+pruefe("und es sind ganze Rahmen", n7 > 50, str(n7))
+pruefe("der erste Byte ist ein Rahmenkopf",
+       tonstrom.rahmen_kopf(anfang, 0) is not None,
+       anfang[:4].hex())
+# Danach wieder Echtzeit.
+weiter = sammeln(q7, 3.0)
+n8, sek8, _, _ = rahmen_zaehlen(weiter)
+pruefe(f"danach Echtzeit ({sek8:.1f} s in 3 s)", 2.3 < sek8 < 3.8,
+       f"{sek8:.2f}")
+
+titel("5c) Zwei Zuhoerer mit verschiedenem Ziel stoeren sich nicht")
+k9, q9 = s.anmelden("fa", ziel=1.0)
+k10, q10 = s.anmelden("fa", ziel=6.0)
+pruefe("immer noch derselbe Koder", k9 is k6 and k10 is k6)
+def ersteres(q):
+    try:
+        return q.get(timeout=0.5)
+    except Exception:
+        return b""
+a1, a6 = ersteres(q9), ersteres(q10)
+s1 = rahmen_zaehlen(a1)[1]
+s6 = rahmen_zaehlen(a6)[1]
+pruefe(f"Ziel 1 bekommt rund 1 s ({s1:.1f})", 0.5 < s1 < 2.0, f"{s1:.2f}")
+pruefe(f"Ziel 6 bekommt rund 6 s ({s6:.1f})", 5.0 < s6 < 7.0, f"{s6:.2f}")
+pruefe("der eine bekommt mehr als der andere", s6 > s1 + 3)
+# Und der erste laeuft unbeirrt weiter.
+pruefe("der alte Zuhoerer bekommt weiter Ton",
+       len(sammeln(q6, 2.0)) > 5000)
+for x in (q6, q7, q9, q10):
+    s.abmelden("fa", x)
+
+titel("5d) Der allererste Zuhoerer bekommt keinen Vorrat")
+# Es gibt noch keinen -- der Koder faengt mit ihm an. Ein Vorrat aus
+# dem Nichts waere Stille, die der Zuhoerer als Verzoegerung mittraegt.
+k11, q11 = s.anmelden("sw", ziel=3.0)
+erst = b""
+t0 = time.monotonic()
+while time.monotonic() - t0 < 0.4:
+    try:
+        b = q11.get(timeout=0.1)
+    except Exception:
+        break
+    if b: erst += b
+pruefe("sofort kommt fast nichts", rahmen_zaehlen(erst)[1] < 1.0,
+       f"{rahmen_zaehlen(erst)[1]:.2f} s")
+s.abmelden("sw", q11)
+
 titel("6) Kein Koder ohne Zuhoerer")
-pruefe("drei Sprachen laufen", len(s.lage()) == 3, str(len(s.lage())))
+pruefe("fuenf Sprachen laufen", len(s.lage()) == 5, str(len(s.lage())))
 for x in (q, q2, q3):
     s.abmelden("de", x)
 s.abmelden("en", q4)

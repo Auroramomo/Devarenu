@@ -1763,6 +1763,35 @@ es. Gesprungen wird nur noch im Notfall — über **15 Sekunden**
 Abstand, etwa nach langem Einfrieren — und dann auf das Ziel, nicht
 auf null.
 
+### Vorrat beim Verbinden
+
+Der zweite Anlauf hakte weiter, und das Tonprotokoll sagte warum:
+`abstand 0.0 s` durchgehend. Mit `curl` nachgemessen — sechzig
+Sekunden Abruf ergaben 59,9 Sekunden Ton, der Server liefert also
+**exakt Echtzeit**. Firefox Android fängt ohne Vorpuffer an, und bei
+Lieferung in Echtzeit kann danach nie einer entstehen. Jedes Zögern
+des WLAN wird zur Lücke, und Aufholen über das Tempo baut nur Abstand
+**ab**, nie auf.
+
+Seit der zweiten Nachbesserung hält der Server die letzten fünfzehn
+Sekunden als ganze MP3-Rahmen vor. Ein neuer Zuhörer bekommt sofort
+die letzten *Ziel*-Sekunden auf einen Schlag und erst danach
+Echtzeit — wie bei Icecast. Das gilt auch für jedes Wiederverbinden.
+
+Nachprüfen lässt es sich am Rechner:
+
+```
+curl -s --max-time 60 -o /tmp/strom.mp3 "http://127.0.0.1:8000/strom/de.mp3?ziel=3"
+ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 /tmp/strom.mp3
+```
+
+Gemessen: **ohne Vorrat 59,977 s, mit `ziel=3` 63,164 s** — drei
+Sekunden Vorrat plus sechzig Sekunden Echtzeit.
+
+Dazu hält der Client den Puffer jetzt auch von unten: fällt der
+Abstand unter die Hälfte des Ziels, läuft er mit 0,97 etwas
+langsamer, bis er wieder am Ziel ist.
+
 ### Welcher Zielabstand ist der richtige?
 
 Der Ton soll nicht am Live-Punkt kleben: ein Puffer von null heißt
@@ -1776,11 +1805,15 @@ Ziel. Messbar ist es nur auf einem echten Gerät. Dafür lässt sich das
 Ziel in der Adresse setzen:
 
 ```
+http://<Adresse>:8000/?versuch=strom&ziel=0.5
 http://<Adresse>:8000/?versuch=strom&ziel=1
 http://<Adresse>:8000/?versuch=strom&ziel=2
 http://<Adresse>:8000/?versuch=strom&ziel=3
-http://<Adresse>:8000/?versuch=strom&ziel=4
 ```
+
+Kommazahlen gehen, der kleinste Wert ist `0.25`. Je kleiner das
+Ziel, desto kleiner auch der Vorrat beim Verbinden — beides hängt an
+derselben Zahl.
 
 Je Wert **zehn Minuten** zuhören, Bildschirm gesperrt. Danach im
 Tonprotokoll zählen:

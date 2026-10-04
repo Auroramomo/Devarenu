@@ -83,5 +83,28 @@
       "wie_weiter": "Am echten Geraet, ueber ?versuch=strom&ziel=N. Anleitung in AUFSTELLEN.md."
     },
     "chromium": "nicht vorhanden, nicht gemessen"
+  },
+  "nachbesserung_2_0_4_4": {
+    "wann": "2026-10-04",
+    "befund_handy": {
+      "geraet": "Galaxy Z Fold 7, Firefox Android, Ziel 3 s",
+      "protokoll": "abstand 0.0 s durchgehend, alle 2 s, dazwischen playing",
+      "server_geprueft": "curl 60 s ergibt 59.904 s Ton -- exakt Echtzeit",
+      "ursache": "Firefox Android startet ohne Vorpuffer. Bei Lieferung in Echtzeit kann danach nie einer entstehen; jedes Zoegern des WLAN wird zur Luecke. Tempo-Aufholen baut nur Abstand AB, nie auf."
+    },
+    "aenderung": {
+      "burst_on_connect": "Der Koder haelt 15 s als ganze MP3-Rahmen vor. Ein neuer Zuhoerer bekommt sofort die letzten Ziel-Sekunden, danach Echtzeit. Gilt auch beim Wiederverbinden.",
+      "bremse": "unter Ziel minus Ziel/2: Rate 0.97 (preservesPitch)",
+      "tempo": "ueber Ziel plus 0.5 s: Rate 1.06",
+      "ziel_bereich": "0.25 bis 10 s, Kommazahlen, ueber ?ziel=",
+      "ziel_vorgabe": 3.0
+    },
+    "curl_messung": {
+      "wie": "curl --max-time 60, dann ffprobe -show_entries format=duration",
+      "ohne_vorrat_s": 59.977,
+      "mit_ziel_3_s": 63.164,
+      "erwartet": "Ziel plus 60 s",
+      "urteil": "stimmt"
+    }
   }
 }
