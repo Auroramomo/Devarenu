@@ -278,14 +278,22 @@ steht in [LIZENZEN.md](LIZENZEN.md), dazu Whisper, Gemma, Ollama und
 |---|---|
 | **Gemma** (`gemma4:12b`) | keine freie Lizenz, sondern Nutzungsbedingungen mit *Prohibited Use Policy*. Devarenu liefert das Modell **nicht mit** — `einrichten.sh` holt es über Ollama, jede Gemeinde nimmt die Bedingungen selbst entgegen. |
 | `sr_RS-serbski_institut`, `tr_TR-dfki` | CC BY-NC-SA — **nicht eingeschaltet** |
-| `ar_JO-kareem`, `it_IT-paola`, `ka_GE-natia`, `sw_CD-lanfrica` | „See URL" / „See LICENSE file" — **nicht eingeschaltet** |
+| `it_IT-paola`, `sw_CD-lanfrica` | mit 0.4.3 nachgelesen: CC0 1.0 bzw. „non-profit, educational" — **nicht eingeschaltet** |
+| ~~`ar_JO-kareem`~~, ~~`ka_GE-natia`~~ | keine Lizenz bzw. Organisationen untersagt — mit **0.4.5 ganz herausgenommen**, siehe LIZENZEN.md |
 | Whisper `large-v3-turbo`, `faster-whisper`, `CTranslate2`, Ollama | MIT |
 | `piper-tts` | GPL-3.0-or-later — der Grund, warum Devarenu selbst GPLv3 ist |
 
-**Was fehlt:** Eine Entscheidung, was mit den sechs markierten, nicht
+**Was fehlt:** Eine Entscheidung, was mit den noch markierten, nicht
 eingeschalteten Stimmen geschieht. Drei Wege: nachsehen und
 begründen, austauschen, oder **nicht mitliefern** und erst auf
 Anforderung holen — `einrichten.sh` lädt sie ohnehin einzeln.
+
+Für zwei ist sie mit 0.4.5 gefallen, und zwar auf den dritten Weg:
+`ka_GE-natia` (Organisationen ausdrücklich untersagt) und
+`ar_JO-kareem` (gar keine Lizenz) werden nicht mehr mitgeliefert.
+„Nicht eingeschaltet" genügte nicht — sie lagen trotzdem auf jedem
+Stick, und ein Stick wird weitergereicht. Bleiben Italienisch (CC0,
+geklärt), Suaheli, Serbisch und Türkisch.
 
 Dazu ein Satz zu Gemma in der Übergabe an eine Gemeinde: sie nimmt
 die Bedingungen entgegen, nicht das Projekt.

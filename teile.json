@@ -2,7 +2,6 @@
   "fassung": "0.4.1",
   "hinweis": "Erzeugt von teile.py --erfassen. Nur Metadaten -- die Dateien selbst liegen nicht im Repo.",
   "stimmen": [
-    "ar",
     "cs",
     "de",
     "el",
@@ -12,7 +11,6 @@
     "fr",
     "hu",
     "it",
-    "ka",
     "nl",
     "pl",
     "pt",
@@ -26,20 +24,8 @@
   ],
   "whisper": "large-v3-turbo",
   "sprachmodell": "gemma4:12b",
-  "bytes": 10546015187,
+  "bytes": 10419602733,
   "teile": [
-    {
-      "art": "stimmen",
-      "pfad": "ar_JO-kareem-medium.onnx",
-      "bytes": 63201294,
-      "sha256": "9e95cab07b679da603bba17c4dec7ab3111320571964ee95c0379603c086491e"
-    },
-    {
-      "art": "stimmen",
-      "pfad": "ar_JO-kareem-medium.onnx.json",
-      "bytes": 5024,
-      "sha256": "ea6d9b9d9076dbdb6bf5c98c6a141ef154959d2359709b37855727964e7d6c4d"
-    },
     {
       "art": "stimmen",
       "pfad": "cs_CZ-jirka-medium.onnx",
@@ -147,18 +133,6 @@
       "pfad": "it_IT-paola-medium.onnx.json",
       "bytes": 7099,
       "sha256": "aea19c0a7fce29fbc359b93f10e7902854401e4c95ae2ea328ae516b15d296cf"
-    },
-    {
-      "art": "stimmen",
-      "pfad": "ka_GE-natia-medium.onnx",
-      "bytes": 63201294,
-      "sha256": "04bdacf188fa24499885f9109b395fe8561a05ec2cd90d55453ec5beed7af460"
-    },
-    {
-      "art": "stimmen",
-      "pfad": "ka_GE-natia-medium.onnx.json",
-      "bytes": 4842,
-      "sha256": "906436d0f8de79fcd65576470b10c7ea937c750f9b6b6dafc72a27cebd4a88f6"
     },
     {
       "art": "stimmen",

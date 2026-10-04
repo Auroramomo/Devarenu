@@ -155,7 +155,7 @@ legt sie offen.
 
 | Sprache | Stimme | Lizenz des Datensatzes | Anmerkung |
 |---|---|---|---|
-| Arabisch | `ar_JO-kareem-medium` | keine genannt (0.4.3 nachgesehen) | **keine Lizenz** |
+| Arabisch | ~~`ar_JO-kareem-medium`~~ | keine genannt (0.4.3 nachgesehen) | **keine Lizenz — seit 0.4.5 nicht mehr ausgeliefert** |
 | Tschechisch | `cs_CZ-jirka-medium` | CC0 | |
 | Deutsch | `de_DE-thorsten-medium` | CC0 | |
 | Griechisch | `el_GR-rapunzelina-medium` | CC0 | |
@@ -165,7 +165,7 @@ legt sie offen.
 | Französisch | `fr_FR-siwis-medium` | CC-BY 4.0 | |
 | Ungarisch | `hu_HU-anna-medium` | CC0 | |
 | Italienisch | `it_IT-paola-medium` | CC0 1.0 (0.4.3 nachgesehen) | geklärt |
-| Georgisch | `ka_GE-natia-medium` | nur Privatpersonen (0.4.3 nachgesehen) | **Organisationen untersagt** |
+| Georgisch | ~~`ka_GE-natia-medium`~~ | nur Privatpersonen (0.4.3 nachgesehen) | **Organisationen untersagt — seit 0.4.5 nicht mehr ausgeliefert** |
 | Niederländisch | `nl_NL-mls-medium` | CC-BY 4.0 | |
 | Polnisch | `pl_PL-darkman-medium` | CC0 | |
 | Portugiesisch | `pt_BR-jeff-medium` | CC0 | |
@@ -194,12 +194,46 @@ und das RHVoice-Repository `irina-rus` führt keine Lizenzdatei (die
 RHVoice-*Software* ist GPL-2.0, die Stimmdaten sind davon getrennt).
 Ohne Lizenz gibt es keine ausdrückliche Erlaubnis.
 
-Die übrigen markierten Stimmen (Arabisch, Italienisch, Georgisch,
-Suaheli, Serbisch, Türkisch) sind **nicht eingeschaltet** — sie liegen
-im Repo und laufen nur, wenn eine Gemeinde sie am Pult wählt. Die zwei
-mit `NC` schließen eine kommerzielle Nutzung aus; eine Gemeinde handelt
-nicht kommerziell, aber Devarenu wird weitergegeben, und das ist der
-Punkt, an dem „nichtkommerziell" unbestimmt wird.
+Die übrigen markierten Stimmen (Italienisch, Suaheli, Serbisch,
+Türkisch) sind **nicht eingeschaltet** — sie laufen nur, wenn eine
+Gemeinde sie am Pult wählt. Die zwei mit `NC` schließen eine
+kommerzielle Nutzung aus; eine Gemeinde handelt nicht kommerziell, aber
+Devarenu wird weitergegeben, und das ist der Punkt, an dem
+„nichtkommerziell" unbestimmt wird.
+
+### Zwei Stimmen sind mit 0.4.5 herausgenommen — 04.10.2026
+
+**`ka_GE-natia-medium` (Georgisch)** und **`ar_JO-kareem-medium`
+(Arabisch)** stehen seit dieser Fassung nicht mehr in
+`config.STIMMEN`, nicht mehr in `teile.json`, nicht mehr auf dem Stick
+und nicht mehr im Vorrat.
+
+**Warum.** „Nicht eingeschaltet" war die falsche Antwort. Beide lagen
+trotzdem auf jedem Stick und in jedem Vorrat, und ein Stick wird von
+Gemeinde zu Gemeinde weitergereicht — das ist Weitergabe, unabhängig
+davon, ob jemand die Sprache am Pult wählt.
+
+* Georgisch ist **ausdrücklich** nur für Privatpersonen freigegeben,
+  Organisationen sind untersagt. Eine Gemeinde ist eine Organisation.
+  Das ist kein Graubereich, sondern ein geschriebenes Verbot.
+* Arabisch nennt **gar keine** Lizenz. Ohne Lizenz gibt es keine
+  Erlaubnis zur Weitergabe.
+
+**Was sich dadurch ändert.** Georgisch und Arabisch laufen als reiner
+Untertitel weiter — Text ja, Ton nein, genau wie jede andere Sprache
+ohne Stimme. Am Pult bleiben sie wählbar.
+
+**Was sich NICHT ändert.** Dateien, die schon auf einem Rechner liegen,
+werden von keinem Update gelöscht. Devarenu löscht grundsätzlich keine
+Stimmen; was dort liegt, gehört dem Rechner. Ein Update bringt sie nur
+nicht mehr mit.
+
+**Rostock** ist nicht betroffen: dort laufen `en`, `ru` und `fa`.
+
+Die gemessenen Längenfaktoren beider Stimmen bleiben in
+`config.TEMPO_STIMME` und `messungen/laengenfaktor_stimmen.json`
+stehen. Sie sind Messwerte und kein Vertriebsweg; nachgeschlagen werden
+sie nicht mehr.
 
 ### Die vier „See URL" — mit 0.4.3 nachgelesen
 

@@ -351,7 +351,12 @@ STIMMEN = {
     "pt": "pt/pt_BR/jeff/medium/pt_BR-jeff-medium",
     "it": "it/it_IT/paola/medium/it_IT-paola-medium",
     "tr": "tr/tr_TR/dfki/medium/tr_TR-dfki-medium",
-    "ar": "ar/ar_JO/kareem/medium/ar_JO-kareem-medium",
+    # Seit 0.4.5 leer: ar_JO-kareem-medium hat KEINE Lizenzangabe. Ohne
+    # Lizenz gibt es keine Erlaubnis, sie weiterzugeben -- und eine
+    # Gemeinde, die einen Stick weiterreicht, tut genau das.
+    # Einzelheiten in LIZENZEN.md. Arabisch laeuft damit als reiner
+    # Untertitel, wie jede Sprache ohne Stimme.
+    "ar": "",
     "sw": "sw/sw_CD/lanfrica/medium/sw_CD-lanfrica-medium",
     "nl": "nl/nl_NL/mls/medium/nl_NL-mls-medium",
     "vi": "vi/vi_VN/vais1000/medium/vi_VN-vais1000-medium",
@@ -359,7 +364,11 @@ STIMMEN = {
     "cs": "cs/cs_CZ/jirka/medium/cs_CZ-jirka-medium",
     "sr": "sr/sr_RS/serbski_institut/medium/sr_RS-serbski_institut-medium",
     "el": "el/el_GR/rapunzelina/medium/el_GR-rapunzelina-medium",
-    "ka": "ka/ka_GE/natia/medium/ka_GE-natia-medium",
+    # Seit 0.4.5 leer: ka_GE-natia-medium ist ausdruecklich nur fuer
+    # Privatpersonen freigegeben, Organisationen sind untersagt. Eine
+    # Gemeinde ist eine Organisation. Einzelheiten in LIZENZEN.md.
+    # Georgisch laeuft damit als reiner Untertitel.
+    "ka": "",
 }
 
 # NLLB-Modelle. Auskommentieren, was nicht getestet werden soll.
@@ -454,6 +463,9 @@ LIVE_MODELL = "gemma4:12b"
 # deutsche Piper-Ausgabe desselben Satzes, NICHT die Sprechdauer des
 # Predigers -- die beiden Reihen duerfen nicht gemischt werden.
 TEMPO_STIMME = {
+    # Gemessen, bevor die Stimme wegen fehlender Lizenz aus STIMMEN
+    # genommen wurde (0.4.5). Die Zahl bleibt als Messwert stehen; sie
+    # wird nicht mehr nachgeschlagen.
     "ar_JO-kareem-medium": 1.53,  # Arabisch
     "cs_CZ-jirka-medium": 1.46,  # Tschechisch
     "de_DE-thorsten-medium": 1.00,  # Deutsch
@@ -492,6 +504,7 @@ TEMPO_STIMME = {
     # "nachgemessen".
     "hu_HU-anna-medium": 1.09,  # Ungarisch
     "it_IT-paola-medium": 1.05,  # Italienisch
+    # Wie oben: gemessen, seit 0.4.5 nicht mehr ausgeliefert.
     "ka_GE-natia-medium": 1.29,  # Georgisch
     "nl_NL-mls-medium": 1.63,  # Niederländisch
     # KORRIGIERT nach der Rueckmeldung des Pruefers, nicht gemessen.
