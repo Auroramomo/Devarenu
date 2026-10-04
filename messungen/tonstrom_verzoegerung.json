@@ -5,8 +5,11 @@
   "rate": 22050,
   "serverseite": {
     "wie": "einreihen() bis die Rahmen des Abschnitts heraus sind",
-    "zuschlag_ms": {"abschnitt_2s": 25, "abschnitt_4s": 61,
-                    "abschnitt_8s": -38},
+    "zuschlag_ms": {
+      "abschnitt_2s": 25,
+      "abschnitt_4s": 61,
+      "abschnitt_8s": -38
+    },
     "urteil": "im Rauschen -- der Koder kostet nichts"
   },
   "cpu": {
@@ -18,13 +21,67 @@
     "firefox": {
       "fassung": "157.0",
       "startverzoegerung_s": 5.6,
-      "abstand_ohne_aufholen": {"mittel": 4.93, "median": 5.13,
-                                "spitze": 5.66},
-      "abstand_mit_aufholen": {"mittel": 0.24, "median": 0.00,
-                               "spitze": 5.46},
+      "abstand_ohne_aufholen": {
+        "mittel": 4.93,
+        "median": 5.13,
+        "spitze": 5.66
+      },
+      "abstand_mit_aufholen": {
+        "mittel": 0.24,
+        "median": 0.0,
+        "spitze": 5.46
+      },
       "springen_im_livestrom": "geht",
       "anmerkung": "Die Spitze von 5,46 s ist die erste Probe vor dem ersten Sprung."
     },
     "chromium": "nicht vorhanden auf diesem Rechner, nicht gemessen"
+  },
+  "nachbesserung_0_4_4": {
+    "wann": "2026-10-04",
+    "befund_handy": {
+      "geraet": "Galaxy Z Fold 7, Firefox Android",
+      "gesperrt": "Ton laeuft weiter, Mediensteuerung wirkt",
+      "aber": "Ton setzt an und bricht ab",
+      "kreislauf": [
+        "aufgeholt 4.3 s",
+        "abstand 0.0",
+        "nach 2 bis 6 s waiting",
+        "abstand 4.3 bis 5.3",
+        "wieder aufgeholt"
+      ],
+      "ursache": "Der Sprung leert den Puffer. Firefox puffert nach jedem Leerlauf rund 5 s neu, der naechste Sprung wirft genau diese 5 s weg."
+    },
+    "aenderung": {
+      "aufholen": "ueber playbackRate 1.06 mit preservesPitch",
+      "ziel_s": 3.0,
+      "notfallsprung_ab_s": 15.0,
+      "sprungziel": "das Ziel, nicht der Live-Punkt"
+    },
+    "ziel_messung": {
+      "versucht": "headless Firefox 157 auf diesem Rechner, 1/2/3/4 s",
+      "ergebnis": "nicht verwertbar",
+      "grund": "Ohne Tonausgabe laeuft die Medienuhr mit 0,867 der Echtzeit. Der Abstand schliesst sich damit nie, unabhaengig vom Ziel -- alle vier Werte ergaben 4,5 bis 4,6 s mittleren Abstand und genau ein waiting (den Start).",
+      "rohwerte_nicht_verwertbar": {
+        "1s": {
+          "waiting": 1,
+          "abstand_mittel": 4.62
+        },
+        "2s": {
+          "waiting": 1,
+          "abstand_mittel": 4.63
+        },
+        "3s": {
+          "waiting": 1,
+          "abstand_mittel": 4.62
+        },
+        "4s": {
+          "waiting": 1,
+          "abstand_mittel": 4.52
+        },
+        "uhrverhaeltnis": 0.867
+      },
+      "wie_weiter": "Am echten Geraet, ueber ?versuch=strom&ziel=N. Anleitung in AUFSTELLEN.md."
+    },
+    "chromium": "nicht vorhanden, nicht gemessen"
   }
 }

@@ -61,6 +61,15 @@
 }
 
 *{box-sizing:border-box}
+/* DAS ATTRIBUT hidden MUSS GEWINNEN.
+   Der Browser setzt dafuer [hidden]{display:none} in seinem eigenen
+   Stilblatt -- und jede Regel dieser Datei mit einer Klasse schlaegt
+   ihn. .aufnahmehinweis{display:flex} tat das: der rote Balken mit
+   dem roten Punkt stand auf jedem Handy, dauerhaft und ohne Text,
+   weil der Text erst beim Einschalten gesetzt wird. Gesehen auf
+   einem Galaxy Z Fold 7, und zwar mit UND ohne Versuch.
+   Dieselbe Regel steht aus demselben Grund im Pult. */
+[hidden]{display:none !important}
 html,body{height:100%}
 body{
   margin:0;
@@ -1307,6 +1316,17 @@ const Versuch = {
       this.strom  = wunsch === "strom";
     }
     if(!this.stille && !this.strom) return;
+    // Fuer die Messung am echten Geraet: ?versuch=strom&ziel=2
+    // setzt den Zielabstand. Ohne Angabe bleibt es bei drei
+    // Sekunden. Nur ein Messschalter, kein Bedienelement.
+    try{
+      const z = parseFloat(
+        new URLSearchParams(location.search).get("ziel"));
+      if(!isNaN(z) && z >= 0.5 && z <= 10){
+        Strom.ZIEL = z;
+        this.merken("Ziel", z + " s (aus der Adresse)");
+      }
+    }catch(e){}
     const kasten = $("versuchkasten");
     if(kasten) kasten.hidden = false;
     document.addEventListener("visibilitychange", () => {
@@ -1369,6 +1389,39 @@ const Versuch = {
    passiert, passiert nur mit ?versuch=strom.
    ============================================================ */
 const Strom = {
+  /* Wie weit hinter dem Live-Punkt der Ton laufen SOLL.
+     Nicht null: ein Puffer von null heisst Leerlauf beim ersten
+     Ruckler, und ein Leerlauf kostet in Firefox rund fuenf
+     Sekunden -- gemessen auf dem Galaxy Z Fold 7, wo genau dieser
+     Kreislauf den Ton zerhackte.
+
+     DREI SEKUNDEN, und zwar aus dem Feldbefund, nicht aus einer
+     Messung am Schreibtisch. Im Protokoll des Handys folgte auf
+     jeden Abstand von 0,0 nach zwei bis sechs Sekunden ein
+     "waiting" -- das ist die Luecke zwischen zwei Abschnitten, in
+     der nur Stille laeuft und nichts nachkommt, plus der Zappelei
+     des WLAN. Drei Sekunden decken diese Luecke.
+
+     Die Rechnung ist unsymmetrisch: ein Ziel zwei Sekunden zu hoch
+     kostet zwei Sekunden Verzoegerung, die niemand bemerkt. Ein
+     Ziel eine Sekunde zu niedrig kostet einen Leerlauf, und der
+     kostet fuenf Sekunden Stille mitten im Satz. Im Zweifel also
+     hoeher.
+
+     Am Schreibtisch liess sich das NICHT entscheiden: headless
+     Firefox ohne Tonausgabe laesst seine Medienuhr nur mit 87
+     Prozent der Echtzeit laufen, und damit schliesst sich der
+     Abstand nie, egal bei welchem Ziel. Messbar ist es nur auf
+     einem echten Geraet -- dafuer gibt es &ziel= (siehe unten) und
+     den Abschnitt in AUFSTELLEN.md. */
+  ZIEL: 3.0,
+  // Sechs Prozent schneller. Das holt eine Sekunde in gut sechzehn
+  // Sekunden auf. Mehr hoert man.
+  TEMPO: 1.06,
+  // Darueber holt kein Tempo mehr auf -- dann hat die Seite lange
+  // stillgestanden, und es bleibt nur der Sprung.
+  NOTFALL: 15.0,
+
   spieler: null,
   sprache: null,
   versuche: 0,
@@ -1413,6 +1466,7 @@ const Strom = {
     const a = this.spieler;
     if(!a || !this.sprache) return;
     a.src = this.url(this.sprache);
+    a.playbackRate = 1.0;
     a.load();
     Versuch.merken("quelle", this.sprache);
     a.play().then(() => {
@@ -1450,39 +1504,75 @@ const Strom = {
                        - a.currentTime);
   },
 
+  /* AUFHOLEN OHNE SPRUNG.
+     0.4.4 sprang an den Live-Punkt. Auf einem Galaxy Z Fold 7 mit
+     Firefox ergab das einen Kreislauf, und das Tonprotokoll zeigte
+     ihn Zeile fuer Zeile:
+
+         aufgeholt 4.3 s -> abstand 0.0 -> nach 2 bis 6 s waiting
+         -> abstand 4.3 bis 5.3 -> wieder aufgeholt
+
+     Der Sprung leert den Puffer. Firefox puffert nach jedem
+     Leerlauf wieder rund fuenf Sekunden, und der naechste Sprung
+     wirft genau diese fuenf Sekunden weg. Der Ton setzte an und
+     brach ab.
+
+     Jetzt wird nicht gesprungen, sondern schneller gespielt: sechs
+     Prozent, mit erhaltener Tonhoehe. Das holt eine Sekunde in gut
+     sechzehn Sekunden auf, ohne den Puffer anzufassen -- und
+     niemand hoert es.
+
+     Ein Sprung bleibt als NOTFALL fuer den Fall, dass die Seite
+     lange eingefroren war: ueber fuenfzehn Sekunden Abstand holt
+     kein Tempo mehr auf. Er geht dann auf das ZIEL, nicht auf null
+     -- sonst beginnt der Kreislauf von vorn. */
   _wachen(){
     if(this.wachUhr) return;
     this.wachUhr = setInterval(() => {
       if(!zustand.laeuft || !this.spieler) return;
+      const a = this.spieler;
       const d = this.abstand();
       Versuch.merken("abstand", d.toFixed(1) + " s"
-        + (this.spieler.paused ? "  (pausiert)" : ""));
-      // Mehr als vier Sekunden hinterher: aufholen. Erst im
-      // Puffer -- das ist der billige Weg und kostet keinen neuen
-      // Abruf. Geht das nicht (manche Browser lassen in einem
-      // Strom ohne Laengenangabe nicht springen), dann eben neu.
-      if(d > 4 && !this.spieler.paused){
-        const ziel = this.spieler.buffered.end(
-          this.spieler.buffered.length - 1) - 0.3;
-        const vorher = this.spieler.currentTime;
-        try{ this.spieler.currentTime = ziel; }catch(e){}
+        + (a.paused ? "  (pausiert)" : "")
+        + (a.playbackRate !== 1 ? "  x" + a.playbackRate : ""));
+      if(a.paused) return;
+
+      // Notfall: so weit hinterher, dass Tempo es nicht mehr holt.
+      if(d > Strom.NOTFALL){
+        const ziel = a.buffered.end(a.buffered.length - 1) - Strom.ZIEL;
+        const vorher = a.currentTime;
+        try{ a.currentTime = Math.max(0, ziel); }catch(e){}
+        this._rate(1.0);
         setTimeout(() => {
           if(!this.spieler) return;
           if(Math.abs(this.spieler.currentTime - vorher) < 0.2){
-            Versuch.merken("Sprung ging nicht, neue Quelle", "");
+            Versuch.merken("Notsprung ging nicht, neue Quelle", "");
             this.versuche = 0;
             this._anwerfen();
           }else{
-            Versuch.merken("aufgeholt", d.toFixed(1) + " s");
+            Versuch.merken("Notsprung", d.toFixed(1) + " s -> "
+                           + Strom.ZIEL + " s");
           }
         }, 400);
+        return;
       }
-    // Alle zwei Sekunden, nicht alle fuenf. Gemessen mit Firefox:
-    // der Browser puffert beim Start rund fuenfeinhalb Sekunden und
-    // bleibt danach genau so weit hinter dem Live-Punkt zurueck. Der
-    // erste Aufholsprung holt das weg -- je frueher er kommt, desto
-    // kuerzer hoert jemand Ton von vorhin.
+
+      // Sonst ueber das Tempo. Nie unter das Ziel: wer zu weit vorn
+      // ist, laeuft in den Leerlauf, und der kostet wieder fuenf
+      // Sekunden.
+      if(d > Strom.ZIEL + 0.5) this._rate(Strom.TEMPO);
+      else if(d <= Strom.ZIEL) this._rate(1.0);
     }, 2000);
+  },
+
+  _rate(r){
+    const a = this.spieler;
+    if(!a || a.playbackRate === r) return;
+    // Ohne das klingt schnelleres Abspielen nach Micky Maus.
+    try{ a.preservesPitch = true; a.mozPreservesPitch = true;
+         a.webkitPreservesPitch = true; }catch(e){}
+    a.playbackRate = r;
+    Versuch.merken("Tempo " + r, this.abstand().toFixed(1) + " s");
   },
 
   _lage(){
@@ -1753,8 +1843,13 @@ function zustandZeigen(art){
 function aufnahmeHinweis(an){
   const p = $("aufnahmehinweis");
   if(!p) return;
-  p.hidden = !an;
-  if(an) $("aufnahmetext").textContent = t().aufnahme;
+  // Zuerst den Text, dann die Sichtbarkeit -- und sichtbar nur,
+  // wenn auch etwas dasteht. Ein Hinweis ohne Text ist kein
+  // Hinweis, sondern ein roter Balken, bei dem sich jeder fragt,
+  // was er bedeutet.
+  const text = (an && t().aufnahme) ? t().aufnahme : "";
+  $("aufnahmetext").textContent = text;
+  p.hidden = !text;
 }
 
 function fahneZeigen(text){

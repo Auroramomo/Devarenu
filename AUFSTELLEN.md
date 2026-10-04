@@ -1735,10 +1735,65 @@ Je Durchgang:
    **Abstand zum Live-Punkt** ablesen — er steht alle zwei Sekunden
    darin. Fotografieren.
 
-Was im Protokoll stehen sollte: `abstand` unter einer Sekunde,
-gelegentlich `aufgeholt`, und **kein einziges `ended`**. Steht dort
-`ended`, ist der Strom abgerissen — dann sagt die Zeile daneben, ob
-er von selbst wiederkam.
+Was im Protokoll stehen sollte: ein gleichbleibender `abstand` um
+die drei Sekunden, gelegentlich ein `Tempo 1.06` gefolgt von
+`Tempo 1`, und **kein einziges `ended`**. Steht dort `ended`, ist der
+Strom abgerissen — dann sagt die Zeile daneben, ob er von selbst
+wiederkam.
+
+### Aufgeholt wird über das Tempo, nicht mit einem Sprung
+
+Der erste Anlauf sprang an den Live-Punkt. Auf dem Galaxy Z Fold 7
+ergab das einen Kreislauf, den das Tonprotokoll Zeile für Zeile
+zeigte:
+
+```
+aufgeholt 4.3 s  ->  abstand 0.0  ->  (2 bis 6 s)  waiting
+                 ->  abstand 4.3 bis 5.3  ->  wieder aufgeholt
+```
+
+Der Sprung leert den Puffer. Firefox puffert nach jedem Leerlauf
+wieder rund fünf Sekunden, und der nächste Sprung wirft genau diese
+fünf Sekunden weg — der Ton setzte an und brach ab.
+
+Seit der Nachbesserung wird **schneller gespielt** statt gesprungen:
+sechs Prozent, mit erhaltener Tonhöhe. Das holt eine Sekunde in gut
+sechzehn Sekunden auf, ohne den Puffer anzufassen, und niemand hört
+es. Gesprungen wird nur noch im Notfall — über **15 Sekunden**
+Abstand, etwa nach langem Einfrieren — und dann auf das Ziel, nicht
+auf null.
+
+### Welcher Zielabstand ist der richtige?
+
+Der Ton soll nicht am Live-Punkt kleben: ein Puffer von null heißt
+Leerlauf beim ersten Ruckler, und ein Leerlauf kostet fünf Sekunden.
+Voreingestellt sind **drei Sekunden**.
+
+Das ließ sich am Schreibtisch **nicht** entscheiden: headless Firefox
+ohne Tonausgabe lässt seine Medienuhr nur mit 87 Prozent der Echtzeit
+laufen, und damit schließt sich der Abstand nie — egal bei welchem
+Ziel. Messbar ist es nur auf einem echten Gerät. Dafür lässt sich das
+Ziel in der Adresse setzen:
+
+```
+http://<Adresse>:8000/?versuch=strom&ziel=1
+http://<Adresse>:8000/?versuch=strom&ziel=2
+http://<Adresse>:8000/?versuch=strom&ziel=3
+http://<Adresse>:8000/?versuch=strom&ziel=4
+```
+
+Je Wert **zehn Minuten** zuhören, Bildschirm gesperrt. Danach im
+Tonprotokoll zählen:
+
+| | |
+|---|---|
+| `waiting` | wie oft stand der Ton still? |
+| `abstand` | bleibt er in der Nähe des Ziels? |
+| `Tempo` | wie oft musste aufgeholt werden? |
+
+**Genommen wird der kleinste Wert ohne ein einziges `waiting`** —
+und dann noch eine Sekunde dazu, für das WLAN im Saal, das sich an
+einem vollen Sonntag anders verhält als an einem leeren Dienstag.
 
 ### Damit das Handy den Rechner erreicht
 

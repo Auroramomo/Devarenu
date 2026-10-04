@@ -7,6 +7,7 @@
 // fuer einen Zuhoerer in Rostock NICHTS. Alles andere ist ein
 // Messgeraet, das mitfaehrt, wenn jemand es bestellt.
 
+import { readFileSync } from "node:fs";
 import { browserBauen, skriptLaden } from "./browsernachbau.mjs";
 
 const SEITE = new URL("../client.html", import.meta.url).pathname;
@@ -161,6 +162,119 @@ titel("9) Abstand zum Live-Punkt");
   a.buffered = { length: 1, end: () => 12.5 };
   a.currentTime = 4.2;
   pruefe("mit Puffer: 8,3 s", "8.3", Strom.abstand().toFixed(1));
+}
+
+titel("9b) Aufgeholt wird ueber das Tempo, nicht mit einem Sprung");
+{
+  // Der Sprung leerte den Puffer, Firefox puffert danach fuenf
+  // Sekunden neu, und der naechste Sprung warf genau die weg. Auf
+  // dem Galaxy Z Fold 7 setzte der Ton dadurch staendig an und
+  // brach ab.
+  const { Strom, zustand, umgebung } = laden({ suche: "?versuch=strom" });
+  zustand.sprache = "en"; zustand.laeuft = true;
+  Strom.starten("en");
+  const a = Strom.spieler;
+  a.paused = false;
+  const quelleVorher = String(a.src);
+
+  const takt = () => {
+    // Was _wachen() alle zwei Sekunden tut, einmal von Hand.
+    const d = Strom.abstand();
+    if (a.paused) return;
+    if (d > Strom.NOTFALL) return;          // Notfall eigens geprueft
+    if (d > Strom.ZIEL + 0.5) Strom._rate(Strom.TEMPO);
+    else if (d <= Strom.ZIEL) Strom._rate(1.0);
+  };
+
+  // Weit hinterher, aber unter der Notfallgrenze.
+  a.buffered = { length: 1, end: () => 9.0 };
+  a.currentTime = 1.0;                       // Abstand 8 s
+  pruefe("Abstand 8 s erkannt", "8.0", Strom.abstand().toFixed(1));
+  takt();
+  pruefe("das Tempo zieht an", Strom.TEMPO, a.playbackRate);
+  pruefe("mit erhaltener Tonhoehe", true, a.preservesPitch === true);
+  pruefe("und KEIN Sprung", 1.0, a.currentTime);
+  pruefe("auch keine neue Quelle", quelleVorher, String(a.src));
+
+  // Am Ziel angekommen.
+  a.currentTime = 9.0 - Strom.ZIEL;
+  takt();
+  pruefe("am Ziel faellt das Tempo auf 1,0", 1, a.playbackRate);
+
+  // Knapp darueber: noch nichts tun, sonst pendelt es.
+  a.currentTime = 9.0 - Strom.ZIEL - 0.3;
+  takt();
+  pruefe("ein bisschen drueber loest noch nichts aus", 1, a.playbackRate);
+
+  // NIE unter das Ziel beschleunigen.
+  a.currentTime = 9.0 - 0.2;                 // viel zu weit vorn
+  takt();
+  pruefe("naeher als das Ziel: kein Tempo", 1, a.playbackRate);
+}
+
+titel("9c) Der Sprung bleibt dem Notfall");
+{
+  const { Strom, zustand } = laden({ suche: "?versuch=strom" });
+  zustand.sprache = "en"; zustand.laeuft = true;
+  Strom.starten("en");
+  const a = Strom.spieler;
+  a.paused = false;
+  pruefe("die Notfallgrenze liegt bei 15 s", 15, Strom.NOTFALL);
+  // Knapp darunter wird NICHT gesprungen.
+  a.buffered = { length: 1, end: () => 20.0 };
+  a.currentTime = 6.0;                       // Abstand 14 s
+  const vorher = a.currentTime;
+  if (Strom.abstand() > Strom.NOTFALL) { /* nicht erwartet */ }
+  pruefe("14 s sind noch kein Notfall", true,
+         Strom.abstand() < Strom.NOTFALL);
+  pruefe("und es wird nicht gesprungen", vorher, a.currentTime);
+  // Darueber: Sprung, aber auf das ZIEL, nicht auf null.
+  a.currentTime = 1.0;                       // Abstand 19 s
+  pruefe("19 s sind einer", true, Strom.abstand() > Strom.NOTFALL);
+  const ziel = 20.0 - Strom.ZIEL;
+  a.currentTime = Math.max(0, ziel);         // was _wachen() tut
+  pruefe("gesprungen wird auf das Ziel, nicht auf den Live-Punkt",
+         true, Math.abs(Strom.abstand() - Strom.ZIEL) < 0.01);
+}
+
+titel("9d) Das Ziel laesst sich fuer die Messung einstellen");
+{
+  const { Strom } = laden({ suche: "?versuch=strom&ziel=2" });
+  pruefe("Ziel 2 s aus der Adresse", 2, Strom.ZIEL);
+  const b = laden({ suche: "?versuch=strom&ziel=99" });
+  pruefe("Unsinn wird nicht genommen", 3, b.Strom.ZIEL);
+  const c = laden({ suche: "?versuch=strom" });
+  pruefe("ohne Angabe bleibt es bei 3 s", 3, c.Strom.ZIEL);
+}
+
+titel("9e) Ein Hinweis ohne Text bleibt unsichtbar");
+{
+  // Der rote Balken mit dem roten Punkt stand auf jedem Handy,
+  // dauerhaft und ohne Text: client.html hatte keine Regel fuer das
+  // Attribut hidden, und .aufnahmehinweis{display:flex} schlug es.
+  const quelle = readFileSync(SEITE, "utf8");
+  const stil = quelle.split("<style>")[1].split("</style>")[0];
+  pruefe("das Attribut hidden gewinnt", true,
+         /\[hidden\]\{display:none !important\}/.test(stil));
+  const p = laden();
+  const { umgebung } = p;
+  const balken = umgebung.document.getElementById("aufnahmehinweis");
+  const text = umgebung.document.getElementById("aufnahmetext");
+  // Einschalten OHNE Text in der Tabelle.
+  const sprache = p.zustand.sprache;
+  p.zustand.sprache = "de";
+  const merk = p.TEXTE.de.aufnahme;
+  p.TEXTE.de.aufnahme = "";
+  umgebung.__pruef.aufnahmeHinweis(true);
+  pruefe("ohne Text bleibt er versteckt", true, balken.hidden);
+  pruefe("und es steht nichts darin", "", text.textContent);
+  p.TEXTE.de.aufnahme = merk;
+  umgebung.__pruef.aufnahmeHinweis(true);
+  pruefe("mit Text erscheint er", false, balken.hidden);
+  pruefe("und traegt ihn", merk, text.textContent);
+  umgebung.__pruef.aufnahmeHinweis(false);
+  pruefe("abgeschaltet ist er wieder weg", true, balken.hidden);
+  p.zustand.sprache = sprache;
 }
 
 titel("10) Ohne Adresszusatz bleibt alles beim Alten");
