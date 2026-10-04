@@ -484,6 +484,10 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
 /* Im Blatt braucht die Urteilsreihe den Seitenrand der Fussleiste
    nicht -- das Blatt hat seinen eigenen. */
 .blatt-innen .fussleiste{padding:.2rem 0}
+/* Und dort darf die Beschriftung umbrechen. Die Regel gegen Umbruch
+   gilt der Leiste unten mit ihren fuenf schmalen Spalten; im Blatt
+   schnitt sie bei 150 Prozent Schrift "schwer verstaendlich" ab. */
+.blatt-innen .fussleiste .beschriftung{white-space:normal}
 .mehrliste{display:grid; gap:.2rem; margin:.6rem 0 .9rem}
 .werkzeug.zeile{
   display:flex; align-items:center; gap:.7rem;
@@ -754,6 +758,11 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
     </nav>
 
     <div class="mehrliste">
+      <!-- Ein Schalter, kein Weg woandershin: das Blatt bleibt offen,
+           damit man sieht, dass er umgesprungen ist. -->
+      <button class="werkzeug zeile" id="w-wach" aria-pressed="true">
+        <span class="zeichen" aria-hidden="true">☀</span><span class="beschriftung"></span>
+      </button>
       <button class="werkzeug zeile" id="w-post">
         <span class="zeichen" aria-hidden="true">✉</span><span class="beschriftung"></span>
       </button>
@@ -871,6 +880,7 @@ const TEXTE = {
       postFehler:"Ließ sich nicht senden. Bitte noch einmal.",
       zurueck:"Zurück", rueckmeldung:"Rückmeldung", schliessen:"Schließen",
       dunkel:"Dunkler", heller:"Heller", mehr:"Mehr", mehrTitel:"Mehr",
+      wach:"Bildschirm anlassen", wachAn:"an", wachAus:"aus",
       uGut:"verständlich", uSchwer:"schwer verständlich", uDank:"Danke!",
       dankText:"Du möchtest mir Rückmeldung geben? Ich arbeite ständig an besseren Fassungen. Schreib mir gern:",
       dankSpende:"Du möchtest das Projekt unterstützen? Nicht nötig, als Pastor werde ich schon durch deinen Zehnten getragen. Wenn du trotzdem etwas geben möchtest, spende gern an die Freikirche. Der Betrag im Code ist nur ein Vorschlag und in der Banking-App änderbar:",
@@ -902,6 +912,7 @@ const TEXTE = {
       postFehler:"Could not be sent. Please try again.",
       zurueck:"Back", rueckmeldung:"Feedback", schliessen:"Close",
       dunkel:"Dimmer", heller:"Brighter", mehr:"More", mehrTitel:"More",
+      wach:"Keep screen on", wachAn:"on", wachAus:"off",
       uGut:"clear", uSchwer:"hard to follow", uDank:"Thank you!",
       dankText:"Want to give feedback? I keep working on better versions. Write to me:",
       dankSpende:"Want to support the project? No need, as a pastor I am already carried by your tithe. But if you would still like to give something, please donate to the church. The amount in the code is only a suggestion and can be changed in your banking app:",
@@ -933,6 +944,7 @@ const TEXTE = {
       postFehler:"Не удалось отправить. Попробуйте ещё раз.",
       zurueck:"Назад", rueckmeldung:"Отзыв", schliessen:"Закрыть",
       dunkel:"Темнее", heller:"Светлее", mehr:"Ещё", mehrTitel:"Ещё",
+      wach:"Не гасить экран", wachAn:"вкл.", wachAus:"выкл.",
       uGut:"понятно", uSchwer:"трудно понять", uDank:"Спасибо!",
       dankText:"Хотите оставить отзыв? Я постоянно работаю над улучшениями. Напишите мне:",
       dankSpende:"Хотите поддержать проект? Не нужно: как пастор я уже получаю поддержку через вашу десятину. Если вы всё же хотите что-то дать, пожертвуйте церкви. Сумма в коде — только предложение, её можно изменить в банковском приложении:",
@@ -964,6 +976,7 @@ const TEXTE = {
       postFehler:"ارسال نشد. لطفاً دوباره تلاش کنید.",
       zurueck:"بازگشت", rueckmeldung:"بازخورد", schliessen:"بستن",
       dunkel:"تاریک‌تر", heller:"روشن‌تر", mehr:"بیشتر", mehrTitel:"بیشتر",
+      wach:"صفحه روشن بماند", wachAn:"روشن", wachAus:"خاموش",
       uGut:"قابل فهم", uSchwer:"سخت‌فهم", uDank:"ممنون!",
       dankText:"می‌خواهید بازخورد بدهید؟ من پیوسته روی نسخه‌های بهتر کار می‌کنم. برایم بنویسید:",
       dankSpende:"می‌خواهید از پروژه حمایت کنید؟ لازم نیست؛ به عنوان شبان از طریق ده‌یک شما پشتیبانی می‌شوم. اگر باز هم مایل به کمک هستید، لطفاً به کلیسا کمک کنید. مبلغ در کد فقط پیشنهاد است و در برنامهٔ بانکی قابل تغییر است:",
@@ -1122,8 +1135,9 @@ async function bildschirmWachhalten(){
   //
   // Am Schreibtisch ueber localhost greift sie, und genau das hat sie
   // bis 0.4.2 glauben lassen, der Bildschirm bliebe im Saal wach. Er
-  // bleibt es nicht. Was den Ton heute am Leben haelt, ist allein der
-  // Satz "Bildschirm anlassen" auf der Seite.
+  // bleibt es nicht. Seit 0.4.6 haelt ihn im Saal das Wachvideo an
+  // (siehe Wach weiter unten); dieser Zweig ist der Vorrang fuer den
+  // Fall, dass es den echten Wake Lock doch gibt.
   //
   // HTTPS waere dafuer kein Weg: selbstsigniert heisst Warnseite auf
   // jedem Handy, und einen echten Namen gibt es ohne Internet nicht.
@@ -1131,20 +1145,29 @@ async function bildschirmWachhalten(){
   // nicht, wenn jemand bewusst sperrt. Warum daran zwei Versuche
   // gescheitert sind, steht in LIESMICH unter "Ton bei gesperrtem
   // Handy" und in AENDERUNGEN 0.4.2, Anhang G.
+  // Schalter "Bildschirm anlassen" aus: dann auch kein Wake Lock.
+  if(!Wach.an) return false;
   try{
     if("wakeLock" in navigator){
-      wachschloss = await navigator.wakeLock.request("screen");
+      const sperre = await navigator.wakeLock.request("screen");
+      // Waehrend der Anfrage ausgeschaltet? Dann sofort wieder her.
+      if(!Wach.an){
+        try{ sperre.release(); }catch(e){}
+        return false;
+      }
+      wachschloss = sperre;
       Versuch.merken("Wake Lock erhalten", "");
-      wachschloss.addEventListener("release", () => {
-        wachschloss = null;
+      sperre.addEventListener("release", () => {
+        if(wachschloss === sperre) wachschloss = null;
         // Die Sperre geht verloren. Meist, weil die Seite verborgen
         // wurde -- das gibt der Browser von sich aus her, und beim
         // Zurueckkommen fordert der visibilitychange-Horcher neu an.
         // Geht sie aber bei SICHTBARER Seite verloren (Akkusparmodus,
         // der zwischendurch anspringt), wartet sonst nichts mehr: dann
-        // springt im Versuch das Video ein.
+        // springt das Video ein. Nicht aber, wenn der Schalter sie
+        // gerade selbst freigegeben hat -- dann ist Wach.an schon aus.
         Versuch.merken("Wake Lock verloren", document.visibilityState);
-        if(document.visibilityState === "visible" && zustand.laeuft)
+        if(document.visibilityState === "visible" && Wach.an)
           Wach.nachreichen("Wake Lock verloren");
       });
       return true;
@@ -1158,78 +1181,68 @@ async function bildschirmWachhalten(){
 
 
 /* ============================================================
-   Versuch: Bildschirm wach halten ohne HTTPS  --  ?versuch=wach
+   Adresszusaetze  --  ?versuch=...
    ------------------------------------------------------------
-   Wake Lock gibt es im Saal nicht (siehe bildschirmWachhalten
-   oben: kein sicherer Kontext unter http://10.0.0.1). Handys
-   sperren nach 30 Sekunden bis 2 Minuten ohne Beruehrung, und
-   dann endet der Ton. Der Hinweis "Bildschirm anlassen" ist
-   genau deshalb da.
+   Bis 0.4.5 war "Bildschirm anlassen" ein Versuch hinter
+   ?versuch=wach. Seit 0.4.6 ist es der Normalfall und ein Schalter
+   unter "Mehr" (siehe Wach). Was vom Versuch bleibt:
 
-   Bekannter Ausweg, Prinzip wie bei NoSleep.js -- nachgebaut,
-   nichts kopiert: ein kurzes Video in Schleife, mit einer Tonspur
-   aus reiner Stille. Solange es laeuft, lassen Firefox und Chromium
-   den Bildschirm an. Warum es eine Tonspur braucht, steht bei
-   WACH_WEBM weiter unten.
+       ?versuch=wach       setzt den Schalter auf an  (wie bisher)
+       ?versuch=aus        setzt den Schalter auf aus
+       ?versuch=protokoll  zeigt das Protokollkaestchen
 
-   Gibt es den echten Wake Lock (unter https), hat er Vorrang. Lehnt
-   er ab oder geht er verloren, springt das Video ein.
+   Mehrere gehen zusammen: ?versuch=protokoll,aus oder zweimal
+   ?versuch=. Leerzeichen und Gross/Klein zaehlen nicht -- beim
+   ersten Test am Handy stand hinter dem Wert ein Leerzeichen, und
+   nichts sprang an, ohne dass irgendwo stand, warum.
 
-   OHNE den Adresszusatz aendert sich fuer Zuhoerer nichts.
+   WARUM "protokoll" UND NICHT EIN EIGENER NAME. Wer betreut, kennt
+   und tippt seit 0.4.2 ?versuch=; ein zweiter Parametername waere ein
+   zweites Ding zum Merken. Der Wert sagt, was danach zu sehen ist, und er
+   aendert am Verhalten der Seite nichts -- er macht nur sichtbar,
+   was ohnehin mitgeschrieben wird. Gemerkt wird er NICHT: ein
+   Messgeraet soll nicht auf dem Handy eines Zuhoerers haengen
+   bleiben, nur weil jemand einmal einen Link mit Zusatz geteilt hat.
 
-       ?versuch=wach   einschalten, im Browser gemerkt
-       ?versuch=aus    wieder weg
+   Der alte Speicherschluessel "versuch" aus 0.4.2 bis 0.4.5 wird
+   gelesen, aber nicht angefasst und nicht mehr ausgewertet: der
+   Schalter steht ohnehin auf an, und mehr hat er nie bewirkt.
    ============================================================ */
 const Versuch = {
-  wach: false,
+  protokoll: false,
   ereignisse: [],
 
   starten(){
-    // Leerzeichen und Gross/Klein zaehlen nicht. Beim ersten Test am
-    // Handy stand hinter dem Wert ein Leerzeichen (?versuch=wach%20),
-    // und der Versuch sprang nicht an -- ohne dass irgendwo stand,
-    // warum. Ein "+" in der Adresse wird ebenfalls zum Leerzeichen.
     const sauber = (w) => String(w || "").trim().toLowerCase();
-    let wunsch = "";
+    let werte = [];
     try{
-      wunsch = sauber(new URLSearchParams(location.search).get("versuch"));
+      werte = new URLSearchParams(location.search).getAll("versuch")
+        .flatMap((w) => String(w).split(",")).map(sauber).filter(Boolean);
     }catch(e){}
-    let gemerkt = null;
-    try{ gemerkt = sauber(localStorage.getItem("versuch")); }catch(e){}
+    this.protokoll = werte.includes("protokoll");
 
-    if(wunsch === "aus"){
-      try{ localStorage.removeItem("versuch"); }catch(e){}
-    }else if(wunsch){
-      this.wach = wunsch === "wach";
-      if(this.wach){ try{ localStorage.setItem("versuch", "wach"); }catch(e){} }
-    }else{
-      this.wach = gemerkt === "wach";
+    Wach.laden();
+    // Kompatibilitaet: der alte Versuch setzt jetzt den Schalter.
+    if(werte.includes("aus")) Wach.setzen(false);
+    else if(werte.includes("wach")) Wach.setzen(true);
+
+    if(this.protokoll){
+      const kasten = $("versuchkasten");
+      if(kasten) kasten.hidden = false;
     }
-    if(!this.wach) return;
-
-    const kasten = $("versuchkasten");
-    if(kasten) kasten.hidden = false;
-    this.merken("Versuch", "wach");
+    this.merken("Bildschirm anlassen", Wach.an ? "an" : "aus");
     this.merken("Wake Lock", ("wakeLock" in navigator) ? "vorhanden"
                                                        : "nicht vorhanden");
-    // Schon jetzt bauen, nicht erst in der Geste: der Browser soll
-    // Zeit haben, die Metadaten zu lesen. Abgespielt wird nichts,
-    // bevor jemand "Zuhoeren" drueckt.
-    //
-    // Nur ohne Wake Lock schon beim Laden. Gibt es ihn, baut erst die
-    // Geste "Zuhoeren" das Element (Wach.starten) und spielt es dort
-    // einmal an, damit es bei Ablehnung oder Verlust ohne Geste
-    // einspringen kann. Ohne Geste bleibt es dort also beim alten:
-    // kein Dekoder, den niemand bestellt hat.
-    if(!("wakeLock" in navigator)) Wach._bauen();
   },
 
-  // Nur auf der Seite, nie an den Server. Neueste oben.
+  // Nur auf der Seite, nie an den Server. Neueste oben. Mitgeschrieben
+  // wird immer -- hundert Zeilen im Arbeitsspeicher kosten nichts --,
+  // zu sehen ist es nur mit ?versuch=protokoll.
   merken(was, mehr){
-    if(!this.wach) return;
     const uhr = new Date().toTimeString().slice(0, 8);
     this.ereignisse.push(`${uhr}  ${was}${mehr ? "  " + mehr : ""}`);
     if(this.ereignisse.length > 100) this.ereignisse.shift();
+    if(!this.protokoll) return;
     const feld = $("versuchzeilen");
     if(feld) feld.textContent = this.ereignisse.slice().reverse().join("\n");
   },
@@ -1284,12 +1297,111 @@ const Versuch = {
 const WACH_WEBM = "data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwEAAAAAAAzNEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggGkTbuMU6uEHFO7a1Osggy37AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjMuMS4xMDJXQYxMYXZmNjMuMS4xMDJEiYhAr1AAAAAAABZUrmtAyK4BAAAAAAAATteBAXPFiHph9Fio5oKXnIEAIrWcg3VuZIiBAIaFVl9WUDmDgQEj44OEHc1lAOCQsIEQuoEQmoECVbCEVbmBAVXugQDsAQAAAAAAAAIAAK4BAAAAAAAAaNeBAnPFiB6j4BJQcCiDnIEAIrWcg3VuZIiBAIaGQV9PUFVTVqqDYy6gVruEBMS0AIOBAiPjg4QBMS0A4ZGfgQG1iEDncAAAAAAAYmSBEFXugQBjopNPcHVzSGVhZAEBOAGAuwAAAAAAElTDZ0DXc3OfY8CAZ8iZRaOHRU5DT0RFUkSHjExhdmY2My4xLjEwMnNz2WPAi2PFiHph9Fio5oKXZ8ikRaOHRU5DT0RFUkSHl0xhdmM2My4xLjEwMiBsaWJ2cHgtdnA5Z8ihRaOIRFVSQVRJT05Eh5MwMDowMDowNC4wMDAwMDAwMDAAc3PWY8CLY8WIHqPgElBwKINnyKFFo4dFTkNPREVSRIeUTGF2YzYzLjEuMTAyIGxpYm9wdXNnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjA0LjAwODAwMDAwMAAfQ7Z1SjDngQCji4IAAIAIC+Y7I6tgo5+BAACAgkmDQgAA8AD2ADgkHBlwAAAwYAAAEL/8bIAAo4qCABWACAissw7Go4qCACmACAissw7Go4qCAD2ACAissw7Go4qCAFGACAissw7Go4qCAGWACAissw7Go4qCAHmACAissw7Go4qCAI2ACAissw7Go4qCAKGACAissw7Go4qCALWACAissw7Go4qCAMmACAissw7Go4qCAN2ACAissw7Go4qCAPGACAissw7Go4qCAQWACAissw7Go4qCARmACAissw7Go4qCAS2ACAissw7Go4qCAUGACAissw7Go4qCAVWACAissw7Go4qCAWmACAissw7Go4qCAX2ACAissw7Go4qCAZGACAissw7Go4qCAaWACAissw7Go4qCAbmACAissw7Go4qCAc2ACAissw7Go4qCAeGACAissw7Go4qCAfWACAissw7Go5OBAfQAhgBAkhwAX+AAAyAAAEJAo4qCAgmACAissw7Go4qCAh2ACAissw7Go4qCAjGACAissw7Go4qCAkWACAissw7Go4qCAlmACAissw7Go4qCAm2ACAissw7Go4qCAoGACAissw7Go4qCApWACAissw7Go4qCAqmACAissw7Go4qCAr2ACAissw7Go4qCAtGACAissw7Go4qCAuWACAissw7Go4qCAvmACAissw7Go4qCAw2ACAissw7Go4qCAyGACAissw7Go4qCAzWACAissw7Go4qCA0mACAissw7Go4qCA12ACAissw7Go4qCA3GACAissw7Go4qCA4WACAissw7Go4qCA5mACAissw7Go4qCA62ACAissw7Go4qCA8GACAissw7Go4qCA9WACAissw7Go4qCA+mACAissw7Go5OBA+gAhgBAkhwAXwAAAyAAAEJAo4qCA/2ACAissw7Go4qCBBGACAissw7Go4qCBCWACAissw7Go4qCBDmACAissw7Go4qCBE2ACAissw7Go4qCBGGACAissw7Go4qCBHWACAissw7Go4qCBImACAissw7Go4qCBJ2ACAissw7Go4qCBLGACAissw7Go4qCBMWACAissw7Go4qCBNmACAissw7Go4qCBO2ACAissw7Go4qCBQGACAissw7Go4qCBRWACAissw7Go4qCBSmACAissw7Go4qCBT2ACAissw7Go4qCBVGACAissw7Go4qCBWWACAissw7Go4qCBXmACAissw7Go4qCBY2ACAissw7Go4qCBaGACAissw7Go4qCBbWACAissw7Go4qCBcmACAissw7Go4qCBd2ACAissw7Go5OBBdwAhgBAkhwAX+AAAyAAAEJAo4qCBfGACAissw7Go4qCBgWACAissw7Go4qCBhmACAissw7Go4qCBi2ACAissw7Go4qCBkGACAissw7Go4qCBlWACAissw7Go4qCBmmACAissw7Go4qCBn2ACAissw7Go4qCBpGACAissw7Go4qCBqWACAissw7Go4qCBrmACAissw7Go4qCBs2ACAissw7Go4qCBuGACAissw7Go4qCBvWACAissw7Go4qCBwmACAissw7Go4qCBx2ACAissw7Go4qCBzGACAissw7Go4qCB0WACAissw7Go4qCB1mACAissw7Go4qCB22ACAissw7Go4qCB4GACAissw7Go4qCB5WACAissw7Go4qCB6mACAissw7Go4qCB72ACAissw7Go4qCB9GACAissw7Go5OBB9AAhgBAkhwAXcAAAyAAAEJAo4qCB+WACAissw7Go4qCB/mACAissw7Go4qCCA2ACAissw7Go4qCCCGACAissw7Go4qCCDWACAissw7Go4qCCEmACAissw7Go4qCCF2ACAissw7Go4qCCHGACAissw7Go4qCCIWACAissw7Go4qCCJmACAissw7Go4qCCK2ACAissw7Go4qCCMGACAissw7Go4qCCNWACAissw7Go4qCCOmACAissw7Go4qCCP2ACAissw7Go4qCCRGACAissw7Go4qCCSWACAissw7Go4qCCTmACAissw7Go4qCCU2ACAissw7Go4qCCWGACAissw7Go4qCCXWACAissw7Go4qCCYmACAissw7Go4qCCZ2ACAissw7Go4qCCbGACAissw7Go4qCCcWACAissw7Go5OBCcQAhgBAkhwAX+AAAyAAAEJAo4qCCdmACAissw7Go4qCCe2ACAissw7Go4qCCgGACAissw7Go4qCChWACAissw7Go4qCCimACAissw7Go4qCCj2ACAissw7Go4qCClGACAissw7Go4qCCmWACAissw7Go4qCCnmACAissw7Go4qCCo2ACAissw7Go4qCCqGACAissw7Go4qCCrWACAissw7Go4qCCsmACAissw7Go4qCCt2ACAissw7Go4qCCvGACAissw7Go4qCCwWACAissw7Go4qCCxmACAissw7Go4qCCy2ACAissw7Go4qCC0GACAissw7Go4qCC1WACAissw7Go4qCC2mACAissw7Go4qCC32ACAissw7Go4qCC5GACAissw7Go4qCC6WACAissw7Go4qCC7mACAissw7Go5OBC7gAhgBAkhwAXwAAAyAAAEJAo4qCC82ACAissw7Go4qCC+GACAissw7Go4qCC/WACAissw7Go4qCDAmACAissw7Go4qCDB2ACAissw7Go4qCDDGACAissw7Go4qCDEWACAissw7Go4qCDFmACAissw7Go4qCDG2ACAissw7Go4qCDIGACAissw7Go4qCDJWACAissw7Go4qCDKmACAissw7Go4qCDL2ACAissw7Go4qCDNGACAissw7Go4qCDOWACAissw7Go4qCDPmACAissw7Go4qCDQ2ACAissw7Go4qCDSGACAissw7Go4qCDTWACAissw7Go4qCDUmACAissw7Go4qCDV2ACAissw7Go4qCDXGACAissw7Go4qCDYWACAissw7Go4qCDZmACAissw7Go4qCDa2ACAissw7Go5OBDawAhgBAkhwAX+AAAyAAAEJAo4qCDcGACAissw7Go4qCDdWACAissw7Go4qCDemACAissw7Go4qCDf2ACAissw7Go4qCDhGACAissw7Go4qCDiWACAissw7Go4qCDjmACAissw7Go4qCDk2ACAissw7Go4qCDmGACAissw7Go4qCDnWACAissw7Go4qCDomACAissw7Go4qCDp2ACAissw7Go4qCDrGACAissw7Go4qCDsWACAissw7Go4qCDtmACAissw7Go4qCDu2ACAissw7Go4qCDwGACAissw7Go4qCDxWACAissw7Go4qCDymACAissw7Go4qCDz2ACAissw7Go4qCD1GACAissw7Go4qCD2WACAissw7Go4qCD3mACAissw7Go4qCD42ACAissw7GoJahioIPoQAICKyzDsabgQd1ooQAzf5gHFO7a5G7j7OBALeK94EB8YICgfCBEA==";
 const WACH_MP4  = "data:video/mp4;base64,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";
 
+/* ============================================================
+   Bildschirm anlassen  --  seit 0.4.6 der Normalfall
+   ------------------------------------------------------------
+   Handys sperren nach 30 Sekunden bis 2 Minuten ohne Beruehrung,
+   und dann endet der Ton. Bis 0.4.5 stand dagegen nur der Satz
+   "Bildschirm anlassen" auf der Seite.
+
+   Jetzt haelt die Seite den Bildschirm selbst an, in dieser
+   Reihenfolge:
+
+     1. der echte Wake Lock, wo es ihn gibt (nur unter https --
+        im Saal also nicht);
+     2. sonst, oder wenn er abgelehnt wird oder verloren geht, ein
+        kurzes Video in Schleife mit einer Tonspur aus reiner Stille.
+        Prinzip wie bei NoSleep.js, nachgebaut, nichts kopiert.
+        Warum es eine Tonspur braucht, steht bei WACH_WEBM.
+
+   GESTARTET WIRD IN DER ERSTEN GESTE, nicht erst bei "Zuhoeren".
+   Wer nur mitliest, braucht den Bildschirm genauso -- und play()
+   mit Ton geht nur aus einer Nutzergeste heraus. Also horcht das
+   Dokument auf die erste Beruehrung, die eine Geste ist, und
+   wirft dort alles an.
+
+   Ein Schalter unter "Mehr" stellt es ab, im Browser gemerkt. AUS
+   heisst: kein Wake Lock, kein Video im Dokument. Auf dem iPhone
+   ist das alles ungetestet; wer dort Aerger hat, schaltet es ab.
+   ============================================================ */
 const Wach = {
+  SCHLUESSEL: "bildschirm",
+  // Der Schalter. Vorgabe an.
+  an: true,
+  // Ob die erste Geste schon da war. Vorher laeuft nichts -- ohne
+  // Geste duerfte es auch gar nicht.
+  gestartet: false,
   laeuft: false,
-  // Das eigene Element, nicht ueber getElementById gesucht: es gibt
-  // es nur im Versuch, und "steht es im Dokument?" soll eine Frage
-  // mit einer klaren Antwort bleiben.
+  // Das eigene Element, nicht ueber getElementById gesucht: "steht es
+  // im Dokument?" soll eine Frage mit einer klaren Antwort bleiben.
   element: null,
+
+  laden(){
+    let w = null;
+    try{ w = localStorage.getItem(this.SCHLUESSEL); }catch(e){}
+    this.an = String(w || "").trim().toLowerCase() !== "aus";
+    this.zeichnen();
+  },
+
+  /* Den Schalter stellen und merken. Aus der Hand des Zuhoerers ist
+     das ein Klick, also selbst eine Geste (ausGeste): beim
+     Einschalten darf sofort alles anlaufen. Aus dem Adresszusatz
+     beim Laden ist es keine -- dann wartet es auf die erste. */
+  setzen(an, ausGeste = false){
+    this.an = !!an;
+    try{ localStorage.setItem(this.SCHLUESSEL, this.an ? "an" : "aus"); }
+    catch(e){}
+    Versuch.merken("Schalter", this.an ? "an" : "aus");
+    if(!this.an) this.abschalten();
+    else if(ausGeste) this.geste();
+    this.zeichnen();
+  },
+
+  /* Aus: Wake Lock freigeben, Video anhalten UND aus dem Dokument
+     nehmen. Ein angehaltenes Element im Dokument waere immer noch
+     ein Dekoder, und "aus" soll heissen: nichts. */
+  abschalten(){
+    this.laeuft = false;
+    if(wachschloss){
+      const s = wachschloss;
+      wachschloss = null;
+      try{ s.release(); }catch(e){}
+    }
+    const v = this.element;
+    this.element = null;
+    if(v){
+      try{ v.pause(); }catch(e){}
+      try{ document.body.removeChild(v); }catch(e){}
+    }
+  },
+
+  /* Aus jeder Geste heraus. SYNCHRON bis zum play(): ein await davor
+     gibt die Geste in manchen Browsern her. */
+  geste(){
+    if(!this.an) return Promise.resolve();
+    if(!this.gestartet) Versuch.merken("erste Geste", "");
+    this.gestartet = true;
+    this.starten();
+    if(wachschloss) return Promise.resolve();
+    // Zurueckgegeben, damit "Zuhoeren" abwarten kann, ob etwas haelt,
+    // bevor es den Hinweis "Bildschirm anlassen" zeigt.
+    return bildschirmWachhalten().then((ok) => {
+      if(!ok && "wakeLock" in navigator)
+        this.nachreichen("Wake Lock abgelehnt");
+    });
+  },
+
+  // Haelt gerade etwas den Bildschirm an?
+  haelt(){ return !!wachschloss || this.laeuft; },
+
+  zeichnen(){
+    const k = $("w-wach");
+    if(!k) return;
+    const x = t();
+    k.setAttribute("aria-pressed", String(this.an));
+    k.querySelector(".beschriftung").textContent =
+      `${x.wach}: ${this.an ? x.wachAn : x.wachAus}`;
+  },
 
   /* NICHT stumm. muted waere in Chromium das Ende: EffectiveMediaVolume()
      ist dann 0, has_audio damit false, und die Sperre faellt auf die
@@ -1304,9 +1416,8 @@ const Wach = {
      die Spur still ist.) */
   LAUTSTAERKE: 0.01,
 
-  /* Das Element entsteht erst hier. Ohne ?versuch=wach steht gar kein
-     video im Dokument -- ein Zuhoerer in Rostock hat davon nichts,
-     auch keinen stillen Dekoder im Hintergrund. */
+  /* Das Element entsteht erst hier, in der ersten Geste. Vorher und
+     bei ausgeschaltetem Schalter steht gar kein video im Dokument. */
   _bauen(){
     if(this.element) return this.element;
     const v = document.createElement("video");
@@ -1341,8 +1452,9 @@ const Wach = {
      ohne dass etwas dekodiert werden muss. Nur wo es ihn gar nicht
      gibt, und das ist im Saal der Fall, laeuft das Video. */
   starten(){
-    if(!Versuch.wach || this.laeuft) return;
+    if(!this.an || this.laeuft) return;
     if("wakeLock" in navigator){
+      if(this.element) return;          // schon angespielt
       Versuch.merken("Video bleibt aus", "Wake Lock hat Vorrang");
       // Trotzdem schon jetzt, IN der Geste, einmal anspielen und sofort
       // wieder anhalten. Lehnt der Wake Lock ab oder geht er spaeter
@@ -1366,7 +1478,7 @@ const Wach = {
      Video. Ausserhalb der Geste -- darum oben das Anspielen; klappt
      es trotzdem nicht, steht es im Protokoll. */
   nachreichen(grund){
-    if(!Versuch.wach || this.laeuft) return;
+    if(!this.an || this.laeuft) return;
     this._anwerfen(grund || "Wake Lock abgelehnt");
   },
 
@@ -1385,19 +1497,11 @@ const Wach = {
     });
   },
 
-  anhalten(){
-    this.laeuft = false;
-    const v = this.element;
-    if(!v) return;
-    try{ v.pause(); }catch(e){}
-    Versuch.merken("Video angehalten", "");
-  },
-
   /* Kommt die Seite aus dem Hintergrund zurueck, kann der Browser
      das Video angehalten haben. Dann wieder an -- das ist derselbe
      Griff, mit dem auch der Wake Lock neu angefordert wird. */
   nachsehen(){
-    if(!Versuch.wach || !this.laeuft) return;
+    if(!this.an || !this.laeuft) return;
     const v = this.element;
     if(v && v.paused){
       Versuch.merken("Video stand", "wird neu angeworfen");
@@ -1408,9 +1512,23 @@ const Wach = {
   },
 };
 
+/* Die erste Geste. Nur Ereignisse, die ein Browser als Nutzergeste
+   gelten laesst -- ein pointerdown mit dem Finger zaehlt in Chrome
+   nicht, ein touchend und ein click schon. Erfasst wird im Einfang,
+   also VOR dem Handler des Knopfes, damit play() noch in derselben
+   Geste liegt. Spaetere Gesten rufen geste() erneut auf; das ist
+   billig und holt ein Video zurueck, das play() einmal abgelehnt
+   hatte. */
+for(const art of ["click", "touchend", "keydown"]){
+  document.addEventListener(art, () => {
+    if(Wach.an && !Wach.haelt()) Wach.geste();
+  }, true);
+}
+
 document.addEventListener("visibilitychange", async () => {
   Versuch.merken("Sichtbarkeit", document.visibilityState);
-  if(document.visibilityState === "visible" && zustand.laeuft && !wachschloss){
+  if(document.visibilityState === "visible" && Wach.an && Wach.gestartet
+     && !wachschloss){
     // Beim Verbergen gibt der Browser den Wake Lock von sich aus her.
     // Bis 0.4.5 wurde er hier neu angefordert, das Ergebnis aber nicht
     // angesehen -- lehnte er ab, hielt nichts mehr den Bildschirm an.
@@ -1817,6 +1935,7 @@ function beschriftungenSetzen(){
   $("w-mehr").querySelector(".beschriftung").textContent = x.mehr;
   $("mehr-titel").textContent = x.mehrTitel;
   $("mehr-zu").textContent = x.schliessen;
+  Wach.zeichnen();
 
   $("wechsel-titel").textContent = x.wechseln;
   $("wechsel-zu").textContent = x.abbrechen;
@@ -1913,12 +2032,13 @@ $("starten").addEventListener("click", async () => {
   if(!zustand.sprache) return;
 
   // Muss in der Klickgeste passieren: ohne eine echte Nutzergeste
-  // spielt kein Haeppchen.
+  // spielt kein Haeppchen. Der Bildschirm ist meist schon seit der
+  // Sprachwahl wach (erste Geste, siehe Wach); geste() ist dann
+  // nichts als eine Nachfrage.
   Ton.freischalten();
-  Wach.starten();
+  const wachBereit = Wach.geste();
   const tonBereit = await tonFreischalten();
-  const wach = await bildschirmWachhalten();
-  if(!wach) Wach.nachreichen();
+  await wachBereit;
 
   zustand.laeuft = true;
   // Die eigene Stimme von vorhin -- wer die Seite neu laedt, soll
@@ -1932,8 +2052,10 @@ $("starten").addEventListener("click", async () => {
   zustandZeigen("verbinde");
   Verbindung.verbinden(zustand.sprache);
 
-  if(!tonBereit)   fahneZeigen(t().stumm);
-  else if(!wach)   fahneZeigen(t().bildschirm);
+  // "Bildschirm anlassen" nur noch, wenn nichts ihn anhaelt: Schalter
+  // aus, oder weder Wake Lock noch Video kamen zustande (iPhone?).
+  if(!tonBereit)          fahneZeigen(t().stumm);
+  else if(!Wach.haelt())  fahneZeigen(t().bildschirm);
 });
 
 
@@ -1982,6 +2104,8 @@ $("w-ton").addEventListener("click", () => tonSchalten(!zustand.tonAn));
 $("w-dunkel").addEventListener("click", () => Dunkel.weiter());
 
 $("w-mehr").addEventListener("click", () => $("mehrblatt").showModal());
+// Der Schalter "Bildschirm anlassen". Das Blatt bleibt dabei offen.
+$("w-wach").addEventListener("click", () => Wach.setzen(!Wach.an, true));
 $("mehr-zu").addEventListener("click", () => $("mehrblatt").close());
 /* Wer eine der drei Zeilen drueckt, ist woanders. Das Blatt schliesst
    dabei von selbst, und zwar VOR dem eigentlichen Handler: diese
@@ -2187,9 +2311,10 @@ for(const kennung of ["dankblatt", "postblatt", "wechsel", "mehrblatt"]){
 $("zurueck").addEventListener("click", () => {
   Verbindung.trennen();
   Ton.leeren();
-  // Das Wachvideo gehoert zum Zuhoeren. Wer zurueckgeht, will nicht,
-  // dass sein Bildschirm weiter anbleibt.
-  Wach.anhalten();
+  // Der Bildschirm bleibt an. Bis 0.4.5 hielt "Zurueck" das Wachvideo
+  // an; seit es mit der ERSTEN Geste startet, waere das sinnlos -- die
+  // naechste Beruehrung auf der Sprachwahl startete es gleich wieder.
+  // Abstellen geht ueber den Schalter unter "Mehr".
   zustand.laeuft = false;
   $("strom").innerHTML =
     '<p class="leerlauf" id="leerlauf"></p>';

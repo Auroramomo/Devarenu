@@ -89,12 +89,18 @@ titel("2) Von den Versuchen ist nichts uebrig");
   }
   const p = laden();
   pruefe("kein Strom im Fenster", "undefined", typeof p.umgebung.Strom);
-  // Das Versuchsgeruest lebt, aber keiner der beiden alten Versuche
-  // laesst sich noch einschalten.
-  pruefe("ein gemerktes \"strom\" schaltet nichts ein", false,
-         laden({ gemerkt: { versuch: "strom" } }).Versuch.wach);
-  pruefe("ein gemerktes \"stille\" auch nicht", false,
-         laden({ gemerkt: { versuch: "stille" } }).Versuch.wach);
+  // Das Versuchsgeruest lebt (seit 0.4.6 als ?versuch=protokoll und
+  // als Kompatibilitaet fuer den Schalter), aber keiner der beiden
+  // alten Versuche hat noch eine Wirkung: kein Protokoll, kein
+  // Video vor der ersten Geste, der Schalter auf der Vorgabe.
+  for (const alt of ["strom", "stille"]) {
+    const q = laden({ gemerkt: { versuch: alt } });
+    pruefe(`ein gemerktes "${alt}" zeigt kein Protokoll`, false,
+           q.Versuch.protokoll);
+    pruefe(`ein gemerktes "${alt}" baut kein Video`, null, q.Wach.element);
+    pruefe(`ein gemerktes "${alt}" laesst den Schalter auf an`, true,
+           q.Wach.an);
+  }
 }
 
 titel("3) Ein gemerkter Versuch hat keine Wirkung und keinen Fehler");

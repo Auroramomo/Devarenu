@@ -31,8 +31,12 @@ trotzdem verbunden.**
 
 ## Wenn der Ton stockt
 
-- **Bildschirm anlassen.** Schaltet sich der Bildschirm ab, stoppen
-  manche Handys die Wiedergabe.
+- **Der Bildschirm bleibt von selbst an.** Schaltet er sich ab,
+  stoppen manche Handys die Wiedergabe — darum hält die Seite ihn an,
+  sobald Sie einmal auf sie getippt haben. Abschalten lässt sich das
+  unter **Mehr** → **Bildschirm anlassen**. Auf dem iPhone ist es noch
+  nicht erprobt: Macht es dort Ärger, schalten Sie es aus und lassen
+  den Bildschirm von Hand an.
 - **Display abdunkeln.** Anbleiben muss der Bildschirm — hell sein
   muss er nicht. Der Knopf **Dunkler** in der Leiste unten legt die
   Seite in zwei Stufen dunkler; Ton und Text laufen unverändert

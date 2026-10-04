@@ -1653,26 +1653,41 @@ Zwei Versuche, den Ton bei gesperrtem Handy weiterlaufen zu lassen,
 standen hier bis 0.4.4 mit Testanleitung. Beide sind verworfen; woran
 sie gescheitert sind und welche Zahlen gemessen wurden, steht in
 `AENDERUNGEN.md` unter 0.4.4 und in `LIESMICH.md` unter „Ton bei
-gesperrtem Handy". Die Hörerseite sagt deshalb weiterhin **„Bildschirm
-anlassen"** — und dabei bleibt es, solange nichts Besseres gemessen
-ist. Der nächste Versuch steht gleich darunter: er greift nicht den Ton
-an, sondern den Bildschirm.
+gesperrtem Handy". Was stattdessen trägt, greift nicht den Ton an,
+sondern den Bildschirm: er bleibt an, und dann gibt es nichts, was
+den Ton abräumen könnte.
 
-### Versuch: bleibt der Bildschirm an? (`?versuch=wach`)
+### Bildschirm anlassen (seit 0.4.6 der Normalfall)
 
 Wake Lock gibt es im Saal nicht — die Seite kommt unter
 `http://10.0.0.1`, und das ist kein sicherer Kontext. Handys sperren
 nach 30 Sekunden bis 2 Minuten ohne Berührung, und dann endet der Ton.
-Der Versuch hält stattdessen ein winziges Video in Schleife: solange
-ein Video läuft, lassen viele Browser den Bildschirm an.
+
+Seit 0.4.6 hält die Hörerseite den Bildschirm **von selbst** an, ohne
+Zusatz in der Adresse: erst mit dem echten Wake Lock, wo es ihn gibt,
+sonst — oder wenn er abgelehnt wird oder verloren geht — mit einem
+kurzen Video mit stiller Tonspur in Schleife. Gestartet wird mit der
+**ersten Berührung** der Seite, nicht erst bei „Zuhören": wer nur
+mitliest, braucht den Bildschirm genauso. Bis 0.4.5 war das ein
+Versuch hinter `?versuch=wach`.
+
+Unter **Mehr** steht der Schalter **„Bildschirm anlassen"**, Vorgabe
+an, im Browser gemerkt. Aus heißt: kein Wake Lock, kein Video im
+Dokument.
 
 | | |
 |---|---|
-| `?versuch=wach` | einschalten, im Browser gemerkt |
-| `?versuch=aus` | wieder weg |
+| `?versuch=wach` | setzt den Schalter auf an (wie bisher) |
+| `?versuch=aus` | setzt den Schalter auf aus |
+| `?versuch=protokoll` | zeigt das Protokollkästchen; wird nicht gemerkt |
 
-**Ohne den Zusatz ändert sich nichts** — ohne ihn steht nicht einmal
-ein `video` im Dokument. Geprüft in `pruefstand/wachvideo_test.mjs`.
+Mehrere gehen zusammen: `?versuch=protokoll,aus`. Geprüft in
+`pruefstand/wachvideo_test.mjs`.
+
+> **Auf dem iPhone ist das ungetestet.** Wer dort Probleme hat —
+> Ton bricht ab, Akku leert sich auffällig, Fehlermeldung —, schaltet
+> unter **Mehr** aus und lässt den Bildschirm von Hand an, wie bis
+> 0.4.5.
 
 #### Woran der erste Anlauf scheiterte
 
@@ -1747,8 +1762,10 @@ Zeitmessung — für diesen Versuch ist es egal.)
    (Android: Einstellungen → Display → Bildschirm-Timeout).
 2. Am Rechner den Server wie oben starten und warten, bis am Pult
    Abschnitte durchlaufen.
-3. `http://<Adresse>:8000/?versuch=wach` öffnen, Sprache wählen,
-   **Zuhören** drücken. Es muss Text erscheinen und Ton kommen.
+3. `http://<Adresse>:8000/?versuch=protokoll` öffnen — **ohne**
+   `wach`, der Normalfall soll geprüft werden; `protokoll` zeigt nur
+   das Kästchen. Sprache wählen, **Zuhören** drücken. Es muss Text
+   erscheinen und Ton kommen.
 4. In der Leiste unten **zweimal auf „Dunkler"** tippen. Nach dem
    zweiten Mal steht dort **„Heller"** — das ist die dunkelste der
    zwei Stufen, und so würde ein Zuhörer im Gottesdienst sitzen.
@@ -1769,11 +1786,16 @@ Gerät.**
 
 Bleibt der Bildschirm an und der Ton hört trotzdem auf, dann liegt es
 nicht am Bildschirm. Bleibt der Bildschirm aus, steht im Protokoll,
-woran: unter der Textspalte aufklappen, **Versuch: Protokoll**. Dort
-stehen der Start des Videos, abgelehnte `play()`-Aufrufe und jeder
-Wechsel der Sichtbarkeit. Nichts davon geht an den Server.
+woran: unter der Textspalte aufklappen, **Versuch: Protokoll** (nur
+mit `?versuch=protokoll` zu sehen). Dort stehen die erste Geste, der
+Start des Videos, Erhalt, Ablehnung und Verlust des Wake Lock,
+abgelehnte `play()`-Aufrufe, jeder Wechsel der Sichtbarkeit und jedes
+Umlegen des Schalters. Nichts davon geht an den Server.
 
-#### Was der Versuch kostet
+Zum Schluss einmal **Mehr → Bildschirm anlassen** auf aus stellen:
+dann muss der Bildschirm nach 30 Sekunden ausgehen.
+
+#### Was es kostet
 
 **Korrigiert gegenüber der ersten Fassung dieses Abschnitts.** Dort
 stand, das Video sei „die kleinste Last, die ein Videodekoder

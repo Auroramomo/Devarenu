@@ -29,8 +29,11 @@ sound from the hall to your phone. **Please stay connected anyway.**
 
 ## If the sound stutters
 
-- **Keep the screen on.** Some phones stop playback when the screen
-  turns off.
+- **The screen stays on by itself.** Some phones stop playback when
+  the screen turns off — so the page keeps it on as soon as you have
+  tapped it once. You can switch this off under **More** → **Keep
+  screen on**. It has not been tried on an iPhone yet: if it causes
+  trouble there, switch it off and keep the screen on by hand.
 - **Dim the screen.** The screen has to stay on — it does not have to
   stay bright. The **Dimmer** button in the bar at the bottom darkens
   the page in two steps; sound and text carry on unchanged.

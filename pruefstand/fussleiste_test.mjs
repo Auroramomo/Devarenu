@@ -79,9 +79,10 @@ titel("2) Keine Funktion ist verloren");
 
 titel("3) Was unter Mehr steht");
 {
-  pruefe("die Urteilsknöpfe und die drei Zeilen",
+  // Seit 0.4.6 steht obenan der Schalter "Bildschirm anlassen".
+  pruefe("die Urteilsknöpfe, der Schalter und die drei Zeilen",
          ["mehr-titel", "urteil", "u-gut", "u-schwer",
-          "w-post", "rueckmeldung", "zurueck", "mehr-zu"],
+          "w-wach", "w-post", "rueckmeldung", "zurueck", "mehr-zu"],
          kennungen(MEHR));
   // Zurueck steht hier und nicht in der Leiste: es fuehrt beinahe
   // zum selben Ziel wie Sprache.
