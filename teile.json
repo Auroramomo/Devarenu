@@ -1,0 +1,398 @@
+{
+  "fassung": "0.4.1",
+  "hinweis": "Erzeugt von teile.py --erfassen. Nur Metadaten -- die Dateien selbst liegen nicht im Repo.",
+  "stimmen": [
+    "ar",
+    "cs",
+    "de",
+    "el",
+    "en",
+    "es",
+    "fa",
+    "fr",
+    "hu",
+    "it",
+    "ka",
+    "nl",
+    "pl",
+    "pt",
+    "ro",
+    "ru",
+    "sr",
+    "sw",
+    "tr",
+    "uk",
+    "vi"
+  ],
+  "whisper": "large-v3-turbo",
+  "sprachmodell": "gemma4:12b",
+  "bytes": 10546015187,
+  "teile": [
+    {
+      "art": "stimmen",
+      "pfad": "ar_JO-kareem-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "9e95cab07b679da603bba17c4dec7ab3111320571964ee95c0379603c086491e"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "ar_JO-kareem-medium.onnx.json",
+      "bytes": 5024,
+      "sha256": "ea6d9b9d9076dbdb6bf5c98c6a141ef154959d2359709b37855727964e7d6c4d"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "cs_CZ-jirka-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "cbd5c900acacc8e8cbecd64347abb8de39c00a9d3104bed06fee92e4f319efc8"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "cs_CZ-jirka-medium.onnx.json",
+      "bytes": 5025,
+      "sha256": "fb38b1799b7354808227c065efa97b1ffa2b0cde59505babb56a36d35af9c637"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "de_DE-thorsten-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "7e64762d8e5118bb578f2eea6207e1a35a8e0c30595010b666f983fc87bb7819"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "de_DE-thorsten-medium.onnx.json",
+      "bytes": 4819,
+      "sha256": "974adee790533adb273a1ac88f49027d2a1b8f0f2cf4905954a4791e79264e85"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "el_GR-rapunzelina-medium.onnx",
+      "bytes": 62950044,
+      "sha256": "3ca9fb3092215ee92edfc019b43feb0115ff4dfe638eb34474833ab1de840952"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "el_GR-rapunzelina-medium.onnx.json",
+      "bytes": 4973,
+      "sha256": "3a6182ec7c7550e14ef15e5d9badbb18f973a434086ac9658a1b10991fd192f8"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "en_US-lessac-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "5efe09e69902187827af646e1a6e9d269dee769f9877d17b16b1b46eeaaf019f"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "en_US-lessac-medium.onnx.json",
+      "bytes": 4885,
+      "sha256": "efe19c417bed055f2d69908248c6ba650fa135bc868b0e6abb3da181dab690a0"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "es_MX-claude-high.onnx",
+      "bytes": 63122309,
+      "sha256": "3ef40a71ea63852cd8ab7e6fa7d2ecdcfa67a0b47c9c48e3f10e02ee02083ea0"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "es_MX-claude-high.onnx.json",
+      "bytes": 4963,
+      "sha256": "1afc81f703c0e4cb3b4d7c0dca096b8b54a98806807f0170cf5eb5557723c12d"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "fa_IR-amir-medium.onnx",
+      "bytes": 63531379,
+      "sha256": "fb815380d969ea372b0b21b0de14421f58fe481047e153e69685d079b6e1a9d1"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "fa_IR-amir-medium.onnx.json",
+      "bytes": 4958,
+      "sha256": "75f918a3bf0f57a9179abe725af529f2a5c79d6c899e2a84aec76c685d5dfb9a"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "fr_FR-siwis-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "641d1ab097da2b81128c076810edb052b385decc8be3381814802a64a73baf99"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "fr_FR-siwis-medium.onnx.json",
+      "bytes": 4875,
+      "sha256": "39479916c2db192b5ac9764daddd0c744d83e023ad890c6976c0633ae4df8959"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "hu_HU-anna-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "968c0c3a66cb667811242cc88653bff9247395fc7a0517fbeef7d8c08cdae62a"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "hu_HU-anna-medium.onnx.json",
+      "bytes": 5018,
+      "sha256": "ccf967d8db8018c9d8ffdb0edc8814ffcb6b75273bb0d84337317240f710283a"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "it_IT-paola-medium.onnx",
+      "bytes": 63511038,
+      "sha256": "6fc918b5a0ea6137382833dddfa567bffbe6a5060c02043c87192ee59c04210c"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "it_IT-paola-medium.onnx.json",
+      "bytes": 7099,
+      "sha256": "aea19c0a7fce29fbc359b93f10e7902854401e4c95ae2ea328ae516b15d296cf"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "ka_GE-natia-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "04bdacf188fa24499885f9109b395fe8561a05ec2cd90d55453ec5beed7af460"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "ka_GE-natia-medium.onnx.json",
+      "bytes": 4842,
+      "sha256": "906436d0f8de79fcd65576470b10c7ea937c750f9b6b6dafc72a27cebd4a88f6"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "nl_NL-mls-medium.onnx",
+      "bytes": 76584246,
+      "sha256": "88312e0fbf505b87caf2373d94c1384892e86b1bf2ee482cf65dc8ba179cc7d3"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "nl_NL-mls-medium.onnx.json",
+      "bytes": 5856,
+      "sha256": "6ddb215d38f1392ab935ad45441b82ada1eeae0452a2d6849ed71ea4f2e0aa63"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "pl_PL-darkman-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "db505438a5364e8e2e0242c4324130a873ed660dfbe8d9689cef428ffb1b645f"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "pl_PL-darkman-medium.onnx.json",
+      "bytes": 4816,
+      "sha256": "70f999f11fa8ad13d3ef779041ee93c9f38be5abdbacdfad42449712fe91c81b"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "pt_BR-jeff-medium.onnx",
+      "bytes": 62950044,
+      "sha256": "3a6f4c46355813c2b7bbc4d16b6d13d60ed72074b952a393baace82a7d0c94b5"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "pt_BR-jeff-medium.onnx.json",
+      "bytes": 5041,
+      "sha256": "7bf8145b572b36806f5ce0f1d3322b6711975bc7d0473e8d36fced4a9ec0030d"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "ro_RO-mihai-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "e0608bbbd53c80267c09ece681b09f5199f54e792356684c8073738e5f15d29f"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "ro_RO-mihai-medium.onnx.json",
+      "bytes": 4877,
+      "sha256": "8cc0c9f077dc0cec3c25a6a055ec8046db8e40a2510591582f2c9c869f4bc47e"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "ru_RU-irina-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "8ff38212d23da300bbe3705c645e6e5b9475f0bfde01558eb17813e22acaaaaa"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "ru_RU-irina-medium.onnx.json",
+      "bytes": 4765,
+      "sha256": "c2ec28bb38e2b59e93b959b3e40348c1afebbd272f30fed5d41205d08e98a9d7"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "sr_RS-serbski_institut-medium.onnx",
+      "bytes": 76733615,
+      "sha256": "d7003890cf596e653f660a4fd97fd17f57f1eceb6d9727abad9cd76d2fda0d80"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "sr_RS-serbski_institut-medium.onnx.json",
+      "bytes": 4999,
+      "sha256": "39ad6531b46ac629c0bed10aa9205dd2431e2dab3808b8535808711db87c2bc0"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "sw_CD-lanfrica-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "1f195ed12ca5e7875114618e5f00207af364602e21ca78c8a6d3d7674f9259fa"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "sw_CD-lanfrica-medium.onnx.json",
+      "bytes": 4905,
+      "sha256": "5bd6f6ad659aa8f1f89f414e23a3df84fc753eb9c066e91fe86729da2ad4c1fc"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "tr_TR-dfki-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "2844717f524ab965d3fe86e60562cbb601d3e456836efcc2196cc3a14112a8fb"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "tr_TR-dfki-medium.onnx.json",
+      "bytes": 4960,
+      "sha256": "13ebd7810f1b61b5027583cf3131a0a233b6ea81c38f2200ebc4ff41c3cca039"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "uk_UA-ukrainian_tts-medium.onnx",
+      "bytes": 76735663,
+      "sha256": "7920419ac5f6fd8b6450520f24b52ed5a319cb53dd018fbcd71c9e079cbac84f"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "uk_UA-ukrainian_tts-medium.onnx.json",
+      "bytes": 2002,
+      "sha256": "4e96e72917ca9b94edc77d6ccfee03a73f450ba2fc1ca93c2e562bc014e5aa55"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "vi_VN-vais1000-medium.onnx",
+      "bytes": 63201294,
+      "sha256": "ec7c89e2c85f4d1edc24b6120c18aaf1bda614f06b511567eb9c7c0de15e2dab"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "vi_VN-vais1000-medium.onnx.json",
+      "bytes": 4860,
+      "sha256": "fafb9da1354ed4b77c31af228ed41fb41cd825c14cffa105454b25e6ae751ee0"
+    },
+    {
+      "art": "whisper",
+      "pfad": ".locks/models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/0351d1d6870005e865747b781b5d7c23ea0459cd.lock",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "art": "whisper",
+      "pfad": ".locks/models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/0adcd01e7c237205d593b707e66dd5d7bc785d2d.lock",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "art": "whisper",
+      "pfad": ".locks/models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/17456db595adc78a973f97d69d8cb50bc87c0b1c.lock",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "art": "whisper",
+      "pfad": ".locks/models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/931c77a740890c46365c7ae0c9d350ba3cca908f.lock",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "art": "whisper",
+      "pfad": ".locks/models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da.lock",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "art": "whisper",
+      "pfad": "CACHEDIR.TAG",
+      "bytes": 191,
+      "sha256": "f6572428f6d5e1575e73a1502895a8731f10757dfbb634909c6e154b849af91d"
+    },
+    {
+      "art": "whisper",
+      "pfad": "models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/blobs/0351d1d6870005e865747b781b5d7c23ea0459cd",
+      "bytes": 2263,
+      "sha256": "b0253ea6c0d3bea6b1e19e91a02acfd3b53f4467362efcb5a3e6b16c9b3a9b7e"
+    },
+    {
+      "art": "whisper",
+      "pfad": "models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/blobs/0adcd01e7c237205d593b707e66dd5d7bc785d2d",
+      "bytes": 1068114,
+      "sha256": "c69260f2ab26d659b7c398f9a2b2b48ed0df16c3b47d7326782fd9cba71690c1"
+    },
+    {
+      "art": "whisper",
+      "pfad": "models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/blobs/17456db595adc78a973f97d69d8cb50bc87c0b1c",
+      "bytes": 2710337,
+      "sha256": "297b13372ac43916285644fb9687add3cc62ee2a1adb60da3dc25cc94c1871fd"
+    },
+    {
+      "art": "whisper",
+      "pfad": "models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/blobs/931c77a740890c46365c7ae0c9d350ba3cca908f",
+      "bytes": 340,
+      "sha256": "7ccc62c6f2765af1f3b46c00c9b5894426835a05021c8b9c01eecb6dfb542711"
+    },
+    {
+      "art": "whisper",
+      "pfad": "models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/blobs/e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da",
+      "bytes": 1617884929,
+      "sha256": "e76620f83d5f5b69efd3d87e3dc180c1bd21df9fbebacfd4335e5e1efcc018da"
+    },
+    {
+      "art": "whisper",
+      "pfad": "models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/refs/main",
+      "bytes": 40,
+      "sha256": "a51a4d3dbd7708ff138ea428d7018c9295bd8f05a2e35d5866df2548c5ada64b"
+    },
+    {
+      "art": "whisper",
+      "pfad": "models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/trees/0a363e9161cbc7ed1431c9597a8ceaf0c4f78fcf.json",
+      "bytes": 950,
+      "sha256": "e6cf350df840724cae1965edb05400e3fadd976c7a4070d0082ae1c2e95e8065"
+    },
+    {
+      "art": "ollama",
+      "pfad": "manifests/registry.ollama.ai/library/gemma4/12b",
+      "bytes": 905,
+      "sha256": "4eb23ef187e2c5462566d6a1d3bbbc2f1346d0b4327cbb66d58fffbcc9b2b05c"
+    },
+    {
+      "art": "ollama",
+      "pfad": "blobs/sha256-1278394b693672ac2799eadc9a83fd98259a6a88a40acfb1dcaa6c6fc895a606",
+      "bytes": 7381382048,
+      "sha256": "1278394b693672ac2799eadc9a83fd98259a6a88a40acfb1dcaa6c6fc895a606"
+    },
+    {
+      "art": "ollama",
+      "pfad": "blobs/sha256-675ad6e68101ca9413ec806855c452362f0213f2dfc5800996b086fdb8119842",
+      "bytes": 175115584,
+      "sha256": "675ad6e68101ca9413ec806855c452362f0213f2dfc5800996b086fdb8119842"
+    },
+    {
+      "art": "ollama",
+      "pfad": "blobs/sha256-0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "bytes": 10174,
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+    },
+    {
+      "art": "ollama",
+      "pfad": "blobs/sha256-56380ca2ab89f1f68c283f4d50863c0bcab52ae3f1b9a88e4ab5617b176f71a3",
+      "bytes": 42,
+      "sha256": "56380ca2ab89f1f68c283f4d50863c0bcab52ae3f1b9a88e4ab5617b176f71a3"
+    },
+    {
+      "art": "ollama",
+      "pfad": "blobs/sha256-c805f5b265d8e695c44f4065dfc368206cd8026447604925fef8db57ee32ee23",
+      "bytes": 548,
+      "sha256": "c805f5b265d8e695c44f4065dfc368206cd8026447604925fef8db57ee32ee23"
+    }
+  ]
+}

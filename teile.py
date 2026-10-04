@@ -72,6 +72,96 @@ def orte():
     return o
 
 
+# ------------------------------------------------- Was dazugehoert
+#
+# Bis 0.4.1 nahm --erfassen schlicht ALLES, was unter voices/, models/
+# und in der Ollama-Ablage lag. Das ist der Grund, warum teile.json nie
+# im Repo stand, obwohl dieses Modul behauptet, sie stehe dort:
+#
+#   * voices/ traegt auf einem Entwicklungsrechner auch Stimmen, die
+#     gar nicht eingestellt sind -- die Kandidaten aus den Messungen
+#     von 0.4.0 zum Beispiel. Die haetten jeden Stick mitgeschleppt.
+#   * Die Ollama-Ablage ist ein gemeinsamer Ordner. Auf dem Rechner,
+#     auf dem erfasst wurde, lagen darin neun fremde Modelle mit rund
+#     150 GB. Eine teile.json daraus haette jedem, der ins Repo sieht,
+#     die Modellsammlung dieses Rechners aufgezaehlt.
+#
+# Darum wird jetzt nicht aufgesammelt, sondern aufgezaehlt: was in
+# config.STIMMEN steht, das Whisper-Modell aus config.WHISPER_MODELL
+# und genau das eine Sprachmodell aus config.LIVE_MODELL.
+
+
+def stimmdateien():
+    """Die Dateien der eingestellten Stimmen, relativ zu voices/.
+
+    Je Stimme zwei: das Netz und seine Beschreibung. Ohne die
+    Beschreibung laesst Piper sich nicht laden -- sie zu vergessen
+    ergibt eine Sprache, die am Pult waehlbar ist und stumm bleibt."""
+    namen = []
+    for sprache, pfad in sorted(config.STIMMEN.items()):
+        if not pfad:
+            continue
+        name = Path(pfad).name
+        namen.append((sprache, f"{name}.onnx"))
+        namen.append((sprache, f"{name}.onnx.json"))
+    return namen
+
+
+def ollama_dateien():
+    """Manifest und Blobs genau des Live-Modells, relativ zur Ablage.
+
+    Das Manifest nennt seine Blobs selbst. Es auszulesen ist der
+    einzige Weg, der nicht raet: Blobs tragen den Namen ihrer
+    Pruefsumme, und welche zu welchem Modell gehoeren, steht nirgends
+    sonst."""
+    ablage = ollama_ort()
+    if not ablage:
+        return []
+    ablage = Path(ablage)
+    name = config.LIVE_MODELL
+    if ":" in name:
+        modell, marke = name.split(":", 1)
+    else:
+        modell, marke = name, "latest"
+    # Ollama legt Manifeste unter registry/<ns>/<modell>/<marke> ab.
+    treffer = list(ablage.glob(f"manifests/*/*/{modell}/{marke}"))
+    if not treffer:
+        return []
+    manifest = treffer[0]
+    dateien = [str(manifest.relative_to(ablage))]
+    try:
+        d = json.loads(manifest.read_text(encoding="utf-8"))
+    except Exception:
+        return dateien
+    schichten = list(d.get("layers") or [])
+    if d.get("config"):
+        schichten.append(d["config"])
+    for s in schichten:
+        verdauung = str(s.get("digest", ""))
+        if not verdauung:
+            continue
+        # sha256:abcd... heisst als Datei sha256-abcd...
+        blob = ablage / "blobs" / verdauung.replace(":", "-")
+        if blob.is_file():
+            dateien.append(str(blob.relative_to(ablage)))
+    return dateien
+
+
+def sollteile():
+    """Was dazugehoert: (art, relativer Pfad). Ohne Platte zu lesen."""
+    soll = []
+    for _sprache, datei in stimmdateien():
+        soll.append(("stimmen", datei))
+    wurzel = orte()["whisper"]
+    if wurzel.is_dir():
+        for pfad in sorted(wurzel.rglob("*")):
+            if pfad.is_file() and not pfad.is_symlink():
+                soll.append(("whisper", str(pfad.relative_to(wurzel))))
+    for datei in ollama_dateien():
+        soll.append(("ollama", datei))
+    return soll
+
+
 def _puffer_laden():
     try:
         return json.loads(PUFFER.read_text(encoding="utf-8"))
@@ -107,35 +197,57 @@ def summe(pfad, puffer=None):
 
 
 def erfassen():
-    """Baut teile.json aus dem, was auf dieser Platte liegt."""
+    """Baut teile.json aus dem, was dazugehoert.
+
+    Aufgezaehlt, nicht aufgesammelt: siehe sollteile(). Fehlt etwas,
+    bricht es ab -- eine teile.json mit einer Luecke verspricht einer
+    Gemeinde eine Sprache, die auf ihrem Rechner stumm bleibt."""
     puffer = _puffer_laden()
+    o = orte()
     eintraege = []
-    for art, wurzel in orte().items():
-        if not wurzel.is_dir():
-            print(f"  {art}: {wurzel} gibt es nicht, uebersprungen")
+    fehlt = []
+    for art, rel in sollteile():
+        wurzel = o.get(art)
+        if wurzel is None:
+            fehlt.append(f"{art}/{rel} (kein Ablageort)")
             continue
-        n = 0
-        for pfad in sorted(wurzel.rglob("*")):
-            if not pfad.is_file() or pfad.is_symlink():
-                continue
-            eintraege.append({
-                "art": art,
-                "pfad": str(pfad.relative_to(wurzel)),
-                "bytes": pfad.stat().st_size,
-                "sha256": summe(pfad, puffer),
-            })
-            n += 1
-        print(f"  {art}: {n} Dateien unter {wurzel}")
+        pfad = wurzel / rel
+        if not pfad.is_file():
+            fehlt.append(f"{art}/{rel}")
+            continue
+        eintraege.append({
+            "art": art,
+            "pfad": rel,
+            "bytes": pfad.stat().st_size,
+            "sha256": summe(pfad, puffer),
+        })
     _puffer_speichern(puffer)
+    if fehlt:
+        print("  Es fehlt auf dieser Platte:")
+        for x in fehlt[:12]:
+            print(f"    {x}")
+        if len(fehlt) > 12:
+            print(f"    ... und {len(fehlt) - 12} weitere")
+        print("  teile.json NICHT geschrieben. Erst: bash einrichten.sh")
+        return 1
+    nach_art = {}
+    for e in eintraege:
+        nach_art[e["art"]] = nach_art.get(e["art"], 0) + 1
+    for art, n in sorted(nach_art.items()):
+        print(f"  {art}: {n} Dateien")
     gesamt = sum(e["bytes"] for e in eintraege)
     DATEI.write_text(json.dumps({
         "fassung": config.VERSION,
-        "hinweis": "Erzeugt von teile.py --erfassen. Die Dateien selbst "
-                   "liegen nicht im Repo.",
+        "hinweis": "Erzeugt von teile.py --erfassen. Nur Metadaten -- die "
+                   "Dateien selbst liegen nicht im Repo.",
+        "stimmen": sorted(sp for sp, p in config.STIMMEN.items() if p),
+        "whisper": config.WHISPER_MODELL,
+        "sprachmodell": config.LIVE_MODELL,
         "bytes": gesamt,
         "teile": eintraege,
     }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"\n{len(eintraege)} Teile, {gesamt / 1e9:.1f} GB -> {DATEI.name}")
+    return 0
 
 
 def laden():
@@ -276,6 +388,98 @@ def zusammensetzen(quellpfad, zielpfad, erwartet_sha, erwartet_bytes):
         return False, "sha256 stimmt nicht"
     zwischen.replace(zielpfad)
     return True, ""
+
+
+# Woher Stimmen notfalls nachkommen. Dieselbe Quelle wie in
+# einrichten.sh -- eine zweite Adresse waere eine zweite Stelle, an der
+# jemand sie aendern muesste.
+PIPER_BASIS = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
+
+
+def _stimmpfad(dateiname):
+    """Der Pfad im Piper-Vorrat zu einer Datei aus voices/.
+
+    voices/ ist flach, der Vorrat ist nach Sprache geschachtelt.
+    Umgerechnet wird ueber config.STIMMEN -- dort steht beides."""
+    stamm = dateiname.removesuffix(".json").removesuffix(".onnx")
+    for pfad in config.STIMMEN.values():
+        if pfad and Path(pfad).name == stamm:
+            return pfad + dateiname[len(stamm):]
+    return None
+
+
+def aus_dem_netz(nur_stimmen=True):
+    """Holt fehlende Stimmen aus dem Netz und prueft sie gegen teile.json.
+
+    Nur Stimmen. Das Sprachmodell und die Spracherkennung kommen ueber
+    den Stick: sie sind zusammen zehn Gigabyte, und ein Rechner, der
+    sie im Wartungsfenster zieht, haengt am naechsten Sonntag
+    womoeglich noch daran.
+
+    Geprueft wird gegen die sha256 aus teile.json, BEVOR die Datei an
+    ihren Platz kommt. Eine Stimme, die anders klingt als die
+    gemessene, ist keine Verbesserung, sondern eine Ueberraschung."""
+    erg = lage()
+    if erg is None:
+        print("  Keine teile.json -- nichts nachzuholen.")
+        return 0
+    fehlend, abweichend, _da = erg
+    noetig = [e for e in fehlend + abweichend
+              if e["art"] == "stimmen" or not nur_stimmen]
+    andere = [e for e in fehlend + abweichend if e["art"] != "stimmen"]
+    if andere:
+        print(f"  {len(andere)} Teile ausser Stimmen fehlen "
+              f"(Sprachmodell oder Spracherkennung). Die kommen nur ueber "
+              f"einen vollstaendigen Stick.")
+    if not noetig:
+        return 1 if andere else 0
+
+    import urllib.request
+    wurzel = orte()["stimmen"]
+    wurzel.mkdir(parents=True, exist_ok=True)
+    geholt, misslungen = 0, []
+    for e in noetig:
+        rel = _stimmpfad(e["pfad"])
+        if rel is None:
+            misslungen.append(f"{e['pfad']} (steht nicht in config.STIMMEN)")
+            continue
+        ziel = wurzel / e["pfad"]
+        zwischen = ziel.with_name(ziel.name + ".halb")
+        try:
+            with urllib.request.urlopen(f"{PIPER_BASIS}/{rel}",
+                                        timeout=120) as ein, \
+                    open(zwischen, "wb") as aus:
+                h = hashlib.sha256()
+                gesamt = 0
+                while True:
+                    b = ein.read(1 << 20)
+                    if not b:
+                        break
+                    aus.write(b)
+                    h.update(b)
+                    gesamt += len(b)
+        except Exception as fehler:
+            zwischen.unlink(missing_ok=True)
+            misslungen.append(f"{e['pfad']} ({type(fehler).__name__})")
+            continue
+        if gesamt != e["bytes"] or h.hexdigest() != e["sha256"]:
+            zwischen.unlink(missing_ok=True)
+            misslungen.append(f"{e['pfad']} (Pruefsumme stimmt nicht)")
+            continue
+        zwischen.replace(ziel)
+        geholt += 1
+        print(f"    {e['pfad']}: geholt, sha256 stimmt")
+    puffer = _puffer_laden()
+    for e in noetig:
+        puffer.pop(str(wurzel / e["pfad"]), None)
+    _puffer_speichern(puffer)
+    if misslungen:
+        print(f"  {len(misslungen)} Stimmen kamen nicht:")
+        for x in misslungen[:8]:
+            print(f"    {x}")
+        return 1
+    print(f"  {geholt} Stimmen nachgeholt")
+    return 1 if andere else 0
 
 
 def einspielen(quelle, sicherung):
@@ -483,11 +687,13 @@ def main():
     p.add_argument("--auf-stick", default="")
     p.add_argument("--von", default="")
     p.add_argument("--voll", action="store_true")
+    p.add_argument("--aus-dem-netz", action="store_true",
+                   dest="aus_dem_netz",
+                   help="fehlende Stimmen aus dem Piper-Vorrat holen")
     a = p.parse_args()
 
     if a.erfassen:
-        erfassen()
-        return 0
+        return erfassen()
     if a.pruefen:
         erg = lage()
         if erg is None:
@@ -499,6 +705,8 @@ def main():
         for e in (fehlend + abweichend)[:10]:
             print(f"    {e['art']}/{e['pfad']}")
         return 1 if (fehlend or abweichend) else 0
+    if a.aus_dem_netz:
+        return aus_dem_netz()
     if a.einspielen:
         if not a.quelle or not a.sicherung:
             sys.exit("--einspielen braucht --quelle und --sicherung")

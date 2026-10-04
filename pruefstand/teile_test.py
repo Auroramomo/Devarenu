@@ -24,14 +24,41 @@ schreib(platte / "ollama" / "manifests" / "gemma", "manifest-alt")
 teile.orte = lambda: {"whisper": platte / "whisper",
                       "stimmen": platte / "stimmen",
                       "ollama": platte / "ollama"}
+# Seit 0.4.2 sammelt erfassen() nicht mehr auf, sondern zaehlt auf:
+# was in config.STIMMEN steht, das Whisper-Modell und das eine
+# Sprachmodell. Hier steht die Aufzaehlung von Hand -- der Prueflauf
+# soll die Mechanik pruefen, nicht die Stimmenliste dieser Fassung.
+teile.sollteile = lambda: [
+    ("whisper", "modell.bin"),
+    ("stimmen", "de.onnx"),
+    ("ollama", "blobs/sha256-aaa"),
+    ("ollama", "manifests/gemma"),
+]
 teile.DATEI = ord_ / "teile.json"
 teile.PUFFER = ord_ / ".puffer.json"
 
 print("=== 1) erfassen")
-teile.erfassen()
+assert teile.erfassen() == 0
 d = json.loads(teile.DATEI.read_text())
 print("   Eintraege:", len(d["teile"]))
 assert len(d["teile"]) == 4
+
+print("=== 1b) erfassen schreibt NICHTS, wenn etwas fehlt")
+# Eine teile.json mit einer Luecke verspricht einer Gemeinde eine
+# Sprache, die auf ihrem Rechner stumm bleibt.
+vorher = teile.DATEI.read_text()
+teile.sollteile = lambda: [
+    ("whisper", "modell.bin"), ("stimmen", "de.onnx"),
+    ("ollama", "blobs/sha256-aaa"), ("ollama", "manifests/gemma"),
+    ("stimmen", "gibtsnicht.onnx"),
+]
+assert teile.erfassen() == 1
+assert teile.DATEI.read_text() == vorher
+print("   abgebrochen, die alte Datei steht unveraendert")
+teile.sollteile = lambda: [
+    ("whisper", "modell.bin"), ("stimmen", "de.onnx"),
+    ("ollama", "blobs/sha256-aaa"), ("ollama", "manifests/gemma"),
+]
 
 print("=== 2) pruefen: alles da")
 f, ab, da = teile.lage()
@@ -79,6 +106,71 @@ print("   nichts angefasst:", not (platte / "stimmen" / "fr.onnx").exists())
 print("=== 6) aufraeumen")
 teile.aufraeumen(sicherung)
 print("   Sicherung weg:", not sicherung.exists())
+
+# ================================================ A8 zu 0.4.2
+print("=== 7) Stick ohne Netz bringt eine fehlende Stimme mit")
+# Der Fall, um den es geht: ein Rechner, der Farsi eingeschaltet hat,
+# aber die Stimme nicht auf der Platte. Der Stick traegt sie, und ein
+# Update spielt sie ein -- ohne dass irgendwo eine Leitung liegt.
+d["teile"] = [e for e in d["teile"] if e["pfad"] != "fr.onnx"]
+d["teile"].append({"art": "stimmen", "pfad": "fa.onnx", "bytes": 9,
+                   "sha256": sha("stimme-fa")})
+teile.DATEI.write_text(json.dumps(d), encoding="utf-8")
+f, ab, da = teile.lage()
+assert any(e["pfad"] == "fa.onnx" for e in f), "fa.onnx muesste fehlen"
+print("   vorher fehlt fa.onnx")
+schreib(stick / "stimmen" / "fa.onnx", "stimme-fa")
+rc = teile.einspielen(stick, sicherung)
+print("   Rueckgabe:", rc)
+assert rc == 0
+assert (platte / "stimmen" / "fa.onnx").read_text() == "stimme-fa"
+print("   die Stimme liegt jetzt auf der Platte")
+
+print("=== 8) falsche Pruefsumme wird abgelehnt, nichts ersetzt")
+# Eine Stimme, die anders klingt als die gemessene, ist keine
+# Verbesserung, sondern eine Ueberraschung.
+d["teile"] = [e for e in d["teile"] if e["pfad"] != "de.onnx"]
+d["teile"].append({"art": "stimmen", "pfad": "de.onnx",
+                   "bytes": len("stimme-de-NEU"),
+                   "sha256": sha("stimme-de-NEU")})
+teile.DATEI.write_text(json.dumps(d), encoding="utf-8")
+# Der Stick traegt etwas mit der richtigen LAENGE, aber falschem Inhalt.
+schreib(stick / "stimmen" / "de.onnx", "stimme-de-XXX")
+assert len("stimme-de-XXX") == len("stimme-de-NEU")
+rc = teile.einspielen(stick, sicherung)
+print("   Rueckgabe:", rc, "(erwartet 1 -- nachgerechnet stimmt es nicht)")
+assert rc == 1
+f, ab, da = teile.lage()
+assert any(e["pfad"] == "de.onnx" for e in ab), \
+    "de.onnx muesste als abweichend dastehen"
+print("   de.onnx gilt weiter als abweichend, es wurde nichts bestaetigt")
+print("   das alte liegt in der Sicherung:",
+      (sicherung / "stimmen" / "de.onnx").read_text())
+assert (sicherung / "stimmen" / "de.onnx").read_text() == "stimme-de"
+
+print("=== 9) zusammengesetzte Stuecke mit falscher Summe ersetzen nichts")
+gut_inhalt = "stimme-ru" * 20
+d["teile"] = [e for e in d["teile"] if e["pfad"] != "de.onnx"]
+d["teile"].append({"art": "stimmen", "pfad": "ru.onnx",
+                   "bytes": len(gut_inhalt), "sha256": sha(gut_inhalt)})
+teile.DATEI.write_text(json.dumps(d), encoding="utf-8")
+schreib(platte / "stimmen" / "ru.onnx", "ru-ALT")
+boese = ("x" * len(gut_inhalt))
+ziel = stick / "stimmen" / "ru.onnx"
+ziel.parent.mkdir(parents=True, exist_ok=True)
+for st in teile.stuecke_von(ziel):
+    st.unlink()
+teile.stueckeln_quelle = None
+(ziel.parent / "ru.onnx.teil00").write_text(boese[:100], encoding="utf-8")
+(ziel.parent / "ru.onnx.teil01").write_text(boese[100:], encoding="utf-8")
+ziel.unlink(missing_ok=True)
+rc = teile.einspielen(stick, sicherung)
+print("   Rueckgabe:", rc, "(erwartet 1)")
+assert rc == 1
+print("   das alte ru.onnx wurde nicht durch Unsinn ersetzt:",
+      not (platte / "stimmen" / "ru.onnx").exists()
+      or (platte / "stimmen" / "ru.onnx").read_text() == "ru-ALT")
+
 print("\nalle Faelle wie erwartet.")
 
 

@@ -95,10 +95,29 @@ echo   [ok]  Neueste Fassung: %TAG%
 
 REM -------------------------------------- braucht sie grosse Teile?
 REM  teile.json nennt Sprachmodell, Spracherkennung und Stimmen. Die
-REM  liegen NICHT im Projekt -- zusammen sind es rund vierzehn
-REM  Gigabyte. Ist die Datei da, reicht dieser Stick nicht.
-git -C "%QUELLE%" cat-file -e "%TAG%:teile.json" 2>nul
-if not errorlevel 1 (
+REM  liegen NICHT im Projekt -- zusammen sind es rund zehn Gigabyte.
+REM
+REM  Bis 0.4.1 galt: teile.json da, also reicht dieser Stick nicht.
+REM  Seit 0.4.2 steht sie IMMER im Repo -- ein Rechner ohne Internet
+REM  soll bei jedem Update sehen koennen, was dazugehoert. Die Frage
+REM  ist darum nicht mehr, OB es sie gibt, sondern ob sie sich
+REM  GEAENDERT hat. Verglichen wird mit der Fassung davor: bleibt an
+REM  den grossen Teilen alles gleich, reicht ein Stick mit Code.
+set "VORTAG="
+for /f "delims=" %%t in ('git -C "%QUELLE%" tag --list "v*" --sort^=-v:refname') do (
+  if not "%%t"=="%TAG%" if not defined VORTAG set "VORTAG=%%t"
+)
+set "TEILE_NEU="
+if defined VORTAG (
+  git -C "%QUELLE%" diff --quiet "%VORTAG%" "%TAG%" -- teile.json 2>nul
+  if errorlevel 1 set "TEILE_NEU=ja"
+) else (
+  REM  Keine Vorgaengerfassung: dann ist es die erste, und die
+  REM  bringt alles mit.
+  git -C "%QUELLE%" cat-file -e "%TAG%:teile.json" 2>nul
+  if not errorlevel 1 set "TEILE_NEU=ja"
+)
+if defined TEILE_NEU (
   echo.
   echo   ================================================
   echo    Dieser Weg reicht fuer dieses Update nicht.

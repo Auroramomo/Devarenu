@@ -26,9 +26,11 @@ tippt sie genauso.
   (kein DHCP, kein Router). Die Adressen verteilt Devarenu selbst.
 - Mikrofon am Pult. Getestet mit einem Behringer UMC202HD am
   Mischpultausgang.
-- Für die Einrichtung: eine Internetleitung. **Im Betrieb braucht der
-  Rechner keine.**
-- Ein USB-Stick (8 GB) und eine tragbare Platte für die Sicherung.
+- Für die Einrichtung: eine Internetleitung — **oder** ein voller
+  Stick, siehe unten. **Im Betrieb braucht der Rechner keine.**
+- Ein USB-Stick und eine tragbare Platte für die Sicherung. Für den
+  vollen Weg ohne Internet braucht der Stick **32 GB**; für den Weg
+  mit Leitung genügen 8 GB.
 
 **Angaben von der Gemeinde** — ohne die kommt man an zwei Stellen nicht
 weiter:
@@ -76,7 +78,39 @@ bash INSTALLIEREN.sh
 ```
 
 Das dauert; es lädt Python-Pakete, das Spracherkennungsmodell, die
-Stimmen und das Übersetzungsmodell. Mehrere Gigabyte.
+Stimmen und das Übersetzungsmodell. Rund zehn Gigabyte.
+
+### Ohne Internet: alles vom Stick
+
+Hat der Raum keine Leitung, bringt ein **voller Stick** dieselben
+Dateien mit. Gebaut wird er dort, wo eine Leitung liegt:
+
+```fish
+bash stick_bauen.sh /pfad/zum/stick --voll
+```
+
+Er trägt dann `teile/` mit allem, was `teile.json` nennt: jede Stimme
+aus `config.STIMMEN`, die Spracherkennung und das Sprachmodell. Auf
+dem neuen Rechner, nach `INSTALLIEREN.sh`:
+
+```fish
+.venv/bin/python teile.py --einspielen \
+    --quelle /pfad/zum/stick/teile --sicherung /tmp/devarenu-teile
+```
+
+Eingespielt wird nur, was fehlt oder abweicht, und jedes Stück wird
+gegen seine `sha256` geprüft, **bevor** etwas ersetzt wird. Stimmt
+eine nicht, bleibt alles, wie es war.
+
+> **Kontrolle: alle Stimmen da?**
+> ```fish
+> .venv/bin/python teile.py --pruefen
+> ```
+> Muss sagen: *… stimmen, 0 fehlen, 0 weichen ab*. Steht dort eine
+> Zahl über null, nennt die Ausgabe, welche Datei es betrifft. Eine
+> fehlende Stimme heißt: diese Sprache läuft am Sonntag als Untertitel,
+> ohne Ton — und steht danach am Pult unter *Einrichtung →
+> Fehlersuche*.
 
 > **Kontrolle**
 > ```fish

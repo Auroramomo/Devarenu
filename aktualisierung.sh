@@ -204,9 +204,24 @@ gut "auf $(als_benutzer git rev-parse --short HEAD) vorgespult"
 
 # --------------------------------------------------------- Grosse Teile
 # teile.json nennt, was an Modellen, Stimmen und Paketen dazugehoert --
-# mit Groesse und Pruefsumme. Fehlt die Datei, ist es ein Update ohne
-# grosse Teile, und das ist der Normalfall.
-if [ -f "$ORDNER/teile.json" ]; then
+# mit Groesse und Pruefsumme.
+#
+# Seit 0.4.2 steht sie IMMER im Repo. Bis dahin hiess "Datei da" so
+# viel wie "dieses Update bringt grosse Teile mit"; jetzt heisst es
+# nur noch "so soll dieser Rechner aussehen". Entschieden wird darum
+# am Stick, nicht an der Datei:
+#
+#   Stick mit teile/   -> einspielen wie bisher, Fehler ist Abbruch.
+#   Ohne teile/        -> das ist ein Update ueber das Netz oder ein
+#                         Code-Stick. Fehlende STIMMEN werden aus dem
+#                         Piper-Vorrat nachgeholt, gegen die sha256
+#                         geprueft. Geht das nicht, ist es KEIN
+#                         Abbruch: der Code ist richtig eingespielt,
+#                         und die fehlende Stimme steht danach als
+#                         Befund am Pult (systemcheck: stimme_fehlt).
+#                         Ein Update abzubrechen, weil eine Stimme
+#                         fehlt, waere der schlechtere Tausch.
+if [ -f "$ORDNER/teile.json" ] && [ -d "$NUTZLAST/teile" ]; then
   blau "Grosse Teile"
   if ! als_benutzer "$PY_AKTIV" "$ORDNER/teile.py" --einspielen \
        --quelle "$NUTZLAST/teile" --sicherung "$SICHERUNG/teile"; then
@@ -215,6 +230,20 @@ if [ -f "$ORDNER/teile.json" ]; then
     exit 1
   fi
   gut "grosse Teile vollstaendig"
+elif [ -f "$ORDNER/teile.json" ]; then
+  blau "Grosse Teile"
+  if als_benutzer "$PY_AKTIV" "$ORDNER/teile.py" --pruefen >/dev/null 2>&1; then
+    gut "grosse Teile vollstaendig"
+  else
+    info "Es fehlen grosse Teile. Stimmen werden aus dem Netz geholt."
+    if als_benutzer "$PY_AKTIV" "$ORDNER/teile.py" --aus-dem-netz; then
+      gut "grosse Teile vollstaendig"
+    else
+      warn "Nicht alle grossen Teile sind da. Das Update laeuft trotzdem"
+      warn "durch -- was fehlt, steht danach am Pult unter Fehlersuche."
+      melden "Nach dem Update fehlen grosse Teile (Stimmen oder Modell)."
+    fi
+  fi
 else
   gut "keine grossen Teile in dieser Fassung"
 fi

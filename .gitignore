@@ -75,3 +75,9 @@ meldung-offen.txt
 # Die Marke fuer den Testmodus. Sie gehoert auf die Testmaschine und
 # nirgends sonst -- und darf mit keinem Update mitwandern.
 TESTMODUS
+
+# Der Zwischenspeicher der Pruefsummen von teile.py. Er merkt sich, was
+# schon gerechnet wurde, und nennt dafuer VOLLE Pfade -- auf einem
+# Entwicklungsrechner also auch die Ollama-Ablage ausserhalb des
+# Projekts. Er gehoert nirgendwo hin ausser auf diese Platte.
+.teile-pruefsummen.json

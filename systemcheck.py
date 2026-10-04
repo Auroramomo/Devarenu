@@ -1101,6 +1101,48 @@ def _ordner(befunde):
             tun_en="Inspect with git diff, then: git checkout -- <file>"))
 
 
+def _stimmen(befunde):
+    """Liegt zu jeder eingeschalteten Sprache auch ihre Stimme da?
+
+    Bis 0.4.1 stand das nur im Journal. Eine Gemeinde schaltet Farsi
+    ein, am Pult steht Farsi, und am Sonntag kommt Text ohne Ton --
+    gemerkt hat es niemand, weil niemand das Journal liest.
+
+    Gewaehlt heisst eingeschaltet, nicht moeglich: dass fuer Georgisch
+    keine Stimme daliegt, geht eine Gemeinde nichts an, die Georgisch
+    nicht anbietet."""
+    import zustand as zustandsdatei
+    try:
+        stand = zustandsdatei.laden()[0]
+    except Exception:
+        return
+    gewaehlt = [stand.get("quelle") or config.AUSGANGSSPRACHE]
+    gewaehlt += list(stand.get("ziele") or [])
+    ordner = config.BASIS / "voices"
+    fehlend = []
+    for sprache in dict.fromkeys(gewaehlt):
+        pfad = config.STIMMEN.get(sprache)
+        if not pfad:
+            continue            # Sprache ohne Stimme laeuft als Untertitel
+        name = Path(pfad).name
+        if not (ordner / f"{name}.onnx").is_file() \
+                or not (ordner / f"{name}.onnx.json").is_file():
+            fehlend.append(sprache)
+    if not fehlend:
+        return
+    liste = ", ".join(sorted(fehlend))
+    befunde.append(Befund(
+        "stimme_fehlt", FEHLT,
+        f"Zu {liste} ist die Stimme nicht da. Diese Sprache laeuft am "
+        f"Sonntag als Untertitel, ohne Ton.",
+        "Vom Stick:  python teile.py --einspielen --quelle <Stick>/teile "
+        "--sicherung /tmp/devarenu-teile    oder mit Netz: bash einrichten.sh",
+        was_en=f"The voice for {liste} is missing. That language will "
+               f"run as subtitles only, without sound.",
+        tun_en="From the stick: python teile.py --einspielen ... "
+               "or with a connection: bash einrichten.sh"))
+
+
 def pruefen():
     """Alle Befunde, schwerste zuerst. Leere Liste heisst: alles gut."""
     import netzzustand
@@ -1120,6 +1162,7 @@ def pruefen():
     _onlineupdate(befunde)
     _testmodus(befunde)
     _vorrat(befunde)
+    _stimmen(befunde)
     _units_veraltet(befunde)
     _stick(befunde)
     befunde.sort(key=lambda b: 0 if b.schwere == FEHLT else 1)

@@ -360,20 +360,45 @@ fi
 
 # --------------------------------------------------------------- Stimmen
 blau "Stimmen"
-if [ -d voices ] && [ -n "$(ls -A voices 2>/dev/null)" ]; then
-  rm -rf "$ZIEL/voices"; mkdir -p "$ZIEL/voices"
-  cp -a voices/. "$ZIEL/voices/"
-  gut "$(find "$ZIEL/voices" -name '*.onnx' | wc -l) Stimmen, $(du -sh "$ZIEL/voices" | cut -f1)"
-  ERWARTET="$("$PY" -c 'import config; print(len([p for p in config.STIMMEN.values() if p]))')"
-  DA="$(find "$ZIEL/voices" -name '*.onnx' | wc -l)"
-  if [ "$DA" -lt "$ERWARTET" ]; then
-    warn "config.py nennt $ERWARTET Stimmen, gesichert sind $DA."
-    warn "Erst bash einrichten.sh laufen lassen, dann diesen Vorrat neu bauen."
-  fi
-else
-  fehl "voices/ ist leer. Erst bash einrichten.sh laufen lassen."
+# Nicht "alles aus voices/": auf einem Entwicklungsrechner liegen dort
+# auch Stimmen, die gar nicht eingestellt sind -- die Kandidaten aus
+# den Messungen zum Beispiel. Gesichert wird, was teile.json nennt,
+# und das ist genau config.STIMMEN. Fehlt eine, bricht es ab: ein
+# Vorrat mit einer Luecke ist schlimmer als keiner, weil niemand
+# nachsieht, bevor er ihn braucht.
+if [ ! -f teile.json ]; then
+  fehl "teile.json fehlt. Erst erfassen:  python teile.py --erfassen"
   exit 1
 fi
+rm -rf "$ZIEL/voices"; mkdir -p "$ZIEL/voices"
+if ! "$PY" - "$ZIEL/voices" <<'PYCODE'
+import json, shutil, sys
+from pathlib import Path
+ziel = Path(sys.argv[1])
+d = json.loads(Path("teile.json").read_text(encoding="utf-8"))
+fehlt = []
+n = 0
+for e in d["teile"]:
+    if e["art"] != "stimmen":
+        continue
+    quelle = Path("voices") / e["pfad"]
+    if not quelle.is_file():
+        fehlt.append(e["pfad"]); continue
+    shutil.copy2(quelle, ziel / e["pfad"])
+    n += 1
+if fehlt:
+    print("FEHLT: " + ", ".join(fehlt[:6])
+          + (f" und {len(fehlt)-6} weitere" if len(fehlt) > 6 else ""))
+    sys.exit(1)
+print(f"{n} Dateien")
+PYCODE
+then
+  fehl "Stimmen aus teile.json fehlen in voices/."
+  info "  bash einrichten.sh      holt sie aus dem Netz"
+  info "  python teile.py --pruefen   sagt, welche"
+  exit 1
+fi
+gut "$(find "$ZIEL/voices" -name '*.onnx' | wc -l) Stimmen, $(du -sh "$ZIEL/voices" | cut -f1)"
 
 # -------------------------------------------------------- Whisper-Modell
 blau "Spracherkennung"

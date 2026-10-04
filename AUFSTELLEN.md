@@ -2373,10 +2373,19 @@ Bei jeder Fassung:
       ```
       python teile.py --erfassen
       ```
-      und `teile.json` mit einchecken. Sonst **nicht** — eine
-      `teile.json` im Tag bedeutet für die Windows-Batch-Datei, dass
-      der Stick auf diesem Weg nicht vollständig gebaut werden kann.
-      Sie bricht dann ab und verweist auf einen fertigen Stick.
+      und `teile.json` mit einchecken.
+
+      **Seit 0.4.2 steht `teile.json` immer im Repo** — ein Rechner
+      ohne Internet soll bei jedem Update sehen können, was
+      dazugehört. Sie wird aus `config.STIMMEN`, `WHISPER_MODELL` und
+      `LIVE_MODELL` aufgezählt, nicht aus dem aufgesammelt, was gerade
+      unter `voices/` liegt: auf einem Entwicklungsrechner liegen dort
+      auch Stimmen, die niemand eingestellt hat.
+
+      Die Windows-Batch-Datei fragt deshalb nicht mehr, **ob** es die
+      Datei gibt, sondern ob sie sich gegenüber der Vorgängerfassung
+      **geändert** hat. Nur dann reicht ihr Weg nicht und sie verweist
+      auf `stick_bauen.sh --voll`.
 - [ ] `git status` muss schweigen, bevor getaggt wird.
 - [ ] Signierter Tag, dann Stick bauen:
       ```
