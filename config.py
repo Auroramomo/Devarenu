@@ -30,7 +30,7 @@ except OSError:
 # Umschalten, mit werkzeuge/glossar_vergleich.py ueber 1444 Texte:
 # en, ru, fa und der Whisper-Prompt kommen Zeichen fuer Zeichen gleich
 # heraus.
-GLOSSAR_CSV = BASIS / "glossar_v0.9.csv"
+GLOSSAR_CSV = BASIS / "glossar_v1.0.csv"
 TESTSAETZE_CSV = BASIS / "testsaetze_v0.3.csv"
 ERGEBNIS_ORDNER = BASIS / "ergebnisse"
 
@@ -209,11 +209,36 @@ PAUSE_KOMMA_MS = {
 # von 0.3.6 beruhte auf einer Messung, die eine Frage beantwortete,
 # die niemand gestellt hatte -- und ist seit 0.3.7 zurueckgenommen.
 #
+# ENGLISCH UND RUSSISCH KAMEN MIT 0.4.2 DAZU.
+#
+# Sie standen bis dahin nicht hier, und das war aus zwei Gruenden
+# halb richtig und halb falsch:
+#
+#   richtig  Das Modell schreibt in beiden Sprachen ohnehin meist
+#            einen Doppelpunkt -- gemessen en 7 von 7, ru 5 von 7
+#            (messungen/bibelstellen_trenner.json). Eine Anweisung
+#            war dafuer nicht noetig.
+#   falsch   Die Umrechnung aus 0.4.0 gab die fertige Zielangabe vor,
+#            und ohne Eintrag hier galt dabei das deutsche Komma.
+#            Im Prompt stand dann "Joel 2,28", waehrend das Modell
+#            nebenan "Joel 2:28" schrieb. Zwei Schreibweisen in
+#            demselben Prompt sind eine Einladung, die falsche zu
+#            nehmen -- und bei den 2 von 7 russischen Faellen mit
+#            Komma war genau das zu sehen.
+#
+# Englisch: "John 3:16" ist die Schreibweise jeder englischen Bibel.
+# Russisch: die Synodaluebersetzung schreibt "Ин. 3:16", Doppelpunkt
+# zwischen Kapitel und Vers -- so auf azbyka.ru, bible.by und in der
+# Uebersicht der russischen Wikipedia zu den Buchabkuerzungen. Die
+# Messung passt dazu.
+#
 # Die uebrigen Sprachen sind NICHT geprueft. Wer eine dazunimmt,
 # misst erst und traegt dann ein.
 STELLEN_TRENNER = {
+    "en": ":",
     "es": ":",
     "pt": ":",
+    "ru": ":",
 }
 
 # ----------------------------------------------------------------- Anrede

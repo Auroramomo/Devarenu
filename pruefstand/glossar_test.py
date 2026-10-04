@@ -37,7 +37,7 @@ sys.path.insert(0, str(WURZEL / "werkzeuge"))
 
 import config                                        # noqa: E402
 from glossar import Glossar, glossarzeilen, sprachen_aus_kopf  # noqa: E402
-from glossar_vergleich import vergleichen            # noqa: E402
+from glossar_vergleich import vergleichen, vergleichen_ausser  # noqa: E402
 
 GRUEN, ROT, AUS = "\033[32m", "\033[31m", "\033[0m"
 FEHLER = 0
@@ -62,13 +62,22 @@ def lies(pfad):
 
 
 ALT = WURZEL / "glossar_v0.4.csv"
-NEU = WURZEL / "glossar_v0.9.csv"
+# Die aktive Fassung, nicht eine fest eingetragene. Bis 0.4.1 stand
+# hier "glossar_v0.9.csv" -- und jede neue Fassung liess diesen
+# Prüflauf fallen, obwohl an ihr nichts falsch war. Was zu prüfen ist,
+# ist nicht die Nummer, sondern dass die aktive Datei wirklich daliegt
+# und dass die Vorgängerin nicht verschwindet.
+NEU = config.GLOSSAR_CSV
 
 titel("1) Die aktive Fassung ist die, die geprüft wurde")
 
-pruefe("config zeigt auf v0.9", "glossar_v0.9.csv", config.GLOSSAR_CSV.name)
+pruefe("config zeigt auf eine Glossardatei", True,
+       config.GLOSSAR_CSV.name.startswith("glossar_v")
+       and config.GLOSSAR_CSV.name.endswith(".csv"))
 pruefe("die Datei liegt da", True, NEU.exists())
 pruefe("die alte Fassung bleibt liegen", True, ALT.exists())
+pruefe("die Vorgängerfassung liegt auch noch da", True,
+       (WURZEL / "glossar_v0.9.csv").exists())
 
 g = Glossar.laden(NEU)
 pruefe("es ist eine Zielsprache", True, "es" in g.sprachen)
@@ -84,8 +93,24 @@ titel("2) en, ru und fa sind unverändert -- der Vergleichslauf")
 # Derselbe Vergleich, den werkzeuge/glossar_vergleich.py von Hand
 # macht. Er gehoert hierher, damit er bei JEDER kuenftigen Fassung
 # wieder laeuft und nicht nur einmal lief.
-abweichungen = vergleichen(ALT, NEU, ["en", "ru", "fa"])
-pruefe("keine Sprache hat sich geändert", 0, abweichungen)
+# AUSDRUECKLICH ERLAUBT, mit Begruendung.
+#
+# Eine Suchvariante darf en, ru und fa aendern -- aber nur dort, wo
+# genau sie greift, und nur so, dass der Begriff danach BESSER steht.
+# Jede andere Abweichung bleibt ein Fehler.
+#
+#   "Geist der Weissagung" (0.4.2, an D009)
+#       Vorher griff nur das kuerzere "Prophetie" und gab
+#       "Prophetie = prophecy" vor. Jetzt steht der ganze Begriff da:
+#       "Geist der Prophetie = Spirit of Prophecy". Das ist der Zweck
+#       der Variante.
+ERLAUBT = ["Geist der Weissagung"]
+abweichungen, fremd = vergleichen_ausser(ALT, NEU, ["en", "ru", "fa"],
+                                         ERLAUBT)
+pruefe("keine Sprache hat sich unerlaubt geändert", 0, fremd)
+if abweichungen:
+    print(f"        ({abweichungen} erlaubte Abweichung(en), "
+          f"alle an: {', '.join(ERLAUBT)})")
 
 titel("3) Die v0.4-Spalten sind Zeichen für Zeichen gleich")
 
@@ -96,7 +121,22 @@ unterschiede = [
     (i, k) for i in alt_zeilen for k in spalten_alt
     if (alt_zeilen[i].get(k) or "") != (neu_zeilen.get(i, {}).get(k) or "")
 ]
-pruefe("keine alte Zelle angefasst", [], unterschiede)
+# Suchvarianten duerfen wachsen -- das ist der Weg, eine Zeile besser
+# zu treffen, ohne ihre Uebersetzungen anzufassen. Eine Uebersetzung
+# zu aendern bleibt verboten: sie ist von einem Muttersprachler
+# gegengelesen, und wer sie still ersetzt, nimmt dem Gegenlesen den
+# Sinn.
+gewachsen = [
+    (i, k) for i, k in unterschiede
+    if k == "suchvarianten"
+    and set(filter(None, (alt_zeilen[i].get(k) or "").split("|")))
+        <= set(filter(None, (neu_zeilen[i].get(k) or "").split("|")))
+]
+pruefe("keine alte Zelle angefasst ausser gewachsenen Suchvarianten",
+       [], [x for x in unterschiede if x not in gewachsen])
+if gewachsen:
+    print("        (Suchvarianten ergaenzt: "
+          + ", ".join(i for i, _ in gewachsen) + ")")
 pruefe("keine alte Zeile verschwunden", [],
        [i for i in alt_zeilen if i not in neu_zeilen])
 

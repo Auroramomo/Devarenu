@@ -75,6 +75,31 @@ def korpus(pfade):
     return saetze
 
 
+def vergleichen_ausser(alt_pfad, neu_pfad, sprachen, erlaubt=()):
+    """(erlaubte, fremde) Abweichungen -- ohne Ausgabe.
+
+    erlaubt ist eine Liste deutscher Formen. Eine Abweichung gilt als
+    erlaubt, wenn der geprüfte Text eine davon enthält: dann ist genau
+    die neue Suchvariante der Grund, und das war der Zweck.
+
+    Gedacht für den Prüfstand. Eine neue Fassung soll an en, ru und fa
+    nichts ändern -- ausser dort, wo jemand es ausdrücklich wollte und
+    aufgeschrieben hat."""
+    alt = Glossar.laden(alt_pfad)
+    neu = Glossar.laden(neu_pfad)
+    erlaubte, fremde = 0, 0
+    for text in korpus([alt_pfad, neu_pfad]):
+        for sp in sprachen:
+            if glossarzeilen(alt.finde(text), sp) \
+                    == glossarzeilen(neu.finde(text), sp):
+                continue
+            if any(e.lower() in text.lower() for e in erlaubt):
+                erlaubte += 1
+            else:
+                fremde += 1
+    return erlaubte, fremde
+
+
 def vergleichen(alt_pfad, neu_pfad, sprachen, zeigen=12):
     alt = Glossar.laden(alt_pfad)
     neu = Glossar.laden(neu_pfad)
