@@ -140,6 +140,33 @@ hebräischer Ausdruck.
 **Es gibt keinen Rückfall.** Fällt eine Komponente aus, steht die
 Übersetzung still. Eine erfundene Übersetzung wäre schlimmer als keine.
 
+**Ton bei gesperrtem Handy: der Hinweis bleibt, zwei Versuche sind
+gescheitert.** Die Hörerseite sagt „Bildschirm anlassen, sonst stoppt
+die Wiedergabe". Das ist kein ungelöster Rest, sondern der Stand nach
+zwei Versuchen auf echten Geräten.
+
+Versucht wurde, das `audio`-Element nie leer werden zu lassen — erst
+mit einer Sekunde Stille in Schleife (0.4.2), dann mit einem
+durchgehenden MP3-Strom je Sprache vom Server (0.4.4). Die Stille half
+nicht: jedes Ende eines Mediums räumt dem Browser die Tonsitzung ab,
+und davon gab es im Sekundentakt eines. Der Strom lief serverseitig
+einwandfrei und scheiterte am Puffer im Browser. Gefordert sind
+höchstens 0,5 Sekunden Abstand zum Live-Punkt; gemessen auf einem
+Galaxy Z Fold 7 nahm sich Chrome von selbst 2 bis 3 Sekunden und lief
+bei 0,4 Sekunden regelmäßig leer, Firefox nahm sich 6 Sekunden Vorrat
+und blieb bei 3 bis 6.
+
+**Mit einem gewöhnlichen `audio`-Element steuert der Browser den
+Puffer, nicht wir.** Eine Quelle angeben und das Tempo verstellen ist
+alles, was geht; wie viel vorgehalten wird und wann von selbst
+aufgepuffert wird, entscheidet der Browser. Deshalb ist beides
+ausgebaut. Die Zahlen stehen in `messungen/tonstrom_verzoegerung.json`,
+die Begründung in `AENDERUNGEN.md` unter 0.4.4, der offene Weg nach
+1.0 in `FAHRPLAN-1.0.md`.
+
+Was ein Zuhörer stattdessen hat: der Bildschirm muss anbleiben, darf
+aber dunkel sein — ein Knopf unten dimmt die Seite in zwei Stufen.
+
 ## Dauerbetrieb
 
 Auf dem Rechner in der Gemeinde meldet sich niemand an. Dafür gibt es

@@ -585,6 +585,46 @@ in eine spätere Fassung.
 
 ---
 
+## Nach 1.0
+
+Kein Teil von 1.0 und kein Blocker. Hier stehen Wege, die **erprobt und
+verworfen** wurden, damit niemand sie ein zweites Mal geht — und was an
+ihnen noch offen ist.
+
+### Ton bei gesperrtem Handy: ein eigener Abspieler
+
+**Stand:** Die Hörerseite sagt „Bildschirm anlassen". Zwei Versuche,
+das zu beheben, sind auf echten Geräten gescheitert — der Stille-Füller
+(0.4.2) und der durchgehende MP3-Strom (0.4.4). Beides ist ausgebaut.
+Die Messwerte stehen in `messungen/tonstrom_verzoegerung.json`, die
+Begründung in `AENDERUNGEN.md` unter 0.4.4.
+
+**Warum es scheiterte:** Mit einem gewöhnlichen `audio`-Element
+steuert der Browser den Puffer, nicht wir. Gefordert sind höchstens
+0,5 Sekunden Abstand zum Live-Punkt; auf einem Galaxy Z Fold 7 nahm
+sich Chrome von selbst 2 bis 3 Sekunden, Firefox 3 bis 6.
+
+**Was noch möglich wäre:** ein eigener Abspieler mit **Media Source
+Extensions**. Dann liegt die Pufferführung bei uns: Häppchen werden in
+einen `SourceBuffer` geschoben, und wie weit der Ton hinter dem
+Live-Punkt läuft, ist eine Zahl in unserem Code statt eine Entscheidung
+des Browsers. Serverseitig ist die Arbeit getan — der Koder war
+gemessen und kostete nichts.
+
+**Offen daran, beides nicht beantwortet:**
+
+* Ob MSE mit gesperrtem Bildschirm überhaupt weiterspielt. Das ist
+  genau die Frage, an der die beiden Versuche gescheitert sind, und sie
+  ist nur auf echten Geräten zu beantworten — nicht am Schreibtisch.
+* iOS kennt `ManagedMediaSource` erst ab 17.1. Älteres iPhone heißt
+  kein MSE, also in jedem Fall zwei Wege nebeneinander: den neuen und
+  die heutigen Häppchen.
+
+Erst wenn der erste Punkt auf einem Android- **und** einem
+iOS-Gerät gemessen ist, lohnt der zweite.
+
+---
+
 ## Anhang: was an der Hardware gemessen ist
 
 Gehört zu keinem Punkt und wird überall gebraucht.

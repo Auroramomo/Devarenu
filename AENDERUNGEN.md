@@ -6,54 +6,120 @@ können, was seither dazugekommen ist.
 
 ---
 
-## 0.4.4 — Ein Strom, der nie endet
+## 0.4.4 — Roter Balken behoben, Strom erprobt und verworfen
 
 *04.10.2026.*
 
 ### Für alle
 
-Nichts davon ist eingeschaltet. Ohne Adresszusatz ändert sich für
-einen Zuhörer **gar nichts**.
+**Der rote Balken ist weg.** Auf jedem Handy stand dauerhaft ein roter
+Streifen mit einem roten Punkt — und ohne Text. Gemeint war der Hinweis
+„Von dieser Predigt wird eine Tonaufnahme gemacht", der nur bei einer
+laufenden Aufnahme erscheinen soll. Der Fehler saß in einer einzigen
+fehlenden Zeile Gestaltung; Einzelheiten unten.
 
-**Versuch B hat nicht geholfen.** Auf einem Galaxy Z Fold 7 mit
-Firefox war der Ton nach zehn bis fünfzehn Sekunden gesperrt weg; das
-Tonprotokoll zeigte den Grund — ständig `ended`, auch beim
-Stille-Füller. Jedes Ende eines Mediums ist dem Browser ein Anlass,
-die Tonsitzung abzuräumen.
+**Der Bildschirm lässt sich abdunkeln.** Anbleiben muss er, sonst
+stoppen manche Handys die Wiedergabe — hell sein muss er nicht. Ein
+Knopf unten legt die Seite in zwei Stufen dunkler. Ton und Text laufen
+unverändert weiter.
 
-**Also ein Strom.** Seit 0.4.4 gibt es `?versuch=strom`: ein einziges
-Tonelement, eine Quelle, kein Ende. Der Server kodiert je Sprache
-einen durchgehenden MP3-Strom — läuft gerade ein Abschnitt, hört man
-ihn; sonst Stille. Zwei Handys derselben Sprache hören dasselbe zur
-selben Zeit, und wer später dazukommt, steigt dort ein, wo die
-anderen sind.
+**Zwei Versuche zum Ton bei gesperrtem Handy sind verworfen.** Für
+Zuhörer ändert das nichts: eingeschaltet war keiner von beiden. Der
+Hinweis „Bildschirm anlassen" bleibt, und dabei bleibt es bis 1.0.
 
-Ob es wirklich hilft, sagt nur ein echtes Handy. Die Anleitung dafür
-steht in `AUFSTELLEN.md`.
+### Ton bei gesperrtem Handy: was versucht wurde und warum es nicht geht
+
+Damit niemand denselben Weg ein zweites Mal geht. Die Untersuchung zu
+0.4.2 (Anhang G) hatte vier Gründe gefunden, warum der Ton beim Sperren
+aufhört. Zwei davon wurden angegriffen.
+
+**Versuch B, der Stille-Füller** (0.4.2, `?versuch=stille`). Das
+`audio`-Element wird zwischen zwei Häppchen leer, und iOS wie Android
+behandeln ein leeres Element im Hintergrund als beendet. Also lief bei
+leerer Schlange eine Sekunde Stille in Schleife. **Gemessen auf einem
+Galaxy Z Fold 7, Firefox Android:** nach zehn bis fünfzehn Sekunden
+gesperrt war der Ton weg. Das Tonprotokoll zeigte, woran — ständig
+`ended`, auch beim Stille-Füller selbst. Jedes Ende eines Mediums ist
+dem Browser ein Anlass, die Tonsitzung abzuräumen, und davon gab es im
+Sekundentakt eines.
+
+**Versuch C, der durchgehende Strom** (0.4.4, `?versuch=strom`). Dann
+eben ein Medium, das nie endet: ein MP3-Strom je Sprache vom Server,
+einmal in der Nutzergeste gestartet, danach kein Quellenwechsel mehr.
+Serverseitig funktionierte das vollständig:
+
+* je Koder 0,75 Prozent eines Kerns, fünf Sprachen zusammen 3,7
+* Zuschlag auf die Verzögerung 25 bis 60 ms, also im Rauschen
+* Auslieferung exakt in Echtzeit, mit `curl` nachgemessen: 60 Sekunden
+  Abruf ergeben 59,977 Sekunden Ton; mit drei Sekunden Vorrat 63,164
+* lückenlose Rahmenfolge auch in Pausen, zwei Zuhörer auf derselben
+  Zeitachse
+
+**Gescheitert ist es am Puffer im Browser**, und zwar dreimal
+hintereinander an derselben Stelle:
+
+1. *Aufholen mit einem Sprung* leerte den Puffer. Kreislauf auf dem
+   Handy: aufgeholt 4,3 s → Abstand 0,0 → nach zwei bis sechs Sekunden
+   `waiting` → Abstand 4,3 bis 5,3 → wieder aufgeholt. Firefox puffert
+   nach jedem Leerlauf rund fünf Sekunden neu, und der nächste Sprung
+   wirft genau diese fünf Sekunden weg.
+2. *Aufholen über das Tempo* (`playbackRate` 1,06 mit erhaltener
+   Tonhöhe) baut Abstand nur ab, nie auf. Firefox Android startet ohne
+   Vorpuffer; bei Lieferung in Echtzeit kann danach nie einer
+   entstehen, und jedes Zögern des WLAN wird zur Lücke.
+3. *Vorrat beim Verbinden* (die letzten Sekunden als ganze MP3-Rahmen
+   auf einen Schlag, wie bei Icecast) brachte den Puffer zwar zustande
+   — aber nicht in der verlangten Größe. **Gefordert sind höchstens
+   0,5 Sekunden Abstand.** Gemessen mit `?versuch=strom&ziel=0.5` auf
+   dem Galaxy Z Fold 7:
+
+| Browser | Verhalten bei Ziel 0,5 s |
+|---|---|
+| Chrome Android | läuft bei 0,4 s Abstand regelmäßig leer (`waiting`) und puffert dann **von selbst auf 2 bis 3 s** auf |
+| Firefox Android | nimmt sich **6 s Vorrat** und bleibt trotz Tempo 1,06 bei **3 bis 6 s** |
+
+**Der Grund ist grundsätzlich: mit einem gewöhnlichen `audio`-Element
+steuert der Browser den Puffer, nicht wir.** Wir können eine Quelle
+angeben und das Tempo verstellen; wie viel der Browser vorhält, wann er
+nachlädt und wann er von selbst aufpuffert, entscheidet er. Jede
+weitere Nachbesserung an diesem Weg wäre ein Ratespiel gegen zwei
+verschiedene Browser.
+
+Die Messwerte stehen vollständig in
+`messungen/tonstrom_verzoegerung.json`. Was nach 1.0 noch möglich wäre,
+steht in `FAHRPLAN-1.0.md` unter „Nach 1.0" — kurz: ein eigener
+Abspieler mit Media Source Extensions, der den Puffer selbst führt.
 
 ### Für die Technik
 
-* `tonstrom.py`: ein Koder je Sprache, nur solange jemand zuhört,
-  mit zehn Sekunden Nachlauf. 22050 Hz mono, 48 kbit/s wie die
-  Predigtaufnahme, `-reservoir 0` damit jeder Rahmen für sich
-  dekodierbar ist. Kein ffmpeg mit libmp3lame und kein lame: dann
-  kein Strom, die Hörerseite bleibt beim bisherigen Weg, und der
-  Systemcheck sagt es.
-* Rückstau höchstens 20 Sekunden, das Älteste fällt weg. Ein
-  Zuhörer, der vier Sekunden Ton nicht abholt, wird getrennt und
-  verbindet neu — er bremst dabei niemanden.
-* **Gemessen:** je Koder 0,7 bis 0,8 Prozent eines Kerns, fünf
-  Sprachen zusammen 3,7 Prozent. Serverseitiger Zuschlag 25 bis
-  60 ms, also im Rauschen.
-* **Gemessen, Firefox 157:** der Browser puffert beim Start 5,6
-  Sekunden und trägt diesen Abstand mit sich. Der Aufholsprung holt
-  ihn weg — Springen in einem Strom ohne Längenangabe geht, und der
-  Abstand fällt von 4,93 auf **0,24 Sekunden** im Mittel. Chromium
-  ist auf dem Entwicklungsrechner nicht vorhanden und wurde nicht
-  gemessen.
-* Neu im Prüfstand: `tonstrom_test.py` liest die MP3-Rahmen selbst
-  und weist nach, dass der Strom eine lückenlose Rahmenfolge ist —
-  auch in Pausen. Dazu vier neue Fälle in `versuch_test.mjs`.
+* **Der rote Balken.** `client.html` hatte **keine** Regel für das
+  Attribut `hidden`. Der Browser setzt dafür `[hidden]{display:none}`
+  in seinem eigenen Stilblatt — und jede Regel mit einer Klasse schlägt
+  ihn. `.aufnahmehinweis{display:flex}` tat genau das. Behoben mit
+  `[hidden]{display:none !important}` (dieselbe Regel steht aus
+  demselben Grund im Pult) und damit, dass `aufnahmeHinweis()` die
+  Sichtbarkeit am Text entscheidet statt am Schalter: kein Text, kein
+  Balken. Geprüft in `pruefstand/hinweisbalken_test.mjs`.
+* **Abdunkeln.** Keine Helligkeitsregelung — die kann eine Webseite
+  nicht stellen —, sondern eine schwarze Decke über der Seite,
+  `pointer-events:none`, zwei Stufen (0,55 und 0,82). Die Fußleiste
+  liegt darüber und bleibt heller, sonst findet niemand zurück. Die
+  Stufe steht im Browser, ohne Datum. Prüfstand
+  `pruefstand/abdunkeln_test.mjs`.
+* **Ausgebaut:** `tonstrom.py`, der Endpunkt `/strom/<sprache>.mp3`,
+  Koder und Vorrat im Lauf, `?versuch=strom` und `?versuch=stille` in
+  `client.html` samt Tonprotokoll, `pruefstand/tonstrom_test.py` und
+  `pruefstand/versuch_test.mjs`, das Versuchskapitel in
+  `AUFSTELLEN.md`. Ein im Browser gemerkter Versuch hat danach keine
+  Wirkung und keinen Fehler.
+* Der Systemcheck sagt bei fehlendem MP3-Koder wieder nur das, was
+  stimmt: die Predigt wird als WAV aufgenommen.
+* **Nicht verwertbar und darum nur hier vermerkt:** die Zielmessung am
+  Schreibtisch. Headless Firefox ohne Tonausgabe lässt seine Medienuhr
+  mit 0,867 der Echtzeit laufen; der Abstand schließt sich damit nie,
+  und die Zielwerte 1, 2, 3 und 4 Sekunden ergaben alle denselben
+  mittleren Abstand von 4,5 bis 4,6 Sekunden. Chromium war auf dem
+  Entwicklungsrechner nicht vorhanden.
 
 ---
 

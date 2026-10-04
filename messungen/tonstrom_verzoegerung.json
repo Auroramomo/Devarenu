@@ -106,5 +106,19 @@
       "erwartet": "Ziel plus 60 s",
       "urteil": "stimmt"
     }
+  },
+  "verworfen": {
+    "wann": "2026-10-04",
+    "entscheidung": "Weg C (Strom) und Versuch B (Stille-Fueller) werden NICHT uebernommen.",
+    "gefordert_s": 0.5,
+    "befund_handy": {
+      "geraet": "Galaxy Z Fold 7, ?versuch=strom&ziel=0.5",
+      "chrome": "laeuft bei 0,4 s Abstand regelmaessig leer (waiting) und puffert dann von selbst auf 2 bis 3 s auf",
+      "firefox": "nimmt sich 6 s Vorrat und bleibt trotz Tempo 1,06 bei 3 bis 6 s"
+    },
+    "grund": "Mit einem gewoehnlichen audio-Element steuert der Browser den Puffer, nicht wir. Wie viel er vorhaelt, wann er nachlaedt und wann er von selbst aufpuffert, entscheidet er.",
+    "serverseite_war_in_ordnung": "Koder, Rahmenfolge, Echtzeit-Auslieferung und Vorrat beim Verbinden waren gemessen und richtig. Gescheitert ist allein die Pufferfuehrung im Browser.",
+    "offener_weg_nach_1_0": "Eigener Abspieler mit Media Source Extensions -- eigene Pufferfuehrung. Offen: Wiedergabe bei gesperrtem Bildschirm, und iOS erst ab 17.1 (ManagedMediaSource). Siehe FAHRPLAN-1.0.md.",
+    "diese_datei": "bleibt als Beleg stehen, obwohl der Weg ausgebaut ist"
   }
 }
