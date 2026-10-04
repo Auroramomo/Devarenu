@@ -101,7 +101,11 @@ function browserBauen() {
       return (this._gefunden[wahl] ||= new Element("span"));
     },
     querySelectorAll: () => [],
-    addEventListener() {},
+    // Festgehalten, nicht verschluckt: der Wach-Versuch haengt an
+    // visibilitychange, und ein Pruefstand, der das Ereignis nicht
+    // ausloesen kann, prueft den Verlust der Sperre gar nicht.
+    horcher: {},
+    addEventListener(n, f) { (this.horcher[n] ||= []).push(f); },
     documentElement: new Element("html"),
     body: new Element("body"),
     hidden: false,

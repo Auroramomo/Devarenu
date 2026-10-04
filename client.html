@@ -1134,10 +1134,25 @@ async function bildschirmWachhalten(){
   try{
     if("wakeLock" in navigator){
       wachschloss = await navigator.wakeLock.request("screen");
-      wachschloss.addEventListener("release", () => { wachschloss = null; });
+      Versuch.merken("Wake Lock erhalten", "");
+      wachschloss.addEventListener("release", () => {
+        wachschloss = null;
+        // Die Sperre geht verloren. Meist, weil die Seite verborgen
+        // wurde -- das gibt der Browser von sich aus her, und beim
+        // Zurueckkommen fordert der visibilitychange-Horcher neu an.
+        // Geht sie aber bei SICHTBARER Seite verloren (Akkusparmodus,
+        // der zwischendurch anspringt), wartet sonst nichts mehr: dann
+        // springt im Versuch das Video ein.
+        Versuch.merken("Wake Lock verloren", document.visibilityState);
+        if(document.visibilityState === "visible" && zustand.laeuft)
+          Wach.nachreichen("Wake Lock verloren");
+      });
       return true;
     }
-  }catch(e){ /* Akkusparmodus verweigert das, kein Fehlerfall */ }
+  }catch(e){
+    // Akkusparmodus verweigert das, kein Fehlerfall.
+    Versuch.merken("Wake Lock abgelehnt", String(e && e.name || e));
+  }
   return false;
 }
 
@@ -1152,9 +1167,13 @@ async function bildschirmWachhalten(){
    genau deshalb da.
 
    Bekannter Ausweg, Prinzip wie bei NoSleep.js -- nachgebaut,
-   nichts kopiert: ein winziges, stummes Video in Schleife. Solange
-   ein Video laeuft, lassen viele Browser den Bildschirm an, weil
-   jemand ja offensichtlich etwas ansieht.
+   nichts kopiert: ein kurzes Video in Schleife, mit einer Tonspur
+   aus reiner Stille. Solange es laeuft, lassen Firefox und Chromium
+   den Bildschirm an. Warum es eine Tonspur braucht, steht bei
+   WACH_WEBM weiter unten.
+
+   Gibt es den echten Wake Lock (unter https), hat er Vorrang. Lehnt
+   er ab oder geht er verloren, springt das Video ein.
 
    OHNE den Adresszusatz aendert sich fuer Zuhoerer nichts.
 
@@ -1166,13 +1185,17 @@ const Versuch = {
   ereignisse: [],
 
   starten(){
+    // Leerzeichen und Gross/Klein zaehlen nicht. Beim ersten Test am
+    // Handy stand hinter dem Wert ein Leerzeichen (?versuch=wach%20),
+    // und der Versuch sprang nicht an -- ohne dass irgendwo stand,
+    // warum. Ein "+" in der Adresse wird ebenfalls zum Leerzeichen.
+    const sauber = (w) => String(w || "").trim().toLowerCase();
     let wunsch = "";
     try{
-      wunsch = (new URLSearchParams(location.search).get("versuch") || "")
-               .toLowerCase();
+      wunsch = sauber(new URLSearchParams(location.search).get("versuch"));
     }catch(e){}
     let gemerkt = null;
-    try{ gemerkt = localStorage.getItem("versuch"); }catch(e){}
+    try{ gemerkt = sauber(localStorage.getItem("versuch")); }catch(e){}
 
     if(wunsch === "aus"){
       try{ localStorage.removeItem("versuch"); }catch(e){}
@@ -1193,10 +1216,11 @@ const Versuch = {
     // Zeit haben, die Metadaten zu lesen. Abgespielt wird nichts,
     // bevor jemand "Zuhoeren" drueckt.
     //
-    // ABER NUR, WO ES GEBRAUCHT WIRD. Gibt es den echten Wake Lock,
-    // laeuft das Video ohnehin nie -- dann waere das Element ein
-    // Dekoder, den niemand bestellt hat. Lehnt der Wake Lock spaeter
-    // ab, baut nachreichen() es nach.
+    // Nur ohne Wake Lock schon beim Laden. Gibt es ihn, baut erst die
+    // Geste "Zuhoeren" das Element (Wach.starten) und spielt es dort
+    // einmal an, damit es bei Ablehnung oder Verlust ohne Geste
+    // einspringen kann. Ohne Geste bleibt es dort also beim alten:
+    // kein Dekoder, den niemand bestellt hat.
     if(!("wakeLock" in navigator)) Wach._bauen();
   },
 
@@ -1320,17 +1344,30 @@ const Wach = {
     if(!Versuch.wach || this.laeuft) return;
     if("wakeLock" in navigator){
       Versuch.merken("Video bleibt aus", "Wake Lock hat Vorrang");
+      // Trotzdem schon jetzt, IN der Geste, einmal anspielen und sofort
+      // wieder anhalten. Lehnt der Wake Lock ab oder geht er spaeter
+      // verloren, muss das Video ohne Geste starten koennen -- und
+      // Safari laesst ein Element mit Ton nur dann ausserhalb einer
+      // Geste spielen, wenn es in einer schon einmal gespielt hat.
+      // Chrome und Firefox merken sich die Beruehrung fuer die ganze
+      // Seite; dort schadet es nicht.
+      const v = this._bauen();
+      try{ v.muted = false; v.volume = this.LAUTSTAERKE; }catch(e){}
+      const p = v.play();
+      if(p && p.then){
+        p.then(() => { if(!this.laeuft) v.pause(); }).catch(() => {});
+      }
       return;
     }
     this._anwerfen("kein Wake Lock");
   },
 
-  /* Wake Lock war da, hat aber abgelehnt -- Akkusparmodus zum
-     Beispiel. Dann doch das Video. Die Geste ist ein paar
-     Hundertstel her; klappt es nicht, steht es im Protokoll. */
-  nachreichen(){
+  /* Der Wake Lock hat abgelehnt oder ist verloren gegangen. Dann das
+     Video. Ausserhalb der Geste -- darum oben das Anspielen; klappt
+     es trotzdem nicht, steht es im Protokoll. */
+  nachreichen(grund){
     if(!Versuch.wach || this.laeuft) return;
-    this._anwerfen("Wake Lock abgelehnt");
+    this._anwerfen(grund || "Wake Lock abgelehnt");
   },
 
   _anwerfen(grund){
@@ -1371,10 +1408,15 @@ const Wach = {
   },
 };
 
-document.addEventListener("visibilitychange", () => {
+document.addEventListener("visibilitychange", async () => {
   Versuch.merken("Sichtbarkeit", document.visibilityState);
   if(document.visibilityState === "visible" && zustand.laeuft && !wachschloss){
-    bildschirmWachhalten();
+    // Beim Verbergen gibt der Browser den Wake Lock von sich aus her.
+    // Bis 0.4.5 wurde er hier neu angefordert, das Ergebnis aber nicht
+    // angesehen -- lehnte er ab, hielt nichts mehr den Bildschirm an.
+    const wach = await bildschirmWachhalten();
+    if(!wach && "wakeLock" in navigator)
+      Wach.nachreichen("Wake Lock nach Rueckkehr abgelehnt");
     Wach.nachsehen();
   }
 });

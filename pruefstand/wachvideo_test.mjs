@@ -40,13 +40,52 @@ function laden({ suche = "", gemerkt = {}, wakeLock = false } = {}) {
   umgebung.URLSearchParams = URLSearchParams;
   // Der sichere Kontext, den es im Saal nicht gibt. Nur wo der Test
   // ihn ausdruecklich bestellt.
+  //
+  //   wakeLock: true        jede Anforderung gelingt
+  //   wakeLock: "ablehnen"  jede Anforderung scheitert (Akkusparmodus)
+  //   wakeLock: [true, false, ...]  der Reihe nach
+  //
+  // Jede erteilte Sperre landet in sperren[], damit der Test sie
+  // wieder verlieren lassen kann.
+  const sperren = [];
   if (wakeLock) {
+    const plan = Array.isArray(wakeLock) ? [...wakeLock] : null;
     umgebung.navigator.wakeLock = {
-      request: () => Promise.resolve({ addEventListener() {}, release() {} }),
+      request: () => {
+        const ja = plan ? plan.shift() !== false : wakeLock !== "ablehnen";
+        if (!ja) {
+          const e = new Error("abgelehnt");
+          e.name = "NotAllowedError";
+          return Promise.reject(e);
+        }
+        const s = {
+          horcher: [],
+          addEventListener(n, f) { if (n === "release") this.horcher.push(f); },
+          release() { this.horcher.forEach((f) => f()); },
+        };
+        sperren.push(s);
+        return Promise.resolve(s);
+      },
     };
   }
   const p = skriptLaden(umgebung, SEITE);
-  return { ...p, umgebung, kasten };
+  return { ...p, umgebung, kasten, sperren };
+}
+// Ein paar Takte warten: der Klick auf "Zuhoeren" und der
+// visibilitychange-Horcher sind async, und dazwischen liegen
+// mehrere await.
+const takte = () => new Promise((r) => setTimeout(r, 20));
+async function zuhoeren(p) {
+  p.zustand.sprache = "de";
+  (p.umgebung.document.getElementById("starten").horcher.click || [])
+    .forEach((f) => f());
+  await takte();
+}
+async function sichtbarkeit(p, wert) {
+  p.umgebung.document.visibilityState = wert;
+  p.umgebung.document.hidden = wert !== "visible";
+  for (const f of p.umgebung.document.horcher.visibilitychange || []) f();
+  await takte();
 }
 // Das Element, das der Versuch selbst gebaut hat -- NICHT ueber
 // getElementById: der Nachbau liefert fuer jede Kennung eines zurueck,
@@ -202,12 +241,18 @@ titel("4) Mit Wake Lock bleibt das Video aus");
   const p = laden({ suche: "?versuch=wach", wakeLock: true });
   pruefe("der Nachbau hat einen Wake Lock", true,
          "wakeLock" in p.umgebung.navigator);
+  // Vor der Geste gibt es kein Element: wo der Wake Lock da ist, baut
+  // erst die Geste es.
+  pruefe("vor der Geste nichts gebaut", false, !!video(p));
   p.Wach.starten();
   pruefe("kein Video", false, p.Wach.laeuft);
-  // Und es wird auch keines gebaut: ein Dekoder, der nie spielt,
-  // waere reine Arbeit fuer niemanden.
-  pruefe("und es wurde gar keines gebaut", false, !!video(p));
-  pruefe("keines im Dokument", 0, imDokument(p.umgebung).length);
+  // Seit 0.4.6-Vorarbeit wird es in der Geste gebaut und einmal
+  // angespielt, aber NICHT laufen gelassen: lehnt der Wake Lock ab
+  // oder geht er verloren, muss es ohne Geste starten koennen, und
+  // Safari erlaubt das nur einem Element, das schon einmal in einer
+  // Geste gespielt hat.
+  pruefe("in der Geste gebaut", true, !!video(p));
+  pruefe("genau eines im Dokument", 1, imDokument(p.umgebung).length);
   pruefe("das Protokoll sagt, warum", true,
          p.Versuch.ereignisse.some((z) => z.includes("Vorrang")));
   // Lehnt der Wake Lock ab (Akkusparmodus), kommt das Video doch.
@@ -215,6 +260,92 @@ titel("4) Mit Wake Lock bleibt das Video aus");
   pruefe("abgelehnt: dann doch das Video", true, p.Wach.laeuft);
   pruefe("und das steht auch da", true,
          p.Versuch.ereignisse.some((z) => z.includes("abgelehnt")));
+}
+
+titel("4b) Der Wert verzeiht Leerzeichen und Grossbuchstaben");
+{
+  // Beim ersten Test am Handy stand ein Leerzeichen hinter dem Wert,
+  // und der Versuch sprang still nicht an.
+  for (const suche of ["?versuch=wach%20", "?versuch=Wach", "?versuch=WACH",
+                       "?versuch=%20wach%20", "?versuch=wach+"]) {
+    const p = laden({ suche });
+    pruefe(`${suche} schaltet ein`, true, p.Versuch.wach);
+    pruefe(`${suche} wird sauber gemerkt`, "wach", p.kasten.versuch);
+  }
+  pruefe("gemerktes \" Wach \" gilt auch", true,
+         laden({ gemerkt: { versuch: " Wach " } }).Versuch.wach);
+  for (const suche of ["?versuch=aus%20", "?versuch=AUS"]) {
+    const p = laden({ suche, gemerkt: { versuch: "wach" } });
+    pruefe(`${suche} hebt auf`, false, p.Versuch.wach);
+    pruefe(`${suche} loescht das Gemerkte`, undefined, p.kasten.versuch);
+  }
+  // Was kein bekannter Wert ist, schaltet NICHTS ein.
+  pruefe("?versuch=wachs schaltet nicht ein", false,
+         laden({ suche: "?versuch=wachs" }).Versuch.wach);
+}
+
+titel("4c) Wake Lock da, aber abgelehnt");
+{
+  const p = laden({ suche: "?versuch=wach", wakeLock: "ablehnen" });
+  await zuhoeren(p);
+  pruefe("das Video springt ein", true, p.Wach.laeuft);
+  pruefe("und spielt", false, video(p).paused);
+  pruefe("das Protokoll nennt die Ablehnung", true,
+         p.Versuch.ereignisse.some((z) => z.includes("Wake Lock abgelehnt")));
+  // Ohne Adresszusatz: dieselbe Ablehnung, aber kein Video.
+  const q = laden({ wakeLock: "ablehnen" });
+  await zuhoeren(q);
+  pruefe("ohne Zusatz kein Video", null, q.Wach.element);
+}
+
+titel("4d) Wake Lock erteilt, in der Geste schon angespielt");
+{
+  const p = laden({ suche: "?versuch=wach", wakeLock: true });
+  await zuhoeren(p);
+  pruefe("die Sperre ist erteilt", 1, p.sperren.length);
+  pruefe("das Video laeuft NICHT", false, p.Wach.laeuft);
+  // Aber es gibt das Element, und es hat in der Geste einmal gespielt
+  // -- sonst liesse Safari es spaeter ohne Geste nicht an.
+  pruefe("das Element ist gebaut", true, !!video(p));
+  pruefe("und steht wieder", true, video(p).paused);
+}
+
+titel("4e) Wake Lock geht bei sichtbarer Seite verloren");
+{
+  const p = laden({ suche: "?versuch=wach", wakeLock: true });
+  await zuhoeren(p);
+  pruefe("vorher kein Video", false, p.Wach.laeuft);
+  p.sperren[0].release();
+  await takte();
+  pruefe("nach dem Verlust springt das Video ein", true, p.Wach.laeuft);
+  pruefe("das Protokoll nennt es", true,
+         p.Versuch.ereignisse.some((z) => z.includes("Wake Lock verloren")));
+}
+
+titel("4f) Verborgen, zurueck, und dann abgelehnt");
+{
+  // Erste Anforderung gelingt, die nach der Rueckkehr nicht.
+  const p = laden({ suche: "?versuch=wach", wakeLock: [true, false] });
+  await zuhoeren(p);
+  // Der Browser gibt die Sperre beim Verbergen von sich aus her.
+  p.umgebung.document.visibilityState = "hidden";
+  p.sperren[0].release();
+  await sichtbarkeit(p, "hidden");
+  pruefe("verborgen: kein Video", false, p.Wach.laeuft);
+  await sichtbarkeit(p, "visible");
+  pruefe("zurueck und abgelehnt: das Video springt ein", true, p.Wach.laeuft);
+}
+
+titel("4g) Verborgen, zurueck, und wieder erteilt");
+{
+  const p = laden({ suche: "?versuch=wach", wakeLock: [true, true] });
+  await zuhoeren(p);
+  p.umgebung.document.visibilityState = "hidden";
+  p.sperren[0].release();
+  await sichtbarkeit(p, "hidden");
+  await sichtbarkeit(p, "visible");
+  pruefe("neu angefordert", 2, p.sperren.length);
+  pruefe("und kein Video noetig", false, p.Wach.laeuft);
 }
 
 titel("5) Das Video stand im Hintergrund");
