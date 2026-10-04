@@ -317,12 +317,38 @@ h1{
   line-height:1.5; white-space:pre-wrap; background:var(--blatt);
   border:1px solid var(--kante); padding:.5rem}
 
-/* Das Wachvideo. NICHT display:none und nicht visibility:hidden -- ein
-   Video, das der Browser gar nicht darstellt, haelt bei manchen auch
-   den Bildschirm nicht wach, und genau darum geht es hier. Also zwei
-   Pixel in der Ecke, praktisch durchsichtig. */
+/* Das Wachvideo. Es gibt es nur mit ?versuch=wach; ohne den Zusatz
+   steht kein video-Element im Dokument.
+
+   ES DECKT DEN GANZEN BILDSCHIRM AB, und das ist kein Versehen.
+   Chromium haengt die Bildschirmsperre an zwei Beobachtern
+   (video_wake_lock.cc):
+
+     constexpr float kStrictVisibilityThreshold = 0.75f;
+     constexpr float kSizeThreshold = 0.2f;          // kFractionOfRoot
+
+   Zwei Pixel in der Ecke sind 0,000002 des Sichtfelds und fallen
+   damit durch. Darum inset:0.
+
+   OPACITY SCHADET NICHT. Beide Schwellen kommen aus einem
+   IntersectionObserver, und der rechnet ohne trackVisibility rein
+   geometrisch -- intersection_geometry.cc prueft Verdeckung und
+   Effekte nur unter ShouldComputeVisibility(), und das ist hier
+   nicht gesetzt. Ein Element davor und eine Deckkraft nahe null
+   aendern an is_visible_ und is_big_enough_ also nichts.
+
+   Gewaehlt ist trotzdem 0,01 und nicht 0: dass der Quelltext die
+   Deckkraft fuer die SPERRE nicht ansieht, heisst nicht, dass ein
+   vollstaendig durchsichtiges Element auch sicher weiter gezeichnet
+   und dekodiert wird. Das ist eine Annahme, keine Belegstelle -- und
+   0,01 kostet nichts.
+
+   Hinter dem Inhalt (.schirm hat z-index:1) und ohne Beruehrungen:
+   die Leiste, das Mehr-Blatt und das Abdunkeln liegen darueber und
+   bleiben bedienbar. */
 #wachvideo{
-  position:fixed; left:0; bottom:0; width:2px; height:2px;
+  position:fixed; inset:0; width:100%; height:100%;
+  object-fit:cover; border:0;
   opacity:.01; pointer-events:none; z-index:0;
 }
 
@@ -516,27 +542,9 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
      Mitlesen gehen abgedunkelt unveraendert weiter. -->
 <div id="abdunkler" aria-hidden="true"></div>
 
-<!-- Versuch ?versuch=wach: vier Sekunden Schwarz, 16x16, zwei Bilder je
-     Sekunde, ohne Tonspur, in Schleife. Solange ein Video laeuft,
-     lassen viele Handys den Bildschirm an -- das ist der einzige Grund,
-     aus dem es hier steht. Erzeugt auf dem Arbeitsrechner mit:
-
-       ffmpeg -f lavfi -i color=c=black:s=16x16:r=2:d=4 -an \
-         -c:v libx264 -pix_fmt yuv420p -profile:v baseline -level 3.0 \
-         -movflags +faststart -crf 51 wach.mp4
-       ffmpeg -f lavfi -i color=c=black:s=16x16:r=2:d=4 -an \
-         -c:v libvpx-vp9 -pix_fmt yuv420p -crf 63 -b:v 0 -deadline best \
-         wach.webm
-
-     Als data-URI und nicht als Datei: dann gibt es keinen neuen Pfad,
-     den ein Update von 0.3.7 aus mitbringen muesste, und keinen
-     weiteren Abruf im Saalnetz. 1591 und 696 Byte.
-     VP9 vor H.264, weil es das kleinere von beiden ist. -->
-<video id="wachvideo" muted loop playsinline preload="auto"
-       disableremoteplayback aria-hidden="true" tabindex="-1">
-  <source type="video/webm" src="data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAKIEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggEyTbuMU6uEHFO7a1OsggJy7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjMuMS4xMDJXQYxMYXZmNjMuMS4xMDJEiYhAr0AAAAAAABZUrmvXrgEAAAAAAABO14EBc8WIH1atR8p27VScgQAitZyDdW5kiIEAhoVWX1ZQOYOBASPjg4QdzWUA4JCwgRC6gRCagQJVsIRVuYEBVe6BAOwBAAAAAAAAAgAAElTDZ/5zc59jwIBnyJlFo4dFTkNPREVSRIeMTGF2ZjYzLjEuMTAyc3PZY8CLY8WIH1atR8p27VRnyKRFo4dFTkNPREVSRIeXTGF2YzYzLjEuMTAyIGxpYnZweC12cDlnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjA0LjAwMDAwMDAwMAAfQ7Z1QLfngQCjn4EAAICCSYNCAADwAPYAOCQcGXAAADBgAAAQv/xsgACjk4EB9ACGAECSHABf4AADIAAAQkCjk4ED6ACGAECSHABfAAADIAAAQkCjk4EF3ACGAECSHABf4AADIAAAQkCjk4EH0ACGAECSHABdwAADIAAAQkCjk4EJxACGAECSHABf4AADIAAAQkCjk4ELuACGAECSHABfAAADIAAAQkCjk4ENrACGAECSHABf4AADIAAAQkAcU7trkbuPs4EAt4r3gQHxggG18IED">
-  <source type="video/mp4" src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAANDbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAD6AAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAm50cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAD6AAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAA+gAAAAAAABAAAAAAHmbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAABAABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABkW1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAVFzdGJsAAAAuXN0c2QAAAAAAAAAAQAAAKlhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFExhdmM2My4xLjEwMiBsaWJ4MjY0AAAAAAAAAAAAAAAAGP//AAAAL2F2Y0MBQsAe/+EAFmdCwB7ZHsBEAAADAAQAAAMAEDxYuSABAAZoy4BlLIAAAAAQcGFzcAAAAAEAAAABAAAAFGJ0cnQAAAAAAAAFiAAAAAAAAAAYc3R0cwAAAAAAAAABAAAACAAAIAAAAAAUc3RzcwAAAAAAAAABAAAAAQAAABxzdHNjAAAAAAAAAAEAAAABAAAACAAAAAEAAAA0c3RzegAAAAAAAAAAAAAACAAAAoMAAAAKAAAACgAAAAkAAAAJAAAACQAAAAkAAAAJAAAAFHN0Y28AAAAAAAAAAQAAA3MAAABhdWR0YQAAAFltZXRhAAAAAAAAACFoZGxyAAAAAAAAAABtZGlyYXBwbAAAAAAAAAAAAAAAACxpbHN0AAAAJKl0b28AAAAcZGF0YQAAAAEAAAAATGF2ZjYzLjEuMTAyAAAACGZyZWUAAALMbWRhdAAAAnAGBf//bNxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNjUgcjMyMjIgYjM1NjA1YSAtIEguMjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMjUgLSBodHRwOi8vd3d3LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0wIHJlZj0zIGRlYmxvY2s9MTowOjAgYW5hbHlzZT0weDE6MHgxMTEgbWU9aGV4IHN1Ym1lPTcgcHN5PTEgcHN5X3JkPTEuMDA6MC4wMCBtaXhlZF9yZWY9MSBtZV9yYW5nZT0xNiBjaHJvbWFfbWU9MSB0cmVsbGlzPTEgOHg4ZGN0PTAgY3FtPTAgZGVhZHpvbmU9MjEsMTEgZmFzdF9wc2tpcD0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz0xIGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MCB3ZWlnaHRwPTAga2V5aW50PTI1MCBrZXlpbnRfbWluPTIgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTUxLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAALZYiEBXyYoAAhI4AAAAAGQZo4CvqAAAAABkGaVAK+oAAAAAVBmmAV9QAAAAVBmoAU9QAAAAVBmqAU9QAAAAVBmsAU9QAAAAVBmuAS9Q==">
-</video>
+<!-- Das Wachvideo steht NICHT hier. Es entsteht erst, wenn der
+     Adresszusatz ?versuch=wach gesetzt ist -- ohne ihn ist kein
+     video-Element im Dokument. Siehe Wach._bauen(). -->
 
 <div class="facetten"></div>
 <div class="band band-oben" aria-hidden="true">
@@ -1181,6 +1189,15 @@ const Versuch = {
     this.merken("Versuch", "wach");
     this.merken("Wake Lock", ("wakeLock" in navigator) ? "vorhanden"
                                                        : "nicht vorhanden");
+    // Schon jetzt bauen, nicht erst in der Geste: der Browser soll
+    // Zeit haben, die Metadaten zu lesen. Abgespielt wird nichts,
+    // bevor jemand "Zuhoeren" drueckt.
+    //
+    // ABER NUR, WO ES GEBRAUCHT WIRD. Gibt es den echten Wake Lock,
+    // laeuft das Video ohnehin nie -- dann waere das Element ein
+    // Dekoder, den niemand bestellt hat. Lehnt der Wake Lock spaeter
+    // ab, baut nachreichen() es nach.
+    if(!("wakeLock" in navigator)) Wach._bauen();
   },
 
   // Nur auf der Seite, nie an den Server. Neueste oben.
@@ -1194,8 +1211,103 @@ const Versuch = {
   },
 };
 
+/* Die beiden Fassungen des Wachvideos, als data-URI.
+
+   JEDE HAT EINE TONSPUR AUS REINER STILLE, und das ist der ganze
+   Unterschied zu 0.4.5 vorher. Ohne Tonspur bekommt das Element in
+   KEINEM Zielbrowser eine Bildschirmsperre:
+
+     Firefox, dom/html/HTMLVideoElement.cpp, ShouldCreateVideoWakeLock:
+       // Only request wake lock for video with audio or video from
+       // media stream, because non-stream video without audio is
+       // often used as a background image.
+       return HasVideo() && (mSrcStream || HasAudio());
+
+     Chromium, video_wake_lock.cc, ShouldBeActive:
+       bool has_volume = VideoElement().EffectiveMediaVolume() > 0;
+       bool has_audio = VideoElement().HasAudio() && has_volume;
+
+   Auf einem Galaxy Z Fold 7 ging der Bildschirm darum nach 30
+   Sekunden aus, mit und ohne Adresszusatz.
+
+   VIER SEKUNDEN, nicht mehr. Chromium stuft ein Medium nach seiner
+   Dauer ein (media/base/media_content_type.cc):
+
+     const int kMinimumContentDurationSecs = 5;
+     return (duration.is_zero() ||
+             duration > base::Seconds(kMinimumContentDurationSecs))
+                ? MediaContentType::kPersistent
+                : MediaContentType::kTransient;
+
+   Unter fuenf Sekunden also kTransient. Die Schleife aendert daran
+   nichts -- duration ist die Laenge des Mediums, nicht die der
+   Wiedergabe.
+
+   Erzeugt auf dem Arbeitsrechner mit:
+
+     ffmpeg -f lavfi -i color=c=black:s=16x16:r=2:d=4 \
+       -f lavfi -i anullsrc=r=8000:cl=mono -shortest \
+       -c:v libx264 -pix_fmt yuv420p -profile:v baseline -level 3.0 \
+       -crf 51 -c:a aac -b:a 8k -movflags +faststart wach.mp4
+     ffmpeg -f lavfi -i color=c=black:s=16x16:r=2:d=4 \
+       -f lavfi -i anullsrc=r=48000:cl=mono -shortest \
+       -c:v libvpx-vp9 -pix_fmt yuv420p -crf 63 -b:v 0 -deadline best \
+       -c:a libopus -b:a 6k wach.webm
+
+   Als data-URI und nicht als Datei: dann gibt es keinen neuen Pfad,
+   den ein Autoupdate von 0.3.7 aus mitbringen muesste, und keinen
+   weiteren Abruf im Saalnetz. */
+const WACH_WEBM = "data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwEAAAAAAAzNEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggGkTbuMU6uEHFO7a1Osggy37AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjMuMS4xMDJXQYxMYXZmNjMuMS4xMDJEiYhAr1AAAAAAABZUrmtAyK4BAAAAAAAATteBAXPFiHph9Fio5oKXnIEAIrWcg3VuZIiBAIaFVl9WUDmDgQEj44OEHc1lAOCQsIEQuoEQmoECVbCEVbmBAVXugQDsAQAAAAAAAAIAAK4BAAAAAAAAaNeBAnPFiB6j4BJQcCiDnIEAIrWcg3VuZIiBAIaGQV9PUFVTVqqDYy6gVruEBMS0AIOBAiPjg4QBMS0A4ZGfgQG1iEDncAAAAAAAYmSBEFXugQBjopNPcHVzSGVhZAEBOAGAuwAAAAAAElTDZ0DXc3OfY8CAZ8iZRaOHRU5DT0RFUkSHjExhdmY2My4xLjEwMnNz2WPAi2PFiHph9Fio5oKXZ8ikRaOHRU5DT0RFUkSHl0xhdmM2My4xLjEwMiBsaWJ2cHgtdnA5Z8ihRaOIRFVSQVRJT05Eh5MwMDowMDowNC4wMDAwMDAwMDAAc3PWY8CLY8WIHqPgElBwKINnyKFFo4dFTkNPREVSRIeUTGF2YzYzLjEuMTAyIGxpYm9wdXNnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjA0LjAwODAwMDAwMAAfQ7Z1SjDngQCji4IAAIAIC+Y7I6tgo5+BAACAgkmDQgAA8AD2ADgkHBlwAAAwYAAAEL/8bIAAo4qCABWACAissw7Go4qCACmACAissw7Go4qCAD2ACAissw7Go4qCAFGACAissw7Go4qCAGWACAissw7Go4qCAHmACAissw7Go4qCAI2ACAissw7Go4qCAKGACAissw7Go4qCALWACAissw7Go4qCAMmACAissw7Go4qCAN2ACAissw7Go4qCAPGACAissw7Go4qCAQWACAissw7Go4qCARmACAissw7Go4qCAS2ACAissw7Go4qCAUGACAissw7Go4qCAVWACAissw7Go4qCAWmACAissw7Go4qCAX2ACAissw7Go4qCAZGACAissw7Go4qCAaWACAissw7Go4qCAbmACAissw7Go4qCAc2ACAissw7Go4qCAeGACAissw7Go4qCAfWACAissw7Go5OBAfQAhgBAkhwAX+AAAyAAAEJAo4qCAgmACAissw7Go4qCAh2ACAissw7Go4qCAjGACAissw7Go4qCAkWACAissw7Go4qCAlmACAissw7Go4qCAm2ACAissw7Go4qCAoGACAissw7Go4qCApWACAissw7Go4qCAqmACAissw7Go4qCAr2ACAissw7Go4qCAtGACAissw7Go4qCAuWACAissw7Go4qCAvmACAissw7Go4qCAw2ACAissw7Go4qCAyGACAissw7Go4qCAzWACAissw7Go4qCA0mACAissw7Go4qCA12ACAissw7Go4qCA3GACAissw7Go4qCA4WACAissw7Go4qCA5mACAissw7Go4qCA62ACAissw7Go4qCA8GACAissw7Go4qCA9WACAissw7Go4qCA+mACAissw7Go5OBA+gAhgBAkhwAXwAAAyAAAEJAo4qCA/2ACAissw7Go4qCBBGACAissw7Go4qCBCWACAissw7Go4qCBDmACAissw7Go4qCBE2ACAissw7Go4qCBGGACAissw7Go4qCBHWACAissw7Go4qCBImACAissw7Go4qCBJ2ACAissw7Go4qCBLGACAissw7Go4qCBMWACAissw7Go4qCBNmACAissw7Go4qCBO2ACAissw7Go4qCBQGACAissw7Go4qCBRWACAissw7Go4qCBSmACAissw7Go4qCBT2ACAissw7Go4qCBVGACAissw7Go4qCBWWACAissw7Go4qCBXmACAissw7Go4qCBY2ACAissw7Go4qCBaGACAissw7Go4qCBbWACAissw7Go4qCBcmACAissw7Go4qCBd2ACAissw7Go5OBBdwAhgBAkhwAX+AAAyAAAEJAo4qCBfGACAissw7Go4qCBgWACAissw7Go4qCBhmACAissw7Go4qCBi2ACAissw7Go4qCBkGACAissw7Go4qCBlWACAissw7Go4qCBmmACAissw7Go4qCBn2ACAissw7Go4qCBpGACAissw7Go4qCBqWACAissw7Go4qCBrmACAissw7Go4qCBs2ACAissw7Go4qCBuGACAissw7Go4qCBvWACAissw7Go4qCBwmACAissw7Go4qCBx2ACAissw7Go4qCBzGACAissw7Go4qCB0WACAissw7Go4qCB1mACAissw7Go4qCB22ACAissw7Go4qCB4GACAissw7Go4qCB5WACAissw7Go4qCB6mACAissw7Go4qCB72ACAissw7Go4qCB9GACAissw7Go5OBB9AAhgBAkhwAXcAAAyAAAEJAo4qCB+WACAissw7Go4qCB/mACAissw7Go4qCCA2ACAissw7Go4qCCCGACAissw7Go4qCCDWACAissw7Go4qCCEmACAissw7Go4qCCF2ACAissw7Go4qCCHGACAissw7Go4qCCIWACAissw7Go4qCCJmACAissw7Go4qCCK2ACAissw7Go4qCCMGACAissw7Go4qCCNWACAissw7Go4qCCOmACAissw7Go4qCCP2ACAissw7Go4qCCRGACAissw7Go4qCCSWACAissw7Go4qCCTmACAissw7Go4qCCU2ACAissw7Go4qCCWGACAissw7Go4qCCXWACAissw7Go4qCCYmACAissw7Go4qCCZ2ACAissw7Go4qCCbGACAissw7Go4qCCcWACAissw7Go5OBCcQAhgBAkhwAX+AAAyAAAEJAo4qCCdmACAissw7Go4qCCe2ACAissw7Go4qCCgGACAissw7Go4qCChWACAissw7Go4qCCimACAissw7Go4qCCj2ACAissw7Go4qCClGACAissw7Go4qCCmWACAissw7Go4qCCnmACAissw7Go4qCCo2ACAissw7Go4qCCqGACAissw7Go4qCCrWACAissw7Go4qCCsmACAissw7Go4qCCt2ACAissw7Go4qCCvGACAissw7Go4qCCwWACAissw7Go4qCCxmACAissw7Go4qCCy2ACAissw7Go4qCC0GACAissw7Go4qCC1WACAissw7Go4qCC2mACAissw7Go4qCC32ACAissw7Go4qCC5GACAissw7Go4qCC6WACAissw7Go4qCC7mACAissw7Go5OBC7gAhgBAkhwAXwAAAyAAAEJAo4qCC82ACAissw7Go4qCC+GACAissw7Go4qCC/WACAissw7Go4qCDAmACAissw7Go4qCDB2ACAissw7Go4qCDDGACAissw7Go4qCDEWACAissw7Go4qCDFmACAissw7Go4qCDG2ACAissw7Go4qCDIGACAissw7Go4qCDJWACAissw7Go4qCDKmACAissw7Go4qCDL2ACAissw7Go4qCDNGACAissw7Go4qCDOWACAissw7Go4qCDPmACAissw7Go4qCDQ2ACAissw7Go4qCDSGACAissw7Go4qCDTWACAissw7Go4qCDUmACAissw7Go4qCDV2ACAissw7Go4qCDXGACAissw7Go4qCDYWACAissw7Go4qCDZmACAissw7Go4qCDa2ACAissw7Go5OBDawAhgBAkhwAX+AAAyAAAEJAo4qCDcGACAissw7Go4qCDdWACAissw7Go4qCDemACAissw7Go4qCDf2ACAissw7Go4qCDhGACAissw7Go4qCDiWACAissw7Go4qCDjmACAissw7Go4qCDk2ACAissw7Go4qCDmGACAissw7Go4qCDnWACAissw7Go4qCDomACAissw7Go4qCDp2ACAissw7Go4qCDrGACAissw7Go4qCDsWACAissw7Go4qCDtmACAissw7Go4qCDu2ACAissw7Go4qCDwGACAissw7Go4qCDxWACAissw7Go4qCDymACAissw7Go4qCDz2ACAissw7Go4qCD1GACAissw7Go4qCD2WACAissw7Go4qCD3mACAissw7Go4qCD42ACAissw7GoJahioIPoQAICKyzDsabgQd1ooQAzf5gHFO7a5G7j7OBALeK94EB8YICgfCBEA==";
+const WACH_MP4  = "data:video/mp4;base64,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";
+
 const Wach = {
   laeuft: false,
+  // Das eigene Element, nicht ueber getElementById gesucht: es gibt
+  // es nur im Versuch, und "steht es im Dokument?" soll eine Frage
+  // mit einer klaren Antwort bleiben.
+  element: null,
+
+  /* NICHT stumm. muted waere in Chromium das Ende: EffectiveMediaVolume()
+     ist dann 0, has_audio damit false, und die Sperre faellt auf die
+     Groessenbedingung zurueck.
+
+     0,01 und nicht 1,0: die Spur ist digitale Stille, hoerbar waere
+     also ohnehin nichts. Aber ein Kodierer liefert nicht garantiert
+     exakt null, und 40 dB unter Vollaussteuerung ist jede Abweichung
+     sicher unter der Hoerschwelle. Groesser als null muss es bleiben,
+     sonst greift dieselbe Bedingung wie bei muted. (iOS Safari laesst
+     volume nicht setzen; dort bleibt es bei 1,0 -- unschaedlich, weil
+     die Spur still ist.) */
+  LAUTSTAERKE: 0.01,
+
+  /* Das Element entsteht erst hier. Ohne ?versuch=wach steht gar kein
+     video im Dokument -- ein Zuhoerer in Rostock hat davon nichts,
+     auch keinen stillen Dekoder im Hintergrund. */
+  _bauen(){
+    if(this.element) return this.element;
+    const v = document.createElement("video");
+    v.id = "wachvideo";
+    v.loop = true;
+    v.muted = false;
+    v.volume = this.LAUTSTAERKE;
+    v.setAttribute("playsinline", "");
+    v.setAttribute("disableremoteplayback", "");
+    v.setAttribute("aria-hidden", "true");
+    v.tabIndex = -1;
+    v.preload = "auto";
+    // VP9 vor H.264: Firefox und Chrome nehmen das erste, womit sie
+    // etwas anfangen koennen, Safari faellt auf mp4 zurueck.
+    for(const [typ, quelle] of [["video/webm", WACH_WEBM],
+                                ["video/mp4", WACH_MP4]]){
+      const q = document.createElement("source");
+      q.type = typ;
+      q.src = quelle;
+      v.appendChild(q);
+    }
+    document.body.appendChild(v);
+    this.element = v;
+    return v;
+  },
 
   /* Muss aus der Klickgeste heraus aufgerufen werden, und zwar
      SYNCHRON: play() braucht die Nutzergeste, und ein await davor
@@ -1222,9 +1334,12 @@ const Wach = {
   },
 
   _anwerfen(grund){
-    const v = $("wachvideo");
+    const v = this._bauen();
     if(!v){ Versuch.merken("kein Videoelement", ""); return; }
     this.laeuft = true;
+    // Noch einmal hier, nicht nur beim Bauen: ein Browser, der das
+    // Element zwischendurch zuruecksetzt, stuende sonst auf stumm.
+    try{ v.muted = false; v.volume = this.LAUTSTAERKE; }catch(e){}
     Versuch.merken("Video startet", grund);
     const p = v.play();
     if(p && p.catch) p.catch((e) => {
@@ -1235,7 +1350,7 @@ const Wach = {
 
   anhalten(){
     this.laeuft = false;
-    const v = $("wachvideo");
+    const v = this.element;
     if(!v) return;
     try{ v.pause(); }catch(e){}
     Versuch.merken("Video angehalten", "");
@@ -1246,7 +1361,7 @@ const Wach = {
      Griff, mit dem auch der Wake Lock neu angefordert wird. */
   nachsehen(){
     if(!Versuch.wach || !this.laeuft) return;
-    const v = $("wachvideo");
+    const v = this.element;
     if(v && v.paused){
       Versuch.merken("Video stand", "wird neu angeworfen");
       const p = v.play();

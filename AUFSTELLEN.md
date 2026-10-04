@@ -1663,52 +1663,138 @@ an, sondern den Bildschirm.
 Wake Lock gibt es im Saal nicht — die Seite kommt unter
 `http://10.0.0.1`, und das ist kein sicherer Kontext. Handys sperren
 nach 30 Sekunden bis 2 Minuten ohne Berührung, und dann endet der Ton.
-Der Versuch hält stattdessen ein winziges stummes Video in Schleife:
-solange ein Video läuft, lassen viele Browser den Bildschirm an.
+Der Versuch hält stattdessen ein winziges Video in Schleife: solange
+ein Video läuft, lassen viele Browser den Bildschirm an.
 
 | | |
 |---|---|
 | `?versuch=wach` | einschalten, im Browser gemerkt |
 | `?versuch=aus` | wieder weg |
 
-**Ohne den Zusatz ändert sich nichts.** Geprüft in
-`pruefstand/wachvideo_test.mjs`.
+**Ohne den Zusatz ändert sich nichts** — ohne ihn steht nicht einmal
+ein `video` im Dokument. Geprüft in `pruefstand/wachvideo_test.mjs`.
+
+#### Woran der erste Anlauf scheiterte
+
+Das Video hatte **keine Tonspur** und war **16×16 Bildpunkte groß**.
+Damit bekommt es in keinem Zielbrowser eine Sperre. Auf einem Galaxy
+Z Fold 7 ging der Bildschirm nach 30 Sekunden aus — mit und ohne
+Adresszusatz.
+
+**Firefox**, `dom/html/HTMLVideoElement.cpp`:
+
+```cpp
+// Only request wake lock for video with audio or video from media
+// stream, because non-stream video without audio is often used as a
+// background image.
+return HasVideo() && (mSrcStream || HasAudio());
+```
+
+**Chromium** (Chrome, Samsung Internet),
+`third_party/blink/renderer/core/html/media/video_wake_lock.cc`:
+
+```cpp
+constexpr float kStrictVisibilityThreshold = 0.75f;
+constexpr float kSizeThreshold = 0.2f;   // kFractionOfRoot
+...
+bool has_volume = VideoElement().EffectiveMediaVolume() > 0;
+bool has_audio = VideoElement().HasAudio() && has_volume;
+bool visibility_requirements_met =
+    VideoElement().HasVideo() &&
+    (in_picture_in_picture ||
+     (page_visible && ((is_visible_ && is_big_enough) || has_audio)));
+```
+
+Also drei Änderungen, alle seit 0.4.5-F:
+
+* **Tonspur aus reiner Stille** — AAC im MP4, Opus im WebM. Sie ist
+  der eigentliche Schlüssel: sie genügt in *beiden* Browsern für
+  sich allein.
+* **Nicht stumm, Lautstärke 0,01.** `muted` oder `volume: 0` machen
+  `EffectiveMediaVolume()` zu null, und damit `has_audio` zu falsch.
+* **Bildschirmfüllend**, fest positioniert, hinter dem Inhalt, ohne
+  Berührungen. Das ist der zweite Weg für Chromium, falls die
+  Lautstärke doch einmal auf null landet: 20 Prozent des Sichtfelds
+  und 75 Prozent Sichtbarkeit sind damit erfüllt. Deckkraft und ein
+  Element davor stören dabei nicht — beide Schwellen kommen aus
+  einem IntersectionObserver ohne `trackVisibility`, und der rechnet
+  rein geometrisch.
+
+Das Medium ist **vier Sekunden** lang, bewusst unter fünf:
+`media/base/media_content_type.cc` stuft alles darüber als
+`kPersistent` ein, darunter als `kTransient`.
 
 #### So wird getestet
 
 Je Browser ein Durchgang: **Firefox, Chrome, Samsung Internet**, und
 wenn ein iPhone zur Hand ist, **Safari**.
 
+**Der Durchgang zählt nur mit laufender Übersetzung.** Ohne sie sagt
+er nichts darüber, ob Ton und Video sich vertragen — und genau das
+ist die offene Frage. Am Arbeitsrechner geht das ohne Prediger:
+
+```
+.venv/bin/python server.py --datei predigt.mp3 --sofort
+```
+
+`--datei` speist eine Aufnahme ein, statt das Mikrofon zu öffnen,
+`--sofort` fängt ohne Druck aufs Pult an. Die Datei darf alles sein,
+was ffmpeg lesen kann; eine halbe Stunde Predigt reicht für mehrere
+Durchgänge. (`--tempo 2` geht auch, verfälscht aber jede
+Zeitmessung — für diesen Versuch ist es egal.)
+
 1. Am Handy den **Bildschirm-Timeout auf 30 Sekunden** stellen
    (Android: Einstellungen → Display → Bildschirm-Timeout).
-2. `http://<Adresse>:8000/?versuch=wach` öffnen, Sprache wählen,
-   **Zuhören** drücken.
-3. **Abdunkeln** zweimal drücken, bis Stufe 2 steht — so, wie es ein
-   Zuhörer im Gottesdienst einstellen würde.
-4. Das Handy **hinlegen und fünf Minuten nicht berühren.** Nicht
+2. Am Rechner den Server wie oben starten und warten, bis am Pult
+   Abschnitte durchlaufen.
+3. `http://<Adresse>:8000/?versuch=wach` öffnen, Sprache wählen,
+   **Zuhören** drücken. Es muss Text erscheinen und Ton kommen.
+4. In der Leiste unten **zweimal auf „Dunkler"** tippen. Nach dem
+   zweiten Mal steht dort **„Heller"** — das ist die dunkelste der
+   zwei Stufen, und so würde ein Zuhörer im Gottesdienst sitzen.
+5. Das Handy **hinlegen und fünf Minuten nicht berühren.** Nicht
    wischen, nicht tippen, nicht aufheben.
-5. Nach fünf Minuten: **Ist der Bildschirm noch an? Läuft der Ton?**
+6. Nach fünf Minuten notieren, je Browser:
+   * Ist der **Bildschirm** noch an?
+   * Läuft der **Ton** noch, und ohne Lücken?
+   * Ist er **leiser** geworden?
+   * Hängt eine **Medien-Benachrichtigung** in der Leiste, die vorher
+     nicht da war?
 
-Beides notieren, je Browser. Ein Durchgang zählt nur, wenn vorne
-wirklich gesprochen wird — ohne Ton auf der Leitung sagt der Versuch
-nichts über den Ton.
+Die letzten beiden Fragen gehören dazu, weil das Video jetzt eine
+Tonspur hat. Es soll den Übersetzungston weder ducken noch eine
+eigene Benachrichtigung erzeugen; die vier Sekunden Laufzeit sollen
+das verhindern, **aber belegt ist das nur im Quelltext, nicht am
+Gerät.**
 
-Bleibt der Bildschirm an, der Ton hört aber auf, dann liegt es nicht am
-Bildschirm. Bleibt der Bildschirm aus, steht im Protokoll, woran: unter
-der Textspalte aufklappen, **Versuch: Protokoll**. Dort stehen der
-Start des Videos, abgelehnte `play()`-Aufrufe und jeder Wechsel der
-Sichtbarkeit. Nichts davon geht an den Server.
+Bleibt der Bildschirm an und der Ton hört trotzdem auf, dann liegt es
+nicht am Bildschirm. Bleibt der Bildschirm aus, steht im Protokoll,
+woran: unter der Textspalte aufklappen, **Versuch: Protokoll**. Dort
+stehen der Start des Videos, abgelehnte `play()`-Aufrufe und jeder
+Wechsel der Sichtbarkeit. Nichts davon geht an den Server.
 
 #### Was der Versuch kostet
 
-Ein Video zu dekodieren kostet Strom. Hier sind es 16×16 Bildpunkte bei
-zwei Bildern je Sekunde — das ist die kleinste Last, die ein
-Videodekoder überhaupt annehmen kann, und sie läuft in der festen
-Schaltung des Geräts, nicht auf dem Hauptprozessor. Verglichen mit dem
-Bildschirm selbst, der ja absichtlich anbleibt, ist das nicht zu
-messen. **Der Bildschirm ist der Verbrauch, nicht das Video.** Genau
-deshalb ist Abdunkeln auf Stufe 2 Teil des Durchgangs: auf einem
-OLED-Bildschirm ist eine dunkle Fläche auch die sparsame.
+**Korrigiert gegenüber der ersten Fassung dieses Abschnitts.** Dort
+stand, das Video sei „die kleinste Last, die ein Videodekoder
+überhaupt annehmen kann". Für das Dekodieren stimmt das weiterhin —
+es sind nach wie vor 16×16 Bildpunkte bei zwei Bildern je Sekunde,
+und daran hat die Tonspur nichts geändert: vier Sekunden digitale
+Stille sind für einen Audiodekoder nichts.
+
+Was sich geändert hat, ist das **Zusammensetzen**. Das Element ist
+jetzt bildschirmfüllend, also mischt der Compositor bei jedem Bild
+eine sichtfeldgroße Ebene über den Hintergrund statt eines Quadrats
+von zwei Pixeln. Das ist mehr als vorher, aber es ist dieselbe Arbeit,
+die jede Seite mit einem Hintergrundbild macht, und sie läuft auf der
+Grafikeinheit.
+
+**Der Bildschirm bleibt der Verbrauch, nicht das Video.** Genau
+deshalb gehört das Abdunkeln auf die dunkelste Stufe in den
+Durchgang: auf einem OLED-Bildschirm ist eine dunkle Fläche auch die
+sparsame. Gemessen ist das alles nicht — wer es wissen will, liest
+den Akkustand vor und nach den fünf Minuten ab und notiert ihn
+daneben.
 
 ### Damit das Handy den Rechner erreicht
 

@@ -62,11 +62,24 @@ schon auf dem Rechner hat, behält sie — gelöscht wird nichts.
 * **Versuch `?versuch=wach`.** Wake Lock gibt es im Saal nicht (kein
   sicherer Kontext unter `http://10.0.0.1`), und Handys sperren nach 30
   Sekunden bis 2 Minuten ohne Berührung. Der Versuch hält stattdessen
-  ein winziges stummes Video in Schleife — Prinzip wie bei NoSleep.js,
-  nachgebaut, nichts kopiert. Vier Sekunden Schwarz, 16×16, zwei Bilder
-  je Sekunde, ohne Tonspur, mit ffmpeg erzeugt; 1591 Byte als MP4 und
-  696 Byte als WebM, als `data:`-URI in der Seite. **Ohne den
-  Adresszusatz ändert sich nichts.** Testanleitung in `AUFSTELLEN.md`.
+  ein winziges Video in Schleife — Prinzip wie bei NoSleep.js,
+  nachgebaut, nichts kopiert. **Ohne den Adresszusatz ändert sich
+  nichts**, und ohne ihn steht auch kein `video` im Dokument.
+  Testanleitung in `AUFSTELLEN.md`.
+* **Der erste Anlauf dazu war wirkungslos — nachgebessert.** Das Video
+  war stumm und 16×16 groß. Auf einem Galaxy Z Fold 7 ging der
+  Bildschirm trotzdem nach 30 Sekunden aus, mit und ohne Zusatz. Der
+  Grund steht im Quelltext beider Browser-Familien:
+  `HTMLVideoElement.cpp` verlangt `HasVideo() && (mSrcStream ||
+  HasAudio())`, `video_wake_lock.cc` verlangt `(is_visible_ &&
+  is_big_enough) || has_audio` mit `kSizeThreshold = 0.2f` und
+  `has_audio = HasAudio() && EffectiveMediaVolume() > 0`. Ein stummes
+  Miniaturvideo fällt durch beide. Jetzt: **stille Tonspur** (AAC im
+  MP4, Opus im WebM), **nicht stumm** bei Lautstärke 0,01, und
+  **bildschirmfüllend** hinter dem Inhalt mit `pointer-events: none`.
+  Weiterhin vier Sekunden — `media_content_type.cc` stuft erst über
+  fünf Sekunden als `kPersistent` ein. 2507 Byte als MP4 und 3325 Byte
+  als WebM, weiterhin als `data:`-URI.
 * **Zwei Stimmen heraus.** `ka_GE-natia-medium` ist ausdrücklich nur
   für Privatpersonen freigegeben, Organisationen sind untersagt;
   `ar_JO-kareem-medium` nennt gar keine Lizenz. „Nicht eingeschaltet"
