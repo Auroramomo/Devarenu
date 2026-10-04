@@ -6,6 +6,67 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.4.3 — Konturen, Stimmen, und ein Versuch mit dem Handy
+
+*04.10.2026.*
+
+### Für alle
+
+**Die Umrisse sind wieder zu sehen.** Knöpfe, Felder, Kacheln und die
+Sprachkacheln auf der Zuhörerseite hatten einen Rand von 1,26:1 gegen
+Weiß — praktisch unsichtbar. Ein weißer Knopf auf weißem Grund ist
+aber nur an seiner Kante als Knopf zu erkennen. Es gibt jetzt zwei
+Graus: eines, das trennt (unauffällig, so gewollt), und eines, das
+begrenzt (3,6:1). Beim Darüberfahren wird die Kante dunkler statt
+heller — vorher verblasste der Knopf beim Hinzeigen.
+
+**Ein Versuch für den Ton bei gesperrtem Handy.** Die Seite sagt
+heute „Bildschirm anlassen". Woran es liegt, steht seit 0.4.2
+geschrieben; der erste von vier Gründen wird jetzt geprüft: das
+Abspielelement wird zwischen zwei Abschnitten leer, und dann räumt
+das Handy die Tonsitzung ab. Mit dem Adresszusatz `?versuch=stille`
+läuft stattdessen Stille in Schleife, und auf der Seite steht ein
+Protokoll, woran es hängen blieb. **Ohne den Zusatz ändert sich
+nichts** — der Hinweis bleibt, bis auf echten Geräten gemessen ist.
+
+**Die Grafikkarte schreibt mit.** Solange übersetzt wird, alle 30
+Sekunden: wie voll der Speicher wird, wie hoch die Auslastung geht,
+und ob das Sprachmodell noch ganz auf der Karte liegt. Das letzte ist
+das wichtigste — fällt ein Teil auf die CPU, läuft alles weiter, nur
+zehnmal langsamer. Je Tag eine Zeile, zu sehen unter *Einrichtung →
+Fehlersuche*.
+
+**Ein Hörprobenpaket für Englisch und Russisch.** Beide laufen mit
+einer Stimme, deren Lizenz fraglich ist. Drei Kandidaten je Sprache,
+zehn Sätze, blind — die Stimmen heißen A, B und C, und die Zuordnung
+wechselt von Satz zu Satz. Wer das Paket bekommt, hört die Stimme und
+nicht seine eigene Vermutung.
+
+### Für die Technik
+
+* **Vier Stimmlizenzen geklärt** (`LIZENZEN.md`): Italienisch ist
+  CC0, Suaheli erlaubt „non-profit, educational, public benefit",
+  Arabisch nennt gar keine, und Georgisch verbietet die Nutzung
+  **durch Organisationen** ausdrücklich. Dazu ein Haken, der vorher
+  nicht gesehen war: drei der vier lizenzfreien Kandidaten sind aus
+  `lessac` feinabgestimmt — also aus genau der Stimme, derer man sich
+  entledigen wollte. Nur `en_US-ljspeech-medium` ist von Grund auf
+  trainiert.
+* **Laptop ans Saalnetz** (`AUFSTELLEN.md`): per Kabel an die
+  Fritzbox, feste Adresse, Gateway und DNS leer — dann bleibt das
+  Internet des Laptops unberührt. Schritte für Windows und macOS.
+* Der Wake-Lock-Zweig der Zuhörerseite trägt jetzt den Kommentar,
+  dass er unter `http://10.0.0.1` **nie** läuft: Wake Lock gibt es
+  nur im sicheren Kontext. Am Schreibtisch über `localhost` greift
+  er, und genau das hat glauben lassen, er helfe im Saal.
+* Der Fehlerbericht trägt zwei neue Abschnitte: Grafikkarte und die
+  Rückmeldungen der Zuhörer. In beiden steht nichts über Menschen.
+* Neu im Prüfstand: `versuch_test.mjs`, `grafikwacht_test.py`, und
+  eine Regel, die jede Kante eines Bedienelements auf 3:1 prüft.
+  Neu in den Werkzeugen: `werkzeuge/hoerprobe.py`.
+
+---
+
 ## 0.4.2 — Alles auf dem Stick, und das Pult sagt, was es meint
 
 *04.10.2026.*

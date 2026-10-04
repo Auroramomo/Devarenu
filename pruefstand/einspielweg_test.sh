@@ -53,7 +53,7 @@ export PATH="$ECHT/pruefstand/attrappen:$PATH"
 
 GRUEN="\033[32m"; ROT="\033[31m"; GELB="\033[33m"; AUS="\033[0m"
 FEHLER=0
-VON="v0.3.7 v0.3.8 v0.4.1"
+VON="v0.3.7 v0.3.8 v0.4.1 v0.4.2"
 
 aufraeumen() {
   for t in $VON; do
@@ -99,7 +99,8 @@ done
 pruefe "alle alten Baeume liegen da" "ja" \
   "$([ -f "$BASIS/baum-v0.3.7/aktualisieren.sh" ] \
     && [ -f "$BASIS/baum-v0.3.8/aktualisieren.sh" ] \
-    && [ -f "$BASIS/baum-v0.4.1/aktualisieren.sh" ] && echo ja || echo nein)"
+    && [ -f "$BASIS/baum-v0.4.1/aktualisieren.sh" ] \
+    && [ -f "$BASIS/baum-v0.4.2/aktualisieren.sh" ] && echo ja || echo nein)"
 # Der Beweis, dass es wirklich die ALTEN Dateien sind: 0.3.7 kennt den
 # schluesselweisen Vergleich von zustand.json noch nicht.
 pruefe "v0.3.7 hat noch die alte zustand-Pruefung" "nein" \
@@ -110,7 +111,7 @@ pruefe "v0.3.8 hat sie schon" "ja" \
      && echo ja || echo nein)"
 
 # ------------------------------------------------- Das Fernrepo bauen
-titel "1) Ein Fernrepo mit vier echten Baeumen"
+titel "1) Ein Fernrepo mit fuenf echten Baeumen"
 SCHLUESSEL="$BASIS/freigabe"
 ssh-keygen -q -t ed25519 -N "" -C einspielweg -f "$SCHLUESSEL"
 FERN="$BASIS/fern"
@@ -163,6 +164,10 @@ baum_hinein "$BASIS/baum-v0.3.8" "0.3.8" "v0.3.8"
 # v0.4.1 ist die letzte Fassung OHNE teile.json im Repo. Der Weg von
 # dort auf 0.4.2 ist der, den die Gemeinde als naechstes geht.
 baum_hinein "$BASIS/baum-v0.4.1" "0.4.1" "v0.4.1"
+# v0.4.2 ist die erste Fassung MIT teile.json. Der Weg von dort auf
+# 0.4.3 prueft, dass die Datei auch dann nichts aufhaelt, wenn sie
+# auf beiden Seiten steht und sich nicht geaendert hat.
+baum_hinein "$BASIS/baum-v0.4.2" "0.4.2" "v0.4.2"
 # Der neue Stand: das Arbeitsverzeichnis, so wie es jetzt ist.
 baum_hinein "$ECHT" "$NEU" "v$NEU"
 
@@ -170,7 +175,7 @@ baum_hinein "$ECHT" "$NEU" "v$NEU"
 # allowedSignersFile. Hier geht es nur darum, DASS eine Signatur im
 # Tag-Objekt steht -- geprueft wird sie unten von aktualisieren.sh,
 # und das ist der Punkt des Laufs.
-for t in v0.3.7 v0.3.8 v0.4.1 "v$NEU"; do
+for t in v0.3.7 v0.3.8 v0.4.1 v0.4.2 "v$NEU"; do
   pruefe "$t traegt eine Signatur" "ja" \
     "$(git -C "$FERN" cat-file -p "$t" 2>/dev/null \
        | grep -q 'BEGIN SSH SIGNATURE' && echo ja || echo nein)"
@@ -293,9 +298,18 @@ for start in $VON; do
        "$BASIS/lauf-$start.txt" && echo ja || echo nein)"
   # teile.json ist mit 0.4.2 neu dazugekommen, also haben sich die
   # grossen Teile geaendert -- der Selbsttest gehoert dann dazu.
-  pruefe "der Selbsttest lief mit" "ja" \
-    "$(grep -q 'Selbsttest bestanden' "$BASIS/lauf-$start.txt" \
-       && echo ja || echo nein)"
+  # Der Selbsttest gehoert dazu, wenn sich die grossen Teile
+  # geaendert haben. teile.json kam mit 0.4.2 -- von davor aus ist
+  # sie also neu, von v0.4.2 aus unveraendert. Beides ist richtig.
+  if [ "$start" = "v0.4.2" ]; then
+    pruefe "ohne Aenderung an teile.json kein Selbsttest" "nein" \
+      "$(grep -q 'Selbsttest' "$BASIS/lauf-$start.txt" \
+         && echo ja || echo nein)"
+  else
+    pruefe "der Selbsttest lief mit" "ja" \
+      "$(grep -q 'Selbsttest bestanden' "$BASIS/lauf-$start.txt" \
+         && echo ja || echo nein)"
+  fi
   pruefe "die Fassung steht auf $NEU" "$NEU" \
     "$(tr -d '[:space:]' < "$ZIEL/VERSION" 2>/dev/null)"
   pruefe "die Signatur wurde geprueft" "ja" \

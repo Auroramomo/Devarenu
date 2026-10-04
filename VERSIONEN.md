@@ -4,6 +4,17 @@ Was sich für Gemeinde und Pult geändert hat. Ausführlich:
 `AENDERUNGEN.md`. Hier stehen nur die letzten Fassungen — ältere
 fallen heraus, damit dies ein Blatt bleibt.
 
+**0.4.3 — 04.10.2026**
+
+- **Umrisse wieder sichtbar.** Knöpfe, Felder und Kacheln hatten
+  einen Rand, den man kaum sah. Jetzt gibt es ein Grau, das trennt,
+  und eines, das begrenzt.
+- **Die Grafikkarte schreibt mit:** je Tag eine Zeile, und ein
+  Hinweis, wenn das Sprachmodell nicht ganz auf der Karte liegt.
+- **Versuch** für den Ton bei gesperrtem Handy, hinter einem
+  Adresszusatz. Ohne ihn ändert sich nichts.
+- **Hörprobe** für Englisch und Russisch: drei Stimmen, blind.
+
 **0.4.2 — 04.10.2026**
 
 - **Alles vom Stick.** Ein Rechner ohne Internet bekommt bei
@@ -20,14 +31,11 @@ fallen heraus, damit dies ein Blatt bleibt.
 
 **0.4.1 — 03.10.2026**
 
-- **Das Pult hat vier Reiter:** Gottesdienst, Vorbereiten, Aufnahmen,
-  Einrichtung. Die Startseite passt auf einen Handybildschirm; drei
-  Kacheln sagen in einem Wort, wie es um Ton, Zuhörer und Thema
-  steht. Bedienen lässt sich alles wie vorher.
+- **Das Pult hat vier Reiter.** Die Startseite passt auf einen
+  Handybildschirm; drei Kacheln sagen in einem Wort, wie es um Ton,
+  Zuhörer und Thema steht.
 - **Die Mindestlautstärke hat drei Modi:** Aus, Automatisch, Fest.
-  Vorgabe ist Aus — gemessen liefert sie die meisten Wörter.
-- **„Vielen Dank fürs Zuhören" fällt weg.** Diese erfundenen
-  Abspannsätze kamen bisher bis auf die Handys.
+  Vorgabe ist Aus.
 
 **0.4.0 — 03.10.2026**
 
@@ -37,15 +45,9 @@ fallen heraus, damit dies ein Blatt bleibt.
 - **„Jetzt aus dem Netz aktualisieren"** als Knopf am Pult,
   **Aufnahmen löschen** von Hand, **Sicherung auf eine Platte**.
 
-**0.3.3 bis 0.3.8 — 28.09.2026**
-
-- **GPLv3** statt MIT; für die Gemeinde ändert sich nichts. Der
-  Rechner merkt sich weniger von den Zuhörern (**DATENSCHUTZ.md**)
-  und kann sich donnerstags **von selbst aktualisieren**. Die
-  Predigtaufnahme ist eine **MP3**.
-
-**0.2.1 bis 0.3.2 — die Anfänge**
+**0.2.1 bis 0.3.8 — die Anfänge**
 
 - Übersetzung in mehrere Sprachen zugleich, Ton und Text auf jedem
   Handy, ohne App, WLAN vom Rechner selbst. Aufnahmen nur nach
   Rückfrage. Update per Stick und aus dem Netz, signiert geprüft.
+  GPLv3, DATENSCHUTZ.md, Aufnahme als MP3.
