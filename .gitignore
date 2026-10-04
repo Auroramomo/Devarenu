@@ -38,6 +38,10 @@ zustand.json*
 # Repo geht per "git bundle --all" auf jeden Update-Stick. Was hier einmal
 # drin ist, traegt jede Gemeinde fuer immer mit.
 pruefung/paket_*
+# Die Aufloesung der blinden Hoerprobe. Sie gehoert nicht ins Repo:
+# wer sie lesen kann, hoert nicht mehr die Stimme, sondern seine
+# eigene Vermutung.
+pruefung/schluessel_*
 
 # Das fertige Begriffsdokument. Aus den CSV-Dateien daneben in Sekunden
 # wieder gebaut, und es ist ein Erzeugnis wie die Pakete. Die QUELLEN

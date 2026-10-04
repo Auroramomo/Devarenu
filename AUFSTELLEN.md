@@ -1530,6 +1530,43 @@ python pruefstand/bericht_test.py
 python pruefstand/netz_alt_test.py
 ```
 
+## Hörprobe: welche Stimme für Englisch und Russisch?
+
+Beide laufen heute mit einer Stimme, deren Lizenz fraglich ist
+(`LIZENZEN.md`): `en_US-lessac-medium` gilt „nur für Forschung",
+`ru_RU-irina-medium` nennt gar keine. Lizenzfreie Kandidaten sind
+gemessen — aber welche Stimme eine dreiviertel Stunde lang erträglich
+ist, hört ein Mensch und rechnet kein Skript.
+
+```
+python werkzeuge/hoerprobe.py --bauen en
+python werkzeuge/hoerprobe.py --bauen ru
+```
+
+Das baut je eine Seite unter `pruefung/paket_hoerprobe_<sprache>/`:
+zehn Sätze aus `pruefung/saetze_auswahl.csv`, jeder von allen drei
+Stimmen gesprochen, jede mit ihrem eigenen Tempo wie im Betrieb. Die
+Seite läuft offline im Browser, auch vom Stick.
+
+**Blind, und zwar richtig.** Die Stimmen heißen A, B und C, und die
+Zuordnung ist **je Satz eine andere** — wäre sie durchgehend dieselbe,
+genügte ein Satz, um sie zu durchschauen, und ab da hörte niemand
+mehr die Stimme, sondern seine eigene Vermutung. Am Ende steht dafür
+ein fester Block: dreimal derselbe längere Abschnitt als X, Y und Z,
+und diese drei bleiben, was sie sind. Die Frage „welche insgesamt?"
+bezieht sich darauf.
+
+Die Auflösung steht in `pruefung/schluessel_hoerprobe_<sprache>.json`
+— **nicht im Paket** und nicht im Repo (`.gitignore`).
+
+Zurück kommt der Text, den der Knopf „Antworten anzeigen" erzeugt:
+
+```
+python werkzeuge/hoerprobe.py --auswerten pruefung/rueck_hoerprobe_en.txt
+```
+
+Er löst die Buchstaben auf und zählt je Stimme.
+
 ## Versuch: Ton bei gesperrtem Handy
 
 Die Hörerseite sagt heute „Bildschirm anlassen, sonst stoppt die
