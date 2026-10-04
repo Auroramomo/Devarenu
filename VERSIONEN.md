@@ -4,6 +4,12 @@ Was sich für Gemeinde und Pult geändert hat. Ausführlich:
 `AENDERUNGEN.md`. Hier stehen nur die letzten Fassungen — ältere
 fallen heraus, damit dies ein Blatt bleibt.
 
+**0.4.4 — 04.10.2026**
+
+- **Versuch:** ein durchgehender Tonstrom statt einzelner Häppchen,
+  damit der Ton bei gesperrtem Handy weiterläuft. Nur mit
+  Adresszusatz; ohne ihn ändert sich nichts.
+
 **0.4.3 — 04.10.2026**
 
 - **Umrisse wieder sichtbar.** Knöpfe, Felder und Kacheln hatten
@@ -29,16 +35,11 @@ fallen heraus, damit dies ein Blatt bleibt.
   Uhrzeit.
 - **Bibelstellen** auf Englisch und Russisch mit Doppelpunkt.
 
-**0.4.1 — 03.10.2026**
+**0.4.0 und 0.4.1 — 03.10.2026**
 
-- **Das Pult hat vier Reiter.** Die Startseite passt auf einen
-  Handybildschirm; drei Kacheln sagen in einem Wort, wie es um Ton,
-  Zuhörer und Thema steht.
-- **Die Mindestlautstärke hat drei Modi:** Aus, Automatisch, Fest.
-  Vorgabe ist Aus.
-
-**0.4.0 — 03.10.2026**
-
+- **Das Pult hat vier Reiter**, die Startseite passt auf einen
+  Handybildschirm. Die Mindestlautstärke hat drei Modi; Vorgabe
+  ist Aus.
 - **Spanisch und Portugiesisch** sind geprüft und am Pult wählbar.
 - **Bibelstellen stehen in der Zählung der Zielsprache.** Aus
   „Joel 3,1" wird englisch „Joel 2:28".

@@ -6,6 +6,57 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.4.4 — Ein Strom, der nie endet
+
+*04.10.2026.*
+
+### Für alle
+
+Nichts davon ist eingeschaltet. Ohne Adresszusatz ändert sich für
+einen Zuhörer **gar nichts**.
+
+**Versuch B hat nicht geholfen.** Auf einem Galaxy Z Fold 7 mit
+Firefox war der Ton nach zehn bis fünfzehn Sekunden gesperrt weg; das
+Tonprotokoll zeigte den Grund — ständig `ended`, auch beim
+Stille-Füller. Jedes Ende eines Mediums ist dem Browser ein Anlass,
+die Tonsitzung abzuräumen.
+
+**Also ein Strom.** Seit 0.4.4 gibt es `?versuch=strom`: ein einziges
+Tonelement, eine Quelle, kein Ende. Der Server kodiert je Sprache
+einen durchgehenden MP3-Strom — läuft gerade ein Abschnitt, hört man
+ihn; sonst Stille. Zwei Handys derselben Sprache hören dasselbe zur
+selben Zeit, und wer später dazukommt, steigt dort ein, wo die
+anderen sind.
+
+Ob es wirklich hilft, sagt nur ein echtes Handy. Die Anleitung dafür
+steht in `AUFSTELLEN.md`.
+
+### Für die Technik
+
+* `tonstrom.py`: ein Koder je Sprache, nur solange jemand zuhört,
+  mit zehn Sekunden Nachlauf. 22050 Hz mono, 48 kbit/s wie die
+  Predigtaufnahme, `-reservoir 0` damit jeder Rahmen für sich
+  dekodierbar ist. Kein ffmpeg mit libmp3lame und kein lame: dann
+  kein Strom, die Hörerseite bleibt beim bisherigen Weg, und der
+  Systemcheck sagt es.
+* Rückstau höchstens 20 Sekunden, das Älteste fällt weg. Ein
+  Zuhörer, der vier Sekunden Ton nicht abholt, wird getrennt und
+  verbindet neu — er bremst dabei niemanden.
+* **Gemessen:** je Koder 0,7 bis 0,8 Prozent eines Kerns, fünf
+  Sprachen zusammen 3,7 Prozent. Serverseitiger Zuschlag 25 bis
+  60 ms, also im Rauschen.
+* **Gemessen, Firefox 157:** der Browser puffert beim Start 5,6
+  Sekunden und trägt diesen Abstand mit sich. Der Aufholsprung holt
+  ihn weg — Springen in einem Strom ohne Längenangabe geht, und der
+  Abstand fällt von 4,93 auf **0,24 Sekunden** im Mittel. Chromium
+  ist auf dem Entwicklungsrechner nicht vorhanden und wurde nicht
+  gemessen.
+* Neu im Prüfstand: `tonstrom_test.py` liest die MP3-Rahmen selbst
+  und weist nach, dass der Strom eine lückenlose Rahmenfolge ist —
+  auch in Pausen. Dazu vier neue Fälle in `versuch_test.mjs`.
+
+---
+
 ## 0.4.3 — Konturen, Stimmen, und ein Versuch mit dem Handy
 
 *04.10.2026.*
