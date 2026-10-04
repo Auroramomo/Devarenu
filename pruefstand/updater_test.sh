@@ -16,6 +16,9 @@ ECHT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # echten Dienst auskommt.
 export PATH="$ECHT/pruefstand/attrappen:$PATH"
 BASIS="$(mktemp -d)"
+# Auch bei Abbruch weg, nicht erst in der letzten Zeile: set -u bricht
+# bei einer unbelegten Variable sofort ab, und Strg-C ebenso.
+trap 'rm -rf "$BASIS"' EXIT INT TERM
 FEHLER=0
 
 pruefe() { # $1 Beschreibung  $2 erwartet  $3 ist

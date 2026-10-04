@@ -14,8 +14,10 @@ from pathlib import Path
 
 WURZEL = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(WURZEL))
+sys.path.insert(0, str(WURZEL / "pruefstand"))
 
 import grafikwacht                                      # noqa: E402
+from hilfe import wegwerfordner                         # noqa: E402
 
 fehler = 0
 
@@ -29,7 +31,7 @@ def pruefe(was, erwartet, ist):
         print(f"   FEHLER {was}: erwartet {erwartet!r}, ist {ist!r}")
 
 
-grafikwacht.DATEI = Path(tempfile.mkdtemp(prefix="devarenu-gpu-")) / "g.csv"
+grafikwacht.DATEI = wegwerfordner("devarenu-gpu-") / "g.csv"
 grafikwacht._tage.clear()
 echt = grafikwacht._lauf
 

@@ -12,7 +12,7 @@
 // wurde EINE Leiste mit fuenf Eintraegen, und fuenf Beschriftungen auf
 // 320 px sind etwas, das man ansehen muss.
 
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync,
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync,
          existsSync } from "node:fs";
 import { join } from "node:path";
 import { execFile, execFileSync } from "node:child_process";
@@ -176,18 +176,25 @@ const dienst = await ausliefern(arbeit);
 const wurzel = `http://127.0.0.1:${dienst.address().port}/`;
 
 console.log(`Bilder nach ${AUSGABE}`);
-for (const [name, lage] of LAGEN) {
-  for (const [b, h, wie, lupe] of GROESSEN) {
-    const datei = `${name}_${wie}.html`;
-    writeFileSync(join(arbeit, datei), seiteBauen(lage, lupe));
-    const bild = join(AUSGABE, `${name}_${wie}.png`);
-    try {
-      await schiessen(firefox(), profil, wurzel + datei, b, h, bild);
-      console.log(`  ${bild}`);
-    } catch (e) {
-      console.log(`  FEHLER ${name} ${wie}: ${String(e.message).slice(0, 70)}`);
+try {
+  for (const [name, lage] of LAGEN) {
+    for (const [b, h, wie, lupe] of GROESSEN) {
+      const datei = `${name}_${wie}.html`;
+      writeFileSync(join(arbeit, datei), seiteBauen(lage, lupe));
+      const bild = join(AUSGABE, `${name}_${wie}.png`);
+      try {
+        await schiessen(firefox(), profil, wurzel + datei, b, h, bild);
+        console.log(`  ${bild}`);
+      } catch (e) {
+        console.log(`  FEHLER ${name} ${wie}: ${String(e.message).slice(0, 70)}`);
+      }
     }
   }
+} finally {
+  // Die Bilder bleiben, Profil und gebaute Seiten nicht. Ohne das
+  // wuchs .tmp/hoererbilder/bau mit jedem Lauf um ein Firefox-Profil.
+  dienst.close();
+  rmSync(profil, { recursive: true, force: true });
+  rmSync(arbeit, { recursive: true, force: true });
 }
 function firefox(){ return "firefox"; }
-dienst.close();

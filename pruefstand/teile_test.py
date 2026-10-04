@@ -3,9 +3,11 @@
 import json, os, shutil, sys, tempfile
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import teile
+from hilfe import wegwerfordner
 
-ord_ = Path(tempfile.mkdtemp())
+ord_ = wegwerfordner("devarenu-teile-")
 platte = ord_ / "platte"
 stick = ord_ / "stick"
 sicherung = ord_ / "sicherung"

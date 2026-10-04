@@ -16,8 +16,10 @@ from pathlib import Path
 
 WURZEL = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(WURZEL))
+sys.path.insert(0, str(WURZEL / "pruefstand"))
 
 import rueckmeldung                                     # noqa: E402
+from hilfe import wegwerfordner                         # noqa: E402
 
 fehler = 0
 
@@ -31,7 +33,7 @@ def pruefe(was, erwartet, ist):
         print(f"   FEHLER {was}: erwartet {erwartet!r}, ist {ist!r}")
 
 
-ordner = Path(tempfile.mkdtemp(prefix="devarenu-rueck-"))
+ordner = wegwerfordner("devarenu-rueck-")
 rueckmeldung.DATEI = ordner / "rueckmeldung.csv"
 rueckmeldung._zaehler.clear()
 

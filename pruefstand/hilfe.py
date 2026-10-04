@@ -42,6 +42,24 @@ BEIWERK = ("client.html", "VERSION", "logo.png", "betreuer.txt",
 VERKNUEPFT = (".venv", "voices", "models")
 
 
+def wegwerfordner(praefix):
+    """Ein Ordner unter /tmp, der am Ende des Laufs wieder verschwindet.
+
+    Auch wenn ein Fall scheitert: atexit laeuft bei sys.exit(1) und bei
+    einer Ausnahme, die bis oben durchschlaegt. Nur ein harter Abbruch
+    (kill -9) laesst ihn liegen.
+
+    Bis 0.4.5 legten mehrere Pruefstaende ihre Ordner an und raeumten
+    sie nie weg -- auf dem Arbeitsrechner lagen am Ende ueber 700
+    davon. Der Praefix bleibt Pflicht: ein Ordner ohne Namen laesst
+    sich spaeter keinem Pruefstand mehr zuordnen."""
+    import atexit
+    import tempfile
+    o = Path(tempfile.mkdtemp(prefix=praefix))
+    atexit.register(shutil.rmtree, o, True)
+    return o
+
+
 def eigene_adresse():
     """Eine Adresse dieses Rechners, die NICHT Loopback ist.
 

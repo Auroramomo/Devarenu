@@ -22,6 +22,8 @@ from pathlib import Path
 
 WURZEL = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(WURZEL))
+sys.path.insert(0, str(WURZEL / "pruefstand"))
+from hilfe import wegwerfordner                          # noqa: E402
 
 fehler = 0
 
@@ -37,7 +39,9 @@ def pruefe(was, bedingung, einzelheit=""):
 
 def frisch_laden(inhalt):
     """Schreibt eine zustand.json und laedt sie mit einem frischen Modul."""
-    ordner = tempfile.mkdtemp(prefix="devarenu-schwelle-")
+    # Je Aufruf ein Ordner, rund zwanzig je Lauf -- vor 0.4.6 blieben
+    # sie alle liegen.
+    ordner = wegwerfordner("devarenu-schwelle-")
     pfad = Path(ordner) / "zustand.json"
     if inhalt is not None:
         pfad.write_text(json.dumps(inhalt), encoding="utf-8")

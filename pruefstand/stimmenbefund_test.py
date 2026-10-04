@@ -22,9 +22,11 @@ from pathlib import Path
 
 WURZEL = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(WURZEL))
+sys.path.insert(0, str(WURZEL / "pruefstand"))
 
 import config                                            # noqa: E402
 import systemcheck                                       # noqa: E402
+from hilfe import wegwerfordner                          # noqa: E402
 
 fehler = 0
 
@@ -41,7 +43,7 @@ def pruefe(was, erwartet, ist):
 def befund(gewaehlt, vorhanden):
     """Ruft _stimmen mit gestellter Lage auf."""
     import zustand as zustandsdatei
-    ordner = Path(tempfile.mkdtemp(prefix="devarenu-stimmen-"))
+    ordner = wegwerfordner("devarenu-stimmen-")
     (ordner / "voices").mkdir()
     for name in vorhanden:
         (ordner / "voices" / f"{name}.onnx").write_text("x")
@@ -104,7 +106,7 @@ finally:
 print("\n7. Nur die halbe Stimme ist auch keine")
 # Ohne die Beschreibung laedt Piper nicht. Eine Sprache, die am Pult
 # waehlbar ist und stumm bleibt, ist der Fall, um den es geht.
-ordner = Path(tempfile.mkdtemp(prefix="devarenu-halb-"))
+ordner = wegwerfordner("devarenu-halb-")
 (ordner / "voices").mkdir()
 name = Path(config.STIMMEN["de"]).name
 (ordner / "voices" / f"{name}.onnx").write_text("x")   # ohne .json

@@ -17,6 +17,8 @@ from pathlib import Path
 
 WURZEL = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(WURZEL))
+sys.path.insert(0, str(WURZEL / "pruefstand"))
+from hilfe import wegwerfordner                           # noqa: E402
 
 # Erfundene Daten. Keine echten Personen, keine echten Zugangsdaten.
 GEHEIM = {
@@ -74,7 +76,7 @@ for zeile, soll in proben:
 print("\n\033[1m== 3) Der fertige Bericht\033[0m")
 # zustand.json mit erfundenen Zugangsdaten unterschieben -- die echte
 # wird NICHT angefasst.
-ord_ = Path(tempfile.mkdtemp())
+ord_ = wegwerfordner("devarenu-bericht-")
 zdatei = ord_ / "zustand.json"
 zdatei.write_text(json.dumps({
     "fassung": 3,
