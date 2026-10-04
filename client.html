@@ -306,6 +306,29 @@ h1{
 }
 .nachschub.an{display:block}
 
+/* Die Decke zum Abdunkeln. Der Bildschirm MUSS anbleiben, sonst reisst
+   der Ton ab -- eine Stunde volle Helligkeit ist aber nichts, was ein
+   Handy aushalten muss, und im dunklen Saal leuchtet es die Nachbarn an.
+   Also kein Eingriff in die Helligkeit des Geraets (die kann eine
+   Webseite nicht stellen), sondern eine schwarze Decke darueber.
+
+   Gedeckelt bei 0,82: ganz schwarz saehe aus wie ein Geraet, das aus
+   ist. Und die Fussleiste liegt DARUEBER und bleibt heller als der
+   Rest -- wer abgedunkelt hat, muss den Weg zurueck noch finden. */
+#abdunkler{
+  position:fixed; inset:0; background:#000;
+  opacity:0; pointer-events:none;
+  transition:opacity .3s; z-index:5;
+}
+html[data-dunkel="1"] #abdunkler{opacity:.55}
+html[data-dunkel="2"] #abdunkler{opacity:.82}
+html[data-dunkel] .fussblock{z-index:6}
+html[data-dunkel="1"] .fussblock{opacity:.8}
+html[data-dunkel="2"] .fussblock{opacity:.6}
+@media (prefers-reduced-motion:reduce){
+  #abdunkler{transition:none}
+}
+
 /* Beide Reihen kleben gemeinsam am unteren Rand. Zwei einzeln klebende
    Leisten wuerden sich ueberlagern. */
 .fussblock{
@@ -323,7 +346,7 @@ h1{
   font-family:var(--schild); font-size:.76rem; letter-spacing:.03em;
   background:none; border:0; color:var(--tinte-hell);
   padding:.6rem .3rem; cursor:pointer; text-align:center;
-  border-radius:3px;
+  border-radius:3px; min-height:44px;
 }
 .werkzeug[aria-pressed="false"]{color:var(--leise)}
 .werkzeug .zeichen{display:block; font-size:1.15rem; line-height:1.25; margin-bottom:.05rem}
@@ -384,7 +407,10 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
 /* Zweite Reihe: Wege aus der Seite heraus, nicht Wiedergabe. Kleiner und
    blasser, damit sie die Bedienung nicht verdraengen. */
 .fussleiste.neben{border-top:1px solid var(--linie);
-  padding-top:.2rem;padding-bottom:.35rem}
+  padding-top:.2rem;padding-bottom:.35rem;
+  /* Drei Knoepfe, mit der Rueckmeldung vier. Feste Spalten liessen
+     bei jeder anderen Zahl eine Luecke am Rand stehen. */
+  grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:1fr}
 .werkzeug.klein{opacity:.6;font-size:.82rem;padding:.45rem .3rem;
   text-decoration:none}
 .werkzeug.klein .zeichen{font-size:1rem}
@@ -431,6 +457,10 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
 </head>
 
 <body>
+
+<!-- Liegt ueber allem und faengt keine Beruehrung ab: der Ton und das
+     Mitlesen gehen abgedunkelt unveraendert weiter. -->
+<div id="abdunkler" aria-hidden="true"></div>
 
 <div class="facetten"></div>
 <div class="band band-oben" aria-hidden="true">
@@ -543,6 +573,9 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
     </button>
     <button class="werkzeug klein" id="w-post">
       <span class="zeichen" aria-hidden="true">✉</span><span class="beschriftung"></span>
+    </button>
+    <button class="werkzeug klein" id="w-dunkel" aria-pressed="false">
+      <span class="zeichen" aria-hidden="true">◐</span><span class="beschriftung"></span>
     </button>
     <button class="werkzeug klein" id="rueckmeldung" hidden>
       <span class="zeichen" aria-hidden="true">☺</span><span class="beschriftung"></span>
@@ -722,6 +755,7 @@ const TEXTE = {
       postGekuerzt:"Angekommen, aber gekürzt: nur die ersten 200 Zeichen.",
       postFehler:"Ließ sich nicht senden. Bitte noch einmal.",
       zurueck:"Zurück", rueckmeldung:"Rückmeldung", schliessen:"Schließen",
+      dunkel:"Abdunkeln", dunkler:"Dunkler", heller:"Heller",
       uGut:"verständlich", uSchwer:"schwer verständlich", uDank:"Danke!",
       dankText:"Du möchtest mir Rückmeldung geben? Ich arbeite ständig an besseren Fassungen. Schreib mir gern:",
       dankSpende:"Du möchtest das Projekt unterstützen? Nicht nötig, als Pastor werde ich schon durch deinen Zehnten getragen. Wenn du trotzdem etwas geben möchtest, spende gern an die Freikirche. Der Betrag im Code ist nur ein Vorschlag und in der Banking-App änderbar:",
@@ -752,6 +786,7 @@ const TEXTE = {
       postGekuerzt:"Received, but shortened: the first 200 characters only.",
       postFehler:"Could not be sent. Please try again.",
       zurueck:"Back", rueckmeldung:"Feedback", schliessen:"Close",
+      dunkel:"Dim screen", dunkler:"Dimmer", heller:"Brighter",
       uGut:"clear", uSchwer:"hard to follow", uDank:"Thank you!",
       dankText:"Want to give feedback? I keep working on better versions. Write to me:",
       dankSpende:"Want to support the project? No need, as a pastor I am already carried by your tithe. But if you would still like to give something, please donate to the church. The amount in the code is only a suggestion and can be changed in your banking app:",
@@ -782,6 +817,7 @@ const TEXTE = {
       postGekuerzt:"Получено, но сокращено: только первые 200 знаков.",
       postFehler:"Не удалось отправить. Попробуйте ещё раз.",
       zurueck:"Назад", rueckmeldung:"Отзыв", schliessen:"Закрыть",
+      dunkel:"Затемнить", dunkler:"Темнее", heller:"Светлее",
       uGut:"понятно", uSchwer:"трудно понять", uDank:"Спасибо!",
       dankText:"Хотите оставить отзыв? Я постоянно работаю над улучшениями. Напишите мне:",
       dankSpende:"Хотите поддержать проект? Не нужно: как пастор я уже получаю поддержку через вашу десятину. Если вы всё же хотите что-то дать, пожертвуйте церкви. Сумма в коде — только предложение, её можно изменить в банковском приложении:",
@@ -812,6 +848,7 @@ const TEXTE = {
       postGekuerzt:"دریافت شد، اما کوتاه شد: تنها ۲۰۰ نویسهٔ نخست.",
       postFehler:"ارسال نشد. لطفاً دوباره تلاش کنید.",
       zurueck:"بازگشت", rueckmeldung:"بازخورد", schliessen:"بستن",
+      dunkel:"کم‌نور کردن", dunkler:"تاریک‌تر", heller:"روشن‌تر",
       uGut:"قابل فهم", uSchwer:"سخت‌فهم", uDank:"ممنون!",
       dankText:"می‌خواهید بازخورد بدهید؟ من پیوسته روی نسخه‌های بهتر کار می‌کنم. برایم بنویسید:",
       dankSpende:"می‌خواهید از پروژه حمایت کنید؟ لازم نیست؛ به عنوان شبان از طریق ده‌یک شما پشتیبانی می‌شوم. اگر باز هم مایل به کمک هستید، لطفاً به کلیسا کمک کنید. مبلغ در کد فقط پیشنهاد است و در برنامهٔ بانکی قابل تغییر است:",
@@ -1395,6 +1432,7 @@ function beschriftungenSetzen(){
   $("w-post").querySelector(".beschriftung").textContent = x.post;
   $("zurueck").querySelector(".beschriftung").textContent = x.zurueck;
   $("rueckmeldung").querySelector(".beschriftung").textContent = x.rueckmeldung;
+  dunkelZeichnen();
   urteilZeichnen();
   $("post-titel").textContent  = x.postTitel;
   $("post-hin").textContent    = x.postHin;
@@ -1504,8 +1542,52 @@ $("starten").addEventListener("click", async () => {
 });
 
 
+/* ---------- Abdunkeln ----------
+   Drei Stufen im Kreis: hell, gedimmt, dunkel. Der Knopf sagt immer,
+   was der naechste Druck bringt -- "Abdunkeln", "Dunkler", "Heller".
+
+   Gemerkt wird es auf dem Geraet und OHNE Datum, anders als die
+   Rueckmeldung: wer einmal abdunkelt, will das naechsten Sonntag
+   wieder. Geht localStorage nicht (privates Fenster, gesperrter
+   Speicher), bleibt die Stufe eben nur fuer diesen Besuch. */
+const Dunkel = {
+  STUFEN: 3,
+  stufe: 0,
+
+  laden(){
+    let n = 0;
+    try{ n = parseInt(localStorage.getItem("dunkel") || "0", 10); }catch(e){}
+    this.setzen(Number.isFinite(n) ? n : 0);
+  },
+
+  setzen(n){
+    this.stufe = ((n % this.STUFEN) + this.STUFEN) % this.STUFEN;
+    const w = document.documentElement;
+    if(this.stufe) w.setAttribute("data-dunkel", String(this.stufe));
+    else w.removeAttribute("data-dunkel");
+    try{ localStorage.setItem("dunkel", String(this.stufe)); }catch(e){}
+    dunkelZeichnen();
+  },
+
+  weiter(){ this.setzen(this.stufe + 1); },
+};
+
+function dunkelZeichnen(){
+  const k = $("w-dunkel");
+  if(!k) return;
+  const x = t();
+  k.setAttribute("aria-pressed", String(Dunkel.stufe > 0));
+  k.querySelector(".beschriftung").textContent =
+    Dunkel.stufe === 0 ? x.dunkel : (Dunkel.stufe === 1 ? x.dunkler : x.heller);
+}
+
 /* ---------- Fußleiste ---------- */
 $("w-ton").addEventListener("click", () => tonSchalten(!zustand.tonAn));
+
+$("w-dunkel").addEventListener("click", () => Dunkel.weiter());
+// Gleich jetzt, nicht erst beim Zuhoeren: wer abgedunkelt neu laedt,
+// soll nicht fuer einen Moment ins helle Bild sehen.
+Dunkel.laden();
 
 $("w-text").addEventListener("click", () => {
   zustand.textAn = !zustand.textAn;

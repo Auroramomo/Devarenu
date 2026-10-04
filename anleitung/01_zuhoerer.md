@@ -33,6 +33,9 @@ trotzdem verbunden.**
 
 - **Bildschirm anlassen.** Schaltet sich der Bildschirm ab, stoppen
   manche Handys die Wiedergabe.
+- **Display abdunkeln.** Anbleiben muss der Bildschirm — hell sein
+  muss er nicht. Der Knopf **Abdunkeln** unten legt die Seite in zwei
+  Stufen dunkler; Ton und Text laufen unverändert weiter.
 - **Kopfhörer benutzen.** Über den Lautsprecher hört das Mikrofon vorn
   die Übersetzung mit und übersetzt sie noch einmal.
 - **Am iPhone den seitlichen Schalter prüfen.** Steht er auf lautlos,
