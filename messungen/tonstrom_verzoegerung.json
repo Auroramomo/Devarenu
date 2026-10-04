@@ -1,0 +1,30 @@
+{
+  "wozu": "Verzoegerung des durchgehenden MP3-Stroms (Versuch C, 0.4.4)",
+  "wann": "2026-10-04",
+  "bitrate": "48k",
+  "rate": 22050,
+  "serverseite": {
+    "wie": "einreihen() bis die Rahmen des Abschnitts heraus sind",
+    "zuschlag_ms": {"abschnitt_2s": 25, "abschnitt_4s": 61,
+                    "abschnitt_8s": -38},
+    "urteil": "im Rauschen -- der Koder kostet nichts"
+  },
+  "cpu": {
+    "wie": "/proc/<pid>/stat ueber 12 s, Prozent eines Kerns",
+    "je_koder": 0.75,
+    "fuenf_sprachen_zusammen": 3.7
+  },
+  "browser": {
+    "firefox": {
+      "fassung": "157.0",
+      "startverzoegerung_s": 5.6,
+      "abstand_ohne_aufholen": {"mittel": 4.93, "median": 5.13,
+                                "spitze": 5.66},
+      "abstand_mit_aufholen": {"mittel": 0.24, "median": 0.00,
+                               "spitze": 5.46},
+      "springen_im_livestrom": "geht",
+      "anmerkung": "Die Spitze von 5,46 s ist die erste Probe vor dem ersten Sprung."
+    },
+    "chromium": "nicht vorhanden auf diesem Rechner, nicht gemessen"
+  }
+}
