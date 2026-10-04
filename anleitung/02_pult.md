@@ -54,8 +54,9 @@ verschwunden, es steht nur nicht mehr dauerhaft offen.
 
 ## Die Mindestlautstärke: drei Modi
 
-Unter *Vorbereiten* → *Feineinstellung*. **Nur nötig bei
-Störgeräuschen im Raum** — im Normalfall ist hier nichts zu tun.
+Unter *Vorbereiten* → *Feineinstellung*. **Nur bei lauten
+Störgeräuschen. Kann bei leisen Sprechern viel verwerfen.** Im
+Normalfall ist hier nichts zu tun.
 
 | Modus | Was er tut |
 |---|---|
@@ -64,13 +65,19 @@ Störgeräuschen im Raum** — im Normalfall ist hier nichts zu tun.
 | **Fest** | Der Wert bleibt stehen, den das Einmessen ergeben hat. |
 
 Der Modus bleibt über Neustarts stehen und wird in der Ton-Kachel
-genannt. **Einmessen** setzt ihn auf *Fest*: den Prediger am echten
-Mikrofon sprechen lassen und drücken, es dauert **12 Sekunden**, in
-denen durchgehend gesprochen werden muss.
+genannt — die Kachel sagt nur, was gilt, und führt nicht hierher.
+
+**Einmessen** steht ebenfalls nur hier und setzt den Modus auf *Fest*:
+den Prediger am echten Mikrofon sprechen lassen und drücken, es dauert
+**12 Sekunden**, in denen durchgehend gesprochen werden muss.
 
 > Gemessen an einer Predigt von 21 Minuten lieferte *Aus* die meisten
-> Wörter, *Fest* mit der eingemessenen Schwelle die wenigsten — sie
-> verwarf drei Fünftel. Wer nicht sicher ist, lässt *Aus* stehen.
+> Wörter (2743), *Automatisch* 2576, *Fest* mit der eingemessenen
+> Schwelle nur 1091 — sie verwarf drei Fünftel. Der Grund: das
+> Einmessen legt die Schwelle sechzig Prozent des Weges von der Ruhe
+> zur lautesten Stelle. Bei einer sauberen Leitung ist die Ruhe fast
+> Stille, und sechzig Prozent landen mitten im normalen Sprechen. Wer
+> nicht sicher ist, lässt *Aus* stehen.
 
 Ein Wechsel des Tongeräts verwirft eine feste Schwelle: sie galt dem
 alten Mikrofon. Es gilt dann wieder der Modus, der vorher gewählt war.

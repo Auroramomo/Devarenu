@@ -87,8 +87,8 @@ const TABELLE = [
   ["erkannt",               "vorbereiten"],
   ["datei",                 "vorbereiten"],
   ["skriptinfo",            "vorbereiten"],
-  ["einmessstand",          "vorbereiten"],
-  ["bEinmessen",            "vorbereiten"],
+  ["einmessstand",          "vorbereiten", {tief: true}],
+  ["bEinmessen",            "vorbereiten", {tief: true}],
   ["feineinstellung",       "vorbereiten"],
   ["tonfuell",              "vorbereiten", {tief: true}],
   ["marke2",                "vorbereiten", {tief: true}],
@@ -358,6 +358,18 @@ block("6. Die Kacheln sagen den Zustand in einem Wort");
   const p = await pult({}, { lage: "alarm", lage_text: "nichts kommt durch" });
   pruefe("kein Ton macht die Ton-Kachel rot",
          p.g("kTon").classList.contains("schlecht"), p.g("kTon").className);
+  // Gemessen verwirft eine eingemessene Schwelle auf einer ruhigen
+  // Aufnahme drei Fuenftel der Predigt. Ein Verweis dorthin mitten im
+  // Gottesdienst laedt zu genau dem ein.
+  pruefe("die Ton-Kachel fuehrt nicht zum Einmessen",
+         p.g("kTon").querySelectorAll("BUTTON")
+           .filter(b => !b.vorfahren().some(v => v.tagName === "DETAILS"))
+           .length === 0);
+  pruefe("der Einmessen-Knopf steht nur in der Feineinstellung",
+         p.g("bEinmessen").vorfahren().some(v => v.id === "feineinstellung"));
+  pruefe("und traegt den Satz, was er kostet",
+         /verwerfen|discard/.test(p.g("feineinstellung").volltext()),
+         p.g("feineinstellung").volltext().slice(0, 90));
 }
 
 block("7. Verzoegerung und Rueckstau");

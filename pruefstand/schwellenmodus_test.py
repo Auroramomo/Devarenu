@@ -65,6 +65,20 @@ pruefe("der Wert faellt weg", daten["schwelle"]["wert"] is None)
 pruefe("der Zeitstempel faellt mit weg",
        daten["schwelle"]["gemessen"] is None)
 
+print("\n2b. Dasselbe mit Werten UNTER 0,0005")
+# zustand.py klemmt beim Lesen auf 0.0005 ab. Ein von Hand
+# eingetragenes 0.0001 ist derselbe Wunsch: keine Schwelle.
+for wert in (0.0001, 0.00025, 0.0004, 0.0005):
+    z, daten, woher, _ = frisch_laden(
+        {"fassung": 3, "schwelle": {"wert": wert, "gemessen": None}})
+    pruefe(f'{wert} wird "aus"', daten["schwelle"]["modus"] == "aus",
+           daten["schwelle"])
+# Knapp darueber ist eine Entscheidung und bleibt eine.
+z, daten, woher, _ = frisch_laden(
+    {"fassung": 3, "schwelle": {"wert": 0.0006, "gemessen": None}})
+pruefe('0.0006 bleibt "fest"', daten["schwelle"]["modus"] == "fest",
+       daten["schwelle"])
+
 print("\n3. Alte Datei, echte eingemessene Schwelle")
 z, daten, woher, _ = frisch_laden(
     {"fassung": 3, "schwelle": {"wert": 0.0120, "gemessen": "2026-09-28 09:41:00"}})

@@ -6437,9 +6437,11 @@ Auslieferung, ohne die Sitzung zu beenden. Die Handys bleiben verbunden.</p>
       <span class=zustand id=tonZustand>–</span></div>
     <div class=mini><span class=fuell id=fuell></span>
       <span class=marke id=marke style="inset-inline-start:0"></span></div>
-    <p class=unterz><span id=schwellestand></span>
-      <button class=link onclick="reiterWaehlen('vorbereiten','feineinstellung')"
-              data-t=ton_feiner>Feineinstellung</button></p>
+    <!-- Kein Weg zum Einmessen von hier aus. Gemessen verwirft eine
+         eingemessene Schwelle auf einer ruhigen Aufnahme drei Fuenftel
+         der Predigt; ein Verweis mitten im Gottesdienst laedt zu
+         genau dem ein. Die Kachel sagt den Zustand, mehr nicht. -->
+    <p class=unterz><span id=schwellestand></span></p>
     <details class=hilfe><summary data-t=hilfe_ton>Pegel und Schwelle</summary>
       <div>
         <div class=werte><span id=pegelwert>–</span><span id=schwellwert>–</span></div>
@@ -6514,12 +6516,13 @@ Auslieferung, ohne die Sitzung zu beenden. Die Handys bleiben verbunden.</p>
   Prompt, mit dem Whisper die Eigennamen trifft. Der Text selbst verlässt
   diesen Rechner nicht.</p></div></details>
 
-<h2 data-t=ton_einmessen>Ton einmessen</h2>
-<p class=hin id=einmessstand></p>
-<button class=btn id=bEinmessen onclick=einmessen()>Einmessen: Prediger sprechen lassen</button>
+<h2 data-t=ton_ueber>Ton</h2>
 <details class=hilfe id=feineinstellung><summary data-t=feineinstellung>Feineinstellung</summary>
 <div>
-<p class=hin data-t=feiner_hin>Nur nötig bei Störgeräuschen im Raum.</p>
+<p class=hin data-t=feiner_hin>Nur bei lauten Störgeräuschen. Kann bei
+leisen Sprechern viel verwerfen.</p>
+<p class=hin id=einmessstand></p>
+<button class=btn id=bEinmessen onclick=einmessen()>Einmessen: Prediger sprechen lassen</button>
 <div class=mini><span class=fuell id=tonfuell></span>
   <span class=marke id=marke2 style="inset-inline-start:0"></span></div>
 <p class=hin id=feinwert></p>
@@ -6801,8 +6804,9 @@ const TEXTE={
      +"und „San Ballard“.",
    // --- Schwelle: drei Modi ---
    ton_feiner:"Feineinstellung", feineinstellung:"Feineinstellung",
-   feiner_hin:"Nur nötig bei Störgeräuschen im Raum.",
-   ton_einmessen:"Ton einmessen",
+   feiner_hin:"Nur bei lauten Störgeräuschen. Kann bei leisen Sprechern "
+     +"viel verwerfen.",
+   ton_ueber:"Ton",
    m_aus:"Aus", m_auto:"Automatisch", m_fest:"Fest",
    s_aus:"Keine Mindestlautstärke.", s_auto:"Mindestlautstärke automatisch.",
    s_fest:"Mindestlautstärke fest.", s_fest_seit:"Fest seit {z}.",
@@ -7119,8 +7123,9 @@ const TEXTE={
      +"names of the chapter. That is the difference between "
      +"\u201cSanballat\u201d and \u201cSan Ballard\u201d.",
    ton_feiner:"Fine tuning", feineinstellung:"Fine tuning",
-   feiner_hin:"Only needed when the room is noisy.",
-   ton_einmessen:"Calibrate audio",
+   feiner_hin:"Only for loud background noise. May discard a lot when "
+     +"someone speaks quietly.",
+   ton_ueber:"Audio",
    m_aus:"Off", m_auto:"Automatic", m_fest:"Fixed",
    s_aus:"No minimum volume.", s_auto:"Minimum volume automatic.",
    s_fest:"Minimum volume fixed.", s_fest_seit:"Fixed since {z}.",
