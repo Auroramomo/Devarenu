@@ -485,6 +485,37 @@ block("8b. Branding");
   pruefe("das Logo steht im Kopf",
          !!logo && logo.vorfahren().some(v => v.classList.contains("top")));
   pruefe("und damit in jedem Reiter", !!logo && logo.sichtbar());
+  // Der Pfad ist derselbe, unter dem der Server es ausliefert. In den
+  // ersten Pruefbildern fehlte das Logo, weil der Renderer die Seite
+  // ueber file:// lud -- dort zeigt "/logo.png" auf die Wurzel des
+  // Dateisystems, und onerror nimmt das Bild still heraus. Das Pult
+  // war in Ordnung, der Pruefstand nicht.
+  pruefe("es zeigt auf /logo.png, wie der Server es ausliefert",
+         logo && logo.getAttribute("src") === "/logo.png",
+         logo && logo.getAttribute("src"));
+  pruefe("und faellt still weg, wenn die Datei fehlt",
+         !!(logo && (logo.getAttribute("onerror") || "").includes("remove")));
+  pruefe("es steht als erstes im Kopf, vor dem Namen",
+         !!logo && logo.eltern.kinder.indexOf(logo) === 0);
+  {
+    const quelle = readFileSync(SERVER, "utf8");
+    const stil = quelle.split('PULT = """')[1].split("<style>")[1]
+                       .split("</style>")[0].replace(/\s+/g, "");
+    pruefe("keine Regel blendet es aus",
+           !/\.logo\{[^}]*display:none/.test(stil)
+           && !/\.top\.logo\{[^}]*display:none/.test(stil));
+    pruefe("und es hat eine feste Hoehe, die bei 150 % nicht mitwaechst",
+           /\.top\.logo\{[^}]*height:\d+px/.test(stil));
+  }
+  // Und der Renderer liefert es aus, statt es aus der Wurzel zu holen.
+  {
+    const r = readFileSync(
+      new URL("./pultbilder.mjs", import.meta.url).pathname, "utf8");
+    pruefe("der Bilderlauf liefert logo.png mit aus",
+           /copyFileSync\(logo,/.test(r) && /createServer/.test(r));
+    pruefe("und laedt die Seite ueber HTTP, nicht ueber file://",
+           !/"file:\/\/"/.test(r) && /http:\/\/127\.0\.0\.1/.test(r));
+  }
   pruefe('"Uebersetzung starten" traegt .start',
          p.g("bStart").classList.contains("start"), p.g("bStart").className);
   const q = await pult({ live: true });
