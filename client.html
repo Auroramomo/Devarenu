@@ -306,6 +306,26 @@ h1{
 }
 .nachschub.an{display:block}
 
+/* Der Versuchskasten. Bewusst karg: er ist kein Teil der Bedienung,
+   sondern ein Messgeraet, das nur mitfaehrt, wenn jemand es bestellt.
+   Darum auch nur auf Deutsch -- es liest niemand im Saal. */
+.versuch{margin:.8rem var(--rand) 0; font-family:var(--schild);
+  font-size:.8rem; color:var(--leise)}
+.versuch summary{cursor:pointer; padding:.4rem 0}
+.versuchhin{margin:.2rem 0 .4rem; line-height:1.4}
+.versuch pre{margin:0; max-height:14rem; overflow:auto; font-size:.72rem;
+  line-height:1.5; white-space:pre-wrap; background:var(--blatt);
+  border:1px solid var(--kante); padding:.5rem}
+
+/* Das Wachvideo. NICHT display:none und nicht visibility:hidden -- ein
+   Video, das der Browser gar nicht darstellt, haelt bei manchen auch
+   den Bildschirm nicht wach, und genau darum geht es hier. Also zwei
+   Pixel in der Ecke, praktisch durchsichtig. */
+#wachvideo{
+  position:fixed; left:0; bottom:0; width:2px; height:2px;
+  opacity:.01; pointer-events:none; z-index:0;
+}
+
 /* Die Decke zum Abdunkeln. Der Bildschirm MUSS anbleiben, sonst reisst
    der Ton ab -- eine Stunde volle Helligkeit ist aber nichts, was ein
    Handy aushalten muss, und im dunklen Saal leuchtet es die Nachbarn an.
@@ -462,6 +482,28 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
      Mitlesen gehen abgedunkelt unveraendert weiter. -->
 <div id="abdunkler" aria-hidden="true"></div>
 
+<!-- Versuch ?versuch=wach: vier Sekunden Schwarz, 16x16, zwei Bilder je
+     Sekunde, ohne Tonspur, in Schleife. Solange ein Video laeuft,
+     lassen viele Handys den Bildschirm an -- das ist der einzige Grund,
+     aus dem es hier steht. Erzeugt auf dem Arbeitsrechner mit:
+
+       ffmpeg -f lavfi -i color=c=black:s=16x16:r=2:d=4 -an \
+         -c:v libx264 -pix_fmt yuv420p -profile:v baseline -level 3.0 \
+         -movflags +faststart -crf 51 wach.mp4
+       ffmpeg -f lavfi -i color=c=black:s=16x16:r=2:d=4 -an \
+         -c:v libvpx-vp9 -pix_fmt yuv420p -crf 63 -b:v 0 -deadline best \
+         wach.webm
+
+     Als data-URI und nicht als Datei: dann gibt es keinen neuen Pfad,
+     den ein Update von 0.3.7 aus mitbringen muesste, und keinen
+     weiteren Abruf im Saalnetz. 1591 und 696 Byte.
+     VP9 vor H.264, weil es das kleinere von beiden ist. -->
+<video id="wachvideo" muted loop playsinline preload="auto"
+       disableremoteplayback aria-hidden="true" tabindex="-1">
+  <source type="video/webm" src="data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAKIEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHWTbuMU6uEElTDZ1OsggEyTbuMU6uEHFO7a1OsggJy7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsCrXsYMPQkBNgIxMYXZmNjMuMS4xMDJXQYxMYXZmNjMuMS4xMDJEiYhAr0AAAAAAABZUrmvXrgEAAAAAAABO14EBc8WIH1atR8p27VScgQAitZyDdW5kiIEAhoVWX1ZQOYOBASPjg4QdzWUA4JCwgRC6gRCagQJVsIRVuYEBVe6BAOwBAAAAAAAAAgAAElTDZ/5zc59jwIBnyJlFo4dFTkNPREVSRIeMTGF2ZjYzLjEuMTAyc3PZY8CLY8WIH1atR8p27VRnyKRFo4dFTkNPREVSRIeXTGF2YzYzLjEuMTAyIGxpYnZweC12cDlnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjA0LjAwMDAwMDAwMAAfQ7Z1QLfngQCjn4EAAICCSYNCAADwAPYAOCQcGXAAADBgAAAQv/xsgACjk4EB9ACGAECSHABf4AADIAAAQkCjk4ED6ACGAECSHABfAAADIAAAQkCjk4EF3ACGAECSHABf4AADIAAAQkCjk4EH0ACGAECSHABdwAADIAAAQkCjk4EJxACGAECSHABf4AADIAAAQkCjk4ELuACGAECSHABfAAADIAAAQkCjk4ENrACGAECSHABf4AADIAAAQkAcU7trkbuPs4EAt4r3gQHxggG18IED">
+  <source type="video/mp4" src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAANDbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAD6AAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAm50cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAD6AAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAA+gAAAAAAABAAAAAAHmbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAABAABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABkW1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAVFzdGJsAAAAuXN0c2QAAAAAAAAAAQAAAKlhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFExhdmM2My4xLjEwMiBsaWJ4MjY0AAAAAAAAAAAAAAAAGP//AAAAL2F2Y0MBQsAe/+EAFmdCwB7ZHsBEAAADAAQAAAMAEDxYuSABAAZoy4BlLIAAAAAQcGFzcAAAAAEAAAABAAAAFGJ0cnQAAAAAAAAFiAAAAAAAAAAYc3R0cwAAAAAAAAABAAAACAAAIAAAAAAUc3RzcwAAAAAAAAABAAAAAQAAABxzdHNjAAAAAAAAAAEAAAABAAAACAAAAAEAAAA0c3RzegAAAAAAAAAAAAAACAAAAoMAAAAKAAAACgAAAAkAAAAJAAAACQAAAAkAAAAJAAAAFHN0Y28AAAAAAAAAAQAAA3MAAABhdWR0YQAAAFltZXRhAAAAAAAAACFoZGxyAAAAAAAAAABtZGlyYXBwbAAAAAAAAAAAAAAAACxpbHN0AAAAJKl0b28AAAAcZGF0YQAAAAEAAAAATGF2ZjYzLjEuMTAyAAAACGZyZWUAAALMbWRhdAAAAnAGBf//bNxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNjUgcjMyMjIgYjM1NjA1YSAtIEguMjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMjUgLSBodHRwOi8vd3d3LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0wIHJlZj0zIGRlYmxvY2s9MTowOjAgYW5hbHlzZT0weDE6MHgxMTEgbWU9aGV4IHN1Ym1lPTcgcHN5PTEgcHN5X3JkPTEuMDA6MC4wMCBtaXhlZF9yZWY9MSBtZV9yYW5nZT0xNiBjaHJvbWFfbWU9MSB0cmVsbGlzPTEgOHg4ZGN0PTAgY3FtPTAgZGVhZHpvbmU9MjEsMTEgZmFzdF9wc2tpcD0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz0xIGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MCB3ZWlnaHRwPTAga2V5aW50PTI1MCBrZXlpbnRfbWluPTIgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTUxLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAALZYiEBXyYoAAhI4AAAAAGQZo4CvqAAAAABkGaVAK+oAAAAAVBmmAV9QAAAAVBmoAU9QAAAAVBmqAU9QAAAAVBmsAU9QAAAAVBmuAS9Q==">
+</video>
+
 <div class="facetten"></div>
 <div class="band band-oben" aria-hidden="true">
   <svg viewBox="0 0 340 240">
@@ -586,6 +628,16 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
        Zwei Knoepfe, eine Stimme je Geraet und Gottesdienst, aenderbar.
        Gezaehlt wird nur, und zwar je Sprache -- keine Adresse, keine
        Kennung, kein Zeitpunkt. -->
+  <!-- Nur im Versuch (?versuch=wach). Ohne den Adresszusatz ist
+       dieser Kasten nicht da. Nichts davon geht an den Server. -->
+  <details class="versuch" id="versuchkasten" hidden>
+    <summary>Versuch: Protokoll</summary>
+    <p class="versuchhin">Die letzten Ereignisse, neueste oben. Bleibt
+    der Bildschirm nicht an, steht hier, woran. Nur auf diesem Gerät,
+    nichts davon geht irgendwohin.</p>
+    <pre id="versuchzeilen"></pre>
+  </details>
+
   <nav class="fussleiste urteil" id="urteil" aria-label="Rückmeldung">
     <button class="werkzeug klein" id="u-gut" aria-pressed="false">
       <span class="zeichen" aria-hidden="true">👍</span><span class="beschriftung"></span>
@@ -1026,9 +1078,134 @@ async function bildschirmWachhalten(){
   return false;
 }
 
+
+/* ============================================================
+   Versuch: Bildschirm wach halten ohne HTTPS  --  ?versuch=wach
+   ------------------------------------------------------------
+   Wake Lock gibt es im Saal nicht (siehe bildschirmWachhalten
+   oben: kein sicherer Kontext unter http://10.0.0.1). Handys
+   sperren nach 30 Sekunden bis 2 Minuten ohne Beruehrung, und
+   dann endet der Ton. Der Hinweis "Bildschirm anlassen" ist
+   genau deshalb da.
+
+   Bekannter Ausweg, Prinzip wie bei NoSleep.js -- nachgebaut,
+   nichts kopiert: ein winziges, stummes Video in Schleife. Solange
+   ein Video laeuft, lassen viele Browser den Bildschirm an, weil
+   jemand ja offensichtlich etwas ansieht.
+
+   OHNE den Adresszusatz aendert sich fuer Zuhoerer nichts.
+
+       ?versuch=wach   einschalten, im Browser gemerkt
+       ?versuch=aus    wieder weg
+   ============================================================ */
+const Versuch = {
+  wach: false,
+  ereignisse: [],
+
+  starten(){
+    let wunsch = "";
+    try{
+      wunsch = (new URLSearchParams(location.search).get("versuch") || "")
+               .toLowerCase();
+    }catch(e){}
+    let gemerkt = null;
+    try{ gemerkt = localStorage.getItem("versuch"); }catch(e){}
+
+    if(wunsch === "aus"){
+      try{ localStorage.removeItem("versuch"); }catch(e){}
+    }else if(wunsch){
+      this.wach = wunsch === "wach";
+      if(this.wach){ try{ localStorage.setItem("versuch", "wach"); }catch(e){} }
+    }else{
+      this.wach = gemerkt === "wach";
+    }
+    if(!this.wach) return;
+
+    const kasten = $("versuchkasten");
+    if(kasten) kasten.hidden = false;
+    this.merken("Versuch", "wach");
+    this.merken("Wake Lock", ("wakeLock" in navigator) ? "vorhanden"
+                                                       : "nicht vorhanden");
+  },
+
+  // Nur auf der Seite, nie an den Server. Neueste oben.
+  merken(was, mehr){
+    if(!this.wach) return;
+    const uhr = new Date().toTimeString().slice(0, 8);
+    this.ereignisse.push(`${uhr}  ${was}${mehr ? "  " + mehr : ""}`);
+    if(this.ereignisse.length > 100) this.ereignisse.shift();
+    const feld = $("versuchzeilen");
+    if(feld) feld.textContent = this.ereignisse.slice().reverse().join("\n");
+  },
+};
+
+const Wach = {
+  laeuft: false,
+
+  /* Muss aus der Klickgeste heraus aufgerufen werden, und zwar
+     SYNCHRON: play() braucht die Nutzergeste, und ein await davor
+     gibt sie in manchen Browsern her.
+
+     Der echte Wake Lock hat Vorrang -- er haelt den Bildschirm an,
+     ohne dass etwas dekodiert werden muss. Nur wo es ihn gar nicht
+     gibt, und das ist im Saal der Fall, laeuft das Video. */
+  starten(){
+    if(!Versuch.wach || this.laeuft) return;
+    if("wakeLock" in navigator){
+      Versuch.merken("Video bleibt aus", "Wake Lock hat Vorrang");
+      return;
+    }
+    this._anwerfen("kein Wake Lock");
+  },
+
+  /* Wake Lock war da, hat aber abgelehnt -- Akkusparmodus zum
+     Beispiel. Dann doch das Video. Die Geste ist ein paar
+     Hundertstel her; klappt es nicht, steht es im Protokoll. */
+  nachreichen(){
+    if(!Versuch.wach || this.laeuft) return;
+    this._anwerfen("Wake Lock abgelehnt");
+  },
+
+  _anwerfen(grund){
+    const v = $("wachvideo");
+    if(!v){ Versuch.merken("kein Videoelement", ""); return; }
+    this.laeuft = true;
+    Versuch.merken("Video startet", grund);
+    const p = v.play();
+    if(p && p.catch) p.catch((e) => {
+      this.laeuft = false;
+      Versuch.merken("play() abgelehnt", String(e && e.name || e));
+    });
+  },
+
+  anhalten(){
+    this.laeuft = false;
+    const v = $("wachvideo");
+    if(!v) return;
+    try{ v.pause(); }catch(e){}
+    Versuch.merken("Video angehalten", "");
+  },
+
+  /* Kommt die Seite aus dem Hintergrund zurueck, kann der Browser
+     das Video angehalten haben. Dann wieder an -- das ist derselbe
+     Griff, mit dem auch der Wake Lock neu angefordert wird. */
+  nachsehen(){
+    if(!Versuch.wach || !this.laeuft) return;
+    const v = $("wachvideo");
+    if(v && v.paused){
+      Versuch.merken("Video stand", "wird neu angeworfen");
+      const p = v.play();
+      if(p && p.catch) p.catch((e) =>
+        Versuch.merken("play() abgelehnt", String(e && e.name || e)));
+    }
+  },
+};
+
 document.addEventListener("visibilitychange", () => {
+  Versuch.merken("Sichtbarkeit", document.visibilityState);
   if(document.visibilityState === "visible" && zustand.laeuft && !wachschloss){
     bildschirmWachhalten();
+    Wach.nachsehen();
   }
 });
 
@@ -1508,6 +1685,7 @@ function startauswahlBauen(){
     }
   });
 }
+Versuch.starten();
 startauswahlBauen();
 
 // Die tatsächlich angebotenen Sprachen kommen vom Server. Bis die Antwort
@@ -1522,8 +1700,10 @@ $("starten").addEventListener("click", async () => {
   // Muss in der Klickgeste passieren: ohne eine echte Nutzergeste
   // spielt kein Haeppchen.
   Ton.freischalten();
+  Wach.starten();
   const tonBereit = await tonFreischalten();
   const wach = await bildschirmWachhalten();
+  if(!wach) Wach.nachreichen();
 
   zustand.laeuft = true;
   // Die eigene Stimme von vorhin -- wer die Seite neu laedt, soll
@@ -1778,6 +1958,9 @@ for(const kennung of ["dankblatt", "postblatt", "wechsel"]){
 $("zurueck").addEventListener("click", () => {
   Verbindung.trennen();
   Ton.leeren();
+  // Das Wachvideo gehoert zum Zuhoeren. Wer zurueckgeht, will nicht,
+  // dass sein Bildschirm weiter anbleibt.
+  Wach.anhalten();
   zustand.laeuft = false;
   $("strom").innerHTML =
     '<p class="leerlauf" id="leerlauf"></p>';

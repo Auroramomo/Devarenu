@@ -79,15 +79,22 @@ titel("1) Ein Hinweis ohne Text bleibt unsichtbar");
 titel("2) Von den Versuchen ist nichts uebrig");
 {
   const quelle = readFileSync(SEITE, "utf8");
-  for (const wort of ["?versuch=", "versuchkasten", "stilleUrl",
+  // Der Versuchskasten als Einrichtung ist seit 0.4.5 wieder da
+  // (?versuch=wach). Verboten ist, was zu DIESEN zwei Versuchen
+  // gehoerte -- der Name allein genuegt dafuer nicht.
+  for (const wort of ["versuch=strom", "versuch=stille", "stilleUrl",
                       "/strom/", "playbackRate", "stillLaeuft"]) {
     pruefe(`"${wort}" steht nicht mehr in der Seite`, false,
            quelle.includes(wort));
   }
   const p = laden();
-  pruefe("kein Versuch im Fenster", "undefined",
-         typeof p.umgebung.Versuch);
   pruefe("kein Strom im Fenster", "undefined", typeof p.umgebung.Strom);
+  // Das Versuchsgeruest lebt, aber keiner der beiden alten Versuche
+  // laesst sich noch einschalten.
+  pruefe("ein gemerktes \"strom\" schaltet nichts ein", false,
+         laden({ gemerkt: { versuch: "strom" } }).Versuch.wach);
+  pruefe("ein gemerktes \"stille\" auch nicht", false,
+         laden({ gemerkt: { versuch: "stille" } }).Versuch.wach);
 }
 
 titel("3) Ein gemerkter Versuch hat keine Wirkung und keinen Fehler");

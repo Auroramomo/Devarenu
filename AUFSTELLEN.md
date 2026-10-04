@@ -1654,7 +1654,61 @@ standen hier bis 0.4.4 mit Testanleitung. Beide sind verworfen; woran
 sie gescheitert sind und welche Zahlen gemessen wurden, steht in
 `AENDERUNGEN.md` unter 0.4.4 und in `LIESMICH.md` unter „Ton bei
 gesperrtem Handy". Die Hörerseite sagt deshalb weiterhin **„Bildschirm
-anlassen"**, und dabei bleibt es bis 1.0.
+anlassen"** — und dabei bleibt es, solange nichts Besseres gemessen
+ist. Der nächste Versuch steht gleich darunter: er greift nicht den Ton
+an, sondern den Bildschirm.
+
+### Versuch: bleibt der Bildschirm an? (`?versuch=wach`)
+
+Wake Lock gibt es im Saal nicht — die Seite kommt unter
+`http://10.0.0.1`, und das ist kein sicherer Kontext. Handys sperren
+nach 30 Sekunden bis 2 Minuten ohne Berührung, und dann endet der Ton.
+Der Versuch hält stattdessen ein winziges stummes Video in Schleife:
+solange ein Video läuft, lassen viele Browser den Bildschirm an.
+
+| | |
+|---|---|
+| `?versuch=wach` | einschalten, im Browser gemerkt |
+| `?versuch=aus` | wieder weg |
+
+**Ohne den Zusatz ändert sich nichts.** Geprüft in
+`pruefstand/wachvideo_test.mjs`.
+
+#### So wird getestet
+
+Je Browser ein Durchgang: **Firefox, Chrome, Samsung Internet**, und
+wenn ein iPhone zur Hand ist, **Safari**.
+
+1. Am Handy den **Bildschirm-Timeout auf 30 Sekunden** stellen
+   (Android: Einstellungen → Display → Bildschirm-Timeout).
+2. `http://<Adresse>:8000/?versuch=wach` öffnen, Sprache wählen,
+   **Zuhören** drücken.
+3. **Abdunkeln** zweimal drücken, bis Stufe 2 steht — so, wie es ein
+   Zuhörer im Gottesdienst einstellen würde.
+4. Das Handy **hinlegen und fünf Minuten nicht berühren.** Nicht
+   wischen, nicht tippen, nicht aufheben.
+5. Nach fünf Minuten: **Ist der Bildschirm noch an? Läuft der Ton?**
+
+Beides notieren, je Browser. Ein Durchgang zählt nur, wenn vorne
+wirklich gesprochen wird — ohne Ton auf der Leitung sagt der Versuch
+nichts über den Ton.
+
+Bleibt der Bildschirm an, der Ton hört aber auf, dann liegt es nicht am
+Bildschirm. Bleibt der Bildschirm aus, steht im Protokoll, woran: unter
+der Textspalte aufklappen, **Versuch: Protokoll**. Dort stehen der
+Start des Videos, abgelehnte `play()`-Aufrufe und jeder Wechsel der
+Sichtbarkeit. Nichts davon geht an den Server.
+
+#### Was der Versuch kostet
+
+Ein Video zu dekodieren kostet Strom. Hier sind es 16×16 Bildpunkte bei
+zwei Bildern je Sekunde — das ist die kleinste Last, die ein
+Videodekoder überhaupt annehmen kann, und sie läuft in der festen
+Schaltung des Geräts, nicht auf dem Hauptprozessor. Verglichen mit dem
+Bildschirm selbst, der ja absichtlich anbleibt, ist das nicht zu
+messen. **Der Bildschirm ist der Verbrauch, nicht das Video.** Genau
+deshalb ist Abdunkeln auf Stufe 2 Teil des Durchgangs: auf einem
+OLED-Bildschirm ist eine dunkle Fläche auch die sparsame.
 
 ### Damit das Handy den Rechner erreicht
 

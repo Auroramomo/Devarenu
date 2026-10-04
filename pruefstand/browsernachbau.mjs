@@ -126,7 +126,12 @@ function browserBauen() {
     location: { protocol: "http:", host: "10.0.0.1", hash: "", search: "" },
     navigator: {
       language: "de", languages: ["de"], userAgent: "pruefstand",
-      wakeLock: undefined,
+      // KEIN wakeLock. Und zwar nicht als undefined, sondern gar
+      // nicht: das Programm fragt '"wakeLock" in navigator', und ein
+      // vorhandener Schluessel mit dem Wert undefined ist dafuer ein
+      // JA. Im Saal laeuft die Seite unter http://10.0.0.1 und der
+      // Schluessel fehlt. Wer den sicheren Kontext nachstellen will,
+      // setzt ihn im Test selbst.
       mediaSession: { metadata: null, playbackState: "none",
                       setActionHandler() {} },
     },
@@ -184,7 +189,8 @@ export function skriptLaden(umgebung, pfad) {
   vm.runInContext(stuecke.join("\n;\n"), umgebung, { filename: pfad });
   vm.runInContext(
     "globalThis.__pruef = {zustand, Verbindung, Ton, spracheWechseln, " +
-    "SPRACHEN, zustandZeigen, TEXTE, aufnahmeHinweis, Dunkel};", umgebung);
+    "SPRACHEN, zustandZeigen, TEXTE, aufnahmeHinweis, Dunkel, " +
+    "Versuch, Wach};", umgebung);
   return umgebung.__pruef;
 }
 
