@@ -2442,6 +2442,29 @@ ist kein Schlüssel mehr. Das ist derselbe Gedanke wie bei
 `sichern.sh`: Geheimnisse nur verschlüsselt, und die Passphrase
 getrennt.
 
+#### Der Entwicklungsrechner als solcher (seit 0.4.6)
+
+Auf dem Rechner, an dem entwickelt wird, meldet jeder Serverstart
+FEHLT für Dienst und Autologin und merkte bis 0.4.5 jedes Mal einen
+Fehlerbericht vor. Seit 0.4.6 erkennt Devarenu diesen Rechner an
+**zwei Dingen zusammen**: der leeren Datei `ENTWICKLUNG` im
+Projektordner und dem **privaten** Signierschlüssel von oben. Dann
+werden keine Berichte vorgemerkt, `meldung.sh` sendet nichts, und der
+Systemcheck zeigt einen Hinweis „Entwicklungsrechner" statt FEHLT.
+
+```fish
+touch ENTWICKLUNG
+```
+```fish
+.venv/bin/python entwicklung.py
+```
+
+Die Marke steht in `.gitignore` und kommt auf keinen Stick. Allein
+bewirkt sie nichts: liegt sie durch eine kopierte Sicherung doch
+einmal auf einem Gemeinderechner, fehlt dort der private Schlüssel,
+und alles meldet wie bisher. Begründung in `entwicklung.py`, geprüft
+in `pruefstand/entwicklung_test.py`.
+
 ### Sicherung auf eine tragbare Platte
 
 `sichern.sh` und `zuruecksichern.sh`, seit 0.4.0. Gedacht für den Fall

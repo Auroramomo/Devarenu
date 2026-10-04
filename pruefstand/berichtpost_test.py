@@ -20,6 +20,12 @@ WURZEL = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(WURZEL))
 
 import berichtpost as bp  # noqa: E402
+# Unabhaengig davon, auf welchem Rechner dieser Lauf stattfindet: auf
+# dem Entwicklungsrechner reiht berichtpost absichtlich nichts ein
+# (entwicklung.py), und hier geht es um die Warteschlange selbst. Was
+# auf dem Entwicklungsrechner geschieht, prueft entwicklung_test.py.
+import entwicklung  # noqa: E402
+entwicklung.ist_entwicklungsrechner = lambda: False
 
 GRUEN, ROT, AUS = "\033[32m", "\033[31m", "\033[0m"
 FEHLER = 0

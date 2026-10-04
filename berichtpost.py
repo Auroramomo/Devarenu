@@ -93,7 +93,19 @@ class Warteschlange:
         self.ordner = Path(ordner)
 
     def einreihen(self, anlass, text):
-        """Legt einen Bericht ab. Gibt den Pfad zurueck, oder None."""
+        """Legt einen Bericht ab. Gibt den Pfad zurueck, oder None.
+
+        Auf dem Entwicklungsrechner (entwicklung.py: Marke UND privater
+        Signierschluessel) wird nichts eingereiht. Dort meldet jeder
+        Serverstart FEHLT fuer Dienst und Autologin, und keiner dieser
+        Berichte handelt von einem echten Fehler. Schon liegende
+        Berichte bleiben liegen; sie werden hier nicht angefasst."""
+        try:
+            import entwicklung
+            if entwicklung.ist_entwicklungsrechner():
+                return None
+        except Exception:
+            pass
         try:
             self.ordner.mkdir(parents=True, exist_ok=True)
             _sichern(self.ordner, 0o700)

@@ -1175,8 +1175,52 @@ def pruefen():
     _stimmen(befunde)
     _units_veraltet(befunde)
     _stick(befunde)
+    befunde = _entwicklungsrechner(befunde)
     befunde.sort(key=lambda b: 0 if b.schwere == FEHLT else 1)
     return befunde
+
+
+# Was auf dem Entwicklungsrechner FEHLT meldet, ohne ein Fehler zu sein:
+# dort gibt es keinen Dienst und keine automatische Anmeldung, und das
+# ist richtig so.
+ENTWICKLUNG_ERWARTET = ("dienst_", "autologin")
+
+
+def _entwicklungsrechner(befunde):
+    """Auf dem Entwicklungsrechner: ein Hinweis statt FEHLT fuer Dienst
+    und Autologin.
+
+    NUR wenn beide Bedingungen aus entwicklung.py erfuellt sind -- die
+    Marke ENTWICKLUNG und der private Signierschluessel. Ist nur eine
+    erfuellt, bleibt alles, wie es war. Der Hinweis steht bewusst NICHT
+    unter Wartung, sondern am Pult: tauchte er je auf einem
+    Gemeinderechner auf, soll es jemand sehen."""
+    try:
+        import entwicklung
+        if not entwicklung.ist_entwicklungsrechner():
+            return befunde
+    except Exception:
+        return befunde
+    weg = [b for b in befunde if b.schwere == FEHLT
+           and b.kennung.startswith(ENTWICKLUNG_ERWARTET)]
+    rest = [b for b in befunde if b not in weg]
+    rest.append(Befund(
+        "entwicklungsrechner", HINWEIS,
+        "Dies ist der Entwicklungsrechner. Dienst und automatische "
+        "Anmeldung fehlen hier mit Absicht; Fehlerberichte werden nicht "
+        "vorgemerkt und keine Meldungen verschickt. "
+        + (f"Nicht gemeldet: {', '.join(b.kennung for b in weg)}."
+           if weg else ""),
+        "Auf einem Gemeinderechner darf dieser Hinweis nie stehen. Steht "
+        "er dort doch: die Datei ENTWICKLUNG im Projektordner loeschen "
+        "und dem Betreuer Bescheid geben.",
+        was_en="This is the development computer. Service and automatic "
+               "login are missing on purpose; no error reports are "
+               "queued or sent.",
+        tun_en="This must never appear on a church computer. If it does: "
+               "delete the file ENTWICKLUNG in the project folder and "
+               "tell the maintainer."))
+    return rest
 
 
 def kennung(befunde):

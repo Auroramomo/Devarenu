@@ -139,11 +139,35 @@ berichte_senden() {
   [ "$raus" = "$offen" ]
 }
 
+# AUF DEM ENTWICKLUNGSRECHNER GEHT NICHTS HINAUS.
+#
+# Erkannt an zwei Dingen, beide zusammen: der Marke ENTWICKLUNG im
+# Ordner und dem privaten Signierschluessel auf dem Rechner (Begruendung
+# in entwicklung.py). Dann wird weder gesendet noch fuer spaeter
+# vorgemerkt -- sonst kaeme das Liegengebliebene beim ersten Lauf auf
+# einem anderen Weg doch hinaus. Die Marke allein entscheidet nichts;
+# sie ist nur der schnelle Weg, Python gar nicht erst zu starten.
+entwicklungsrechner() {
+  [ -f "$ORDNER/ENTWICKLUNG" ] || return 1
+  "$ORDNER/.venv/bin/python" "$ORDNER/entwicklung.py" --pruefen \
+    >/dev/null 2>&1
+}
+
+if [ "${1:---zeigen}" != "--zeigen" ] && entwicklungsrechner; then
+  echo "Entwicklungsrechner (Marke ENTWICKLUNG und privater" \
+       "Signierschluessel): es wird nichts gesendet und nichts" \
+       "vorgemerkt." >&2
+  exit 3
+fi
+
 case "${1:---zeigen}" in
   --berichte)
     berichte_senden ;;
 
   --zeigen)
+    if entwicklungsrechner; then
+      echo "Entwicklungsrechner: von hier wird nichts gesendet."
+    fi
     if [ ! -f "$KONF" ]; then
       echo "Keine Rueckmeldung eingerichtet ($KONF fehlt)."
       echo "Das ist in Ordnung -- dann meldet der Rechner nichts."

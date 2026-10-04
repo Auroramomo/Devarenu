@@ -80,6 +80,12 @@ meldung-offen.txt
 # nirgends sonst -- und darf mit keinem Update mitwandern.
 TESTMODUS
 
+# Die Marke fuer den Entwicklungsrechner (entwicklung.py). Mit ihr UND
+# dem privaten Signierschluessel werden keine Fehlerberichte vorgemerkt
+# und keine Meldungen verschickt. Sie darf nie auf einen Gemeinderechner
+# -- also nie ins Repo, nie ins git-Buendel auf dem Stick.
+ENTWICKLUNG
+
 # Der Zwischenspeicher der Pruefsummen von teile.py. Er merkt sich, was
 # schon gerechnet wurde, und nennt dafuer VOLLE Pfade -- auf einem
 # Entwicklungsrechner also auch die Ollama-Ablage ausserhalb des
