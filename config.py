@@ -30,7 +30,7 @@ except OSError:
 # Umschalten, mit werkzeuge/glossar_vergleich.py ueber 1444 Texte:
 # en, ru, fa und der Whisper-Prompt kommen Zeichen fuer Zeichen gleich
 # heraus.
-GLOSSAR_CSV = BASIS / "glossar_v1.0.csv"
+GLOSSAR_CSV = BASIS / "glossar_v1.1.csv"
 TESTSAETZE_CSV = BASIS / "testsaetze_v0.3.csv"
 ERGEBNIS_ORDNER = BASIS / "ergebnisse"
 

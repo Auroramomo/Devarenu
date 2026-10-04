@@ -247,10 +247,27 @@ class Segmentierer:
     # und jedes Rascheln durchlaesst. Bei sauberem Leitungston -- ein
     # Mischpultausgang, wie in Rostock -- liegt der Grundpegel aber so
     # tief, dass IMMER diese Zahl gilt und nie der gemessene Raum.
+    #
+    # Sie stand bis 0.4.2 auf 0,0025, und das war zu hoch: der Median
+    # aller Tonbloecke von predigt2.mp3 liegt bei 0,0033, die Grenze
+    # also dicht darunter. Gemessen an derselben Aufnahme, nur diese
+    # Zahl geaendert (werkzeuge/schwellenmessung.py --untergrenzen):
+    #
+    #   0,0025   272 Abschnitte   71 verworfen   2576 Woerter
+    #   0,0015   285              52            2635
+    #   0,0010   291              46            2664
+    #   0,0005   294              48            2680
+    #
+    # Der Anteil der Schnitte an der Hoechstdauer bleibt in jeder
+    # Stufe bei 1,7 bis 1,8 Prozent -- der Modus "Aus" schneidet dort
+    # 12,3 Prozent. 0,001 holt also fast alle Woerter von "Aus" und
+    # behaelt die ruhige Schnittfuehrung der Automatik. Unter 0,001
+    # bringt es nichts mehr.
+    #
     # Als Klassenattribut, damit werkzeuge/schwellenmessung.py sie
     # fuer eine Messreihe umstellen kann, ohne den Segmentierer
     # umzubauen.
-    AUTO_UNTERGRENZE = 0.0025
+    AUTO_UNTERGRENZE = 0.001
 
     @property
     def schwelle(self):

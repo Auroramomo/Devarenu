@@ -131,6 +131,23 @@ pruefe('"aus" ist die Stilleschwelle, nicht null',
 seg.modus_setzen("automatisch")
 pruefe('"automatisch" folgt dem Grundpegel',
        abs(seg.schwelle - 0.010 * 3.5) < 1e-9, seg.schwelle)
+# Die Untergrenze greift, wo der Raum still ist. Sie steht seit 0.4.2
+# auf 0,001 statt 0,0025 -- gemessen an predigt2.mp3, siehe der
+# Kommentar an AUTO_UNTERGRENZE.
+seg.grundpegel = 0.00001
+pruefe("die Untergrenze greift im stillen Raum",
+       abs(seg.schwelle - 0.001) < 1e-9, seg.schwelle)
+pruefe("und sie steht auf 0,001", 0.001, server.Segmentierer.AUTO_UNTERGRENZE)
+# "Aus" und "Fest" ruehrt sie nicht an.
+seg.modus_setzen("aus")
+pruefe('"aus" bleibt bei der Stilleschwelle',
+       abs(seg.schwelle - server.Segmentierer.AUS_SCHWELLE) < 1e-9,
+       seg.schwelle)
+seg.modus_setzen("fest", 0.02)
+pruefe('"fest" bleibt beim Wert', abs(seg.schwelle - 0.02) < 1e-9,
+       seg.schwelle)
+seg.grundpegel = 0.010
+seg.modus_setzen("automatisch")
 seg.modus_setzen("fest", 0.02)
 pruefe('"fest" nimmt den Wert', abs(seg.schwelle - 0.02) < 1e-9, seg.schwelle)
 pruefe('grundmodus bleibt bei "automatisch"',
