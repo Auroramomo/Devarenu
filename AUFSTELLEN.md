@@ -1693,6 +1693,53 @@ Das Protokoll steht nur auf dem Gerät. Es geht nichts an den Server,
 und es wird nichts gespeichert, was über den Tab hinaus bestehen
 bleibt.
 
+### Versuch C: ein Strom, der nie endet
+
+**Versuch B half nicht.** Gemessen auf einem Galaxy Z Fold 7 mit
+Firefox: nach zehn bis fünfzehn Sekunden gesperrt war der Ton weg,
+beim Entsperren lief er sofort weiter — die Verbindung stand also.
+Das Tonprotokoll zeigte den Grund: ständig `ended`, auch beim
+Stille-Füller. Jedes Ende eines Mediums ist dem Browser ein Anlass,
+die Tonsitzung abzuräumen, und davon gab es im Sekundentakt eines.
+
+Also kein weiterer Versuch mit Einzelstücken. **Ein** Medium, das nie
+endet: ein MP3-Strom vom Server unter `/strom/<sprache>.mp3`, einmal
+in der Nutzergeste gestartet, danach kein Quellenwechsel mehr.
+
+| | |
+|---|---|
+| `?versuch=strom` | Versuch C einschalten |
+| `?versuch=stille` | Versuch B, unverändert |
+| `?versuch=aus` | wieder weg |
+
+**Acht Durchgänge**, je einmal mit und ohne Versuch:
+
+| Browser | mit | ohne |
+|---|---|---|
+| Firefox Android | ☐ | ☐ |
+| Chrome Android | ☐ | ☐ |
+| Samsung Internet | ☐ | ☐ |
+| iPhone Safari | ☐ | ☐ |
+
+Je Durchgang:
+
+1. `http://<Adresse>:8000/?versuch=strom` öffnen
+2. Sprache wählen, **Zuhören**, Ton prüfen
+3. **Bildschirm sperren.** Drei Minuten warten, ohne das Handy
+   anzufassen.
+4. **Läuft der Ton noch?**
+5. **Mediensteuerung ansehen** (Sperrbildschirm oder
+   Benachrichtigungsleiste): zeigt sie bei laufendem Ton **⏸**?
+   Wirken **▶** und **⏸**?
+6. **Entsperren.** Unten „Versuch: Tonprotokoll" aufklappen und den
+   **Abstand zum Live-Punkt** ablesen — er steht alle zwei Sekunden
+   darin. Fotografieren.
+
+Was im Protokoll stehen sollte: `abstand` unter einer Sekunde,
+gelegentlich `aufgeholt`, und **kein einziges `ended`**. Steht dort
+`ended`, ist der Strom abgerissen — dann sagt die Zeile daneben, ob
+er von selbst wiederkam.
+
 ### Damit das Handy den Rechner erreicht
 
 Der Server hört auf **allen** Adressen (`0.0.0.0`), Port **8000**.
