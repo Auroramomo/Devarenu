@@ -46,6 +46,12 @@ export class Element {
     this.open = "open" in attribute;
   }
   get id() { return this.attribute.id || ""; }
+  // title ist im Browser Eigenschaft UND Attribut. Ein Nachbau, der
+  // nur die Eigenschaft kennt, laesst getAttribute("title") ins Leere
+  // laufen -- und ein Pruefstand, der dort null findet, meldet einen
+  // Fehler, den es nicht gibt.
+  get title() { return this.attribute.title || ""; }
+  set title(w) { this.attribute.title = String(w); }
   get hidden() { return this._hidden; }
   set hidden(w) { this._hidden = !!w; }
   get className() { return [...this.classList._].join(" "); }

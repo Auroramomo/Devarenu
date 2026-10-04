@@ -430,6 +430,15 @@ class Segmentierer:
             return {"stufe": "still", "verworfen": v, "durch": d,
                     "text": "niemand spricht"}
         if v and v >= max(3, 2 * d):
+            # Im Modus "Aus" gibt es keine Mindestlautstaerke, die zu
+            # hoch stehen koennte. Verworfen wird dort, weil in einem
+            # Abschnitt zu wenig ECHTES Sprechen steckte -- Husten,
+            # Stuhlruecken, Musik. Die Frage nach dem Regler waere da
+            # eine falsche Faehrte.
+            if self.modus == "aus":
+                return {"stufe": "alarm", "verworfen": v, "durch": d,
+                        "text": f"{v} Abschnitte ohne erkennbare Sprache, "
+                                f"nur {d} übersetzt. Tonquelle prüfen."}
             return {"stufe": "alarm", "verworfen": v, "durch": d,
                     "text": f"{v} Abschnitte verworfen, nur {d} übersetzt. "
                             f"Mindestlautstärke zu hoch?"}
@@ -1471,6 +1480,7 @@ class Lauf:
         # Was nur die Technik angeht. Steht getrennt, weil es unter
         # Einrichtung erscheint und nicht im Briefkasten.
         self.wartungsbefunde = []
+        self.befunde = []
         self.sprachwache = sprachwache.Sprachwache(
             zustandsdatei.laden()[0].get("quelle", config.AUSGANGSSPRACHE))
         self.schleife = None
@@ -4318,6 +4328,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             print(f"Systemcheck fehlgeschlagen ({str(e)[:90]}).")
             return None
         if not befunde:
+            lauf.befunde = []
             lauf.wartungsbefunde = []
             return None
         # Die Marke ueber ALLE Befunde: aendert sich etwas an der
@@ -4325,45 +4336,37 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         # Briefkasten davon nichts zeigt. Sonst gaelte eine
         # Quittierung von vorletzter Woche weiter.
         marke = systemcheck.kennung(befunde)
-        lauf.wartungsbefunde = [
-            {"kennung": b.kennung,
-             "schwer": b.schwere == systemcheck.FEHLT,
-             "was": b.was, "was_en": b.was_en,
-             "tun": b.tun, "tun_en": b.tun_en}
-            for b in befunde if b.wartung]
+        # Seit 0.4.2 stehen ALLE Befunde bereit, nicht nur die
+        # Wartungspunkte: die Stoerungsansicht am Pult zeigt sie in
+        # einfachen Worten, und was nur die Technik angeht, steht
+        # darin unter "Fuer den Betreuer".
+        def _befund(b):
+            return {"kennung": b.kennung,
+                    "schwer": b.schwere == systemcheck.FEHLT,
+                    "wartung": bool(b.wartung),
+                    "was": b.was, "was_en": b.was_en,
+                    "tun": b.tun, "tun_en": b.tun_en}
+        lauf.befunde = [_befund(b) for b in befunde]
+        lauf.wartungsbefunde = [_befund(b) for b in befunde if b.wartung]
 
-        # In den Briefkasten kommt nur, was den Bediener angeht.
+        # DER BRIEFKASTEN IST NUR FUER DEN SAAL.
         #
-        # Am Pult sitzt sonntags jemand, der den Ton fahren soll. Ein
-        # Reparaturvorrat, der zu einer aelteren Fassung gehoert, ist
-        # richtig und wichtig -- aber nicht fuer diese Person und
-        # nicht in dieser Stunde. Stand es trotzdem jede Woche da,
-        # las man die Liste nach der dritten gar nicht mehr, und dann
-        # ging die eine Zeile unter, auf die es ankam.
+        # Bis 0.4.1 legte der Systemcheck seine Befunde dort hinein --
+        # "Dienst startet nicht von selbst", "keine automatische
+        # Anmeldung". Beides geht den Techniker an, keines den Saal,
+        # und beides stand zwischen den Zuschriften der Zuhoerer. Wer
+        # drei Wochen lang dieselben zwei Punkte wegklickt, klickt die
+        # vierte Woche auch die eine Zeile weg, auf die es ankommt.
         #
-        # Die Wartungspunkte sind nicht weg: sie stehen unter
-        # Einrichtung im eingeklappten Abschnitt "Wartung" und in
-        # pruefen.sh.
-        befunde = [b for b in befunde if not b.wartung]
-        if not befunde:
-            return None
-        if lauf.zustand.get("systemcheck_quittiert") == marke:
-            return None
-
-        schwer = [b for b in befunde if b.schwere == systemcheck.FEHLT]
-        kopf_de = (f"{len(schwer)} Punkt(e) halten den Betrieb auf"
-                   if schwer else "Ein paar Punkte stehen noch offen")
-        kopf_en = (f"{len(schwer)} item(s) block operation"
-                   if schwer else "A few items are still open")
-        zeilen_de = [f"• {b.was} → {b.tun}" for b in befunde]
-        zeilen_en = [f"• {b.was_en} → {b.tun_en}" for b in befunde]
-        return {
-            "text": kopf_de + ":\n" + "\n".join(zeilen_de),
-            "text_en": kopf_en + ":\n" + "\n".join(zeilen_en),
-            "sprache": "", "zeit": time.strftime("%H:%M"),
-            "art": "system", "absender": "Devarenu",
-            "gelesen": False, "systemcheck": marke,
-        }
+        # Seit 0.4.2 stehen die Befunde dort, wo man sie sucht: hinter
+        # der Statuspille (Stoerungsansicht), unter Einrichtung ->
+        # Fehlersuche, und im Fehlerbericht an den Betreuer. Der
+        # Briefkasten traegt nur noch, was ein Mensch geschrieben hat.
+        #
+        # Der Fingerabdruck bleibt: er haengt an der Nachricht ueber
+        # ungepruefte Sprachen, die weiter in den Briefkasten gehoert.
+        _ = marke
+        return None
 
     @app.get("/api/sprachen")
     def sprachen():
@@ -4598,6 +4601,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 "am_rechner": pultschutz.vom_rechner_selbst(
                     request.client.host if request.client else ""),
                 "wartung": lauf.wartungsbefunde,
+                # Alles, was der Systemcheck gefunden hat -- fuer die
+                # Stoerungsansicht hinter der Statuspille.
+                "befunde": lauf.befunde,
                 "gemeinde": lauf.zustand.get("gemeinde", ""),
                 "nutzung_melden": bool(lauf.zustand.get("nutzung_melden")),
                 "spendenkonto": KONTO_GRUND,
@@ -5603,17 +5609,19 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                             if (basis / "pult.html").exists() else PULT)
 
     # Einmal beim Start nachsehen, wie der Rechner eingestellt ist.
-    # Hier und nicht frueher: der Briefkasten gehoert zu lauf, und die
-    # Nachricht soll dastehen, bevor der erste Mensch das Pult oeffnet.
+    # Die Befunde landen in lauf.befunde und stehen damit hinter der
+    # Statuspille, bevor der erste Mensch das Pult oeffnet. In den
+    # Briefkasten geht nichts davon -- der traegt nur, was aus dem
+    # Saal kommt.
     #
     # Ein Fehler im Systemcheck darf den Server nicht aufhalten -- er
     # ist eine Auskunft, kein Betriebsteil.
     try:
-        hinweis = systemnachricht()
-        if hinweis:
-            lauf.nachrichten.append(hinweis)
-            schwer = hinweis["text"].count("•")
-            print(f"Systemcheck: {schwer} Punkt(e) ins Pult gelegt.")
+        systemnachricht()
+        schwer = sum(1 for b in lauf.befunde if b["schwer"])
+        if lauf.befunde:
+            print(f"Systemcheck: {len(lauf.befunde)} Punkt(e), "
+                  f"{schwer} davon halten den Betrieb auf.")
     except Exception as e:
         print(f"Systemcheck uebersprungen ({str(e)[:90]}).")
 
@@ -6034,9 +6042,30 @@ h1,h2,h3{font-family:var(--display);font-weight:400}
           font-variant-numeric:tabular-nums;white-space:nowrap}
 /* Die Pille sagt in einem Wort, was los ist. Sie steht in jedem Reiter
    im Kopf und verschwindet nie. */
-.pille{flex:0 0 auto;padding:.2rem .6rem;border:1px solid;
-       font:600 .72rem var(--schild);letter-spacing:.08em;
+/* Die Pille ist ein Knopf: ein Tipp darauf sagt, warum sie so
+   aussieht. Ein Zustand, den man nur ansehen darf, hilft niemandem,
+   der wissen will, was zu tun ist. */
+.pille{flex:0 0 auto;min-height:32px;padding:.25rem .7rem;border:1px solid;
+       font:600 .72rem var(--schild);letter-spacing:.08em;cursor:pointer;
        text-transform:uppercase;white-space:nowrap;border-radius:999px}
+.pille.hinweis{background:var(--gelbbg);border-color:var(--gelb);
+               color:var(--gelb)}
+/* Das Zahnrad in der Kachel. Klein, grau, am Rand -- es ist ein Weg,
+   keine Handlung. */
+.kzahn{flex:0 0 auto;min-width:32px;min-height:32px;margin:-.3rem -.3rem 0 0;
+       border:0;background:none;color:var(--grau);font-size:1rem;
+       cursor:pointer;line-height:1}
+.kzahn:hover{color:var(--text)}
+/* Die Stoerungsansicht. Ein Punkt je Problem, darunter in einem Satz,
+   was die Technik tun kann. Die Befehle stehen eine Ebene tiefer. */
+.stoerpunkt{border:1px solid var(--linie);border-inline-start:4px solid;
+  padding:.7rem .85rem;margin:0 0 .6rem;background:var(--fl)}
+.stoerpunkt.schwer{border-inline-start-color:var(--rot)}
+.stoerpunkt.leicht{border-inline-start-color:var(--gelb)}
+.stoerpunkt .was{display:block;font-size:.95rem;line-height:1.45}
+.stoerpunkt .tun{display:block;margin-top:.35rem;font:.85rem var(--schild);
+  color:var(--grau)}
+.stoerpunkt .tun b{color:var(--text)}
 .pille.an{background:var(--gruenbg);border-color:var(--gruen);color:var(--gruen)}
 .pille.aus{background:var(--fl);border-color:var(--hell);color:var(--grau)}
 .pille.kaputt{background:var(--rotbg);border-color:var(--rot);color:var(--rot)}
@@ -6392,7 +6421,8 @@ h2.klapp{display:flex;justify-content:space-between;align-items:center;
        haette damit bei jedem Sprachzeichnen wieder "Angehalten"
        gestanden -- gruen, rot, egal. Genau das war in den Bildern zu
        sehen. Ihren Text setzt lies(), und nur lies(). -->
-  <span class="pille aus" id=pille>Angehalten</span>
+  <button class="pille aus" id=pille onclick=stoerungZeigen()
+          aria-haspopup=dialog>Angehalten</button>
   <button class=ikon id=sprachknopf onclick=uiSprache()>EN</button>
 </header>
 
@@ -6466,7 +6496,12 @@ niemanden — die Zuhörer bleiben verbunden.</p>
 <div class=kacheln>
   <div class=kachel id=kTon>
     <div class=kkopf><span data-t=k_ton>Ton</span>
-      <span class=zustand id=tonZustand>–</span></div>
+      <span class=zustand id=tonZustand>–</span>
+      <!-- Der kurze Weg in die Feineinstellung. Kein Verweis aufs
+           Einmessen -- das steht dort und nur dort. -->
+      <button class=kzahn onclick="reiterWaehlen('vorbereiten','feineinstellung')"
+              data-t=ton_feiner title="Feineinstellung"
+              aria-label="Feineinstellung">⚙</button></div>
     <div class=mini><span class=fuell id=fuell></span>
       <span class=marke id=marke style="inset-inline-start:0"></span></div>
     <!-- Kein Weg zum Einmessen von hier aus. Gemessen verwirft eine
@@ -6744,6 +6779,19 @@ wenn der Dienst neu startet, und wird nach sieben Tagen gelöscht.</p>
 </div>
 </section>
 
+<!-- Was gerade nicht stimmt, in einfachen Worten. Erreichbar aus
+     JEDEM Reiter, weil die Statuspille in jedem Reiter steht. -->
+<div id=stoerung hidden>
+<button class="btn klein" onclick=stoerungZeigen() data-t=zurueck>Zurück</button>
+<h2 id=stoerungkopf data-t=st_ueber>Was gerade nicht stimmt</h2>
+<p class=hin id=stoerungleer data-t=st_nichts hidden>Es steht nichts an.
+Der Rechner meldet keine Störung.</p>
+<div id=stoerungliste></div>
+<details class=hilfe id=stoerungtechnik hidden>
+  <summary data-t=st_betreuer>Für den Betreuer</summary>
+  <div><ul class=wartungliste id=stoerungtechnikliste></ul></div></details>
+</div>
+
 <!-- Keine eigene Reiterseite: der Weg zum Betreuer wird selten
      gebraucht und steht im Kopf und unter Fehlersuche. -->
 <div id=fehler hidden>
@@ -6807,6 +6855,20 @@ const TEXTE={
    r_gottesdienst:"Gottesdienst", r_vorbereiten:"Vorbereiten",
    r_aufnahmen:"Aufnahmen", r_einrichtung:"Einrichtung",
    p_an:"Läuft", p_aus:"Angehalten", p_stoerung:"Störung",
+   p_hinweis:"Hinweis",
+   st_ueber:"Was gerade nicht stimmt",
+   st_nichts:"Es steht nichts an. Der Rechner meldet keine Störung.",
+   st_betreuer:"Für den Betreuer",
+   st_warum:"Antippen: warum steht das hier?",
+   st_tun_ton:"Mikrofon und Kabel prüfen, dann die Tonquelle unter "
+     +"Vorbereiten → Feineinstellung.",
+   st_tun_netz:"Den Zugangspunkt prüfen: er darf keine Adressen "
+     +"verteilen.",
+   st_tun_betreuer:"Betreuer anrufen. Über „Fehler melden“ geht "
+     +"ein Bericht mit allen Angaben raus.",
+   st_tun_spaeter:"Hält den Gottesdienst nicht auf. Beim nächsten "
+     +"Besuch der Technik.",
+   k_still:"still",
    fehler_melden:"Fehler melden", qr_titel:"QR",
    zurueck:"Zurück", eintragen:"Eintragen", uebernehmen:"Übernehmen",
    abbrechen:"Abbrechen",
@@ -7127,6 +7189,18 @@ const TEXTE={
    r_gottesdienst:"Service", r_vorbereiten:"Prepare",
    r_aufnahmen:"Recordings", r_einrichtung:"Setup",
    p_an:"Running", p_aus:"Paused", p_stoerung:"Fault",
+   p_hinweis:"Notice",
+   st_ueber:"What is not right",
+   st_nichts:"Nothing pending. The computer reports no fault.",
+   st_betreuer:"For the maintainer",
+   st_warum:"Tap: why does this say that?",
+   st_tun_ton:"Check microphone and cable, then the audio source under "
+     +"Prepare \u2192 Fine tuning.",
+   st_tun_netz:"Check the access point: it must not hand out addresses.",
+   st_tun_betreuer:"Call the maintainer. \u201cReport a fault\u201d "
+     +"sends a report with all the details.",
+   st_tun_spaeter:"Does not hold up the service. At the next visit.",
+   k_still:"silent",
    fehler_melden:"Report a fault", qr_titel:"QR",
    zurueck:"Back", eintragen:"Enter", uebernehmen:"Apply",
    abbrechen:"Cancel",
@@ -7430,7 +7504,7 @@ const REITER = ["gottesdienst", "vorbereiten", "aufnahmen", "einrichtung"];
 const REITERKNOPF = {gottesdienst:"rGottesdienst", vorbereiten:"rVorbereiten",
                      aufnahmen:"rAufnahmen", einrichtung:"rEinrichtung"};
 let reiterJetzt = "gottesdienst";
-let unteransicht = null;          // "post" | "fehler" | null
+let unteransicht = null;    // "post" | "fehler" | "stoerung" | null
 
 function ansichtZeichnen(){
   for(const n of REITER){
@@ -7446,6 +7520,7 @@ function ansichtZeichnen(){
   }
   post.hidden = unteransicht !== "post";
   fehler.hidden = unteransicht !== "fehler";
+  stoerung.hidden = unteransicht !== "stoerung";
 }
 
 function reiterWaehlen(name, ziel){
@@ -8246,7 +8321,11 @@ function tonSatz(d){
   let s = TEXTE[UI]["ton_"+d.lage] || "";
   if(!s) return "";
   s = s.split("{name}").join(d.name || "?");
-  return d.einzelheit ? s+" ("+d.einzelheit+")" : s;
+  // Die Einzelheit aus dem Treiber ist englisch, technisch und nichts
+  // fuer ein Banner mitten im Gottesdienst. Sie steht in der
+  // Stoerungsansicht unter "Fuer den Betreuer".
+  tonLage.technik = d.einzelheit || "";
+  return s;
 }
 
 // Baut aus der Lage einen Satz in der eingestellten Sprache. Der Server
@@ -8284,6 +8363,55 @@ async function updateLaden(){
     updateknopf.disabled = !!d.live;
     updateknopf.title = d.live ? TEXTE[UI].upd_laeuft : "";
   }catch(e){}
+}
+
+// ------------------------------------------------- Stoerungsansicht
+// Was gerade nicht stimmt, in einfachen Worten -- erreichbar aus
+// jedem Reiter, weil die Statuspille in jedem Reiter steht.
+//
+// Zwei Ebenen: oben der Satz, den jemand versteht, der den Ton fahren
+// soll; darunter eingeklappt dasselbe fuer den Betreuer, mit den
+// Befehlen. Bis 0.4.1 standen die Befehle mitten im Betrieb da, und
+// dazwischen ging unter, was wirklich zu tun war.
+let letzteBefunde = [];
+function stoerungZeigen(){
+  unteransicht = unteransicht === "stoerung" ? null : "stoerung";
+  ansichtZeichnen();
+  if(unteransicht === "stoerung") stoerungZeichnen();
+}
+
+function stoerungZeichnen(){
+  const t = TEXTE[UI];
+  // Was den laufenden Gottesdienst betrifft, steht zuerst -- und
+  // zwar unabhaengig davon, ob der Systemcheck es kennt.
+  const sofort = [];
+  if(tonLage.kein && tonhin.textContent)
+    sofort.push({schwer:true, was:tonhin.textContent, tun:t.st_tun_ton,
+                 technik:tonLage.technik});
+  if(!rechenwarnung.hidden && rechenwarnung.textContent)
+    sofort.push({schwer:true, was:rechenwarnung.textContent,
+                 tun:t.st_tun_betreuer});
+  if(!zweiterdhcp.hidden && zweiterdhcp.textContent)
+    sofort.push({schwer:true, was:zweiterdhcp.textContent,
+                 tun:t.st_tun_netz});
+  const ausDemCheck = letzteBefunde.map(b => ({
+    schwer: b.schwer,
+    was: (UI === "de" ? b.was : b.was_en) || b.was,
+    tun: b.schwer ? t.st_tun_betreuer : t.st_tun_spaeter,
+    technik: (UI === "de" ? b.tun : b.tun_en) || b.tun,
+  }));
+  const alle = sofort.concat(ausDemCheck);
+  stoerungleer.hidden = alle.length > 0;
+  stoerungliste.innerHTML = alle.map(p =>
+    `<div class="stoerpunkt ${p.schwer ? "schwer" : "leicht"}">`
+    + `<span class=was>${entschaerfen(p.was)}</span>`
+    + `<span class=tun>${entschaerfen(p.tun)}</span></div>`).join("");
+  // Fuer den Betreuer: die Befehle, eingeklappt.
+  const technik = alle.filter(p => p.technik);
+  stoerungtechnik.hidden = technik.length === 0;
+  stoerungtechnikliste.innerHTML = technik.map(p =>
+    `<li><span>${entschaerfen(p.was)}</span>`
+    + `<code>${entschaerfen(p.technik)}</code></li>`).join("");
 }
 
 async function fehlerZeigen(){
@@ -8561,7 +8689,7 @@ let stauJetzt = false;
 // Die Ton-Kachel haengt an zwei Quellen: am Pegelabruf (zehnmal je
 // Sekunde) und am Zustand (alle zwei Sekunden). Beide rufen hier an,
 // und was sie nicht wissen, lassen sie stehen.
-let tonLage = {kein: false, text: ""};
+let tonLage = {kein: false, text: "", technik: ""};
 function tonKachel(p){
   const t = TEXTE[UI];
   if(tonLage.kein){
@@ -8572,6 +8700,11 @@ function tonKachel(p){
     kachelSetzen(kTon, "schlecht", t.k_kein_ton);
   }else if(p && (p.lage === "warnung" || p.knapp > 30)){
     kachelSetzen(kTon, "warn", t.k_knapp);
+  }else if(p && (p.lage === "still" || !p.spricht) && p.jetzt <= p.grund * 2.5){
+    // Stille ist kein gutes Zeichen, sondern gar keines. Gruen "gut"
+    // behauptet, der Ton sei geprueft -- geprueft ist er erst, wenn
+    // etwas durchkommt. Vor dem Gottesdienst steht hier deshalb grau.
+    kachelSetzen(kTon, null, t.k_still);
   }else{
     kachelSetzen(kTon, "ok", t.k_gut);
   }
@@ -8650,10 +8783,23 @@ async function lies(){
     // keinen Ton hat, interessiert sich nicht dafuer, dass die
     // Uebersetzung formal laeuft.
     tonLage.kein = !!tSatz;
-    const stoerung = !!(tSatz || d.stt_fehler || fremd.length);
-    pille.className = "pille " + (stoerung ? "kaputt" : (d.live ? "an" : "aus"));
+    letzteBefunde = d.befunde || [];
+    // Vier Stufen. HINWEIS ist neu: der Betrieb laeuft, aber es steht
+    // etwas offen, das niemand heute anfassen muss. Bis 0.4.1 stand
+    // genau das jede Woche im Briefkasten und stumpfte ihn ab.
+    const stoerung = !!(tSatz || d.stt_fehler || fremd.length
+                        || letzteBefunde.some(b => b.schwer));
+    const hinweis = !stoerung && letzteBefunde.length > 0;
+    pille.className = "pille " + (stoerung ? "kaputt"
+                                 : hinweis ? "hinweis"
+                                 : (d.live ? "an" : "aus"));
     pille.textContent = stoerung ? t.p_stoerung
-                                 : (d.live ? t.p_an : t.p_aus);
+                        : hinweis ? t.p_hinweis
+                        : (d.live ? t.p_an : t.p_aus);
+    // Jede Stufe ausser LAEUFT und ANGEHALTEN sagt beim Antippen,
+    // warum sie so aussieht.
+    pille.title = (stoerung || hinweis) ? t.st_warum : "";
+    if(unteransicht === "stoerung") stoerungZeichnen();
     // Laufzeit statt Segmentzahl: wie lange laeuft das hier schon.
     const sek = Math.max(0, Math.round(d.laeuft_seit || 0));
     laufzeit.textContent = d.live

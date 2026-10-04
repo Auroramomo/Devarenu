@@ -156,6 +156,7 @@ const ZUSTAND_LEER = {
   fassung: "0.4.1", rechenwerk: "cuda", stt_fehler: null, stellen: [],
   namen: [], kontext_fehlt: false, nachrichten: [], wartung: [],
   letzte: [], mitschnitt: null, am_rechner: true, update: null,
+  befunde: [],
   ton: null, netz: {}, gemeinde: "", pult_passwort: false,
   protokoll_mitschrift: false, pruefprotokoll: null, sprachverdacht: "",
   spendenkonto: "", nutzung_melden: false,
@@ -304,6 +305,18 @@ const ZUSTAENDE = [
   ["Meldung aus dem Saal", { nachrichten: [
       { text: "Der Ton ist zu leise", zeit: "09:48", sprache: "de" }] }, {}],
   ["aus dem Saal geoeffnet", { am_rechner: false }, {}],
+  ["Hinweis", { live: true, wartung: [
+      { kennung: "vorrat", schwer: false, wartung: true,
+        was: "Es gibt keinen Reparaturvorrat.",
+        was_en: "There is no repair stock.",
+        tun: "sudo bash vorrat_bauen.sh",
+        tun_en: "sudo bash vorrat_bauen.sh" }],
+    befunde: [
+      { kennung: "vorrat", schwer: false, wartung: true,
+        was: "Es gibt keinen Reparaturvorrat.",
+        was_en: "There is no repair stock.",
+        tun: "sudo bash vorrat_bauen.sh",
+        tun_en: "sudo bash vorrat_bauen.sh" }] }, {}],
 ];
 for (const [name, z, pg] of ZUSTAENDE) {
   const p = await pult(z, pg);
@@ -339,6 +352,65 @@ block("4b. Der Pillentext folgt dem Zustand, nicht nur die Farbe");
   pruefe("uiZeichnen schreibt den Pillentext nicht zurueck",
          /Läuft|Running/.test(p.g("pille").textContent),
          JSON.stringify(p.g("pille").textContent));
+}
+
+block("4b2. Vier Pillenstufen, und die Pille ist ein Knopf");
+{
+  const vorrat = { kennung: "vorrat", schwer: false, wartung: true,
+                   was: "Kein Reparaturvorrat.", was_en: "No repair stock.",
+                   tun: "sudo bash vorrat_bauen.sh",
+                   tun_en: "sudo bash vorrat_bauen.sh" };
+  const dienst = { kennung: "dienst_devarenu", schwer: true, wartung: false,
+                   was: "Der Dienst startet nicht von selbst.",
+                   was_en: "The service does not start by itself.",
+                   tun: "sudo systemctl enable devarenu",
+                   tun_en: "sudo systemctl enable devarenu" };
+  const p = await pult({ live: true, befunde: [vorrat] });
+  pruefe("offene Wartungspunkte bei laufendem Betrieb ergeben HINWEIS",
+         /Hinweis|Notice/.test(p.g("pille").textContent)
+         && p.g("pille").classList.contains("hinweis"),
+         p.g("pille").textContent + " / " + p.g("pille").className);
+  const q = await pult({ live: true, befunde: [vorrat, dienst] });
+  pruefe("ein schwerer Befund schlaegt den Hinweis",
+         /Störung|Fault/.test(q.g("pille").textContent),
+         q.g("pille").textContent);
+  pruefe("die Pille ist ein Knopf", p.g("pille").tagName === "BUTTON");
+  pruefe("und sagt beim Antippen, warum",
+         (p.g("pille").getAttribute("title") || "").length > 5);
+  const r = await pult({ live: true });
+  pruefe("ohne Befund bleibt LAEUFT stumm",
+         !r.g("pille").getAttribute("title"));
+}
+
+block("4b3. Die Stoerungsansicht");
+{
+  const dienst = { kennung: "dienst_devarenu", schwer: true, wartung: false,
+                   was: "Der Dienst startet nicht von selbst.",
+                   was_en: "The service does not start by itself.",
+                   tun: "sudo systemctl enable devarenu",
+                   tun_en: "sudo systemctl enable devarenu" };
+  for (const reiter of ["gottesdienst", "vorbereiten", "aufnahmen",
+                        "einrichtung"]) {
+    const p = await pult({ befunde: [dienst] });
+    p.fenster.reiterWaehlen(reiter);
+    p.fenster.stoerungZeigen();
+    pruefe(`aus "${reiter}" erreichbar`, p.g("stoerung").sichtbar());
+  }
+  const p = await pult({ befunde: [dienst] });
+  p.fenster.stoerungZeigen();
+  pruefe("der Befund steht in einfachen Worten da",
+         /startet nicht von selbst/.test(p.g("stoerungliste").innerHTML));
+  pruefe("mit einem Satz, was zu tun ist",
+         /Betreuer anrufen/.test(p.g("stoerungliste").innerHTML),
+         p.g("stoerungliste").innerHTML.slice(0, 160));
+  pruefe("der Befehl steht NICHT oben",
+         !/systemctl/.test(p.g("stoerungliste").innerHTML));
+  pruefe("sondern unter \u201eFuer den Betreuer\u201c",
+         !p.g("stoerungtechnik").hidden
+         && /systemctl/.test(p.g("stoerungtechnikliste").innerHTML));
+  const leer = await pult();
+  leer.fenster.stoerungZeigen();
+  pruefe("ohne Befund sagt sie das", !leer.g("stoerungleer").hidden);
 }
 
 block("4c. Banner tragen nur uebersetzte Meldungen");
@@ -380,6 +452,23 @@ block("5. Rote Meldungen stehen in JEDEM Reiter");
               .filter(b => !b.hidden).length === 0);
 }
 
+block("5b. Stille ist grau, nicht gruen");
+{
+  const p = await pult({}, { lage: "still", spricht: false,
+                             jetzt: 0.0001, grund: 0.001 });
+  pruefe("ohne Pegel steht die Ton-Kachel neutral",
+         !p.g("kTon").classList.contains("ok")
+         && !p.g("kTon").classList.contains("warn")
+         && !p.g("kTon").classList.contains("schlecht"),
+         p.g("kTon").className);
+  pruefe('und sagt "still"', /still|silent/.test(p.g("tonZustand").textContent),
+         p.g("tonZustand").textContent);
+  const q = await pult({}, { lage: "gut", spricht: true,
+                             jetzt: 0.02, grund: 0.001 });
+  pruefe("mit Pegel wird sie gruen",
+         q.g("kTon").classList.contains("ok"), q.g("kTon").className);
+}
+
 block("6. Die Kacheln sagen den Zustand in einem Wort");
 {
   const p = await pult({ gesamt: 23, hoerer: { en: 11, ru: 9, fa: 3 },
@@ -409,10 +498,20 @@ block("6. Die Kacheln sagen den Zustand in einem Wort");
   // Gemessen verwirft eine eingemessene Schwelle auf einer ruhigen
   // Aufnahme drei Fuenftel der Predigt. Ein Verweis dorthin mitten im
   // Gottesdienst laedt zu genau dem ein.
-  pruefe("die Ton-Kachel fuehrt nicht zum Einmessen",
-         p.g("kTon").querySelectorAll("BUTTON")
-           .filter(b => !b.vorfahren().some(v => v.tagName === "DETAILS"))
-           .length === 0);
+  // Seit 0.4.2 traegt die Kachel ein Zahnrad in die Feineinstellung.
+  // Was sie NICHT traegt, ist ein Weg zum Einmessen: gemessen
+  // verwirft eine eingemessene Schwelle auf einer sauberen Leitung
+  // drei Fuenftel der Predigt.
+  const kopfknoepfe = p.g("kTon").querySelectorAll("BUTTON")
+    .filter(b => !b.vorfahren().some(v => v.tagName === "DETAILS"));
+  pruefe("die Ton-Kachel traegt genau ein Zahnrad",
+         kopfknoepfe.length === 1
+         && kopfknoepfe[0].classList.contains("kzahn"),
+         String(kopfknoepfe.length));
+  pruefe("es fuehrt in die Feineinstellung",
+         /feineinstellung/.test(kopfknoepfe[0].getAttribute("onclick") || ""));
+  pruefe("und nicht zum Einmessen",
+         !p.g("bEinmessen").vorfahren().some(v => v.id === "kTon"));
   pruefe("der Einmessen-Knopf steht nur in der Feineinstellung",
          p.g("bEinmessen").vorfahren().some(v => v.id === "feineinstellung"));
   pruefe("und traegt den Satz, was er kostet",
