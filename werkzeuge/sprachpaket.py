@@ -89,7 +89,9 @@ ANKER = {
            ("Abendmahl", "Wieczerza Pańska", "komunia"),
            ("Sabbat", "sabat", "sobota, das ist der Wochentag"),
            ("Ältester", "starszy zboru", "starzec")],
-    # Aus pruefung/fallstricke_uk.csv, vom Pruefer bestaetigt (0.5.0).
+    # Aus pruefung/fallstricke_uk.csv (0.5.0). Jedes Zielwort steht so
+    # auch im Ruecklauf des ukrainischen Pruefers (C038, C041, C077,
+    # D004, D026).
     "uk": [("Gottesdienst", "богослужіння", "меса, літургія"),
            ("Gemeinde", "церква", "парафія"),
            ("Abendmahl", "Вечеря Господня", "причастя"),
