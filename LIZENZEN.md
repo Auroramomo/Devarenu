@@ -174,8 +174,16 @@ legt sie offen.
 | Serbisch | `sr_RS-serbski_institut-medium` | CC-BY-NC-SA 4.0 | **nichtkommerziell** |
 | Suaheli | `sw_CD-lanfrica-medium` | keine formale, „non-profit, educational, public benefit" (0.4.3) | eingeschränkt |
 | Türkisch | `tr_TR-dfki-medium` | CC-BY-NC-SA 4.0 | **nichtkommerziell** |
-| Ukrainisch | `uk_UA-ukrainian_tts-medium` | CC0 | |
+| Ukrainisch | uk_UA-mykyta-high | Apache 2.0 | Trainingsweg laut Modellkarte nicht angegeben |
 | Vietnamesisch | `vi_VN-vais1000-medium` | CC-BY 4.0 | |
+
+Ukrainisch ist mit 0.5.0 von `uk_UA-ukrainian_tts-medium` (CC0) auf
+`uk_UA-mykyta-high` umgestellt. Die Modellkarte nennt als Datensatz
+<https://github.com/egorsmkv/ukrainian-tts-datasets> unter Apache 2.0
+und verweist für das Training nur auf
+<https://huggingface.co/RomanStasyshyn/uk_UA-mykyta-high>. Die alte
+Stimme wird nicht mehr mitgeliefert; wo sie liegt, bleibt sie liegen
+— Devarenu löscht keine Stimmen.
 
 ### Zwei davon laufen in Rostock
 

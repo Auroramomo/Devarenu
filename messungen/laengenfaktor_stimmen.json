@@ -293,12 +293,24 @@
       "streuung": 0.229,
       "saetze": 20
     },
-    "uk_UA-ukrainian_tts-medium": {
+    "uk_UA-mykyta-high": {
       "sprache": "uk",
       "ausgeliefert": true,
-      "gegen_deutsch": 1.053,
-      "gegen_original": 0.862,
-      "streuung": 0.219,
+      "sprecher": null,
+      "sprecher_gesamt": 1,
+      "gegen_deutsch": 1.506,
+      "gegen_original": 1.212,
+      "streuung": 0.281,
+      "saetze": 20
+    },
+    "uk_UA-ukrainian_tts-medium": {
+      "sprache": "uk",
+      "ausgeliefert": false,
+      "sprecher": null,
+      "sprecher_gesamt": 1,
+      "gegen_deutsch": 1.028,
+      "gegen_original": 0.878,
+      "streuung": 0.208,
       "saetze": 20
     },
     "vi_VN-vais1000-medium": {

@@ -352,7 +352,10 @@ STIMMEN = {
     "en": "en/en_US/lessac/medium/en_US-lessac-medium",
     "ru": "ru/ru_RU/irina/medium/ru_RU-irina-medium",
     "fa": "fa/fa_IR/amir/medium/fa_IR-amir-medium",
-    "uk": "uk/uk_UA/ukrainian_tts/medium/uk_UA-ukrainian_tts-medium",
+    # Seit 0.5.0 mykyta (high) statt ukrainian_tts (medium). Die alte
+    # Datei bleibt auf Rechnern, die sie haben -- Devarenu loescht keine
+    # Stimmen. Lizenz und Messung: LIZENZEN.md, TEMPO_STIMME unten.
+    "uk": "uk/uk_UA/mykyta/high/uk_UA-mykyta-high",
     "pl": "pl/pl_PL/darkman/medium/pl_PL-darkman-medium",
     "ro": "ro/ro_RO/mihai/medium/ro_RO-mihai-medium",
     # Vom Pruefer gewaehlt: Stimme B aus pruefung/paket_es.
@@ -551,7 +554,19 @@ TEMPO_STIMME = {
     "sr_RS-serbski_institut-medium": 1.67,  # Serbisch
     "sw_CD-lanfrica-medium": 1.09,  # Suaheli
     "tr_TR-dfki-medium": 1.13,  # Türkisch
-    "uk_UA-ukrainian_tts-medium": 1.05,  # Ukrainisch
+    # Ukrainisch seit 0.5.0. Gemessen auf denselben 20 Saetzen, beide
+    # Stimmen im selben Lauf:
+    #
+    #   uk_UA-mykyta-high           1.506   ausgeliefert
+    #   uk_UA-ukrainian_tts-medium  1.028   (bis 0.4.6; vorher 1.05)
+    #
+    # mykyta spricht also rund die Haelfte langsamer. Mit dem Aufschlag
+    # (1,06) ergibt das 1,596 -- knapp unter TEMPO_MAX 1,6, also an der
+    # Grenze, ab der die Verstaendlichkeit faellt (Messreihe 0.2.5).
+    # Die Stimmwahl stand fest; dass sie so viel Tempo kostet, ist der
+    # Preis. Bestaetigen muss es ein Hoerer -- wie bei pt.
+    "uk_UA-mykyta-high": 1.51,  # Ukrainisch
+    "uk_UA-ukrainian_tts-medium": 1.03,  # Ukrainisch, nicht mehr ausgeliefert
     "vi_VN-vais1000-medium": 0.99,  # Vietnamesisch
 }
 
@@ -577,7 +592,7 @@ TEMPO_SPRACHE = {
     "sr": 1.67,   # Serbisch
     "sw": 1.09,   # Suaheli
     "tr": 1.13,   # Türkisch
-    "uk": 1.05,   # Ukrainisch
+    "uk": 1.51,   # Ukrainisch (mykyta, seit 0.5.0)
     "vi": 0.99,   # Vietnamesisch
 }
 
