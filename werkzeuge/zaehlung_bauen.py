@@ -70,12 +70,50 @@ falsche.
 
 Ebenso bleibt Persisch unangetastet: welche Zaehlung die persischen
 Bibeln benutzen, ist hier nicht belegt.
+
+UKRAINISCH UND TWI (0.5.0)
+
+Zwei Quellen ausserhalb von getbible, weil es die Uebersetzungen dort
+nicht oder nicht in der gedruckten Zaehlung gibt:
+
+    UBIO        Ohienko (1962), bolls.life -- dieselbe Fassung wie auf
+                bible.com, herausgegeben von der Ukrainischen
+                Bibelgesellschaft
+    twiasante   Biblica, Asante Twi Nkwa Asem (2020), ebible.org --
+                derselbe Text, aus dem BibleTTS die Twi-Stimme gebaut hat
+
+OHIENKO ZAEHLT DIE PSALMEN HEBRAEISCH -- ABER NICHT IN JEDER DATEI.
+getbible fuehrt Ohienko als "ukrogienko" in der orthodoxen
+SWORD-Versifikation: 151 Psalmen, Nummern wie die Septuaginta, Psalm
+23,1 ist dort "Господня земля". In der Ausgabe der Bibelgesellschaft
+ist Psalm 23,1 "Псалом Давидів. Господь то мій Пастир" -- hebraeische
+Nummer, Ueberschrift als Vers. 148 von 150 Psalmen haben dieselbe
+Verszahl wie die Schlachter. Das getbible-Modul ist also auf ein
+fremdes Schema umnummeriert und taugt hier nicht.
+
+Joel und Maleachi teilt Ohienko dagegen wie die englischen Bibeln:
+Joel 3 Kapitel (20, 32, 21), Maleachi 4 (14, 17, 18, 6). Aus Schlachter
+Joel 3,1 wird Ohienko Joel 2,28.
+
+Die zwei Psalmen, die abweichen, bleiben stehen: Ohienko 7,1 fasst die
+Ueberschrift und Schlachter 7,2 zusammen, 13,7 ist die zweite Haelfte
+von Schlachter 13,6. Das ist ein Versatz in einem TEIL des Kapitels --
+dieselbe Lage wie in den 29 Buechern oben.
+
+TWI zaehlt durchgehend englisch: alle 150 Psalmen wie die KJV, Joel 3
+und Maleachi 4 Kapitel. Twi bekommt darum keine eigene Tabelle, sondern
+die englische (zaehlung.ZAEHLUNG_JE_SPRACHE). Geprueft wird das hier,
+bei jedem Lauf -- stimmt es nicht mehr, bricht er ab.
 """
 
 import argparse
 import json
+import re
 import sys
+import tempfile
 import urllib.request
+import zipfile
+from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
@@ -85,6 +123,11 @@ sys.path.insert(0, str(WURZEL))
 ZIEL = WURZEL / "zaehlung.json"
 API = "https://api.getbible.net/v2"
 QUELLEN = {"de": "schlachter", "en": "kjv", "ru": "synodal"}
+# Seit 0.5.0. Ganze Bibeln als ein Archiv; ausgezaehlt und verworfen.
+BOLLS = "https://bolls.life/static/translations/UBIO.zip"
+EBIBLE = "https://ebible.org/Scriptures/twiasante_vpl.zip"
+# getbible antwortet seit 2026 ohne Kennung mit 403.
+KENNUNG = {"User-Agent": "Devarenu-zaehlung_bauen"}
 
 GRUEN, ROT, GELB, BLAU, AUS = (
     "\033[32m", "\033[31m", "\033[33m", "\033[1;34m", "\033[0m")
@@ -114,11 +157,67 @@ def verszahlen(kuerzel, lager=None):
             d = json.loads((Path(lager) / kuerzel / f"{n}.json")
                            .read_text(encoding="utf-8"))
         else:
-            with urllib.request.urlopen(f"{API}/{kuerzel}/{n}.json",
-                                        timeout=60) as a:
+            anfrage = urllib.request.Request(f"{API}/{kuerzel}/{n}.json",
+                                             headers=KENNUNG)
+            with urllib.request.urlopen(anfrage, timeout=60) as a:
                 d = json.loads(a.read().decode("utf-8"))
         aus[n] = [len(c["verses"]) for c in d["chapters"]]
     return aus
+
+
+def _archiv(url, name, lager=None):
+    """Der Inhalt einer Datei aus einem Zip -- aus dem Lager oder geholt.
+
+    Geholt wird in einen Wegwerfordner. Der Bibeltext wird ausgezaehlt
+    und nicht aufbewahrt, wie bei getbible auch."""
+    if lager and (Path(lager) / name).exists():
+        return (Path(lager) / name).read_text(encoding="utf-8-sig")
+    with tempfile.TemporaryDirectory() as tmp:
+        ziel = Path(tmp) / "a.zip"
+        anfrage = urllib.request.Request(url, headers=KENNUNG)
+        with urllib.request.urlopen(anfrage, timeout=180) as a:
+            ziel.write_bytes(a.read())
+        with zipfile.ZipFile(ziel) as z:
+            return z.read(name).decode("utf-8-sig")
+
+
+def _zaehlen(tripel):
+    """(Buch, Kapitel, Vers) -> {Buch: [Verse je Kapitel]}."""
+    hoechst = defaultdict(lambda: defaultdict(int))
+    for b, k, v in tripel:
+        hoechst[b][k] = max(hoechst[b][k], v)
+    return {b: [hoechst[b][k] for k in sorted(hoechst[b])] for b in hoechst}
+
+
+def verszahlen_ubio(lager=None):
+    """Ohienko aus bolls.life: eine JSON-Liste mit book/chapter/verse."""
+    roh = json.loads(_archiv(BOLLS, "UBIO.json", lager))
+    return _zaehlen((int(v["book"]), int(v["chapter"]), int(v["verse"]))
+                    for v in roh)
+
+
+# Die VPL-Datei von eBible: "BUCH K:V Text", teils mit alten Kuerzeln.
+VPL_BUECHER = (
+    "GEN EXO LEV NUM DEU JOS JDG RUT 1SA 2SA 1KI 2KI 1CH 2CH EZR NEH EST "
+    "JOB PSA PRO ECC SNG ISA JER LAM EZK DAN HOS JOL AMO OBA JON MIC NAM "
+    "HAB ZEP HAG ZEC MAL MAT MRK LUK JHN ACT ROM 1CO 2CO GAL EPH PHP COL "
+    "1TH 2TH 1TI 2TI TIT PHM HEB JAS 1PE 2PE 1JN 2JN 3JN JUD REV").split()
+VPL_ALT = {"SOL": "SNG", "EZE": "EZK", "JOE": "JOL", "NAH": "NAM",
+           "MAR": "MRK", "JOH": "JHN", "PHI": "PHP", "JAM": "JAS",
+           "1JO": "1JN", "2JO": "2JN", "3JO": "3JN"}
+
+
+def verszahlen_vpl(lager=None):
+    """Asante Twi aus ebible.org."""
+    nr = {k: i + 1 for i, k in enumerate(VPL_BUECHER)}
+    for alt, neu in VPL_ALT.items():
+        nr[alt] = nr[neu]
+    tripel = []
+    for zeile in _archiv(EBIBLE, "twiasante_vpl.txt", lager).splitlines():
+        m = re.match(r"(\w+) (\d+):(\d+) ", zeile)
+        if m and m.group(1) in nr:
+            tripel.append((nr[m.group(1)], int(m.group(2)), int(m.group(3))))
+    return _zaehlen(tripel)
 
 
 def psalmen_versatz(de, en):
@@ -252,6 +351,51 @@ def main():
                      f"nicht zusammen, es bleibt, wie es ist.")
         daten["zaehlungen"][ziel_name] = z
 
+    # ---- Ukrainisch: Ohienko in der Ausgabe der Bibelgesellschaft
+    blau("Zaehlung uk (Ohienko, UBIO)")
+    uk = verszahlen_ubio(a.aus)
+    gut(f"UBIO: {len(uk)} Buecher, {sum(len(v) for v in uk.values())} Kapitel")
+    gleich = sum(x == y for x, y in zip(de[PSALMEN], uk[PSALMEN]))
+    anders = [i for i, (x, y) in enumerate(zip(de[PSALMEN], uk[PSALMEN]), 1)
+              if x != y]
+    # Hebraeisch gezaehlt heisst: dieselben 150 Psalmen und fast ueberall
+    # dieselbe Verszahl. Die Ausnahmen sind Teilversaetze (siehe oben)
+    # und werden NICHT umgerechnet. Mehr als fuenf hiesse: das ist eine
+    # andere Zaehlung, und dann muss ein Mensch nachsehen.
+    if len(uk[PSALMEN]) != 150 or len(anders) > 5:
+        print(f"{ROT}Ohienko zaehlt die Psalmen nicht hebraeisch "
+              f"({len(uk[PSALMEN])} Psalmen, {len(anders)} abweichend). "
+              f"Nichts geschrieben.{AUS}")
+        return 1
+    gut(f"Psalmen hebraeisch gezaehlt: {gleich} von 150 wie Schlachter; "
+        f"Teilversatz, bleibt stehen: {anders}")
+    z = {"psalm_versatz": {}, "psalm_nummer": {}, "buecher": {}}
+    for buch in (JOEL, MALEACHI):
+        regeln = buch_regeln(de, uk, buch)
+        if regeln:
+            z["buecher"][str(buch)] = regeln
+            gut(f"Buch {buch}: {len(regeln)} Regeln")
+        else:
+            warn(f"Buch {buch}: keine Regel")
+    daten["zaehlungen"]["uk"] = z
+    daten["quelle"]["uk"] = ("UBIO (Ohienko 1962, Ukrainische "
+                             "Bibelgesellschaft) ueber bolls.life -- "
+                             "Psalmen hebraeisch, Joel/Maleachi englisch")
+
+    # ---- Twi: englische Zaehlung, nachgeprueft
+    blau("Zaehlung tw (Asante Twi, Biblica)")
+    tw = verszahlen_vpl(a.aus)
+    en = zahlen["en"]
+    abweichend = [n for n in (PSALMEN, JOEL, MALEACHI) if tw.get(n) != en[n]]
+    if abweichend:
+        print(f"{ROT}Twi weicht in Buch {abweichend} von der KJV ab. Die "
+              f"englische Tabelle passt dann nicht. Nichts geschrieben.{AUS}")
+        return 1
+    gut("Psalmen, Joel und Maleachi wie KJV -- tw nimmt die Tabelle en")
+    daten["quelle"]["tw"] = ("twiasante (Biblica, Asante Twi Nkwa Asem) "
+                             "ueber ebible.org -- englische Zaehlung, "
+                             "keine eigene Tabelle")
+
     blau("Probe")
     import zaehlung
     tab = zaehlung.Tabelle(daten)
@@ -260,7 +404,12 @@ def main():
               (PSALMEN, 51, 12, "en", (51, 10)),
               (PSALMEN, 23, None, "ru", (22, None)),
               (43, 3, 16, "en", None),
-              (43, 3, 16, "ru", None)]
+              (43, 3, 16, "ru", None),
+              (JOEL, 3, 1, "uk", (2, 28)),
+              (MALEACHI, 3, 23, "uk", (4, 5)),
+              (PSALMEN, 23, 1, "uk", None),
+              (PSALMEN, 51, 12, "uk", None),
+              (PSALMEN, 7, 3, "uk", None)]
     schief = 0
     for buch, kap, vers, ziel_name, soll in faelle:
         ist = tab.umrechnen(buch, kap, vers, ziel_name)

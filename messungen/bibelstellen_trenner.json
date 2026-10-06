@@ -279,5 +279,29 @@
    }
   },
   "ergebnis": "SPRECHFORM-Eintrag nur fuer fa. Der Untertitel ist in allen vier Sprachen Zeile fuer Zeile unveraendert -- SPRECHFORM greift ausschliesslich vor Piper. Die Sprechdauer bleibt bei de, en und ru gleich und sinkt bei fa um 1,79 s ueber acht Saetze."
+ },
+ "nachtrag_0_5_0": {
+  "wozu": "Trennzeichen fuer die mit 0.5.0 dazugekommenen Sprachen, ohne Anweisung",
+  "wann": "2026-10-06",
+  "modell": "gemma4:12b",
+  "temperature": 0.1,
+  "seed": 7,
+  "saetze": "dieselben acht wie unter vorher.de, mit glossar_v1.2.csv",
+  "sprachen": {
+   "uk": {
+    "trenner": {",": 7},
+    "saetze": [
+     "Ми сьогодні читаємо з Від Матвія 18, 21–35.",
+     "Текст проповіді знаходиться в Ісаї 53, 5.",
+     "Павло пише в До римлян 8, 28, що все служить на благо.",
+     "Будь ласка, відкрийте: 1-а Самуїлова 15, 22.",
+     "У Псалмі 23 сказано: Господь є моїм пастирем.",
+     "Порівняйте з цим Об'явлення 14, 6–12.",
+     "Ісус каже у Від Івана 3, 16, що Бог полюбив світ.",
+     "Ми почнемо з молитви, а потім прочитаємо 2-е до коринтян 5, 17."
+    ],
+    "ergebnis": "Komma 7 von 7, wie im deutschen Satz. Keine Anweisung (config.STELLEN_TRENNER). Die Saetze zeigen zugleich, warum die Evangelien im Glossar ohne 'Від' stehen: 'з Від Матвія' ist kein Ukrainisch. Gemessen vor dieser Aenderung."
+   }
+  }
  }
 }

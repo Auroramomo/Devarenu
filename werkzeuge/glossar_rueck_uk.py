@@ -161,10 +161,14 @@ BIBELBUCH = {
     "A036": "Софонія",  # Zephanja
     "A038": "Захарія",  # Sacharja
     "A039": "Малахії",  # Maleachi
-    "A040": "Від Матвія",  # Matthäus
-    "A041": "Від Марка",  # Markus
-    "A042": "Від Луки",  # Lukas
-    "A043": "Від Івана",  # Johannes
+    # Die Evangelien OHNE "Від". Ohienko titelt "Від Матвія"; als
+    # Vorgabe im Satz wurde daraus "читаємо з Від Матвія 18, 21" --
+    # gemessen mit gemma4:12b. Die russische Spalte laesst "От"
+    # ebenso weg ("Матфея"), und der Pruefer schreibt "Якова".
+    "A040": "Матвія",  # Matthäus
+    "A041": "Марка",  # Markus
+    "A042": "Луки",  # Lukas
+    "A043": "Івана",  # Johannes
     "A045": "До римлян",  # Römer
     "A046": "1-е до коринтян",  # 1. Korinther
     "A047": "2-е до коринтян",  # 2. Korinther

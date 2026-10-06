@@ -38,10 +38,10 @@ A036;A;hart;1;Zephanja;Zephanja|Zefanja;Zephaniah;Софония;صفنیا;;3;3
 A037;A;hart;1;Haggai;Haggai;Haggai;Аггей;حجی;;3;3;3;;Hageo;3;Ageu;3;Hagaj;3;Aggée;3;Hagaj;3;;;Огій;3;
 A038;A;hart;1;Sacharja;Sacharja;Zechariah;Захария;زکریا;;3;3;3;;Zacarías;3;Zacarias;3;Zakarija;3;Zacharie;3;Zachariasz;3;;;Захарія;3;
 A039;A;hart;1;Maleachi;Maleachi;Malachi;Малахия;ملاکی;;3;3;3;;Malaquías;3;Malaquias;3;Malakija;3;Malachie;3;Malachiasz;3;;;Малахії;3;
-A040;A;hart;0;Matthäus;Matthäus;Matthew;Матфея;متی;;3;3;3;;Mateo;3;Mateus;3;Matej;3;Matthieu;3;Mateusz;3;;;Від Матвія;3;
-A041;A;hart;0;Markus;Markus;Mark;Марка;مرقس;;3;3;3;;Marcos;3;Marcos;3;Marko;3;Marc;3;Mark</th>;3;;;Від Марка;3;
-A042;A;hart;0;Lukas;Lukas;Luke;Луки;لوقا;;3;3;3;;Lucas;3;Lucas;3;Luka;3;Luc;3;Łukasz;3;;;Від Луки;3;
-A043;A;weich;0;Johannes;Johannes;John;Иоанна;یوحنا;;3;3;3;WEICH: Johannesevangelium vs. Johannesbriefe vs. Johannes der Taeufer. Kontext noetig.;Juan;3;João;3;Ivan;3;Jean;3;Jan;3;;;Від Івана;3;
+A040;A;hart;0;Matthäus;Matthäus;Matthew;Матфея;متی;;3;3;3;;Mateo;3;Mateus;3;Matej;3;Matthieu;3;Mateusz;3;;;Матвія;3;
+A041;A;hart;0;Markus;Markus;Mark;Марка;مرقس;;3;3;3;;Marcos;3;Marcos;3;Marko;3;Marc;3;Mark</th>;3;;;Марка;3;
+A042;A;hart;0;Lukas;Lukas;Luke;Луки;لوقا;;3;3;3;;Lucas;3;Lucas;3;Luka;3;Luc;3;Łukasz;3;;;Луки;3;
+A043;A;weich;0;Johannes;Johannes;John;Иоанна;یوحنا;;3;3;3;WEICH: Johannesevangelium vs. Johannesbriefe vs. Johannes der Taeufer. Kontext noetig.;Juan;3;João;3;Ivan;3;Jean;3;Jan;3;;;Івана;3;
 A044;A;hart;0;Apostelgeschichte;Apostelgeschichte;Acts;Деяния;اعمال رسولان;;3;3;3;;Hechos;3;Atos;3;Djinjave;3;Actes;3;Dzieje Apostołów;3;;;Дії апостолів;3;
 A045;A;hart;0;Römer;Römerbrief|Römer;Romans;Римлянам;رومیان;;3;3;3;;Romanos;3;Romanos;3;Rimljani;3;Romains;3;Rzymianin;3;;;До римлян;3;
 A046;A;hart;1;1. Korinther;1. Korinther|1 Korinther;1 Corinthians;1-е Коринфянам;اول قرنتیان;;3;3;3;;1 Corintios;3;1 Coríntios;3;1. Korinćani;3;1 Corinthiens;3;1. Listy do Korntian;3;;;1-е до коринтян;3;

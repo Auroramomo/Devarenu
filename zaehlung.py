@@ -25,7 +25,10 @@ die Stelle schon in der englischen Zaehlung aus seinem Mund.
 ZIELE
 
     en, es, pt   englische Zaehlung (KJV, Reina-Valera, Almeida)
+    tw           englische Zaehlung (Biblica, Asante Twi) -- seit 0.5.0
     ru           Synodalzaehlung (Septuaginta bei den Psalmen)
+    uk           Ohienko: Psalmen hebraeisch wie die Schlachter, Joel
+                 und Maleachi wie die englischen Bibeln -- seit 0.5.0
     fa           NICHT. Welche Zaehlung die persischen Bibeln benutzen,
                  ist nicht belegt. Eine Umrechnung auf Verdacht waere
                  schlimmer als keine.
@@ -47,14 +50,29 @@ ZAEHLUNG_JE_SPRACHE = {
     "es": "en",
     "pt": "en",
     "ru": "ru",
+    # Ohienko in der Ausgabe der Ukrainischen Bibelgesellschaft. Belegt
+    # in werkzeuge/zaehlung_bauen.py -- dort auch, warum NICHT die
+    # Ohienko-Datei von getbible.
+    "uk": "uk",
+    # Die Asante-Twi-Bibel von Biblica zaehlt in Psalmen, Joel und
+    # Maleachi genau wie die KJV; zaehlung_bauen.py prueft das bei jedem
+    # Lauf nach.
+    "tw": "en",
 }
 
 # Der Name, mit dem eine EINZELNE Stelle genannt wird. Das Glossar
 # fuehrt den Buchtitel ("Psalms", "Псалтирь"); zitiert wird aber der
-# einzelne Psalm, und der heisst im Singular. Nur die Psalmen
-# unterscheiden das.
+# einzelne Psalm, und der heisst im Singular.
+#
+# Twi hat KEIN Glossar, also auch keine Buchnamen. Hier stehen genau
+# die drei Buecher, deren Angabe sich in der englischen Zaehlung
+# aendert -- nur fuer sie wird je ein Name gebraucht. Die Namen sind
+# die der Biblica-Ausgabe (\toc2 bzw. \cl in den USFM-Dateien).
 ZITATNAME = {
-    19: {"en": "Psalm", "es": "Salmo", "pt": "Salmo", "ru": "Псалом"},
+    19: {"en": "Psalm", "es": "Salmo", "pt": "Salmo", "ru": "Псалом",
+         "uk": "Псалом", "tw": "Dwom"},
+    29: {"tw": "Yoɛl"},
+    39: {"tw": "Malaki"},
 }
 
 

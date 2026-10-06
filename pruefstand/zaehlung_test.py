@@ -137,7 +137,43 @@ pruefe("Psalm 142 bleibt ru (Verszahlen gehen nicht zusammen)", [],
 pruefe("Psalm 9 bleibt ru (zusammengelegt)", [], um("Psalm 9,1", "ru"))
 pruefe("Psalm 23 bleibt en (keine Überschrift)", [], um("Psalm 23,1", "en"))
 # Eine Sprache ohne Eintrag bekommt nichts.
-pruefe("Ukrainisch bleibt unberührt", [], um("Joel 3,1", "uk"))
+pruefe("Polnisch bleibt unberührt", [], um("Joel 3,1", "pl"))
+
+titel("4b) Ukrainisch (Ohienko) und Twi -- seit 0.5.0")
+
+# Ohienko zaehlt die Psalmen hebraeisch, Joel und Maleachi englisch.
+# Das getbible-Modul "ukrogienko" zaehlt anders (orthodoxe
+# Versifikation) und ist NICHT die Grundlage -- siehe zaehlung_bauen.py.
+pruefe("uk hat eine eigene Tabelle", True, "uk" in T.zaehlungen)
+pruefe("uk: keine Psalmenverschiebung", ({}, {}),
+       (T.zaehlungen["uk"]["psalm_versatz"],
+        T.zaehlungen["uk"]["psalm_nummer"]))
+pruefe("Psalm 23 bleibt uk (Ohienko 23,1 = Господь — то мій Пастир)", [],
+       um("Psalm 23,1", "uk"))
+pruefe("Psalm 51,12 bleibt uk", [], um("Psalm 51,12", "uk"))
+pruefe("Psalm 7,3 bleibt uk (Teilversatz, nicht umgerechnet)", [],
+       um("Psalm 7,3", "uk"))
+r = um("Joel 3,1", "uk")
+pruefe("Joel 3,1 -> uk 2,28", [(2, 28)], [(k, v) for _q, _n, k, v in r])
+pruefe("  mit ukrainischem Buchnamen", True,
+       bool(r) and r[0][1] not in ("", "Joel"))
+r = um("Maleachi 3,23", "uk")
+pruefe("Maleachi 3,23 -> uk 4,5", [(4, 5)], [(k, v) for _q, _n, k, v in r])
+pruefe("Johannes 3,16 bleibt uk", [], um("Johannes 3,16", "uk"))
+
+# Twi hat kein Glossar. Die Namen der drei Buecher, die sich in der
+# englischen Zaehlung aendern, stehen in zaehlung.ZITATNAME.
+pruefe("tw folgt der englischen Zählung", "en",
+       zaehlung.ZAEHLUNG_JE_SPRACHE.get("tw"))
+pruefe("Psalm 51,12 -> tw Dwom 51:10", [("Psalm 51,12", "Dwom", 51, 10)],
+       um("Psalm 51,12", "tw"))
+pruefe("Joel 3,1 -> tw Yoɛl 2:28 (ɛ bleibt ɛ)",
+       [("Joel 3,1", "Yoɛl", 2, 28)], um("Joel 3,1", "tw"))
+pruefe("Maleachi 3,23 -> tw Malaki 4:5",
+       [("Maleachi 3,23", "Malaki", 4, 5)], um("Maleachi 3,23", "tw"))
+pruefe("Johannes 3,16 bleibt tw", [], um("Johannes 3,16", "tw"))
+h = zaehlung.hinweis_bauen(um("Joel 3,1", "tw"), "tw", ":")
+pruefe("der Hinweis an das Modell trägt ɛ unversehrt", True, "Yoɛl 2:28" in h)
 
 titel("5) Nur bei deutscher Ausgangssprache")
 

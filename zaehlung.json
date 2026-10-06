@@ -1,10 +1,12 @@
 {
- "gebaut_am": "2026-10-03",
+ "gebaut_am": "2026-10-06",
  "quelle": {
   "dienst": "https://api.getbible.net/v2",
   "de": "schlachter (Schlachter 1951) -- hebraeische Zaehlung",
   "en": "kjv (King James Version) -- englische Zaehlung",
-  "ru": "synodal (Synodal 1876) -- Septuaginta-Zaehlung"
+  "ru": "synodal (Synodal 1876) -- Septuaginta-Zaehlung",
+  "uk": "UBIO (Ohienko 1962, Ukrainische Bibelgesellschaft) ueber bolls.life -- Psalmen hebraeisch, Joel/Maleachi englisch",
+  "tw": "twiasante (Biblica, Asante Twi Nkwa Asem) ueber ebible.org -- englische Zaehlung, keine eigene Tabelle"
  },
  "hinweis": "Nur Zahlen, kein Bibeltext. Gebaut von werkzeuge/zaehlung_bauen.py; die Begruendung jeder Regel steht dort im Modulkommentar.",
  "zaehlungen": {
@@ -245,6 +247,44 @@
     "145": 144,
     "146": 145
    },
+   "buecher": {
+    "29": [
+     {
+      "kap": 3,
+      "vers_von": 1,
+      "vers_bis": 5,
+      "ziel_kap": 2,
+      "vers_plus": 27
+     },
+     {
+      "kap": 4,
+      "vers_von": 1,
+      "vers_bis": 21,
+      "ziel_kap": 3,
+      "vers_plus": 0
+     }
+    ],
+    "39": [
+     {
+      "kap": 3,
+      "vers_von": 1,
+      "vers_bis": 18,
+      "ziel_kap": 3,
+      "vers_plus": 0
+     },
+     {
+      "kap": 3,
+      "vers_von": 19,
+      "vers_bis": 24,
+      "ziel_kap": 4,
+      "vers_plus": -18
+     }
+    ]
+   }
+  },
+  "uk": {
+   "psalm_versatz": {},
+   "psalm_nummer": {},
    "buecher": {
     "29": [
      {

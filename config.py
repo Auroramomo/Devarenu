@@ -240,6 +240,13 @@ PAUSE_KOMMA_MS = {
 #
 # Die uebrigen Sprachen sind NICHT geprueft. Wer eine dazunimmt,
 # misst erst und traegt dann ein.
+#
+# UKRAINISCH, gemessen mit 0.5.0 auf denselben acht Saetzen: gemma4:12b
+# schreibt 7 von 7 Mal ein Komma ("Ісаї 53, 5"). Welche Schreibweise
+# ukrainische Gemeinden erwarten, ist hier nicht belegt -- also keine
+# Anweisung, und die umgerechnete Angabe (Joel 3,1 -> Йоїл 2,28) kommt
+# mit Komma, wie das Modell es ohnehin schreibt. Ergebnis in
+# messungen/bibelstellen_trenner.json unter "nachtrag_0_5_0".
 STELLEN_TRENNER = {
     "en": ":",
     "es": ":",
