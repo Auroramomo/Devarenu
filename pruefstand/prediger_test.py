@@ -97,8 +97,12 @@ nach_id = {e.id: e for e in alt.eintraege}
 for kennung in ("A021", "D028"):
     neu = next(e for e in g.eintraege if e.id == kennung)
     a = nach_id[kennung]
-    pruefe(f"{kennung}: Zielsprachen gleich", a.ziel, neu.ziel)
-    pruefe(f"{kennung}: Konfidenzen gleich", a.konfidenz, neu.konfidenz)
+    # Nur die Sprachen, die v1.0 schon hatte. Eine spaeter dazugekommene
+    # Spalte (uk seit v1.2) ist kein Anfassen der alten Werte.
+    pruefe(f"{kennung}: Zielsprachen gleich", a.ziel,
+           {k: v for k, v in neu.ziel.items() if k in a.ziel})
+    pruefe(f"{kennung}: Konfidenzen gleich", a.konfidenz,
+           {k: v for k, v in neu.konfidenz.items() if k in a.konfidenz})
     pruefe(f"{kennung}: deutsche Hauptform gleich", a.de, neu.de)
 
 print("\n4. Die Bedingung selbst")

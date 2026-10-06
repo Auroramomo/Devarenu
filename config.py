@@ -30,7 +30,13 @@ except OSError:
 # Umschalten, mit werkzeuge/glossar_vergleich.py ueber 1444 Texte:
 # en, ru, fa und der Whisper-Prompt kommen Zeichen fuer Zeichen gleich
 # heraus.
-GLOSSAR_CSV = BASIS / "glossar_v1.1.csv"
+#
+# v1.2 (0.5.0) bringt Ukrainisch: die Pruefauswahl vom Muttersprachler,
+# die Bibelbuecher aus Ohienko, der Rest maschinell -- Einzelheiten in
+# werkzeuge/glossar_rueck_uk.py. Vergleichslauf gegen v1.1 ueber 1498
+# Texte: en, ru, fa, es, pt, pl, fr, hr und der Whisper-Prompt
+# unveraendert.
+GLOSSAR_CSV = BASIS / "glossar_v1.2.csv"
 TESTSAETZE_CSV = BASIS / "testsaetze_v0.3.csv"
 ERGEBNIS_ORDNER = BASIS / "ergebnisse"
 
@@ -326,7 +332,10 @@ SPRACHNAMEN_EN = {
 # Entscheidungen stehen in werkzeuge/glossar_rueck_es_pt.py, jede mit
 # Begruendung. Eingeschaltet wird dadurch nichts: ZIELSPRACHEN bleibt
 # en, ru, fa, und eine Gemeinde waehlt am Pult.
-GEPRUEFT = {"de", "en", "ru", "fa", "es", "pt"}
+#
+# uk kam mit 0.5.0 dazu: die 93 Begriffe der Pruefauswahl, eine
+# Korrektur, ein Hinweis. Siehe werkzeuge/glossar_rueck_uk.py.
+GEPRUEFT = {"de", "en", "ru", "fa", "es", "pt", "uk"}
 
 # Piper-Stimmen je Sprache, so wie sie im Repo rhasspy/piper-voices liegen.
 # Was hier steht, kann einrichten.sh herunterladen; was fehlt, laeuft als

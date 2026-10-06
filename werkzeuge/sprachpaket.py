@@ -89,6 +89,12 @@ ANKER = {
            ("Abendmahl", "Wieczerza Pańska", "komunia"),
            ("Sabbat", "sabat", "sobota, das ist der Wochentag"),
            ("Ältester", "starszy zboru", "starzec")],
+    # Aus pruefung/fallstricke_uk.csv, vom Pruefer bestaetigt (0.5.0).
+    "uk": [("Gottesdienst", "богослужіння", "меса, літургія"),
+           ("Gemeinde", "церква", "парафія"),
+           ("Abendmahl", "Вечеря Господня", "причастя"),
+           ("Sabbat", "субота", "неділя"),
+           ("Ältester", "пресвітер", "старець")],
 }
 
 

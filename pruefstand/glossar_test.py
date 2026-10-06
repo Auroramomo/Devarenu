@@ -226,6 +226,39 @@ pruefe("ZIELSPRACHEN unverändert", ["en", "ru", "fa"],
        list(config.ZIELSPRACHEN))
 pruefe("Polnisch bleibt ungeprüft", False, "pl" in config.GEPRUEFT)
 
+titel("7b) Ukrainisch -- seit 0.5.0 geprüft")
+
+pruefe("uk ist geprüft", True, "uk" in config.GEPRUEFT)
+pruefe("uk ist eine Zielsprache des Glossars", True, "uk" in g.sprachen)
+pruefe("n_uk gilt NICHT als Sprache", False, "n_uk" in g.sprachen)
+# Die eine Korrektur des Pruefers.
+pruefe("D016 uk: знак звіра", "знак звіра", nach_id["D016"].ziel["uk"])
+# Der eine Hinweis: громада wird gleichbedeutend gebraucht. Erkennen ja,
+# vorgeben nein.
+pruefe("C038 uk: церква als Hauptform", "церква", nach_id["C038"].ziel["uk"])
+pruefe("C038 uk: громада als Nebenform", ["громада"],
+       nach_id["C038"].neben["uk"])
+pruefe("eine uk-Predigt mit громада findet C038", True,
+       "C038" in [e.id for e in g.finde_in("Наша громада молиться.", "uk")])
+pruefe("die Vorgabe nennt nur церква", True,
+       "громада" not in glossarzeilen([nach_id["C038"]], "uk"))
+# Was die Maschine falsch vorschlug, steht nicht drin -- allen voran
+# Kreuzigung als "Хрещення", das ist die Taufe.
+pruefe("Kreuzigung ist nicht Taufe", "розп'яття", nach_id["C027"].ziel["uk"])
+pruefe("Taufe bleibt Taufe", "хрещення", nach_id["C040"].ziel["uk"])
+pruefe("3. Mose heißt Левит (Ohienko), nicht Числа", "Левит",
+       nach_id["A003"].ziel["uk"])
+# Die Zeilen aus den Zusatzlisten von es und pt bleiben fuer uk leer,
+# wie fuer en, ru und fa.
+pruefe("Zusatzzeilen D050 ff. ohne uk", [],
+       [e.id for e in g.eintraege
+        if e.id >= "D050" and e.ziel.get("uk", "").strip()])
+# Keine Zelle eines geprueften Ruecklaufs ist leer.
+pruefe("alle Zeilen bis D049 haben uk, ausser drei bewusst leeren",
+       ["C020", "C031", "C145"],
+       sorted(e.id for e in g.eintraege
+              if e.id < "D050" and not e.ziel.get("uk", "").strip()))
+
 titel("8) Die Anrede steht fest, und nur wo sie belegt ist")
 
 pruefe("es hat eine Anrede", True, bool(config.ANREDE.get("es")))

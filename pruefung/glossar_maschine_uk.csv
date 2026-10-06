@@ -1,0 +1,183 @@
+id;de;uk
+A001;1. Mose;Буття
+A002;2. Mose;Вихід
+A003;3. Mose;Числа
+A004;4. Mose;Числа
+A006;Josua;Ісус Навин
+A008;Ruth;Руффа
+A009;1. Samuel;1 Самуїл
+A010;2. Samuel;2 Самуїла
+A011;1. Könige;1 Царств
+A012;2. Könige;2 Царстві
+A013;1. Chronik;1 Хроніки
+A014;2. Chronik;2 Хроніки
+A015;Esra;Ездра
+A016;Nehemia;Неемія
+A017;Esther;Естер
+A018;Hiob;Йов
+A019;Psalmen;Псалми
+A023;Jesaja;Ісая
+A024;Jeremia;Єремія
+A026;Hesekiel;Єзекиїл
+A027;Daniel;Даниїл
+A028;Hosea;Осія
+A029;Joel;Йоїл
+A030;Amos;Амос
+A031;Obadja;Овадія
+A032;Jona;Йона
+A033;Micha;Міхаїл
+A034;Nahum;Наум
+A036;Zephanja;Софонія
+A038;Sacharja;Захарія
+A039;Maleachi;Малахій
+A040;Matthäus;Матвія
+A041;Markus;Марко
+A042;Lukas;Лука
+A043;Johannes;Іван
+A045;Römer;Римляни
+A046;1. Korinther;1 Коринтян
+A047;2. Korinther;2 Коринтянські
+A048;Galater;Галатянські
+A049;Epheser;Ефесянські
+A050;Philipper;Філіппіянці
+A051;Kolosser;Колосянські
+A052;1. Thessalonicher;1 Фесалонікійці
+A053;2. Thessalonicher;2 Тесалониченські
+A054;1. Timotheus;1 Тимому 1
+A055;2. Timotheus;2 Тимофія
+A056;Titus;Тито
+A057;Philemon;Філемон
+A060;1. Petrus;1 Петра
+A061;2. Petrus;2 Петра
+A062;1. Johannes;1 Івана
+A063;2. Johannes;2 Івана
+A064;3. Johannes;3 Івана
+A065;Judas;Юда
+C001;Gnade;благодать
+C002;Barmherzigkeit;милосердя
+C003;Glaube;віра
+C004;Liebe;любов
+C005;Hoffnung;надія
+C009;Heil;спасіння
+C013;Sündenfall;Падіння
+C015;Umkehr;покаяння
+C018;Versöhnung;помирення
+C019;Sühne;відкуплення
+C020;Fürbitte;посередництво
+C021;Mittler;Посередник
+C022;Hohepriester;Верховний Йаєць
+C023;Priestertum;священництво
+C024;Opfer;жертва
+C025;Blut Christi;Кров Христова
+C026;Kreuz;хрест
+C027;Kreuzigung;Хрещення
+C029;Verheißung;обітниця
+C030;Offenbarung;Об'явлення
+C031;Inspiration;надихнення
+C032;Heilige Schrift;Святе Письмо
+C035;Prophet;пророк
+C036;Apostel;апостол
+C037;Jünger;ученьник
+C039;Leib Christi;Тіло Христа
+C045;Lobpreis;славослів
+C047;Heiliger Geist;Святий Дух
+C048;Dreieinigkeit;Триєдинство
+C049;Vorsehung;Провиденство
+C050;Erwählung;обрання
+C051;Berufung;покликання
+C052;Nachfolge;ученичництво
+C054;Himmelfahrt;Вознесіння
+C056;Ewiges Leben;Вічне життя
+C057;Ewigkeit;вічність
+C058;Reich Gottes;Царство Боже
+C059;Gericht;суд
+C060;Jüngstes Gericht;Останній суд
+C061;Hölle;пекельний вогонь
+C062;Feuersee;озеро вогню
+C063;Satan;Сатана
+C064;Teufel;диявол
+C065;Engel;ангел
+C066;Dämon;бес
+C069;Bundeslade;Ковчег Заповіту
+C070;Stiftshütte;Намет
+C071;Vorbild;тип і антитип
+C075;Gehorsam;покора
+C076;Werke;твори
+C078;Ruhetag;день спокою
+C079;Zeugnis;свідчення
+C080;Mission;місія
+C081;Verkündigung;проголошення
+C084;Demut;покора
+C085;Sanftmut;покірність
+C086;Langmut;терпимість
+C087;Versuchung;спокуса
+C088;Anfechtung;випробування
+C089;Leiden;страждання
+C090;Trost;втіха
+C091;Frieden;мир
+C092;Freude;радість
+C093;Bekenntnis;визнання
+C094;Gewissen;совість
+C095;Herz;серце
+C096;Gleichnis;притча
+C097;Bergpredigt;Нагірна проповідь
+C098;Menschensohn;Син Людський
+C099;Sohn Gottes;Син Божий
+C100;Messias;Месія
+C101;Christus;Христос
+C102;Herr;Господь
+C103;Lamm Gottes;Ягнятко Боже
+C104;Herrlichkeit;слава
+C105;Fleisch;тіло
+C106;Geist;Дух
+C107;Seele;душа
+C108;Ebenbild Gottes;образ Божий
+C109;Wort Gottes;Слово Боже
+C112;Paradies;райський сад
+C113;Sintflut;Потоп
+C114;Wiedergeburt;відродження
+C115;Nächstenliebe;любов до ближнього
+C116;Feindesliebe;любов до ворогів
+C117;Gottesfurcht;боязнь Божа
+C119;Geistesgaben;духовні дари
+C120;Heiden;язичники
+C121;Pharisäer;фарисеї
+C122;Sadduzäer;садукеї
+C123;Schriftgelehrte;писцірі
+C124;Zöllner;митник
+C125;Sündenbock;козлище
+C126;Passa;Паска (Паска Господня)
+C127;Laubhüttenfest;Свято наменосів
+C128;Versöhnungstag;День викуплення
+C129;Tempel;храм
+C130;Synagoge;синагога
+C131;Hoher Rat;Вища Рада
+C132;Tora;Тора
+C133;Beschneidung;обрізання
+C134;Sauerteig;квасне тісто
+C135;Weinstock;виноградник
+C136;Hirte;пастир
+C137;Bräutigam;Наречений
+C138;Halleluja;Алілуя
+C139;Hosianna;Госанна
+C140;Amen;Амінь
+C141;Immanuel;Іммануїл
+C142;Vaterunser;Отче наш
+C143;Barmherziger Samariter;Добрий самарянин
+C144;Verlorener Sohn;Загублений син
+C145;Zungenrede;говорення мовами
+C146;Märtyrer;мученик
+C147;Gerechtigkeit;праведність
+C148;Gottlosigkeit;безодарність
+C149;Heiligkeit;Святість
+C150;Allmacht;Всемогутній
+C151;Ehre;шана
+C152;Treue;вірність
+C153;Wahrheit;істина
+C154;Weisheit;мудрість
+C155;Knecht;раб
+C156;Erstgeburt;первісторія
+C157;Wüste;пустеля
+C158;Manna;манна
+C159;Götzendienst;ідолопоклонництво
+C160;Aufnahme in die Gemeinde;Прийняття до церкви
