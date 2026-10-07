@@ -518,6 +518,33 @@ def schleife_kappen(text, mal=4, laengste=6):
     return re.sub(r"(\w{1,3}?)\1{5,}", r"\1\1", text)
 
 
+def fehlformen_finden(treffer, text, sprache):
+    """Welche bekannten Fehlformen (config.FEHLFORMEN) stehen in der
+    Uebersetzung -- nur fuer Glossarbegriffe, die im Abschnitt
+    vorkommen? Liste von dicts; leer heisst: nichts gefunden.
+
+    treffer sind die Glossartreffer, die uebersetzen() ohnehin sucht.
+    Steht keiner der genannten Begriffe darin, wird kein Ausdruck
+    angefasst."""
+    regeln = getattr(config, "FEHLFORMEN", {}).get(sprache)
+    if not regeln or not treffer:
+        return []
+    nach_id = {e.id: e for e in treffer}
+    gefunden = []
+    for r in regeln:
+        e = nach_id.get(r["glossar"])
+        if e is None:
+            continue
+        m = re.search(r["fehlform"] + r"\w*", text, re.IGNORECASE)
+        if m:
+            gefunden.append({"glossar": e.id, "de": e.de,
+                             "richtig": e.ziel.get(sprache, ""),
+                             "falsch": r["falsch"], "grund": r["grund"],
+                             "formen": r.get("formen", ""),
+                             "gefunden": m.group(0)})
+    return gefunden
+
+
 class Werk:
     """Whisper, Uebersetzung und Piper. Alles blockierend, deshalb laeuft es
     in Threads und nicht im Ereignisschleifen-Thread."""
@@ -1157,18 +1184,26 @@ class Werk:
         if gtext:
             system += ("\n\nWortwahlvorgaben fuer einzelne Fachbegriffe. Sie "
                        "sagen nichts ueber Satzbau oder Betonung.\n" + gtext)
-        a = self.requests.post(
-            f"{config.OLLAMA_URL}/api/chat",
-            json={"model": config.LIVE_MODELL, "stream": False, "think": False,
-                  "options": {"temperature": 0.1, "num_predict": 400},
-                  "messages": [{"role": "system", "content": system},
-                               {"role": "user", "content": text}]},
-            timeout=30)
-        a.raise_for_status()
-        t = a.json()["message"]["content"]
-        if "</think>" in t:
-            t = t.split("</think>", 1)[1]
-        t = re.sub(r"[*`]+", "", t).strip().strip('"').strip()
+        t = self._modell_fragen(system, text)
+        # Bekannte Fehlformen (config.FEHLFORMEN): einmal neu, mit
+        # Hinweis; bleibt sie, geht es trotzdem hinaus -- ersetzt wird
+        # nie. Ohne passenden Glossartreffer kostet das nichts.
+        fehl = fehlformen_finden(treffer, t, sprache)
+        if fehl:
+            print(f"        Fehlform {sprache}: "
+                  f"{', '.join(f['gefunden'] for f in fehl)} -- "
+                  f"noch einmal mit Hinweis")
+            hinweis = "".join(
+                f"\n- WICHTIG: „{f['de']}“ heisst „{f['richtig']}“, passend "
+                f"gebeugt"
+                + (f" ({f['formen']})" if f.get("formen") else "")
+                + f". Nicht {f['falsch']} -- {f['grund']}."
+                for f in fehl)
+            t = self._modell_fragen(system + hinweis, text)
+            for f in fehlformen_finden(treffer, t, sprache):
+                print(warnung(f"Fehlform {sprache} blieb nach dem zweiten "
+                              f"Versuch: {f['gefunden']} ({f['glossar']} "
+                              f"{f['de']}). Gesendet wie sie ist."))
         if sprache in getattr(config, "SCHLEIFE_KAPPEN", ()):
             gekappt = schleife_kappen(t)
             if gekappt != t:
@@ -1191,6 +1226,21 @@ class Werk:
                 print(f"        Zaehlung {sprache}: {q} blieb, wie es war "
                       f"-- das Modell hat umformuliert.")
         return t
+
+    def _modell_fragen(self, system, text):
+        """Ein Aufruf des Uebersetzungsmodells, die Antwort bereinigt."""
+        a = self.requests.post(
+            f"{config.OLLAMA_URL}/api/chat",
+            json={"model": config.LIVE_MODELL, "stream": False, "think": False,
+                  "options": {"temperature": 0.1, "num_predict": 400},
+                  "messages": [{"role": "system", "content": system},
+                               {"role": "user", "content": text}]},
+            timeout=30)
+        a.raise_for_status()
+        t = a.json()["message"]["content"]
+        if "</think>" in t:
+            t = t.split("</think>", 1)[1]
+        return re.sub(r"[*`]+", "", t).strip().strip('"').strip()
 
     # ---- Piper ----
     def original_ablegen(self, audio, nummer):

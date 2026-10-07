@@ -66,6 +66,14 @@ nachgereicht.
   Kleinbuchstaben, und Piper ließ jeden Großbuchstaben still weg — bis
   0.4.6 hörte man „аступної“ statt „Наступної“. Für alle ausgelieferten
   Stimmen ändert sich nichts (`sprecherwahl_test.py`).
+  Neu `config.FEHLFORMEN`: Formen, die nicht in der Übersetzung stehen
+  dürfen, wenn ein bestimmter Glossarbegriff im Abschnitt steht. Erster
+  Eintrag: bei „Abendmahl“ keine Вечірня/Вечерня (die Vesper) — so
+  übersetzte gemma4:12b F04 fünfmal von fünf. Trifft die Kontrolle,
+  wird einmal mit Hinweis neu übersetzt; trifft sie wieder, geht der
+  Satz trotzdem hinaus und das Wort ins Journal. Ersetzt wird nie.
+  Ohne den Glossarbegriff kein zusätzlicher Aufruf
+  (`fehlformen_test.py`).
 * **Twi** (Teil B). `NUR_ZIEL`: Whisper kennt Twi nicht. Die Stimme ist
   ein Coqui-Modell, umgewandelt nach ONNX (`werkzeuge/twi_stimme.py`)
   und mit Coqui verglichen: dieselben Zeichennummern, dieselben

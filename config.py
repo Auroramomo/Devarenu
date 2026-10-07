@@ -312,6 +312,48 @@ STELLEN_TRENNER = {
 # und dort soll kein neuer Filter zwischen Modell und Zuhoerer stehen.
 SCHLEIFE_KAPPEN = {"tw"}
 
+# Bekannte Fehlformen (Nachtrag zu 0.5.0): Woerter, die in der
+# Uebersetzung NICHT stehen duerfen, wenn im Abschnitt ein bestimmter
+# Glossarbegriff vorkommt -- obwohl das Glossar die richtige Form
+# vorgibt, nimmt das Modell manchmal die falsche.
+#
+# Trifft die Kontrolle, wird der Abschnitt EINMAL neu uebersetzt, mit
+# einem ausdruecklichen Hinweis im Prompt. Trifft sie wieder, geht die
+# Uebersetzung trotzdem hinaus und die Fehlform ins Journal (nur das
+# Wort, nicht der Satz). Ersetzt wird NIE: ein eingesetztes Wort passt
+# selten in Fall und Satzbau, und ein kaputter Satz ist schlimmer als
+# ein falsches Wort.
+#
+# Kosten im Normalfall: nichts. Geprueft wird nur, wenn der
+# Glossarbegriff im Abschnitt steht (die Glossarsuche laeuft ohnehin),
+# und dann ein regulaerer Ausdruck ueber die Ausgabe.
+#
+# Je Sprache eine Liste:
+#   glossar   Kennung im Glossar; die richtige Form steht dort
+#   fehlform  regulaerer Ausdruck, ohne Gross-/Kleinschreibung,
+#             auf den Wortanfang -- erfasst alle Beugungen
+#   falsch    wie die Fehlform heisst, fuer Hinweis und Journal
+#   grund     warum sie falsch ist, fuer den Hinweis an das Modell
+#   formen    (frei) die richtige Form gebeugt, fuer den Hinweis --
+#             ohne sie trifft das Modell beim zweiten Versuch zwar das
+#             Wort, aber nicht die Endung (F04: "Вечерєю Господнію")
+FEHLFORMEN = {
+    "uk": [
+        # Belegt: pruefung/fallstricke_uk.csv F04, gemma4:12b schrieb
+        # "Перед Вечернею ми відзначаємо обмивання ніг." Вечірня und
+        # Вечерня (alle Faelle: -ня, -ні, -ню, -ньою, -нею) sind die
+        # Vesper, ein Abendgottesdienst. Вечеря Господня trifft der
+        # Ausdruck nicht: "вечер" + я/і/ю/ею, nie "вечерн".
+        {"glossar": "C041",
+         "fehlform": r"\bвеч[еі]рн",
+         "falsch": "Вечірня/Вечерня",
+         "grund": "das heisst Vesper, ein Abendgottesdienst, nicht "
+                  "Abendmahl",
+         "formen": "Вечеря Господня, Вечері Господньої, Вечері Господній, "
+                   "Вечерю Господню, Вечерею Господньою"},
+    ],
+}
+
 # ----------------------------------------------------------------- Anrede
 #
 # Spanisch und Portugiesisch muessen bei jedem "ihr" und jedem "du"
