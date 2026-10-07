@@ -10,7 +10,7 @@ heute davon fehlt.
 Die Antwort auf „ist es fertig?" lautet bis dahin: nein, und hier
 steht warum.
 
-*Stand: 0.4.6, 04.10.2026.*
+*Stand: 0.5.0, 07.10.2026.*
 
 ---
 
@@ -20,9 +20,13 @@ Drei Stufen, und die Einteilung ist der Kern:
 
 | | |
 |---|---|
-| **Blocker** | Ohne das darf kein Gerät an eine zweite Gemeinde. Sieben Punkte. |
+| **Blocker** | Ohne das darf kein Gerät an eine zweite Gemeinde. Sechs Punkte. |
 | **Sollte** | Gehört getan, hält aber nichts auf. Sechs Punkte. |
-| **Nicht mehr auf der Liste** | Erledigt oder als kein Hindernis erkannt. |
+| **Nicht mehr auf der Liste** | Erledigt, entschieden oder als kein Hindernis erkannt. |
+
+Die Nummern bleiben, wie sie waren: B4, B6 und S5 sind mit 0.5.0
+entschieden und stehen jetzt unter *Nicht mehr auf der Liste*; B8 und
+S7 sind neu. Eine Nummer, die wandert, findet niemand wieder.
 
 Je Punkt drei Dinge: **Stand heute**, **was fehlt**, **wie man es
 prüft**. Der dritte ist der wichtigste. Ein Punkt ohne Prüfweg ist
@@ -34,9 +38,24 @@ gemeint war; er belegt nicht, dass es in einem Saal funktioniert.
 
 **Die Blocker hängen zusammen, und zwar in dieser Reihenfolge:** erst
 die Testumgebung (B2), dann ein Update-Weg, der sich darin und im Feld
-bewährt (B1), dann die Lizenz der englischen Stimme (B4). B3, B5,
-B6 und B7 laufen daneben; B7 kostet Zeit, die nicht technisch ist, und
-gehört darum früh angestoßen.
+bewährt (B1), und ganz zum Schluss **ein Monat Testphase** (B8) mit
+genau der Fassung, die 1.0 werden soll. B3, B5 und B7 laufen daneben;
+B7 kostet Zeit, die nicht technisch ist, und gehört darum früh
+angestoßen.
+
+### Was nur Menschen erledigen können
+
+Kein Code bringt diese Punkte weiter. Sie stehen hier zusammen, damit
+sie nicht zwischen den technischen untergehen:
+
+| | Punkt |
+|---|---|
+| **Stick-Updates auf echter Hardware** — drei hintereinander, ohne Eingriff, dazu der Rückweg | B1 |
+| **Erstinstallation durch Fremde** — jemand, der das Projekt nicht kennt | B5 |
+| **Schlüssel sichern und eine zweite Person** | B3, S6 |
+| **Kaltstart** — Stecker ziehen, Stecker rein, nichts anfassen | S3 |
+| **iPhones** — Verbinden und Bildschirm anlassen | S4 |
+| **Gespräch mit dem Datenschutzbeauftragten** — Freigabe des Entwurfs | B7 |
 
 ---
 
@@ -197,9 +216,16 @@ Sicherung eine Behauptung.
 
 ---
 
-## B4. Die Lizenz der englischen Stimme
+## B4. Die Lizenz der englischen Stimme — entschieden mit 0.5.0
 
-**Stand:** `en_US-lessac-medium` ist auf den Blizzard-2013-Daten von
+> **Entschieden: `en_US-lessac-medium` bleibt.** Das Risiko aus der
+> Lizenz des Datensatzes („nur Forschung“) wird **bewusst getragen**.
+> Damit ist B4 kein Blocker mehr; die Begründung, die der Prüfweg
+> unten verlangt, ist diese Entscheidung. Was folgt, ist die
+> Vorgeschichte und bleibt stehen, damit niemand die Frage ein zweites
+> Mal von vorn aufrollt.
+
+**Stand bis 0.4.6:** `en_US-lessac-medium` ist auf den Blizzard-2013-Daten von
 Lessac Technologies / Voice Factory trainiert. Deren Lizenz gewährt
 die Nutzung **„exclusively for Research Purposes only"**, nicht
 übertragbar, ohne Recht zur Unterlizenzierung
@@ -277,12 +303,25 @@ abarbeiten, ohne einen Rechner zu plätten.
 
 ---
 
-## B6. Die übrigen Lizenzen der Bausteine
+## B6. Die übrigen Lizenzen der Bausteine — entschieden mit 0.5.0
 
-Die englische Stimme steht als **B4** für sich. Hier geht es um den
-Rest.
+> **Entschieden:** `ru_RU-irina-medium` (keine Lizenz genannt) bleibt,
+> das Risiko wird **bewusst getragen** — wie bei Englisch (B4).
+> **Serbisch, Türkisch und Suaheli bleiben** unverändert. Damit hat
+> jede ausgelieferte Stimme in `LIZENZEN.md` eine Lizenz oder eine
+> getroffene Entscheidung, und B6 ist kein Blocker mehr.
+>
+> **Neu mit 0.5.0**, alle drei mit Lizenz:
+>
+> | Sprache | Stimme | Lizenz |
+> |---|---|---|
+> | Ukrainisch | `uk_UA-mykyta-high` | Apache 2.0 (Datensatz); Trainingsweg laut Modellkarte nicht angegeben |
+> | Twi (Asante) | `tw_GH-openbible_asante-vits` | CC BY-SA 4.0 — Umwandlung eines Coqui-Modells, ebenfalls CC BY-SA 4.0 |
+> | Arabisch | `ar_miro_espeak_V2` | CC BY-NC-ND 4.0 — nichtkommerziell, unverändert ausgeliefert |
+>
+> Was bleibt, steht unten unter *Von Hand in Rostock*.
 
-**Stand:** Seit 0.4.0 erhoben. `werkzeuge/stimmlizenzen.py` liest die
+**Stand bis 0.4.6:** Seit 0.4.0 erhoben. `werkzeuge/stimmlizenzen.py` liest die
 Modellkarte jeder ausgelieferten Piper-Stimme — seit 0.4.5 sind es
 19, vorher 21; die Tabelle
 steht in [LIZENZEN.md](LIZENZEN.md), dazu Whisper, Gemma, Ollama und
@@ -316,19 +355,13 @@ werden **von Hand gelöscht, sobald 0.4.6 dort läuft**: je `.onnx` und
 `voices/`, zusammen rund 126 MB. Erst nach 0.4.6, weil ein Rückfall
 auf eine ältere Fassung sie sonst vermisste.
 
-**Versuch: eine arabische Stimme mit Lizenz.** Im Gespräch ist
-OpenVoiceOS *Miro V2* bzw. *Dii*. Was davon bekannt ist, und was nicht:
-
-* Lizenz **CC BY-NC-ND 4.0** — nichtkommerziell und **ohne
-  Bearbeitungen**. Ob eine Gemeinde, die Devarenu weitergibt, darunter
-  fällt, ist dieselbe Frage wie bei Serbisch und Türkisch; „ohne
-  Bearbeitungen" kommt dazu.
-* Das Format ist **phoonnx**, nicht Piper. **Ob Piper sie überhaupt
-  laden kann, ist ungeprüft.**
-* Ob sie gut klingt, sagt nur jemand, der **Arabisch spricht**. Ohne
-  diese Hörprobe wird nichts eingebaut.
-
-Bis dahin läuft Arabisch als reiner Untertitel.
+**Versuch: eine arabische Stimme mit Lizenz — mit 0.5.0 erledigt.**
+OpenVoiceOS *Miro V2* ist eingebaut. Piper lädt die Datei
+**unverändert**; gebraucht wird nur eine Beschreibung im Piper-Format.
+Text ohne Vokalzeichen setzt Pipers eingebaute Diakritisierung um —
+mit Whisper als Hörer an zwölf Sätzen im Mittel 0,98 Übereinstimmung
+(die alte `kareem` 0,975). Ob sie **gut** klingt, sagt weiterhin nur
+jemand, der Arabisch spricht; Arabisch bleibt ungeprüft.
 
 Dazu ein Satz zu Gemma in der Übergabe an eine Gemeinde: sie nimmt
 die Bedingungen entgegen, nicht das Projekt.
@@ -352,17 +385,28 @@ verlässt.
 | Fehlerbericht | Erlaubnisliste plus Riegel, mit erfundenen Daten geprüft |
 | Pult | freiwilliges Passwort, Vorgabe offen |
 
-Das **Verzeichnis der Verarbeitungstätigkeiten** steht seit 0.3.6 in
-[DATENSCHUTZ.md](DATENSCHUTZ.md) — elf Verarbeitungen, je mit Zweck,
-Daten, Empfänger, Speicherdauer, Schalter und Vorgabe. Darüber ein
-Textbaustein, den eine Gemeinde übernehmen kann.
+**Seit 0.5.0 liegt alles als Entwurf vor**, sichtbar so gekennzeichnet
+(„Entwurf, vor Freigabe durch den Datenschutzbeauftragten“):
+
+- [DATENSCHUTZ.md](DATENSCHUTZ.md): ein **neutrales Verzeichnis** der
+  Verarbeitungstätigkeiten (zwölf Punkte), dazu je ein Abschnitt zum
+  **Rechtsrahmen** — Adventgemeinden nach der DSVO 2018 (§ 53 als
+  Rechtsgrundlage, § 31 Verzeichnis, § 28 Voreinstellungen), andere
+  Träger nach DSGVO (Art. 6 Abs. 1 lit. f, noch zu bestätigen). Die
+  Frage „welches Recht gilt“ ist damit durch die Aufteilung beantwortet.
+- Die **Information der Teilnehmenden** in zwei Stufen: kurz auf jedem
+  Handy unter *Mehr* → *Datenschutz* und auf dem **Aushang** am
+  Eingang, ausführlich unter `/datenschutz` vom Gerät selbst.
+- Ein **Blatt für Gastprediger**.
 
 **Was fehlt — und nichts davon ist technisch:**
 
-- **Ob kirchliches Datenschutzrecht gilt** und welche Stelle zuständig
-  ist. Das hängt an der Rechtsform.
+- **Das Gespräch mit dem Datenschutzbeauftragten** und seine Freigabe.
 - Das Verzeichnis ist geschrieben, aber **von keiner Gemeindeleitung
   abgenommen**.
+- Das **Testprotokoll** ist auf den Handys nicht sichtbar, die
+  Aufnahme schon — zu entscheiden, ob es das sein muss (siehe „Was
+  offen ist“ in DATENSCHUTZ.md).
 - Das Pult ist per Vorgabe **offen im Saalnetz**. Für eine fremde
   Gemeinde ist das eine bewusste Entscheidung, die jemand treffen
   muss — nicht eine, die sie erbt.
@@ -388,16 +432,49 @@ nichts.
 
 ---
 
+## B8. Ein Monat Testphase vor 1.0 — neu mit 0.5.0
+
+**Stand:** Noch nicht begonnen.
+
+**Was fehlt:** Bevor eine Fassung 1.0 heißt, läuft **genau diese
+Fassung** einen Monat lang im Gemeindebetrieb, ohne dass dazwischen
+etwas eingespielt wird außer Fehlerbehebungen. Ein Monat heißt
+mindestens vier Gottesdienste.
+
+**Wie man es prüft:** Am Ende des Monats liegen vor: die Zahl der
+Gottesdienste, die Fehlerberichte des Monats (`ergebnisse/berichte/`),
+die Rückmeldungen „verständlich / schwer verständlich“ je Sprache und
+ein Satz der Technik vor Ort. Jede Fehlerbehebung in dieser Zeit
+startet den Monat **nicht** neu, steht aber in der Liste — eine, die
+etwas am Ablauf ändert, schon.
+
+---
+
 # Sollte
 
 Gehört getan, hält aber kein Gerät auf.
 
 ## S1. Freigegebene Sprachen
 
-**Stand:** **Sechs** von einundzwanzig sind von Muttersprachlern
-gegengelesen: Deutsch, Englisch, Russisch, Persisch und seit 0.4.0
-Spanisch und Portugiesisch. Polnisch liegt vorbereitet. Alles andere
-läuft maschinell und ist am Pult als *experimentell* gekennzeichnet.
+**Stand:** **Sieben** von zweiundzwanzig sind von Muttersprachlern
+gegengelesen: Deutsch, Englisch, Russisch, Persisch, seit 0.4.0
+Spanisch und Portugiesisch, und seit 0.5.0 **Ukrainisch** — fest
+aufgenommen, mit der Stimme `mykyta` und der Bibelzählung von Ohienko.
+Polnisch liegt vorbereitet. Alles andere läuft maschinell und ist am
+Pult als *experimentell* gekennzeichnet; der Hinweis auf dem Handy steht
+seit 0.5.0 in der Sprache selbst und bittet um Mithilfe.
+
+**Twi (Asante) und Arabisch** laufen seit 0.5.0 **ungeprüft mit
+Stimme**. Bei Twi ist das mehr als ein Etikett: gemma4:12b schreibt
+Twi gemessen schlecht (Wiederholungsschleifen, falsche Begriffe), und
+Twi hat kein Fachwortverzeichnis. Einschalten erst nach einer Hörprobe
+mit jemandem, der Twi spricht.
+
+**Bei Ukrainisch zu bestätigen:** 30 maschinelle Glossarbegriffe sind
+aus Ohienko berichtigt, nicht vom Prüfer gesehen
+(`werkzeuge/glossar_rueck_uk.py`), und `mykyta` braucht mit
+Längenfaktor 1,51 fast das zulässige Höchsttempo. Beides gehört vor
+den nächsten Rücklauf.
 
 Seit 0.4.0 ist das Glossar auch **aktiv** (`glossar_v0.9.csv`) — bis
 0.3.8 zeigte `config.GLOSSAR_CSV` über vier Arbeitsstände hinweg auf
@@ -532,9 +609,14 @@ Entscheidung: gelöst, oder erklärt und dokumentiert.
 
 ---
 
-## S5. Die russische Stimme
+## S5. Die russische Stimme — entschieden mit 0.5.0
 
-**Stand:** `ru_RU-irina-medium` nennt **gar keine Lizenz** — die
+> **Entschieden: `ru_RU-irina-medium` bleibt**, das Lizenzrisiko wird
+> bewusst getragen — wie bei Englisch (B4). Eine Hörprobe mit den
+> Kandidaten unten kann trotzdem jederzeit stattfinden; sie wäre dann
+> eine Frage des Klangs und des Tempos, nicht mehr der Lizenz.
+
+**Stand bis 0.4.6:** `ru_RU-irina-medium` nennt **gar keine Lizenz** — die
 Modellkarte sagt „Unknown", und das RHVoice-Repository `irina-rus`
 führt keine Lizenzdatei. Ohne Lizenz gibt es keine ausdrückliche
 Erlaubnis.
@@ -592,8 +674,9 @@ Fremde.
 - **Eine zweite Person**, die ein Update signieren und einspielen
   kann — das ist dasselbe wie B3, von der anderen Seite.
 - **Jemand, der das Glossar pflegen kann.** Die Entscheidungen zu
-  Spanisch und Portugiesisch stehen mit Begründung im Quelltext
-  (`werkzeuge/glossar_rueck_es_pt.py`); ob das reicht, hat niemand
+  Spanisch, Portugiesisch und Ukrainisch stehen mit Begründung im
+  Quelltext (`werkzeuge/glossar_rueck_es_pt.py`,
+  `werkzeuge/glossar_rueck_uk.py`); ob das reicht, hat niemand
   ausprobiert.
 - Die **Betreuer-Stelle** ist eine Adresse, keine Vertretung.
 
@@ -603,7 +686,41 @@ war. Erst dann ist der Faktor zwei.
 
 ---
 
+## S7. Die Lizenz des Codes: AGPL vorbereitet — neu mit 0.5.0
+
+**Stand:** Der Code steht unter **GPLv3**. Seit 0.5.0 gilt dazu eine
+**zusätzliche Bedingung nach § 7**: veränderte Fassungen dürfen nicht
+unter dem Namen Devarenu weitergegeben werden (`COPYING.ZUSATZ`). Bis
+0.4.6 war das nur eine Bitte.
+
+Der Wechsel auf die **AGPL-3.0** ist **vorbereitet, aber nicht
+aktiviert**: Lizenztext, fertiger Patch, Verträglichkeitsprüfung aller
+Abhängigkeiten und eine Anleitung liegen am Entwicklungsrechner, nicht
+im Repo. Er wartet auf die **Antwort des Justitiars**.
+
+**Was fehlt:** Die Antwort. Danach entweder der Wechsel mit einem
+Befehl, oder die Unterlagen werden verworfen.
+
+**Wie man es prüft:** Entweder steht in `COPYING` die AGPL und auf der
+Hörerseite ein Weg zum Quelltext (§ 13 AGPL), oder in diesem Abschnitt
+steht, warum es bei der GPL bleibt.
+
+---
+
 # Nicht mehr auf der Liste
+
+**B4, B6 und S5 — die Lizenzen der Stimmen** — mit 0.5.0 entschieden:
+`lessac` (Englisch) und `irina` (Russisch) bleiben, das Risiko ist
+bewusst getragen; Serbisch, Türkisch und Suaheli bleiben unverändert;
+Ukrainisch, Twi und Arabisch sind mit Lizenz dazugekommen. Die
+Abschnitte stehen oben weiter, mit der Entscheidung obenan und der
+Vorgeschichte darunter.
+
+**Ukrainisch als geprüfte Sprache** — seit 0.5.0 (S1).
+
+**Welches Datenschutzrecht gilt** — durch die Aufteilung in
+DATENSCHUTZ.md beantwortet: Adventgemeinden nach DSVO, andere Träger
+nach DSGVO. Offen bleibt die Freigabe (B7).
 
 **RustDesk unter Wayland** — **kein Blocker mehr.** Das
 Bildschirmteilen über `xdg-desktop-portal` fragt unter KDE bei jeder
@@ -638,7 +755,7 @@ Zeichen für Zeichen dasselbe bekommen.
 
 Keine Funktionswünsche. 1.0 heißt nicht „kann mehr", sondern
 **„lässt sich jemand anderem in die Hand geben"**. Alles, was diese
-Liste verlängert, ohne einen der sieben Blocker zu schließen, gehört
+Liste verlängert, ohne einen der sechs Blocker zu schließen, gehört
 in eine spätere Fassung.
 
 ---
