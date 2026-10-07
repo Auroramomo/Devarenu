@@ -320,15 +320,41 @@ def _hinweis(kennung, was, tun, was_en, tun_en):
             "was_en": was_en, "tun_en": tun_en}
 
 
+_entwicklung = None
+
+
+def _ist_entwicklung():
+    """Ist dies der Entwicklungsrechner? Einmal je Prozess gefragt.
+
+    entwicklung.py sieht dafuer nach Marke UND privatem Schluessel und
+    fragt dabei womoeglich git -- zu teuer fuer jeden Abruf des Pults,
+    und die Antwort aendert sich waehrend eines Laufs nicht."""
+    global _entwicklung
+    if _entwicklung is None:
+        try:
+            import entwicklung
+            _entwicklung = entwicklung.ist_entwicklungsrechner()
+        except Exception:
+            _entwicklung = False
+    return _entwicklung
+
+
 def hinweise(frisch=False):
     """Die Hinweise zur Grafikkarte, als Liste.
 
     frisch=True fragt ollama jetzt (Systemcheck beim Start); sonst gilt
     die letzte Messung der laufenden Grafikwacht -- billig genug fuer
-    jeden Abruf des Pults."""
+    jeden Abruf des Pults.
+
+    Der Hinweis "zu 90 Prozent belegt" faellt auf dem ENTWICKLUNGSRECHNER
+    weg (0.5.0): dort liegen neben Devarenu weitere Modelle und Programme
+    auf derselben Karte, und der Hinweis stand dort jeden Tag -- ein
+    Hinweis, der immer da ist, wird nicht mehr gelesen. Auf einem
+    Gemeinderechner bleibt er, wie er war. Der Hinweis zu mehreren
+    geladenen Modellen bleibt ueberall."""
     aus = []
     d = heute()
-    if d and d["speicher_gesamt_mb"]:
+    if d and d["speicher_gesamt_mb"] and not _ist_entwicklung():
         anteil = d["speicher_hoechst_mb"] / d["speicher_gesamt_mb"]
         if anteil >= SCHWELLE:
             p = round(100 * anteil)

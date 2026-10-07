@@ -1511,6 +1511,17 @@ class Lauf:
         self.toene = {}                    # (sprache, nummer) -> Path
         self.warteschlange = queue.Queue()
         self.letzte = deque(maxlen=30)
+        # Die letzten Abschnitte JE SPRACHE, als Text, ohne Ton (0.5.0).
+        # Wer nach einem Funkaussetzer wieder verbindet, bekommt daraus
+        # nachgereicht, was er verpasst hat. self.letzte traegt nur den
+        # erkannten Satz der Ausgangssprache, nicht die Uebersetzungen.
+        # Gleiche Laenge wie dort: was der Server ohnehin vorhaelt.
+        self.verpasst = defaultdict(lambda: deque(maxlen=30))
+        # Kennung dieses Laufs. Die Abschnittsnummern beginnen nach einem
+        # Neustart (oder "Zuruecksetzen") wieder bei 1; ein Handy, das
+        # noch "zuletzt Nr. 212" kennt, wuerde sonst alles Neue fuer
+        # Doppel halten. Mit der Kennung weiss es, dass neu gezaehlt wird.
+        self.lauf_kennung = f"{time.time():.3f}"
         self.latenzen = []
         # Eigene Zeitbasis fuer den Dateimodus. self.begonnen zaehlt ab dem
         # Druck aufs Pult, die Datei startet aber erst nach dem Dekodieren,
@@ -1586,11 +1597,35 @@ class Lauf:
                         if config.MESSUNG else None)
 
     # ---- Zuhoerer ----
-    async def anmelden(self, ws, sprache):
+    async def anmelden(self, ws, sprache, seit=None, lauf=None):
+        """Ein Handy kommt dazu -- neu oder nach einem Abbruch wieder.
+
+        Mit dem Zustand geht die FASSUNG mit (0.5.0): weicht sie von der
+        Seite ab, die das Handy geladen hat, laedt die Seite sich einmal
+        neu. Und die Laufkennung, damit das Handy weiss, ob seine
+        Abschnittsnummern noch gelten.
+
+        seit/lauf: was das Handy zuletzt bekommen hat. Stimmt der Lauf,
+        gehen die Abschnitte danach als Text hinterher -- ohne Ton: der
+        waere laengst vorbei und kaeme nur noch als Stau."""
         self.hoerer[sprache].add(ws)
         await self._senden(ws, {"typ": "zustand", "live": self.laeuft,
                                 "gesendet": self.n,
-                                "aufnahme": self.mitschnitt.laeuft})
+                                "aufnahme": self.mitschnitt.laeuft,
+                                "fassung": config.VERSION,
+                                "lauf": self.lauf_kennung})
+        if seit is None or lauf != self.lauf_kennung:
+            return
+        for e in list(self.verpasst[sprache]):
+            if e["id"] > seit:
+                await self._senden(ws, dict(e, typ="segment",
+                                            nachgereicht=True))
+
+    def nachholbar(self, sprache, nummer, text, dauer):
+        """Merkt einen gesendeten Abschnitt fuer das Nachreichen vor."""
+        self.verpasst[sprache].append({"id": nummer, "text": text,
+                                       "absatz_ende": False,
+                                       "dauer": dauer})
 
     def abmelden(self, ws, sprache):
         self.hoerer[sprache].discard(ws)
@@ -1668,6 +1703,9 @@ class Lauf:
         self.n = 0
         self.begonnen = None
         self.letzte.clear()
+        self.verpasst.clear()
+        # Die Nummern beginnen von vorn -- also ein neuer Lauf.
+        self.lauf_kennung = f"{time.time():.3f}"
         self.werk.verlauf.clear()
 
     # ---- Verarbeitung ----
@@ -1849,6 +1887,8 @@ class Lauf:
                 self.toene[(e["sprache"], nummer)] = e["datei"]
                 nachricht["audio"] = f"/ton/{e['sprache']}/{nummer}"
             await self._streuen(e["sprache"], nachricht)
+            self.nachholbar(e["sprache"], nummer, e["text"],
+                            nachricht["dauer"])
             if self.messung:
                 m = self.messung
                 m.segment(
@@ -4122,7 +4162,13 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         if not client.exists():
             return HTMLResponse(f"<h1>client.html fehlt</h1><p>{client}</p>",
                                 status_code=500)
-        return datei_ausliefern(request, client, "text/html; charset=utf-8")
+        # Die Seite traegt ihre Fassung in sich (0.5.0). Meldet der Server
+        # spaeter eine andere -- nach einem Update mit Neustart --, laedt
+        # sie sich einmal selbst neu. Ersetzt wird hier und nicht in der
+        # Datei: dann kann die Fassung nie neben VERSION herlaufen.
+        seite = client.read_text(encoding="utf-8").replace(
+            "<!--FASSUNG-->", config.VERSION, 1)
+        return ausliefern(request, seite, "text/html; charset=utf-8")
 
     @app.get("/spende.svg")
     def spende_qr():
@@ -4212,7 +4258,13 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         await ws.accept()
         if ws.client is not None:
             netzpruefung.beobachten(ws.client.host)
-        await lauf.anmelden(ws, sprache)
+        # Nach einem Abbruch sagt das Handy, was es zuletzt hatte.
+        try:
+            seit = int(ws.query_params.get("seit", ""))
+        except ValueError:
+            seit = None
+        await lauf.anmelden(ws, sprache, seit,
+                            ws.query_params.get("lauf", "") or None)
         try:
             while True:
                 await ws.receive_text()
@@ -4533,6 +4585,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                                           quelle=lauf.quelle))
         spende = getattr(config, "SPENDE", {}) or {}
         return {
+            # Die Fassung des Servers. Die Seite vergleicht sie schon
+            # beim Laden mit ihrer eigenen (G1, 0.5.0).
+            "fassung": config.VERSION,
             "rueckmeldung": getattr(config, "RUECKMELDUNG_MAIL", ""),
             # Stellt dieser Rechner das Netz selbst? Dann hat das WLAN
             # kein Internet, und die Seite sagt, dass die mobilen Daten

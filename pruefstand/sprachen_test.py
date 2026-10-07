@@ -102,6 +102,14 @@ try:
     pruefe("Twi ist als Ziel dabei", ["en", "tw"], d["ziele"])
     eintrag = next(x for x in d["liste"] if x["code"] == "tw")
     pruefe("und heisst dort Twi (Asante)", "Twi (Asante)", eintrag["name"])
+
+    titel("4) Die ausgelieferte Seite traegt die Fassung (G1)")
+    code, seite = rufen(PORT, "/")
+    pruefe("die Hoererseite kommt", 200, code)
+    pruefe("mit eingesetzter Fassung", True,
+           f'const SEITENFASSUNG = "{config.VERSION}";' in seite)
+    pruefe("kein Platzhalter mehr", False, "<!--FASSUNG-->" in seite)
+    pruefe("/api/sprachen nennt dieselbe", config.VERSION, d.get("fassung"))
 finally:
     server_stoppen(p)
 

@@ -863,6 +863,9 @@ async function sprachenHolen(){
   try{
     const antwort = await fetch("/api/sprachen");
     const daten = await antwort.json();
+    // Eine alte Seite nach einem Update: gleich hier neu laden, bevor
+    // jemand eine Sprache gewählt hat.
+    if(Fassung.pruefen(daten.fassung) === "neu_laden") return;
     const neu = {};
     for(const eintrag of daten.liste){
       const e = EIGENNAME[eintrag.code] || {
@@ -1723,11 +1726,63 @@ async function tonFreischalten(){
    Im Gottesdienst reicht ein kurzer Funkaussetzer, damit das
    Handy einmal abfliegt, und niemand tippt dann auf "neu laden".
    ============================================================ */
+/* ============================================================
+   Fassung (0.5.0)
+   ------------------------------------------------------------
+   Der Server setzt beim Ausliefern seine Fassung in SEITENFASSUNG ein.
+   Meldet er später eine andere -- beim Laden über /api/sprachen oder
+   nach einem Neustart beim Wiederverbinden --, ist diese Seite alt,
+   und sie lädt sich EINMAL selbst neu.
+
+   Gegen eine Endlosschleife: das Neuladen hängt "fassung=<neu>" an die
+   Adresse. Steht genau diese Fassung schon dort und passt die Seite
+   trotzdem nicht -- ein Zwischenspeicher irgendwo dazwischen --, wird
+   nicht noch einmal geladen. Ohne Speicher im Browser, also auch im
+   privaten Modus. Die gewählte Sprache geht als "sprache=" mit und wird
+   nach dem Laden vorgewählt; "Zuhören" muss trotzdem neu getippt
+   werden -- ohne Berührung spielt kein Browser Ton.
+   ============================================================ */
+const SEITENFASSUNG = "<!--FASSUNG-->";
+const Fassung = {
+  pruefen(server){
+    // Nicht vom Server ausgeliefert (Datei, Prüfstand): nichts tun.
+    if(!server || SEITENFASSUNG.startsWith("<!--")) return "unbekannt";
+    const p = new URLSearchParams(location.search);
+    if(server === SEITENFASSUNG){
+      if(p.has("fassung")){
+        // Angekommen. Den Marker aus der Adresse nehmen, damit ein
+        // Lesezeichen sauber bleibt. "sprache=" bleibt noch -- die
+        // Vorwahl liest sie danach und räumt sie selbst weg.
+        p.delete("fassung");
+        const rest = p.toString();
+        try{ history.replaceState(null, "", location.pathname
+                                  + (rest ? "?" + rest : "") + location.hash); }
+        catch(e){}
+      }
+      return "gleich";
+    }
+    if(p.get("fassung") === server){
+      Versuch.merken(`Fassung ${SEITENFASSUNG}, Server ${server}`,
+                     "schon einmal neu geladen, nicht noch einmal");
+      return "schon_versucht";
+    }
+    p.set("fassung", server);
+    if(zustand.sprache) p.set("sprache", zustand.sprache);
+    location.replace(location.pathname + "?" + p.toString() + location.hash);
+    return "neu_laden";
+  },
+};
+
 const Verbindung = {
   draht: null,
   gewollt: false,
   versuche: 0,
   _uhr: null,
+  // Was zuletzt ankam (G2, 0.5.0). Beim Wiederverbinden geht es mit,
+  // und der Server reicht nach, was dazwischen lag -- als Text.
+  sprache: null,
+  letzteId: -1,
+  lauf: null,
 
   // Einen Draht endgueltig loswerden. close() allein genuegt NICHT:
   // es stoesst nur den Abschied an, und was der Browser schon
@@ -1750,9 +1805,17 @@ const Verbindung = {
     // doppelt.
     this._wegwerfen();
     zustandZeigen("verbinde");
+    if(sprache !== this.sprache){
+      // Eine andere Sprache hat andere Abschnitte; nichts nachzuholen.
+      this.sprache = sprache;
+      this.letzteId = -1;
+      this.lauf = null;
+    }
 
     const schema = location.protocol === "https:" ? "wss" : "ws";
-    const ziel = `${schema}://${location.host}/strom?sprache=${sprache}`;
+    let ziel = `${schema}://${location.host}/strom?sprache=${sprache}`;
+    if(this.letzteId >= 0 && this.lauf)
+      ziel += `&seit=${this.letzteId}&lauf=${encodeURIComponent(this.lauf)}`;
 
     try{ this.draht = new WebSocket(ziel); }
     catch(e){ this._spaeter(sprache); return; }
@@ -1767,9 +1830,23 @@ const Verbindung = {
       try{ d = JSON.parse(n.data); }catch(e){ return; }
 
       if(d.typ === "segment"){
+        // Keine Doppel: was schon da war, kommt nicht noch einmal in den
+        // Strom -- auch nicht, wenn der Server es nachreicht.
+        if(typeof d.id === "number"){
+          if(d.id <= this.letzteId) return;
+          this.letzteId = d.id;
+        }
         haeppchenAufnehmen(d);
-        if(d.audio) Ton.einreihen(d.audio, d.id);
+        // Nachgereichtes hat keinen Ton; was jetzt kommt, schon.
+        if(d.audio && !d.nachgereicht) Ton.einreihen(d.audio, d.id);
       }else if(d.typ === "zustand"){
+        // Neuer Lauf (Serverneustart, "Zurücksetzen"): die Nummern
+        // beginnen von vorn, die alten gelten nicht mehr.
+        if(d.lauf && d.lauf !== this.lauf){
+          this.lauf = d.lauf;
+          this.letzteId = -1;
+        }
+        if(d.fassung && Fassung.pruefen(d.fassung) === "neu_laden") return;
         zustandZeigen(d.live ? "live" : "pause");
         if(d.aufnahme !== undefined) aufnahmeHinweis(d.aufnahme);
       }
@@ -1793,6 +1870,11 @@ const Verbindung = {
     this.gewollt = false;
     clearTimeout(this._uhr);
     this._wegwerfen();
+    // Gewollt getrennt (Zurück, Sprachwechsel): der Verlauf wird
+    // ohnehin geleert, also auch nichts nachzuholen.
+    this.sprache = null;
+    this.letzteId = -1;
+    this.lauf = null;
     abschnittSchliessen();
     zustandZeigen("getrennt");
   },
@@ -2121,7 +2203,12 @@ function tonSchalten(an){
 
 /* ---------- Bildschirm 1 ---------- */
 function startauswahlBauen(){
-  sprachkachelnBauen($("sprachwahl"), (code) => {
+  sprachkachelnBauen($("sprachwahl"), startWaehlen);
+}
+
+/* Eine Sprache auf der Startseite wählen -- per Tipp oder, nach dem
+   Selbst-Neuladen (Fassung), aus der Adresse. */
+function startWaehlen(code){
     zustand.sprache = code;
     kachelnMarkieren($("sprachwahl"));
     // Für Sprachen ohne eigene Oberflächentexte auf Englisch zurückfallen,
@@ -2152,7 +2239,6 @@ function startauswahlBauen(){
       band.lang = HINWEIS_UNGEPRUEFT[code] ? code : "en";
       band.dir = "auto";
     }
-  });
 }
 Versuch.starten();
 startauswahlBauen();
@@ -2161,6 +2247,16 @@ startauswahlBauen();
 // da ist, steht der Vorrat; danach wird die Auswahl neu aufgebaut.
 sprachenHolen().then(() => {
   if(!zustand.sprache) startauswahlBauen();
+  // Nach dem Selbst-Neuladen: die Sprache von vorher vorwählen.
+  const p = new URLSearchParams(location.search);
+  const vorher = p.get("sprache");
+  if(!vorher) return;
+  if(SPRACHEN[vorher] && !zustand.sprache) startWaehlen(vorher);
+  p.delete("sprache");
+  const rest = p.toString();
+  try{ history.replaceState(null, "", location.pathname
+                            + (rest ? "?" + rest : "") + location.hash); }
+  catch(e){}
 });
 
 $("starten").addEventListener("click", async () => {

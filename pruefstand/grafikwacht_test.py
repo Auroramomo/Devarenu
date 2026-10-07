@@ -160,6 +160,9 @@ pruefe("server.py zaehlt len(lauf.ziele), ohne + 1", True,
        and "len(lauf.ziele) + 1" not in server_quelle)
 
 print("\n11. Hinweis ab 90 Prozent Tagesspitze")
+# Ausdruecklich KEIN Entwicklungsrechner -- der Pruefstand laeuft genau
+# auf einem, und dort faellt der Hinweis seit 0.5.0 weg (Abschnitt 14).
+grafikwacht._entwicklung = False
 for belegt, erwartet in ((14000, False), (14672, False), (14673, True),
                          (16000, True)):
     grafikwacht._tage.clear()
@@ -226,6 +229,23 @@ pruefe("der Server mischt sie in /api/zustand", True,
        '"befunde": befunde_mit_grafik()' in server_quelle)
 pruefe("die Stoerungsansicht zeigt den Laien-Satz", True,
        "b.laie ?" in server_quelle)
+
+print("\n14. Auf dem Entwicklungsrechner kein 90-Prozent-Hinweis (0.5.0)")
+grafikwacht._tage.clear()
+grafikwacht.DATEI.unlink()
+stellen(smi="15500, 16303, 5\n", ps=zwei)
+grafikwacht.einmal(3)
+grafikwacht._entwicklung = True
+pruefe("Entwicklungsrechner: nur der Modell-Hinweis", ["grafik_modelle"],
+       sorted(h["kennung"] for h in grafikwacht.hinweise()))
+grafikwacht._entwicklung = False
+pruefe("Gemeinderechner: beide", ["grafik_modelle", "grafik_voll"],
+       sorted(h["kennung"] for h in grafikwacht.hinweise()))
+# Die Erkennung selbst ist die aus entwicklung.py -- Marke UND Schluessel.
+grafikwacht._entwicklung = None
+import entwicklung  # noqa: E402
+pruefe("gefragt wird entwicklung.ist_entwicklungsrechner()",
+       entwicklung.ist_entwicklungsrechner(), grafikwacht._ist_entwicklung())
 
 grafikwacht._lauf = echt
 if fehler:
