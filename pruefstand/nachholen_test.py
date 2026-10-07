@@ -58,6 +58,9 @@ def lauf_bauen():
     L.laeuft = True
     L.n = 0
     L.mitschnitt = Mitschnitt()
+    # Seit dem Nachtrag zu 0.5.0 meldet anmelden() auch das
+    # Testprotokoll (Feld "mitschrift").
+    L.pruefprotokoll = Mitschnitt()
     L.verpasst = defaultdict(lambda: deque(maxlen=30))
     L.lauf_kennung = "L1"
     return L

@@ -125,7 +125,7 @@ einmal gegen die Muster der Segmentzeilen prüft.
 | **Daten** | Je Abschnitt: erkannter Text, jede Übersetzung, Dauer der Schritte — **der Predigttext im Wortlaut**, nichts über Zuhörer |
 | **Empfänger** | Niemand. Abrufbar nur am Gerät selbst |
 | **Speicherdauer** | Sieben Tage |
-| **Schalter** | Am Pult, nur am Gerät selbst, mit Einwilligung der sprechenden Person. Vorgabe **aus**, endet beim Neustart. **Auf den Handys nicht angezeigt** — siehe „Was offen ist“ |
+| **Schalter** | Am Pult, nur am Gerät selbst, mit Einwilligung der sprechenden Person. Vorgabe **aus**, endet beim Neustart. Solange es läuft, steht es auf jedem Handy und am Pult unter *Gottesdienst* |
 
 ### 10. Mitschrift im Journal
 
@@ -135,7 +135,7 @@ einmal gegen die Muster der Segmentzeilen prüft.
 | **Daten** | Der erkannte Satz, auf etwa 60 Zeichen gekürzt |
 | **Empfänger** | Niemand; Zeilen unter der Warnstufe gehen nicht in den Fehlerbericht |
 | **Speicherdauer** | Solange das Journal hält (rund vier Wochen) |
-| **Schalter** | Am Pult. Vorgabe **aus**. Solange er an ist, meldet der Systemcheck ihn |
+| **Schalter** | Am Pult. Vorgabe **aus**. Solange er an ist, meldet der Systemcheck ihn, und es steht auf jedem Handy und am Pult unter *Gottesdienst*. Keine eigene Einwilligungsabfrage — siehe „Was offen ist“ |
 
 ### 11. Meldungen über das Wartungsfenster
 
@@ -231,8 +231,11 @@ Stufe 1 sagt: der Gottesdienst wird live übersetzt; ein Rechner im
 Saal erkennt die Sprache am Mikrofon, übersetzt und schickt Text und
 Ton über das Saal-WLAN aufs Handy; alles bleibt auf diesem Rechner,
 keine Cloud, kein Konto, keine App; gespeichert wird nichts, außer die
-Gemeinde schaltet eine Aufnahme der Predigt ein — das ist dann auf dem
-Handy sichtbar; das Handy bekommt eine Adresse, die beim Ausschalten
+Gemeinde schaltet eine Aufnahme, ein Protokoll oder eine Mitschrift der
+Predigt ein — das ist dann auf dem Handy sichtbar (Punkte 8 bis 10:
+Tonaufnahme, Testprotokoll, Mitschrift im Journal; seit dem Nachtrag
+zu 0.5.0 zeigen die Handys alle drei an, nicht nur die Aufnahme); das
+Handy bekommt eine Adresse, die beim Ausschalten
 verschwindet. Darunter **Verantwortlich** und **Kontakt** aus der
 Einrichtung; fehlt eine Angabe, entfällt die Zeile.
 
@@ -258,12 +261,15 @@ Nicht technisch, und vor einer zweiten Gemeinde zu klären:
   für Adventgemeinden die Bestätigung, dass § 53 DSVO mit der
   Information aus Teil 3 trägt; für andere Träger die Prüfung von
   Art. 6 Abs. 1 lit. f.
-- **Das Testprotokoll ist auf den Handys nicht sichtbar.** Stufe 1
-  sagt „gespeichert wird nichts, außer … Aufnahme der Predigt; das ist
-  dann sichtbar“. Das Testprotokoll enthält nur den Predigttext und
-  läuft nur mit Einwilligung der sprechenden Person — aber es ist eine
-  Speicherung, die der Saal nicht sieht. Zu entscheiden: auf dem Handy
-  anzeigen wie die Aufnahme, oder den Satz in Stufe 1 anpassen.
+- **Die Mitschrift im Journal fragt nicht nach Einwilligung.** Seit
+  dem Nachtrag zu 0.5.0 sind Testprotokoll und Mitschrift auf den
+  Handys sichtbar und in Stufe 1 genannt (vorher stand dort nur die
+  Aufnahme — die Speicherung war für den Saal unsichtbar). Das
+  Testprotokoll verlangt am Pult die Einwilligung der sprechenden
+  Person, die Mitschrift nicht: sie speichert weniger (rund 60 Zeichen
+  je Satz) und dient der Fehlersuche im laufenden Betrieb. Zu
+  entscheiden: denselben Einwilligungshaken auch hier, oder es so
+  lassen.
 - **Die Aufbewahrung der Aufnahmen** ist eingestellt (sieben Tage),
   nicht beschlossen.
 - **Das Pult ist per Vorgabe offen im Saalnetz.** Das Passwort ist

@@ -59,7 +59,8 @@ pruefe("nur mit Kontakt: nur die Kontaktzeile", ["Kontakt: Büro, Tel. 0000"],
        datenschutz.stufe1("de", "", "Büro, Tel. 0000")["angaben"])
 de = " ".join(datenschutz.STUFE1["de"]["absaetze"])
 for wort in ("live übersetzt", "keine Cloud", "kein Konto", "keine App",
-             "Aufnahme der Predigt", "sichtbar", "ausgeschaltet"):
+             "Aufnahme, ein Protokoll oder eine Mitschrift der Predigt",
+             "sichtbar", "ausgeschaltet"):
     pruefe(f"Stufe 1 sagt: {wort}", True, wort in de)
 seite = datenschutz.stufe2_html("de", "Adventgemeinde <Test>", "", "0.5.0")
 pruefe("Stufe 2 nennt § 53 DSVO", True, "§ 53" in seite)

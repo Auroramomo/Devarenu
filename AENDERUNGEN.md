@@ -35,7 +35,9 @@ um Hilfe: wer die Sprache spricht, meldet sich über „Rückmeldung“.
 **Datenschutz unter „Mehr“.** Ganz unten, klein neben „Schließen“:
 was mit Ton und Text geschieht. Dazu ein Aushang für den Eingang und
 ein Blatt für Gastprediger. **Alles als Entwurf, vor Freigabe durch den
-Datenschutzbeauftragten.**
+Datenschutzbeauftragten.** Auf dem Handy steht jetzt nicht nur, wenn
+eine Aufnahme läuft, sondern auch, wenn der Predigttext zur
+Fehlersuche mitgeschrieben wird (Testprotokoll oder Mitschrift).
 
 **Nach einem Update lädt sich die Seite auf dem Handy selbst neu**, und
 wer kurz die Verbindung verliert, bekommt den verpassten Text
@@ -81,7 +83,12 @@ nachgereicht.
   Verzeichnis, Rechtsrahmen für Adventgemeinden (DSVO 2018) und für
   andere Träger (DSGVO). `datenschutz.py` mit Stufe 1 und 2,
   `/datenschutz` vom Gerät, Feld *Kontakt* am Pult, zwei Druckvorlagen,
-  eine Zeile auf der QR-Seite.
+  eine Zeile auf der QR-Seite. Gespeicherter Predigttext wird ehrlich
+  benannt: Stufe 1 nennt „Aufnahme, Protokoll oder Mitschrift der
+  Predigt“ (de, en, ru, fa); der Zustand an die Handys trägt neu
+  `mitschrift` (Testprotokoll oder Mitschrift im Protokoll), sofort
+  beim Umschalten, und Handy wie Pult (*Gottesdienst*) zeigen es wie
+  die Aufnahme. Prüfstand `mitschrift_hinweis_test.py`.
 * **Lizenz** (Teil F). Namensschutz als zusätzliche Bedingung nach § 7
   GPLv3 (`COPYING.ZUSATZ`). Der Wechsel auf AGPL ist vorbereitet, nicht
   aktiv.

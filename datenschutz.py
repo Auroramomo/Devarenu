@@ -39,7 +39,8 @@ STUFE1 = {
             "Alles bleibt auf diesem Rechner: keine Cloud, kein Konto, keine "
             "App.",
             "Gespeichert wird nichts – außer die Gemeinde schaltet eine "
-            "Aufnahme der Predigt ein. Das ist dann auf Ihrem Handy sichtbar.",
+            "Aufnahme, ein Protokoll oder eine Mitschrift der Predigt ein. "
+            "Das ist dann auf Ihrem Handy sichtbar.",
             "Ihr Handy bekommt im Saal-WLAN eine Adresse. Sie verschwindet, "
             "wenn der Rechner ausgeschaltet wird.",
         ],
@@ -58,8 +59,9 @@ STUFE1 = {
             "phone over the hall wi-fi.",
             "Everything stays on this computer: no cloud, no account, no "
             "app.",
-            "Nothing is stored – unless the church switches on a recording "
-            "of the sermon. You will then see that on your phone.",
+            "Nothing is stored – unless the church switches on a recording, "
+            "a log or a transcript of the sermon. You will then see that on "
+            "your phone.",
             "Your phone gets an address in the hall wi-fi. It disappears "
             "when the computer is switched off.",
         ],
@@ -77,8 +79,9 @@ STUFE1 = {
             "передаёт текст и звук на ваш телефон через Wi-Fi зала.",
             "Всё остаётся на этом компьютере: ни облака, ни учётной записи, "
             "ни приложения.",
-            "Ничего не сохраняется – если только община не включит запись "
-            "проповеди. Тогда это будет видно на вашем телефоне.",
+            "Ничего не сохраняется – если только община не включит "
+            "аудиозапись, протокол или стенограмму проповеди. Тогда это "
+            "будет видно на вашем телефоне.",
             "Ваш телефон получает адрес в Wi-Fi зала. Он исчезает, когда "
             "компьютер выключают.",
         ],
@@ -96,8 +99,8 @@ STUFE1 = {
             "می‌کند و متن و صدا را از طریق وای‌فای سالن به گوشی شما می‌فرستد.",
             "همه‌چیز روی همین رایانه می‌ماند: بدون فضای ابری، بدون حساب "
             "کاربری، بدون برنامه.",
-            "چیزی ذخیره نمی‌شود – مگر اینکه کلیسا ضبط موعظه را روشن کند. در "
-            "آن صورت این روی گوشی شما دیده می‌شود.",
+            "چیزی ذخیره نمی‌شود – مگر اینکه کلیسا ضبط صدا، گزارش یا رونوشت "
+            "موعظه را روشن کند. در آن صورت این روی گوشی شما دیده می‌شود.",
             "گوشی شما در وای‌فای سالن یک نشانی می‌گیرد. این نشانی با خاموش شدن "
             "رایانه از بین می‌رود.",
         ],
@@ -171,11 +174,15 @@ STUFE2 = {
                 "sie läuft, steht es auf jedem Handy. Sie bleibt auf dem "
                 "Rechner (voreingestellt sieben Tage) und ist aus dem "
                 "Saal-WLAN nicht abrufbar.",
-                "**Testprotokoll.** Bei einem Test kann die Technik den "
-                "Predigttext mit allen Übersetzungen mitschreiben lassen – "
-                "nur mit Zustimmung der sprechenden Person und nur am Rechner "
-                "selbst. Darin steht der Text, nichts über Zuhörer. Auf den "
-                "Handys wird es nicht angezeigt."]),
+                "**Testprotokoll und Mitschrift.** Zur Fehlersuche kann die "
+                "Technik den Predigttext speichern lassen: das Testprotokoll "
+                "schreibt ihn mit allen Übersetzungen in eine Datei (nur mit "
+                "Zustimmung der sprechenden Person, nur am Rechner selbst, "
+                "voreingestellt nach sieben Tagen gelöscht); die Mitschrift "
+                "schreibt den Anfang jedes erkannten Satzes ins "
+                "Systemprotokoll des Rechners (dort rund vier Wochen). Darin "
+                "steht der Text, nichts über Zuhörer. "
+                "Solange eines davon läuft, steht es auf jedem Handy."]),
             ("Was auf Ihrem Handy bleibt",
              ["Ihr Browser merkt sich ein paar Einstellungen – etwa ob der "
               "Bildschirm anbleiben soll, wie dunkel die Seite ist und Ihre "
@@ -243,10 +250,15 @@ STUFE2 = {
                 "on and the preacher has agreed. While it runs, every phone "
                 "shows it. It stays on the computer (seven days by default) "
                 "and cannot be fetched over the hall wi-fi.",
-                "**Test log.** During a test the technician can record the "
-                "sermon text with all translations – only with the speaker's "
-                "consent and only at the computer itself. It contains the "
-                "text, nothing about listeners. Phones do not show it."]),
+                "**Test log and transcript.** For troubleshooting the "
+                "technician can have the sermon text stored: the test log "
+                "writes it with all translations to a file (only with the "
+                "speaker's consent, only at the computer itself, deleted "
+                "after seven days by default); the transcript writes the "
+                "beginning of each recognised sentence to the computer's "
+                "system log (kept there for about four weeks). They "
+                "contain the text, nothing about listeners. While either "
+                "runs, every phone shows it."]),
             ("What stays on your phone",
              ["Your browser remembers a few settings – for example whether "
               "the screen stays on, how dark the page is, and your vote on "

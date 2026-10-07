@@ -898,6 +898,7 @@ const TEXTE = {
       warte:"Warte auf das Devarenu-WLAN … die Übersetzung geht gleich weiter",
       wechseln:"Sprache wechseln", abbrechen:"Abbrechen",
       aufnahme:"Von dieser Predigt wird eine Tonaufnahme gemacht.",
+      mitschrift:"Der Text dieser Predigt wird zur Fehlersuche mitgeschrieben.",
       stumm:"Kein Ton? Am iPhone den seitlichen Schalter umlegen, sonst bleibt es still.",
       bildschirm:"Bildschirm anlassen, sonst stoppt die Wiedergabe.",
       kiFett:"Diese Übersetzung erstellt ein Computer.",
@@ -932,6 +933,7 @@ const TEXTE = {
       warte:"Waiting for the Devarenu wi-fi … the translation continues shortly",
       wechseln:"Change language", abbrechen:"Cancel",
       aufnahme:"This sermon is being recorded.",
+      mitschrift:"The text of this sermon is being logged for troubleshooting.",
       stumm:"No sound? Flip the side switch on your iPhone.",
       bildschirm:"Keep the screen on, otherwise playback stops.",
       kiFett:"This translation is made by a computer.",
@@ -966,6 +968,7 @@ const TEXTE = {
       warte:"Ждём вай-фай Devarenu … перевод сейчас продолжится",
       wechseln:"Сменить язык", abbrechen:"Отмена",
       aufnahme:"Эта проповедь записывается.",
+      mitschrift:"Текст этой проповеди записывается для поиска неполадок.",
       stumm:"Нет звука? Переключите боковой переключатель на iPhone.",
       bildschirm:"Не гасите экран, иначе воспроизведение остановится.",
       kiFett:"Этот перевод выполняет компьютер.",
@@ -1000,6 +1003,7 @@ const TEXTE = {
       warte:"در انتظار وای‌فای Devarenu … ترجمه به‌زودی ادامه می‌یابد",
       wechseln:"تغییر زبان", abbrechen:"انصراف",
       aufnahme:"از این موعظه ضبط صوتی تهیه می‌شود.",
+      mitschrift:"متن این موعظه برای عیب‌یابی ثبت می‌شود.",
       stumm:"صدا ندارید؟ کلید کنار آیفون را جابه‌جا کنید.",
       bildschirm:"صفحه را روشن نگه دارید، وگرنه پخش متوقف می‌شود.",
       kiFett:"این ترجمه را رایانه انجام می‌دهد.",
@@ -1855,7 +1859,8 @@ const Verbindung = {
         }
         if(d.fassung && Fassung.pruefen(d.fassung) === "neu_laden") return;
         zustandZeigen(d.live ? "live" : "pause");
-        if(d.aufnahme !== undefined) aufnahmeHinweis(d.aufnahme);
+        if(d.aufnahme !== undefined || d.mitschrift !== undefined)
+          aufnahmeHinweis(d.aufnahme, d.mitschrift);
       }
     };
 
@@ -2094,7 +2099,7 @@ function spracheWechseln(neu){
   while(strom.firstChild) strom.removeChild(strom.firstChild);
 
   beschriftungenSetzen();
-  if(!$("aufnahmehinweis").hidden) aufnahmeHinweis(true);
+  aufnahmeHinweis();
   Verbindung.verbinden(neu);
   systemleisteSetzen();
 }
@@ -2181,14 +2186,26 @@ function zustandZeigen(art){
   $("puls").classList.toggle("still", art !== "live");
 }
 
-function aufnahmeHinweis(an){
+// Was von der Predigt gerade gespeichert wird. Seit dem Nachtrag zu
+// 0.5.0 nicht nur die Tonaufnahme, sondern auch der Predigttext im
+// Testprotokoll oder in der Mitschrift -- beides haelt fest, was
+// gesagt wird, und beides soll man sehen. Ohne Argument: neu zeichnen
+// (nach einem Sprachwechsel).
+const Speichert = { aufnahme: false, mitschrift: false };
+
+function aufnahmeHinweis(an, mitschrift){
   const p = $("aufnahmehinweis");
   if(!p) return;
+  if(an !== undefined) Speichert.aufnahme = !!an;
+  if(mitschrift !== undefined) Speichert.mitschrift = !!mitschrift;
   // Zuerst den Text, dann die Sichtbarkeit -- und sichtbar nur,
   // wenn auch etwas dasteht. Ein Hinweis ohne Text ist kein
   // Hinweis, sondern ein roter Balken, bei dem sich jeder fragt,
   // was er bedeutet.
-  const text = (an && t().aufnahme) ? t().aufnahme : "";
+  const teile = [];
+  if(Speichert.aufnahme && t().aufnahme) teile.push(t().aufnahme);
+  if(Speichert.mitschrift && t().mitschrift) teile.push(t().mitschrift);
+  const text = teile.join(" ");
   $("aufnahmetext").textContent = text;
   p.hidden = !text;
 }

@@ -73,6 +73,24 @@ titel("1) Ein Hinweis ohne Text bleibt unsichtbar");
   pruefe("und traegt ihn", merk, text.textContent);
   umgebung.__pruef.aufnahmeHinweis(false);
   pruefe("abgeschaltet ist er wieder weg", true, balken.hidden);
+
+  // Nachtrag zu 0.5.0: Testprotokoll und Mitschrift speichern ebenfalls
+  // Predigttext und stehen deshalb im selben Balken.
+  umgebung.__pruef.aufnahmeHinweis(false, true);
+  pruefe("Mitschrift allein: der Balken erscheint", false, balken.hidden);
+  pruefe("mit dem Satz zur Mitschrift", p.TEXTE.de.mitschrift, text.textContent);
+  umgebung.__pruef.aufnahmeHinweis(true);
+  pruefe("Aufnahme dazu: beide Saetze, die Aufnahme zuerst",
+         p.TEXTE.de.aufnahme + " " + p.TEXTE.de.mitschrift, text.textContent);
+  p.zustand.sprache = "ru";
+  umgebung.__pruef.aufnahmeHinweis();
+  pruefe("nach dem Sprachwechsel auf Russisch",
+         p.TEXTE.ru.aufnahme + " " + p.TEXTE.ru.mitschrift, text.textContent);
+  umgebung.__pruef.aufnahmeHinweis(false, false);
+  pruefe("beides aus: weg", true, balken.hidden);
+  for (const s of ["de", "en", "ru", "fa"]) {
+    pruefe(`${s} hat einen Satz zur Mitschrift`, true, !!p.TEXTE[s].mitschrift);
+  }
   p.zustand.sprache = sprache;
 }
 

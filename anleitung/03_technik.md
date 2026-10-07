@@ -104,7 +104,8 @@ löscht.
 
 Zur Fehlersuche lässt sich das am Pult unter *Einrichtung*
 einschalten: **Mitschrift im Protokoll**. Solange es an ist, steht ein
-Hinweis am Pult. **Danach wieder ausschalten.**
+Hinweis am Pult — und auf jedem Handy im Saal, wie bei der Aufnahme
+und beim Testprotokoll. **Danach wieder ausschalten.**
 
 ## Das Pult-Passwort
 

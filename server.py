@@ -1611,7 +1611,7 @@ class Lauf:
         self.hoerer[sprache].add(ws)
         await self._senden(ws, {"typ": "zustand", "live": self.laeuft,
                                 "gesendet": self.n,
-                                "aufnahme": self.mitschnitt.laeuft,
+                                **self.speicherlage(),
                                 "fassung": config.VERSION,
                                 "lauf": self.lauf_kennung})
         if seit is None or lauf != self.lauf_kennung:
@@ -1620,6 +1620,26 @@ class Lauf:
             if e["id"] > seit:
                 await self._senden(ws, dict(e, typ="segment",
                                             nachgereicht=True))
+
+    def speicherlage(self):
+        """Wird gerade etwas von der Predigt gespeichert? Fuer den
+        Hinweis auf jedem Handy und am Pult (Nachtrag zu 0.5.0).
+
+        aufnahme:   die Tonaufnahme.
+        mitschrift: der Predigttext -- im Testprotokoll (Datei, mit
+                    jeder Uebersetzung) oder als Mitschrift im
+                    Protokoll (Journal). Bis zum Nachtrag stand nur die
+                    Aufnahme auf den Handys, obwohl beide anderen
+                    ebenfalls Predigttext festhalten."""
+        return {"aufnahme": bool(self.mitschnitt.laeuft),
+                "mitschrift": bool(PROTOKOLL_MITSCHRIFT
+                                   or self.pruefprotokoll.laeuft)}
+
+    async def speicherlage_melden(self):
+        """Allen Handys sofort sagen, was gespeichert wird -- nicht erst
+        beim naechsten Zustandswechsel."""
+        await self._streuen_alle({"typ": "zustand", "live": self.laeuft,
+                                  **self.speicherlage()})
 
     def nachholbar(self, sprache, nummer, text, dauer):
         """Merkt einen gesendeten Abschnitt fuer das Nachreichen vor."""
@@ -1681,8 +1701,7 @@ class Lauf:
         if not self.laeuft:
             self.laeuft = True
             self.begonnen = self.begonnen or time.time()
-        await self._streuen_alle({"typ": "zustand", "live": True,
-                                  "aufnahme": self.mitschnitt.laeuft})
+        await self.speicherlage_melden()
 
     async def anhalten(self):
         self.laeuft = False
@@ -1695,8 +1714,7 @@ class Lauf:
             e = self.mitschnitt.beenden("uebersetzung_angehalten")
             print(f"Aufnahme beendet (Uebersetzung angehalten): "
                   f"{e['datei']}, {e['minuten']} min")
-        await self._streuen_alle({"typ": "zustand", "live": False,
-                                  "aufnahme": self.mitschnitt.laeuft})
+        await self.speicherlage_melden()
 
     async def zuruecksetzen(self):
         await self.anhalten()
@@ -4827,6 +4845,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 # Auch fuer die Zuhoererseite: wer mitgeschnitten
                 # wird, soll es sehen, ohne das Pult zu kennen.
                 "aufnahme": bool(lauf.mitschnitt.laeuft),
+                # Predigttext im Testprotokoll oder in der Mitschrift --
+                # steht wie die Aufnahme auf den Handys und am Pult.
+                "mitschrift": lauf.speicherlage()["mitschrift"],
                 "protokoll_mitschrift": PROTOKOLL_MITSCHRIFT,
                 "pruefprotokoll": lauf.pruefprotokoll.lage(),
                 # Hat jemand Thema und Bibelstellen uebernommen? Ohne sie
@@ -4974,9 +4995,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             e = lauf.mitschnitt.beenden("am Pult beendet")
             if e:
                 print(f"Aufnahme beendet: {e['datei']}, {e['minuten']} min")
-                await lauf._streuen_alle({"typ": "zustand",
-                                          "live": lauf.laeuft,
-                                          "aufnahme": False})
+                await lauf.speicherlage_melden()
             return e or {"lief": False}
 
         datei, fehler = lauf.mitschnitt.starten(
@@ -4995,8 +5014,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
               f"{lauf.mitschnitt.einwilligung.zeit})")
         # Die Zuhoerer erfahren es sofort, nicht erst beim naechsten
         # Zustandswechsel. Wer mitgeschnitten wird, soll es sehen.
-        await lauf._streuen_alle({"typ": "zustand", "live": lauf.laeuft,
-                                  "aufnahme": True})
+        await lauf.speicherlage_melden()
         return {"datei": Path(datei).name,
                 "einwilligung": lauf.mitschnitt.einwilligung.zeit}
 
@@ -5060,6 +5078,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             if lage:
                 print(f"Testprotokoll beendet: {lage['zeilen']} Zeilen "
                       f"in {lage['minuten']} Minuten.")
+            await lauf.speicherlage_melden()
             return {"an": False, "lage": None}
 
         datei, fehler = lauf.pruefprotokoll.starten(
@@ -5068,6 +5087,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             return JSONResponse({"grund": fehler}, status_code=400)
         print(warnung(f"Testprotokoll laeuft: {datei.name}. Darin steht "
                       f"der gesprochene Text und jede Uebersetzung."))
+        # Wie bei der Aufnahme: die Handys sehen es sofort.
+        await lauf.speicherlage_melden()
         return {"an": True, "lage": lauf.pruefprotokoll.lage()}
 
     @app.get("/api/pruefprotokolle")
@@ -5735,6 +5756,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         zustandsdatei.speichern(lauf.zustand)
         print(warnung("Mitschrift im Protokoll EINGESCHALTET.") if an
               else "Mitschrift im Protokoll ausgeschaltet.")
+        await lauf.speicherlage_melden()
         return {"an": an}
 
     @app.post("/api/wlan")
@@ -6859,6 +6881,14 @@ niemanden — die Zuhörer bleiben verbunden.</p>
   <span class=rotpunkt aria-hidden=true></span>
   <b data-t=aufnahme_laeuft>Aufnahme läuft</b>
   <span class=dauer id=aufnahmedauer>0:00</span></p>
+<!-- Predigttext wird gespeichert (Nachtrag zu 0.5.0): Testprotokoll
+     oder Mitschrift im Protokoll. Die Schalter stehen unter
+     Fehlersuche; dass etwas laeuft, gehoert aber hierher, wo im
+     Gottesdienst jemand hinsieht -- die Handys zeigen es ja auch. -->
+<p class=laeuftauf id=mitschriftlaeuft hidden>
+  <span class=rotpunkt aria-hidden=true></span>
+  <b data-t=ms_laeuft>Predigttext wird gespeichert</b>
+  <span id=mitschriftwas></span></p>
 <div class=kacheln>
   <div class=kachel id=kTon>
     <div class=kkopf><span data-t=k_ton>Ton</span>
@@ -7601,6 +7631,10 @@ const TEXTE={
      +"Vollständig mit: bash pruefen.sh",
    pp_an:"Testprotokoll schreiben (nur am Gemeinde-PC)",
    pp_laeuft:"Testprotokoll läuft",
+   ms_laeuft:"Predigttext wird gespeichert",
+   ms_pp:"Testprotokoll",
+   ms_journal:"Mitschrift im Protokoll",
+   ms_handys:"steht auch auf den Handys",
    pp_zeilen:"{n} Abschnitte",
    pp_frage:"Im Testprotokoll steht der gesprochene Text und jede "
      +"Übersetzung davon, Wort für Wort. Wurde die sprechende Person "
@@ -7937,6 +7971,10 @@ const TEXTE={
      +"Full list: bash pruefen.sh",
    pp_an:"Write a test log (only on the church PC)",
    pp_laeuft:"Test log is running",
+   ms_laeuft:"Sermon text is being stored",
+   ms_pp:"test log",
+   ms_journal:"transcript in the log",
+   ms_handys:"shown on the phones too",
    pp_zeilen:"{n} sections",
    pp_frage:"The test log contains the spoken text and every "
      +"translation of it, word for word. Has the speaker been asked "
@@ -9056,6 +9094,18 @@ function spracheUmstellen(){
   quellwahl.focus();
 }
 
+// Was den Predigttext speichert, ausser der Aufnahme. Dieselbe Lage,
+// die jedes Handy bekommt (Feld "mitschrift").
+function mitschriftAnzeigen(d){
+  const t = TEXTE[UI];
+  mitschriftlaeuft.hidden = !d.mitschrift;
+  if(!d.mitschrift) return;
+  const was = [];
+  if(d.pruefprotokoll) was.push(t.ms_pp);
+  if(d.protokoll_mitschrift) was.push(t.ms_journal);
+  mitschriftwas.textContent = "(" + was.join(", ") + ") · " + t.ms_handys;
+}
+
 function protokollAnzeigen(an){
   const t = TEXTE[UI];
   protokollschalter.checked = an;
@@ -9354,6 +9404,7 @@ async function lies(){
     aufnahmeAnzeigen(!!d.mitschnitt, d.mitschnitt ? d.mitschnitt.sekunden : 0);
     if(d.protokoll_mitschrift!==undefined)
       protokollAnzeigen(d.protokoll_mitschrift);
+    mitschriftAnzeigen(d);
     wartungAnzeigen(d.wartung);
     // Nur zeichnen, wenn niemand gerade tippt -- sonst springt das
     // Feld bei jedem Takt auf den gespeicherten Wert zurueck.
