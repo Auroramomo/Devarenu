@@ -117,12 +117,27 @@ dort nichts zu ändern.
 Alle anderen Bausteine (MIT, BSD, Apache) sind mit GPLv3 verträglich
 und bleiben, wie sie sind.
 
-Die Bitte in `LIESMICH.md`, veränderte Fassungen nicht unter dem
-Namen Devarenu weiterzugeben, wird davon **nicht** zur Bedingung.
-Die GPL erlaubt das Weitergeben ausdrücklich, und daran soll sich
-nichts ändern. Es bleibt eine Bitte, begründet mit dem Spendenkonto
-und der Prüfung — und sie steht unter GPL auf demselben Grund wie
-vorher unter MIT: auf keinem rechtlichen.
+### Der Name — seit 0.5.0 eine Bedingung
+
+Bis 0.4.6 stand hier: die Bitte in `LIESMICH.md`, veränderte
+Fassungen nicht unter dem Namen Devarenu weiterzugeben, wird **nicht**
+zur Bedingung. Das ist mit 0.5.0 geändert. Die GPLv3 lässt in § 7
+zusätzliche Bedingungen zu, darunter zwei, die genau diesen Fall
+treffen:
+
+* § 7 Buchst. **c** — verlangen, dass veränderte Fassungen als
+  verschieden von der ursprünglichen gekennzeichnet sind;
+* § 7 Buchst. **e** — keine Rechte an Namen und Marken einräumen.
+
+Die Bedingung steht im Wortlaut in `LIESMICH.md`, Abschnitt *Lizenz*,
+auf Deutsch und Englisch. Sie nimmt niemandem ein Recht aus der GPL:
+der Code darf weiterhin geändert, weitergegeben und verkauft werden —
+nur nicht unter dem Namen. Der Grund ist derselbe wie bei der Bitte:
+in den Gemeinden steht der Name für eine geprüfte Fassung mit bekanntem
+Spendenkonto.
+
+Was unter MIT (bis 0.3.6) und unter GPLv3 ohne Zusatz (0.3.7 bis 0.4.6)
+veröffentlicht wurde, bleibt unter diesen Bedingungen.
 
 ## Piper-Stimmen
 

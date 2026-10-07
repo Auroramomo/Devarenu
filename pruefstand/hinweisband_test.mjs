@@ -73,7 +73,9 @@ js(`rueckmeldungSetzen("", null)`);
 const pl = js(`HINWEIS_UNGEPRUEFT.pl`);
 pruefe("ohne Adresse: kein Satz zur Mithilfe", false,
        js(`hinweisText("pl","pl")`).includes(pl.hilfe));
-js(`rueckmeldungSetzen("betreuer@beispiel.invalid", null)`);
+// Irgendeine Adresse -- ohne "@", damit oeffentlich_pruefen.sh sie
+// nicht fuer eine echte haelt; rueckmeldungSetzen prueft das Format nicht.
+js(`rueckmeldungSetzen("betreuer-adresse", null)`);
 const text = js(`hinweisText("pl","pl")`);
 pruefe("mit Adresse: der Satz zur Mithilfe steht da", true,
        text.includes(pl.hilfe));

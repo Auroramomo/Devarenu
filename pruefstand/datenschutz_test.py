@@ -53,8 +53,10 @@ for sp in ("de", "en", "ru", "fa"):
 pruefe("eine Sprache ohne Text faellt auf Englisch", "en",
        datenschutz.stufe1("pl")["sprache"])
 pruefe("ohne Gemeinde und Kontakt: keine Zeile", [], datenschutz.stufe1("de")["angaben"])
-pruefe("nur mit Kontakt: nur die Kontaktzeile", ["Kontakt: buero@x.invalid"],
-       datenschutz.stufe1("de", "", "buero@x.invalid")["angaben"])
+# Kontaktangaben OHNE Mailadresse: oeffentlich_pruefen.sh duldet im Repo
+# keine, auch keine erfundene.
+pruefe("nur mit Kontakt: nur die Kontaktzeile", ["Kontakt: Büro, Tel. 0000"],
+       datenschutz.stufe1("de", "", "Büro, Tel. 0000")["angaben"])
 de = " ".join(datenschutz.STUFE1["de"]["absaetze"])
 for wort in ("live übersetzt", "keine Cloud", "kein Konto", "keine App",
              "Aufnahme der Predigt", "sichtbar", "ausgeschaltet"):
@@ -75,7 +77,7 @@ for weg in ("/datenschutz", "/api/datenschutz"):
 titel("3) Der Server")
 ordner = arbeitskopie(wegwerfordner("devarenu-datenschutz-"),
                       {"gemeinde": "Adventgemeinde Musterstadt",
-                       "kontakt": "datenschutz@beispiel.invalid"})
+                       "kontakt": "Gemeindebüro, Tel. 0000 111"})
 # Die Arbeitskopie bringt anleitung/ nicht mit; die zwei Blaetter schon.
 (ordner / "anleitung").mkdir(exist_ok=True)
 for name in ("Devarenu-Aushang-Datenschutz.pdf", "Devarenu-Gastprediger.pdf"):
@@ -90,7 +92,7 @@ try:
     pruefe("auf Russisch", "ru", d.get("sprache"))
     pruefe("mit Gemeinde und Kontakt",
            ["Ответственный: Adventgemeinde Musterstadt",
-            "Контакт: datenschutz@beispiel.invalid"], d.get("angaben"))
+            "Контакт: Gemeindebüro, Tel. 0000 111"], d.get("angaben"))
     d = json.loads(rufen(PORT, "/api/datenschutz?sprache=fa")[1])
     pruefe("Farsi von rechts nach links", True, d.get("rtl"))
     code, text = rufen(PORT, "/datenschutz")
@@ -101,13 +103,13 @@ try:
     pruefe("auch auf Englisch", True,
            "Draft, pending approval by the data protection officer" in text)
     # Der Kontakt laesst sich am Pult setzen und steht danach im Hinweis.
-    code, _ = rufen(PORT, "/api/gemeinde", {"kontakt": "  neu@x.invalid \n"})
+    code, _ = rufen(PORT, "/api/gemeinde", {"kontakt": "  Pastor   Tel. 2 \n"})
     pruefe("das Pult setzt den Kontakt", 200, code)
     d = json.loads(rufen(PORT, "/api/datenschutz?sprache=de")[1])
-    pruefe("einzeilig und getrimmt im Hinweis", "Kontakt: neu@x.invalid",
+    pruefe("einzeilig und getrimmt im Hinweis", "Kontakt: Pastor Tel. 2",
            d["angaben"][-1])
     stand = json.loads((ordner / "zustand.json").read_text(encoding="utf-8"))
-    pruefe("und in zustand.json", "neu@x.invalid", stand.get("kontakt"))
+    pruefe("und in zustand.json", "Pastor Tel. 2", stand.get("kontakt"))
     # Die Druckvorlagen (E4) liegen gebaut im Repo und sind abrufbar.
     for teil, name in (("aushang", "Devarenu-Aushang-Datenschutz.pdf"),
                        ("gastprediger", "Devarenu-Gastprediger.pdf")):

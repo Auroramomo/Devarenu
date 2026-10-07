@@ -257,12 +257,13 @@ Netz. Prüfen lässt sich das jederzeit selbst:
 git -c gpg.ssh.allowedSignersFile=schluessel.erlaubt verify-tag v0.3.7
 ```
 
-**Wenn du etwas änderst, gib es bitte nicht unter dem Namen Devarenu
-weiter.** Nicht aus Besitzanspruch — die Lizenz erlaubt es. Aber in
-den Gemeinden steht der Name für etwas, das geprüft wurde und dessen
-Spendenkonto bekannt ist. Eine veränderte Fassung unter demselben
-Namen macht beides wertlos. Nimm einen eigenen Namen, und der Code
-gehört dir.
+**Wer etwas ändert, gibt es nicht unter dem Namen Devarenu weiter.**
+Bis 0.4.6 war das eine Bitte; seit 0.5.0 ist es eine Bedingung der
+Lizenz (unten, *Zusätzliche Bedingung*). Nicht aus Besitzanspruch —
+den Code darf jeder ändern und weitergeben. Aber in den Gemeinden steht
+der Name für etwas, das geprüft wurde und dessen Spendenkonto bekannt
+ist. Eine veränderte Fassung unter demselben Namen macht beides
+wertlos. Nimm einen eigenen Namen, und der Code gehört dir.
 
 ## Lizenz
 
@@ -270,6 +271,36 @@ Der Code steht unter **GPLv3 oder später**, siehe `COPYING`. Bis
 einschließlich 0.3.6 war es MIT; gewechselt wurde, weil Piper als
 GPL-Bibliothek im selben Prozess läuft. Was unter MIT veröffentlicht
 wurde, bleibt unter MIT.
+
+### Zusätzliche Bedingung nach § 7 GPLv3 (seit 0.5.0)
+
+Für dieses Programm gilt neben der GPLv3 die folgende zusätzliche
+Bedingung, die § 7 Abs. 2 Buchst. c und e der Lizenz zulassen. Sie
+steht auch neben dem Lizenztext, in `COPYING.ZUSATZ`:
+
+1. **Der Name „Devarenu“** (auch in hebräischer Schrift, „דְּבָרֵנוּ“)
+   ist nicht Gegenstand der Lizenz. Für **veränderte Fassungen** werden
+   keine Rechte an diesem Namen eingeräumt (§ 7 Buchst. e).
+2. Wer eine **veränderte Fassung** weitergibt, gibt sie unter einem
+   **anderen Namen** weiter und darf sie nicht als Devarenu ausgeben;
+   sie muss als von der ursprünglichen verschieden erkennbar sein
+   (§ 7 Buchst. c). Ein sachlicher Hinweis wie „beruht auf Devarenu“
+   ist erlaubt; Urheber- und Lizenzvermerke bleiben ohnehin stehen.
+3. **Unveränderte** Fassungen — die veröffentlichten, signierten Tags —
+   dürfen unter dem Namen Devarenu weitergegeben werden.
+
+Alle übrigen Rechte aus der GPLv3 bleiben unberührt: ändern, weitergeben,
+verkaufen, unter eigenem Namen.
+
+*Additional term under section 7 of the GNU GPL v3 (since 0.5.0):
+(1) The name “Devarenu” (also in Hebrew script) is not licensed under
+the GPL; no rights to it are granted for modified versions (section
+7(e)). (2) Whoever conveys a modified version must convey it under a
+different name and must not present it as Devarenu; it must be marked
+as different from the original version (section 7(c)). Stating that it
+is based on Devarenu is permitted. (3) Unmodified versions — the
+published, signed tags — may be conveyed under the name Devarenu. All
+other rights under the GPL v3 remain unaffected.*
 
 Modelle, Stimmen und das Logo haben eigene Bedingungen, siehe
 [LIZENZEN.md](LIZENZEN.md).
