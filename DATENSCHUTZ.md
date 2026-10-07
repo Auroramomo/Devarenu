@@ -135,7 +135,7 @@ einmal gegen die Muster der Segmentzeilen prüft.
 | **Daten** | Der erkannte Satz, auf etwa 60 Zeichen gekürzt |
 | **Empfänger** | Niemand; Zeilen unter der Warnstufe gehen nicht in den Fehlerbericht |
 | **Speicherdauer** | Solange das Journal hält (rund vier Wochen) |
-| **Schalter** | Am Pult. Vorgabe **aus**. Solange er an ist, meldet der Systemcheck ihn, und es steht auf jedem Handy und am Pult unter *Gottesdienst*. Keine eigene Einwilligungsabfrage — siehe „Was offen ist“ |
+| **Schalter** | Am Pult, mit Einwilligung der sprechenden Person — dieselbe Abfrage wie beim Testprotokoll, vom Server geprüft. Vorgabe **aus**, endet beim Neustart. Solange er an ist, meldet der Systemcheck ihn, und es steht auf jedem Handy und am Pult unter *Gottesdienst* |
 
 ### 11. Meldungen über das Wartungsfenster
 
@@ -196,8 +196,8 @@ Datenschutzverordnung der Freikirche in der Fassung von 2018.
 
 Einzelfälle, die über § 53 hinausgehen, brauchen eine eigene Grundlage:
 die **Tonaufnahme** (Einwilligung der predigenden Person, am Pult
-bestätigt) und das **Testprotokoll** (Einwilligung der sprechenden
-Person).
+bestätigt), das **Testprotokoll** und die **Mitschrift im Journal**
+(beide Einwilligung der sprechenden Person, am Pult bestätigt).
 
 ### B. Andere Träger — DSGVO
 
@@ -210,8 +210,8 @@ gilt die Datenschutz-Grundverordnung.
   Interesse an einer verständlichen Übertragung des Gottesdienstes für
   Teilnehmende, die die Sprache nicht verstehen). **Noch zu
   bestätigen.**
-* Für die Tonaufnahme und das Testprotokoll gilt wie unter A die
-  Einwilligung der sprechenden Person.
+* Für die Tonaufnahme, das Testprotokoll und die Mitschrift gilt wie
+  unter A die Einwilligung der sprechenden Person.
 * Die Information der Teilnehmenden (Teil 3) und das Verzeichnis
   (Teil 1) sind dieselben.
 
@@ -261,15 +261,6 @@ Nicht technisch, und vor einer zweiten Gemeinde zu klären:
   für Adventgemeinden die Bestätigung, dass § 53 DSVO mit der
   Information aus Teil 3 trägt; für andere Träger die Prüfung von
   Art. 6 Abs. 1 lit. f.
-- **Die Mitschrift im Journal fragt nicht nach Einwilligung.** Seit
-  dem Nachtrag zu 0.5.0 sind Testprotokoll und Mitschrift auf den
-  Handys sichtbar und in Stufe 1 genannt (vorher stand dort nur die
-  Aufnahme — die Speicherung war für den Saal unsichtbar). Das
-  Testprotokoll verlangt am Pult die Einwilligung der sprechenden
-  Person, die Mitschrift nicht: sie speichert weniger (rund 60 Zeichen
-  je Satz) und dient der Fehlersuche im laufenden Betrieb. Zu
-  entscheiden: denselben Einwilligungshaken auch hier, oder es so
-  lassen.
 - **Die Aufbewahrung der Aufnahmen** ist eingestellt (sieben Tage),
   nicht beschlossen.
 - **Das Pult ist per Vorgabe offen im Saalnetz.** Das Passwort ist

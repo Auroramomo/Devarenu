@@ -5864,13 +5864,28 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         """Schaltet die Mitschrift im Protokoll an oder aus.
 
         Sofort wirksam, ohne Neustart: wer zur Fehlersuche einschaltet,
-        will die naechste Zeile sehen und nicht den naechsten Dienst."""
+        will die naechste Zeile sehen und nicht den naechsten Dienst.
+
+        Einschalten nur mit derselben Einwilligung wie beim
+        Testprotokoll: die sprechende Person wurde gefragt (Nachtrag zu
+        0.5.0). Geprueft HIER, nicht nur im Browser -- eine Pflicht,
+        die sich mit einem curl umgehen laesst, ist keine. Ausschalten
+        geht immer."""
         global PROTOKOLL_MITSCHRIFT
         an = bool(daten.get("an"))
+        if an:
+            einwilligung = aufnahme.Einwilligung.aus_daten(
+                daten.get("einwilligung"))
+            if not einwilligung.person_gefragt:
+                print("Mitschrift abgelehnt: Einwilligung nicht bestaetigt.")
+                return JSONResponse({"grund": "einwilligung_fehlt"},
+                                    status_code=400)
         PROTOKOLL_MITSCHRIFT = an
         lauf.zustand["protokoll_mitschrift"] = an
         zustandsdatei.speichern(lauf.zustand)
-        print(warnung("Mitschrift im Protokoll EINGESCHALTET.") if an
+        # Der Zeitpunkt, kein Name -- wie beim Testprotokoll.
+        print(warnung(f"Mitschrift im Protokoll EINGESCHALTET (Einwilligung "
+                      f"bestaetigt {einwilligung.zeit}).") if an
               else "Mitschrift im Protokoll ausgeschaltet.")
         await lauf.speicherlage_melden()
         return {"an": an}
@@ -7760,7 +7775,11 @@ const TEXTE={
    protokoll_hin:"Aus. Der gesprochene Satz steht dann nicht im "
      +"Protokoll – nur seine Länge.",
    protokoll_warn:"EIN. Der gesprochene Satz steht jetzt im Protokoll. "
-     +"Nach der Fehlersuche wieder ausschalten.",
+     +"Nach der Fehlersuche wieder ausschalten; spätestens ein Neustart "
+     +"schaltet es ab.",
+   ms_frage:"In der Mitschrift steht der Anfang jedes gesprochenen "
+     +"Satzes im Protokoll des Rechners, rund vier Wochen lang. Wurde "
+     +"die sprechende Person gefragt und ist sie einverstanden?",
    anleitung_pult:"Bedienungsanleitung als PDF",
    // Drei Zustaende, nicht zwei. Ein Glossar, das niemand gegengelesen
    // hat, ist etwas anderes als gar keines.
@@ -8100,7 +8119,11 @@ const TEXTE={
    protokoll_hin:"Off. The spoken sentence does not go into the log – "
      +"only its length.",
    protokoll_warn:"ON. The spoken sentence now goes into the log. "
-     +"Switch it off again after troubleshooting.",
+     +"Switch it off again after troubleshooting; a restart switches "
+     +"it off at the latest.",
+   ms_frage:"The transcript puts the beginning of every spoken sentence "
+     +"into the computer's log, for about four weeks. Has the speaker "
+     +"been asked and agreed?",
    anleitung_pult:"Manual as PDF",
    glossar_offen_ueber:"A glossary exists, but no native speaker has "
      +"reviewed it yet. The terms are fixed and could be wrong.",
@@ -9127,11 +9150,21 @@ async function versuchSetzen(){
 }
 
 async function protokollSetzen(){
+  // Seit dem Nachtrag zu 0.5.0 dieselbe Rueckfrage wie beim
+  // Testprotokoll: die sprechende Person wurde gefragt. Der Server
+  // prueft es auch.
+  const t = TEXTE[UI];
   const an = protokollschalter.checked;
-  await fetch("/api/protokoll",{method:"POST",
+  if(an && !confirm(t.ms_frage)){
+    protokollschalter.checked = false;
+    return;
+  }
+  const a = await fetch("/api/protokoll",{method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({an:an})});
-  protokollAnzeigen(an);
+    body:JSON.stringify(an
+      ? {an:true, einwilligung:{person_gefragt:true}}
+      : {an:false})});
+  protokollAnzeigen(a.ok ? an : false);
 }
 // --------------------------------------------------- Testprotokoll
 // Eigener Dialog waere zu viel: es genuegt EIN Haken, und der steht
@@ -9873,15 +9906,19 @@ def main():
     lauf.betrieb = a.betrieb
     lauf.sammler = Satzsammler(a.max_woerter, a.max_warten)
     lauf.zustand = stand
-    # Der Schalter gilt ab dem Start. Er steht in zustand.json, damit
-    # der Ordner unveraendert bleibt und Updates nicht daran abbrechen.
+    # Die Mitschrift uebersteht seit dem Nachtrag zu 0.5.0 keinen
+    # Neustart mehr: sie haengt an der Einwilligung der Person, die
+    # gerade spricht -- wie das Testprotokoll, das ebenfalls mit dem
+    # Dienst endet. Wer sie nach dem Neustart braucht, schaltet sie am
+    # Pult wieder ein und fragt dafuer erneut.
     global PROTOKOLL_MITSCHRIFT
-    PROTOKOLL_MITSCHRIFT = bool(stand.get("protokoll_mitschrift"))
-    if PROTOKOLL_MITSCHRIFT:
-        print(warnung(
-            "ACHTUNG: Mitschrift im Protokoll ist EINGESCHALTET. Der "
-            "gesprochene Satz steht dann im Journal. Nur zur "
-            "Fehlersuche; danach am Pult wieder ausschalten."))
+    PROTOKOLL_MITSCHRIFT = False
+    if stand.get("protokoll_mitschrift"):
+        stand["protokoll_mitschrift"] = False
+        zustandsdatei.speichern(stand)
+        print("Mitschrift im Protokoll war eingeschaltet. Nach dem "
+              "Neustart ist sie aus -- sie gilt nur mit der Einwilligung "
+              "der Person, die gerade spricht.")
     lauf.wlan = dict(stand["wlan"])
     lauf.werk.thema_im_prompt = bool(stand.get("thema_im_prompt"))
     # Der Modus uebersteht den Neustart, nicht nur der Wert. Bis 0.4.0

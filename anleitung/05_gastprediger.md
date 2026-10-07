@@ -14,7 +14,7 @@ In dieser Gemeinde wird der Gottesdienst live übersetzt. Ein Rechner im Saal h�
 ## Was nicht passiert
 
 - **Keine Aufnahme ohne Ihre Zustimmung.** Eine Tonaufnahme Ihrer Predigt lässt sich am Pult nur einschalten, wenn bestätigt ist, dass Sie gefragt wurden und zugestimmt haben. Solange sie läuft, steht es auf jedem Handy im Saal.
-- **Testprotokoll und Mitschrift** zur Fehlersuche speichern Predigttext: das Testprotokoll nur mit Ihrer Zustimmung, die Mitschrift (Satzanfänge) ohne eigene Rückfrage. Solange eines läuft, steht es auf jedem Handy.
+- **Testprotokoll und Mitschrift** zur Fehlersuche speichern Predigttext – beide nur mit Ihrer Zustimmung und längstens bis zum nächsten Neustart. Solange eines läuft, steht es auf jedem Handy.
 - Keine Weitergabe, keine Cloud, keine Veröffentlichung.
 
 ## Wenn Sie zustimmen

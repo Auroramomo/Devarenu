@@ -103,9 +103,11 @@ Sammlung von Predigtinhalten, die niemand angelegt hat und niemand
 löscht.
 
 Zur Fehlersuche lässt sich das am Pult unter *Einrichtung*
-einschalten: **Mitschrift im Protokoll**. Solange es an ist, steht ein
-Hinweis am Pult — und auf jedem Handy im Saal, wie bei der Aufnahme
-und beim Testprotokoll. **Danach wieder ausschalten.**
+einschalten: **Mitschrift im Protokoll** — wie beim Testprotokoll nur,
+wenn die sprechende Person gefragt wurde und einverstanden ist; das
+Pult fragt danach. Solange es an ist, steht ein Hinweis am Pult — und
+auf jedem Handy im Saal, wie bei der Aufnahme und beim Testprotokoll.
+**Danach wieder ausschalten.** Ein Neustart schaltet es ohnehin ab.
 
 ## Das Pult-Passwort
 

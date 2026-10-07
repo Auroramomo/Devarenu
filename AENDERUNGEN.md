@@ -107,7 +107,12 @@ nachgereicht.
   Predigt“ (de, en, ru, fa); der Zustand an die Handys trägt neu
   `mitschrift` (Testprotokoll oder Mitschrift im Protokoll), sofort
   beim Umschalten, und Handy wie Pult (*Gottesdienst*) zeigen es wie
-  die Aufnahme. Prüfstand `mitschrift_hinweis_test.py`.
+  die Aufnahme. Prüfstand `mitschrift_hinweis_test.py`. Die Mitschrift
+  im Journal braucht jetzt dieselbe Einwilligung wie das Testprotokoll
+  (die sprechende Person wurde gefragt; vom Server geprüft) und
+  übersteht wie dieses keinen Neustart — auch ein Rechner, auf dem sie
+  vor dem Update an war, startet mit ihr aus. Prüfstand
+  `mitschrift_einwilligung_test.py`.
 * **Lizenz** (Teil F). Namensschutz als zusätzliche Bedingung nach § 7
   GPLv3 (`COPYING.ZUSATZ`). Der Wechsel auf AGPL ist vorbereitet, nicht
   aktiv.

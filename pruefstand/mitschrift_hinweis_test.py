@@ -154,7 +154,9 @@ async def strom_probe():
         z = await naechster_zustand()
         ergebnisse.append(("beim Anmelden", z.get("mitschrift")))
         for weg, daten, name in (
-                ("/api/protokoll", {"an": True}, "Mitschrift an"),
+                ("/api/protokoll",
+                 {"an": True, "einwilligung": {"person_gefragt": True}},
+                 "Mitschrift an"),
                 ("/api/protokoll", {"an": False}, "Mitschrift aus"),
                 ("/api/pruefprotokoll",
                  {"an": True, "einwilligung": {"person_gefragt": True}},
