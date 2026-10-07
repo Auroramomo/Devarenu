@@ -6,6 +6,91 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.5.0 — Sprachen und Stimmen
+
+*07.10.2026.*
+
+### Für alle
+
+**Ukrainisch ist geprüft.** Ein ukrainischer Muttersprachler hat die
+Fachbegriffe durchgesehen. Ukrainisch spricht jetzt mit einer neuen
+Stimme (*Mykyta*), und Bibelstellen kommen in der Zählung der
+Ohienko-Bibel.
+
+**Twi (Asante) ist neu** — ungeprüft, mit Stimme, nur als Sprache der
+Übersetzung (nicht als Sprache des Predigers). Das Sprachmodell
+schreibt Twi bisher schlecht; bitte erst nach einer Hörprobe mit
+jemandem einschalten, der Twi spricht.
+
+**Arabisch spricht wieder**, mit der Stimme *Miro*. Weiterhin
+ungeprüft.
+
+**Ungeprüfte Sprachen sagen es in ihrer eigenen Sprache** — und bitten
+um Hilfe: wer die Sprache spricht, meldet sich über „Rückmeldung“.
+
+**Datenschutz unter „Mehr“.** Ganz unten, klein neben „Schließen“:
+was mit Ton und Text geschieht. Dazu ein Aushang für den Eingang und
+ein Blatt für Gastprediger. **Alles als Entwurf, vor Freigabe durch den
+Datenschutzbeauftragten.**
+
+**Nach einem Update lädt sich die Seite auf dem Handy selbst neu**, und
+wer kurz die Verbindung verliert, bekommt den verpassten Text
+nachgereicht.
+
+### Für die Technik
+
+* **Ukrainisch** (Teil A). `glossar_v1.2.csv`, aktiv, uk in
+  `GEPRUEFT`. 93 Begriffe vom Prüfer (eine Korrektur, ein Hinweis als
+  Nebenform); die übrigen Bibelbücher aus Ohienko; von 128
+  maschinellen Begriffen waren 30 falsch — Kreuzigung als „Хрещення“
+  (Taufe) — und sind durch belegte Formen ersetzt, drei bleiben leer.
+  Alles mit Begründung in `werkzeuge/glossar_rueck_uk.py`.
+  Vergleichslauf über 1498 Texte: keine andere Sprache ändert sich.
+  Stimme `uk_UA-mykyta-high` statt `ukrainian_tts` (Längenfaktor 1,51
+  statt 1,03 — nahe am Höchsttempo). і ї є ґ und alle drei
+  Apostroph-Formen belegt (`stimmzeichen_test.py`). Bibelstellen:
+  Ohienko zählt die Psalmen hebräisch und Joel/Maleachi englisch —
+  belegt an der Ausgabe der Bibelgesellschaft, nicht an der
+  umnummerierten getbible-Datei. `pruefung/fallstricke_uk.csv`.
+* **Twi** (Teil B). `NUR_ZIEL`: Whisper kennt Twi nicht. Die Stimme ist
+  ein Coqui-Modell, umgewandelt nach ONNX (`werkzeuge/twi_stimme.py`)
+  und mit Coqui verglichen: dieselben Zeichennummern, dieselben
+  Abtastwerte. Dabei einen Fehler in Coquis Export berichtigt (die
+  Rauschwerte kamen nicht an). Läuft über den gewöhnlichen Piper-Weg.
+  Längenfaktor 1,66, gestutzt auf 1,6. Neu `config.STIMM_QUELLE`:
+  Stimmen, die nicht im Piper-Vorrat liegen. Neu `SCHLEIFE_KAPPEN`:
+  gemma läuft auf Twi in Wiederholungsschleifen; sie werden gekappt —
+  nur für Twi.
+* **Arabisch** (Teil C). `ar_miro_espeak_V2`, CC BY-NC-ND 4.0. Piper
+  lädt die Datei unverändert (sha256 = Veröffentlichung); die
+  Vokalzeichen setzt Pipers eingebaute Diakritisierung. Mit Whisper
+  zurückgehört 0,98 Übereinstimmung. Längenfaktor 1,00.
+* **Hinweis zu ungeprüften Sprachen** (Teil D) in 14 Sprachen,
+  maschinell und gekennzeichnet; mit Bitte um Mithilfe, nur wenn es
+  eine Rückmeldeadresse gibt.
+* **Datenschutz** (Teil E). `DATENSCHUTZ.md` umgebaut: neutrales
+  Verzeichnis, Rechtsrahmen für Adventgemeinden (DSVO 2018) und für
+  andere Träger (DSGVO). `datenschutz.py` mit Stufe 1 und 2,
+  `/datenschutz` vom Gerät, Feld *Kontakt* am Pult, zwei Druckvorlagen,
+  eine Zeile auf der QR-Seite.
+* **Lizenz** (Teil F). Namensschutz als zusätzliche Bedingung nach § 7
+  GPLv3 (`COPYING.ZUSATZ`). Der Wechsel auf AGPL ist vorbereitet, nicht
+  aktiv.
+* **Robustheit** (Teil G). Die Seite kennt ihre Fassung und lädt sich
+  bei Abweichung einmal neu, mit Schutz gegen die Schleife.
+  Nachgereichter Text nach einem Abbruch (`seit`, `lauf`), ohne Ton,
+  ohne Doppel. Der 90-Prozent-Hinweis zur Grafikkarte fällt auf dem
+  Entwicklungsrechner weg.
+* **Kleinigkeiten** (Teil H). Bildschirmtest am Fold 7 eingetragen;
+  das Protokoll sagt, woher „aus“ kommt; der Vorführmodus räumt beim
+  Schließen des Fensters nachweislich auf.
+* Neue Prüfstände: `sprachen_test.py`, `stimmzeichen_test.py`,
+  `datenschutz_test.py`, `nachholen_test.py`, `fassung_test.mjs`,
+  `hinweisband_test.mjs`. Der Einspielweg prüft jetzt von acht
+  Startfassungen aus, `v0.3.7` bis `v0.4.6`.
+
+---
+
 ## 0.4.6 — Der Bildschirm bleibt an
 
 *04.10.2026.*

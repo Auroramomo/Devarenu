@@ -76,3 +76,12 @@ braucht.
 Unter **Mehr** in der Leiste unten steht *Melden*. Ein Satz genügt — fehlt
 eine Sprache, ist der Ton zu leise? Die Technik sieht es sofort. Eine
 Antwort kommt nicht; dafür ist während des Gottesdienstes keine Zeit.
+
+## Datenschutz
+
+Unter **Mehr** steht ganz unten, klein neben *Schließen*,
+*Datenschutz*. Kurz: alles bleibt auf dem Rechner im Saal, keine Cloud,
+kein Konto, keine App. Gespeichert wird nichts — außer die Gemeinde
+schaltet eine Aufnahme der Predigt ein; das sehen Sie dann auf dem
+Handy. Dort gibt es auch die ausführliche Fassung. *(Entwurf, vor
+Freigabe durch den Datenschutzbeauftragten.)*

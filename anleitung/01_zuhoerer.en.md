@@ -72,3 +72,12 @@ Under **More** in the bar at the bottom there is *Report*. One sentence is
 enough — is a language missing, is the sound too quiet? The sound desk
 sees it immediately. You will not get a reply; there is no time for
 that during the service.
+
+## Privacy
+
+At the very bottom of **More**, small next to *Close*, there is
+*Privacy*. In short: everything stays on the computer in the hall — no
+cloud, no account, no app. Nothing is stored, unless the church
+switches on a recording of the sermon; you will then see that on your
+phone. The full version is there too. *(Draft, pending approval by the
+data protection officer.)*

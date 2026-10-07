@@ -101,8 +101,8 @@ Internet, keine Tastatur.
 Zusicherungen belegt — darunter der echte alte Kern aus
 `git show v0.2.11:stick_update.sh`, der sich beim Update selbst
 überschreibt, und seit 0.4.0 der Weg auf die jeweils neue Fassung von
-sieben Startfassungen aus, `v0.3.7` bis `v0.4.5`
-(`pruefstand/einspielweg_test.sh`), jede mit ihrem eigenen alten
+acht Startfassungen aus, `v0.3.7` bis `v0.4.6`
+(`pruefstand/einspielweg_test.sh`, 143 Fälle), jede mit ihrem eigenen alten
 `aktualisieren.sh`. Alles
 mit Attrappen für `systemctl`, `sudo`, `runuser`, `curl` und
 `udevadm`.
@@ -664,8 +664,8 @@ den einen Gemeinderechner.
 
 Dagegen steht einiges: alles ist aufgeschrieben und begründet
 (`AUFSTELLEN.md`, 2000 Zeilen mit der Geschichte jeder Entscheidung),
-39 Prüfstände halten die Zusicherungen fest (Stand 0.4.6: 35 in
-Python und JavaScript, vier als Shell-Skript), das Repo ist öffentlich
+45 Prüfstände halten die Zusicherungen fest (Stand 0.5.0: 32 in
+Python, neun in JavaScript, vier als Shell-Skript), das Repo ist öffentlich
 und unter GPLv3, und seit 0.4.0 gibt es eine Erstinstallation für
 Fremde.
 

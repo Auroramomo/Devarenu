@@ -53,7 +53,7 @@ export PATH="$ECHT/pruefstand/attrappen:$PATH"
 
 GRUEN="\033[32m"; ROT="\033[31m"; GELB="\033[33m"; AUS="\033[0m"
 FEHLER=0
-VON="v0.3.7 v0.3.8 v0.4.1 v0.4.2 v0.4.3 v0.4.4 v0.4.5"
+VON="v0.3.7 v0.3.8 v0.4.1 v0.4.2 v0.4.3 v0.4.4 v0.4.5 v0.4.6"
 
 aufraeumen() {
   for t in $VON; do

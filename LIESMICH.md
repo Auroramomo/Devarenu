@@ -9,7 +9,7 @@ der Gemeinde: ohne Internet, ohne Konto, ohne laufende Kosten.
 Gemessen im Betrieb: 2,0 Sekunden Verzögerung, kein Nachlaufen über 32
 Minuten.
 
-**Fassung 0.4.1.** Was dazugekommen ist, steht in
+**Fassung 0.5.0.** Was dazugekommen ist, steht in
 [AENDERUNGEN.md](AENDERUNGEN.md). Devarenu läuft zur Zeit in **einer**
 Gemeinde und wird dort erprobt; an weitere Gemeinden geht es erst mit
 Version 1.0.
@@ -87,11 +87,12 @@ geschrieben wird. Fehlt die Angabe, erinnert das Pult mit einer gelben
 Zeile daran — aufgehalten wird nichts.
 
 **Bibelstellen werden in die Zählung der Zielsprache gebracht.** Die
-Schlachter 2000 zählt wie der hebräische Text; englische, spanische und
-portugiesische Bibeln zählen anders, russische bei den Psalmen
-ebenfalls. Aus „Joel 3,1" wird darum englisch „Joel 2:28" und aus
-„Psalm 23" russisch „Псалом 22". Umgerechnet wird nur, wo die Zuordnung
-eindeutig belegt ist — bei Spannen über Kapitelgrenzen, bei Versen ohne
+Schlachter 2000 zählt wie der hebräische Text; englische, spanische,
+portugiesische und die Twi-Bibel zählen anders, russische bei den
+Psalmen ebenfalls, die ukrainische (Ohienko) bei Joel und Maleachi.
+Aus „Joel 3,1" wird darum englisch „Joel 2:28" und aus „Psalm 23"
+russisch „Псалом 22". Umgerechnet wird nur, wo die Zuordnung eindeutig
+belegt ist — bei Spannen über Kapitelgrenzen, bei Versen ohne
 Gegenstück und für Persisch bleibt die Angabe unverändert stehen.
 
 ## Sprachen ändern
@@ -107,9 +108,11 @@ Danach einmal `bash einrichten.sh`, das lädt die fehlenden Stimmen. Umschalten
 geht auch am Pult; das bleibt dann so, bis es jemand wieder ändert.
 Sprachen ohne Stimme laufen als reiner Untertitel.
 
-Bei Deutsch, Englisch, Russisch und Persisch hat ein Muttersprachler das
-Fachwortverzeichnis durchgesehen. Die übrigen Sprachen laufen technisch
-genauso, ihre Terminologie ist aber maschinell erzeugt und ungeprüft.
+Bei Deutsch, Englisch, Russisch, Persisch, Spanisch, Portugiesisch und
+Ukrainisch hat ein Muttersprachler das Fachwortverzeichnis durchgesehen.
+Die übrigen Sprachen laufen technisch genauso, ihre Terminologie ist
+aber maschinell erzeugt und ungeprüft — Twi hat gar keine. Twi (Asante)
+gibt es nur als Zielsprache: die Spracherkennung kennt es nicht.
 
 ## Warum es so gebaut ist
 

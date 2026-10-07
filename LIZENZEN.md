@@ -157,11 +157,14 @@ eingetragene Marke der Generalkonferenz. Es fällt **nicht** unter die
 GPLv3 dieses Projekts. Gemeinden anderer Konfessionen ersetzen die
 Datei durch ihr eigenes Zeichen.
 
-## Die ausgelieferten Piper-Stimmen
+## Die ausgelieferten Stimmen
 
 Erhoben mit `werkzeuge/stimmlizenzen.py` aus der `MODEL_CARD` jeder
 Stimme im Repo `rhasspy/piper-voices` — derselben Quelle, aus der
-`einrichten.sh` sie holt. Stand 0.4.0.
+`einrichten.sh` sie holt. Stand 0.4.0, nachgetragen bis 0.5.0: seit
+dieser Fassung kommen zwei Stimmen **nicht** aus diesem Vorrat — Twi
+(eine Umwandlung) und Arabisch (OpenVoiceOS). Beide stehen in
+`config.STIMM_QUELLE` und unten je in einem eigenen Abschnitt.
 
 Genannt ist die Lizenz des **Datensatzes**, auf dem die Stimme
 trainiert wurde. Ob ein daraus trainiertes Modell dieselbe Beschränkung
