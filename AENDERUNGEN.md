@@ -17,10 +17,14 @@ Fachbegriffe durchgesehen. Ukrainisch spricht jetzt mit einer neuen
 Stimme (*Mykyta*), und Bibelstellen kommen in der Zählung der
 Ohienko-Bibel.
 
-**Twi (Asante) ist neu** — ungeprüft, mit Stimme, nur als Sprache der
-Übersetzung (nicht als Sprache des Predigers). Das Sprachmodell
-schreibt Twi bisher schlecht; bitte erst nach einer Hörprobe mit
-jemandem einschalten, der Twi spricht.
+**Twi (Asante) liegt bereit, aber hinter einem Schalter.** Mit Stimme,
+nur als Sprache der Übersetzung (nicht als Sprache des Predigers).
+Das Sprachmodell schreibt Twi bisher so schlecht, dass es für den
+Gottesdienst nicht taugt; darum erscheint Twi weder am Pult noch auf
+dem Handy, solange unter *Einrichtung → Fehlersuche → Erweitert* der
+Schalter **„Versuchssprachen“** aus ist (Vorgabe). Twi wartet auf ein
+Übersetzungsmodell, das Twi kann: gemma4:26b wäre besser, passt aber
+neben Whisper nicht in 16 GB Grafikspeicher.
 
 **Arabisch spricht wieder**, mit der Stimme *Miro*. Weiterhin
 ungeprüft.
@@ -60,7 +64,12 @@ nachgereicht.
   Längenfaktor 1,66, gestutzt auf 1,6. Neu `config.STIMM_QUELLE`:
   Stimmen, die nicht im Piper-Vorrat liegen. Neu `SCHLEIFE_KAPPEN`:
   gemma läuft auf Twi in Wiederholungsschleifen; sie werden gekappt —
-  nur für Twi.
+  nur für Twi. Neu `config.VERSUCHSSPRACHEN` (heute nur `tw`) und das
+  Feld `versuchssprachen` in `zustand.json`, Vorgabe aus: dann fehlt
+  Twi in `/api/sprachen` (`moeglich`), und `/api/sprachwahl` nimmt es
+  nicht an. War Twi vor dem Update schon an, bleibt es an; der
+  Systemcheck meldet es als Hinweis (`versuchssprache`). Prüfstand
+  `versuchssprachen_test.py`.
 * **Arabisch** (Teil C). `ar_miro_espeak_V2`, CC BY-NC-ND 4.0. Piper
   lädt die Datei unverändert (sha256 = Veröffentlichung); die
   Vokalzeichen setzt Pipers eingebaute Diakritisierung. Mit Whisper

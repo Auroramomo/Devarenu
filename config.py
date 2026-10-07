@@ -368,6 +368,20 @@ SPRACHNAMEN = {
 # sie dort nicht an.
 NUR_ZIEL = {"tw"}
 
+# Versuchssprachen (Nachtrag zu 0.5.0): Sprachen, die im Programm
+# stehen, mit Stimme und Code, die das Uebersetzungsmodell aber nicht
+# gut genug kann, um damit einen Gottesdienst zu bestreiten. gemma4:12b
+# liefert in Twi Wiederholungsschleifen und erfundene Woerter (die Probe
+# zu 0.5.0); gemma4:26b waere besser, passt aber neben Whisper nicht in
+# 16 GB Grafikspeicher.
+#
+# Sie erscheinen weder am Pult in der Sprachauswahl noch auf der
+# Hoererseite, solange der Schalter "Versuchssprachen" aus ist
+# (zustand.json, Feld "versuchssprachen", Vorgabe aus). Der Schalter
+# steht am Pult unter Einrichtung -> Fehlersuche -> Erweitert. Ist eine
+# davon schon eingeschaltet, bleibt sie es; der Systemcheck sagt es.
+VERSUCHSSPRACHEN = {"tw"}
+
 # Dieselben Sprachen auf Englisch. Gebraucht fuer die englischen
 # Meldungen am Pult: "Rumänisch is switched on" ist kein englischer
 # Satz, sondern ein halb uebersetzter. Wer am Pult auf Englisch

@@ -4634,8 +4634,18 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 # nicht kennt (config.NUR_ZIEL).
                 "quelle": sp not in getattr(config, "NUR_ZIEL", set()),
             } for sp, name in sorted(config.SPRACHNAMEN.items(),
-                                     key=lambda x: x[1])],
+                                     key=lambda x: x[1])
+                if versuch_erlaubt(sp)],
         }
+
+    def versuch_erlaubt(sp):
+        """Darf sp gewaehlt werden? Nein bei einer Versuchssprache
+        (config.VERSUCHSSPRACHEN), solange der Schalter aus ist -- es
+        sei denn, sie laeuft schon. Was eingeschaltet ist, bleibt
+        eingeschaltet; der Systemcheck weist darauf hin."""
+        if sp not in getattr(config, "VERSUCHSSPRACHEN", set()):
+            return True
+        return bool(lauf.zustand.get("versuchssprachen")) or sp in lauf.ziele
 
     @app.post("/api/sprachwahl")
     async def sprachwahl(daten: dict):
@@ -4646,8 +4656,16 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         Rechenzeit dort, wo eine Gemeinde sie braucht, und dasselbe Geraet
         bedient je nach Einstellung einen deutschen oder einen
         anderssprachigen Gottesdienst."""
-        entfallen = lauf.sprachen_setzen(daten.get("quelle"),
-                                         daten.get("ziele"))
+        ziele = daten.get("ziele")
+        if isinstance(ziele, list):
+            # Eine Versuchssprache kommt nur bei eingeschaltetem
+            # Schalter dazu, auch wenn jemand sie am Pult vorbei schickt.
+            weg = [z for z in ziele if not versuch_erlaubt(z)]
+            if weg:
+                print(f"Sprachwahl: {', '.join(weg)} ist Versuchssprache, "
+                      f"der Schalter ist aus.")
+                ziele = [z for z in ziele if z not in weg]
+        entfallen = lauf.sprachen_setzen(daten.get("quelle"), ziele)
         for sp in entfallen:
             for ws in list(lauf.hoerer.get(sp, ())):
                 try:
@@ -4818,6 +4836,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 "kontext_fehlt": not lauf.werk.stt_prompt,
                 "thema_im_prompt": bool(
                     getattr(lauf.werk, "thema_im_prompt", False)),
+                "versuchssprachen": bool(
+                    lauf.zustand.get("versuchssprachen")),
                 # Der Knopf "Jetzt aus dem Netz": steht er zur
                 # Verfuegung, und laeuft gerade einer?
                 "online_lauf": online_lauf() or None,
@@ -5800,6 +5820,20 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         lauf.werk.thema_im_prompt = an
         lauf.zustand["thema_im_prompt"] = an
         zustandsdatei.speichern(lauf.zustand)
+        return {"an": an}
+
+    @app.post("/api/versuchssprachen")
+    async def versuchssprachen_schalten(daten: dict):
+        """Der Schalter "Versuchssprachen" (Nachtrag zu 0.5.0).
+
+        Vorgabe AUS. Ausschalten nimmt eine laufende Versuchssprache
+        NICHT heraus -- wer mitten im Gottesdienst den Schalter
+        zuruecksetzt, soll keinen Zuhoerer verlieren. Sie verschwindet
+        aus der Auswahl, sobald sie am Pult abgewaehlt ist."""
+        an = bool(daten.get("an"))
+        lauf.zustand["versuchssprachen"] = an
+        zustandsdatei.speichern(lauf.zustand)
+        print(f"Versuchssprachen: {'an' if an else 'aus'}.")
         return {"an": an}
 
     @app.post("/api/rueckmeldung")
@@ -7133,6 +7167,21 @@ wenn der Dienst neu startet, und wird nach sieben Tagen gelöscht.</p>
 <details class=hilfe id=grafiktage hidden>
   <summary data-t=grafik_tage>Die letzten Tage</summary>
   <div><ul class=wartungliste id=grafikliste></ul></div></details>
+<!-- Versuchssprachen (Nachtrag zu 0.5.0): absichtlich hier, zugeklappt
+     und hinter der Fehlersuche. Wer Sprachen fuer den Gottesdienst
+     sucht, sucht unter Sprachen und soll dort nur finden, was taugt. -->
+<details class=hilfe id=erweitert>
+  <summary data-t=erweitert>Erweitert</summary>
+  <div>
+  <label class=haken><input type=checkbox id=versuchsschalter
+    onchange=versuchSetzen()> <span data-t=versuch_an>Versuchssprachen
+    anbieten</span></label>
+  <p class=hin data-t=versuch_hin>Aus. Versuchssprachen (heute Twi) liegen
+  mit Stimme auf dem Rechner, aber das Übersetzungsmodell beherrscht sie
+  nicht: es wiederholt Wörter, erfindet welche und verfehlt Bibelstellen.
+  Für den Gottesdienst taugen sie deshalb nicht — nur zum Ausprobieren,
+  zusammen mit jemandem, der die Sprache spricht.</p>
+  </div></details>
 </div>
 
 </div>
@@ -7305,6 +7354,13 @@ const TEXTE={
      +"Eingeschaltet bekommt auch das Übersetzungsmodell einen Satz "
      +"dazu — das kann Namen treffsicherer machen und in Einzelfällen "
      +"den Abschnitt zum Thema hin verbiegen.",
+   erweitert:"Erweitert",
+   versuch_an:"Versuchssprachen anbieten",
+   versuch_hin:"Aus. Versuchssprachen (heute Twi) liegen mit Stimme auf "
+     +"dem Rechner, aber das Übersetzungsmodell beherrscht sie nicht: es "
+     +"wiederholt Wörter, erfindet welche und verfehlt Bibelstellen. Für "
+     +"den Gottesdienst taugen sie deshalb nicht — nur zum Ausprobieren, "
+     +"zusammen mit jemandem, der die Sprache spricht.",
    pw_kurz_ueber:"Pult-Passwort",
    tonquelle_wo:"Kanalwahl, Pegel und „Sprache prüfen“ stehen unter "
      +"Vorbereiten → Feineinstellung.",
@@ -7653,6 +7709,13 @@ const TEXTE={
      +"Switched on, the translation model gets a sentence about it as "
      +"well \u2014 that can make names more accurate and in rare cases "
      +"bend a passage towards the topic.",
+   erweitert:"Advanced",
+   versuch_an:"Offer experimental languages",
+   versuch_hin:"Off. Experimental languages (currently Twi) are on this "
+     +"computer with a voice, but the translation model does not master "
+     +"them: it repeats words, invents some and misses Bible references. "
+     +"They are therefore not fit for a church service — only for "
+     +"trying out, together with someone who speaks the language.",
    pw_kurz_ueber:"Desk password",
    tonquelle_wo:"Channel, level and \u201ccheck language\u201d live under "
      +"Prepare \u2192 Fine tuning.",
@@ -8899,6 +8962,16 @@ async function themaSetzen(){
   if(d.an !== undefined) themaschalter.checked = !!d.an;
 }
 
+async function versuchSetzen(){
+  const a = await fetch("/api/versuchssprachen",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({an: versuchsschalter.checked})});
+  const d = await a.json().catch(()=>({}));
+  if(d.an !== undefined) versuchsschalter.checked = !!d.an;
+  // Die Auswahl unter Sprachen gleich neu aufbauen.
+  sprachenLaden();
+}
+
 async function protokollSetzen(){
   const an = protokollschalter.checked;
   await fetch("/api/protokoll",{method:"POST",
@@ -9291,6 +9364,8 @@ async function lies(){
     meldeschalter.checked = !!d.nutzung_melden;
     if(d.thema_im_prompt!==undefined)
       themaschalter.checked = !!d.thema_im_prompt;
+    if(d.versuchssprachen!==undefined)
+      versuchsschalter.checked = !!d.versuchssprachen;
     kontowarnung.hidden = !d.spendenkonto;
     onlineUpdateAnzeigen(d);
     if(d.spendenkonto) kontowarnungtext.textContent = TEXTE[UI].konto_kaputt;

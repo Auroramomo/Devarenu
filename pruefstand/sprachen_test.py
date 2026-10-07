@@ -75,7 +75,11 @@ for satz in ("Heilig, heilig, heilig ist der Herr.",
              "Ɔdɔ nni awiei."):
     pruefe(f"bleibt stehen: {satz}", satz, schleife_kappen(satz))
 
-ordner = arbeitskopie(wegwerfordner("devarenu-sprachen-"))
+# Twi ist seit dem Nachtrag zu 0.5.0 Versuchssprache. Hier geht es um
+# Twi als Ziel- und nicht als Quellsprache, also mit eingeschaltetem
+# Schalter; was er verbirgt, prueft versuchssprachen_test.py.
+ordner = arbeitskopie(wegwerfordner("devarenu-sprachen-"),
+                      {"versuchssprachen": True})
 p = server_starten(ordner, PORT)
 try:
     titel("2) Was der Server meldet")

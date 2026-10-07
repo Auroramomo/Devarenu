@@ -210,6 +210,11 @@ def vorgabe():
         # Whisper. Vorgabe AUS: ein Hinweis mehr im Prompt ist ein
         # Hinweis mehr, den das Modell missverstehen kann.
         "thema_im_prompt": False,
+        # Duerfen Versuchssprachen (config.VERSUCHSSPRACHEN, heute Twi)
+        # gewaehlt werden? Vorgabe AUS: sie taugen nicht fuer den
+        # Gottesdienst. Wer sie ausprobieren will, schaltet das unter
+        # Einrichtung -> Fehlersuche -> Erweitert ein.
+        "versuchssprachen": False,
         # Der Name der Gemeinde. Erscheint auf der QR-Seite als
         # "Devarenu . <Name>". Leer heisst: nichts anzeigen -- und
         # das ist die Vorgabe, denn dieser Rechner weiss nicht, wo er
@@ -341,6 +346,11 @@ def _uebernehmen(roh, daten):
         daten["nutzung_melden"] = roh["nutzung_melden"]
     elif roh.get("nutzung_melden") is not None:
         fehlerhaft.append("nutzung_melden")
+
+    if isinstance(roh.get("versuchssprachen"), bool):
+        daten["versuchssprachen"] = roh["versuchssprachen"]
+    elif roh.get("versuchssprachen") is not None:
+        fehlerhaft.append("versuchssprachen")
 
     if isinstance(roh.get("gemeinde"), str):
         # Gekuerzt und einzeilig: er geht auf die QR-Seite und in die

@@ -112,7 +112,11 @@ Bei Deutsch, Englisch, Russisch, Persisch, Spanisch, Portugiesisch und
 Ukrainisch hat ein Muttersprachler das Fachwortverzeichnis durchgesehen.
 Die übrigen Sprachen laufen technisch genauso, ihre Terminologie ist
 aber maschinell erzeugt und ungeprüft — Twi hat gar keine. Twi (Asante)
-gibt es nur als Zielsprache: die Spracherkennung kennt es nicht.
+gibt es nur als Zielsprache: die Spracherkennung kennt es nicht. Und
+es ist *Versuchssprache*: das Übersetzungsmodell schreibt es nicht gut
+genug für den Gottesdienst, darum erscheint es erst, wenn unter
+*Einrichtung → Fehlersuche → Erweitert* der Schalter
+„Versuchssprachen“ an ist.
 
 ## Warum es so gebaut ist
 

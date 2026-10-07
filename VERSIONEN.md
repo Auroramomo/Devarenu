@@ -8,8 +8,9 @@ fallen heraus, damit dies ein Blatt bleibt.
 
 - **Ukrainisch ist geprüft**, mit neuer Stimme und Bibelstellen nach
   Ohienko.
-- **Twi (Asante) und Arabisch mit Stimme**, beide ungeprüft. Twi nur
-  nach einer Hörprobe einschalten.
+- **Arabisch spricht wieder**, ungeprüft. **Twi (Asante)** liegt mit
+  Stimme bereit, aber hinter dem Schalter „Versuchssprachen“ — es
+  taugt noch nicht für den Gottesdienst.
 - **Datenschutz unter „Mehr“**, dazu Aushang und Blatt für
   Gastprediger — als Entwurf, vor Freigabe.
 - **Die Seite lädt sich nach einem Update selbst neu**; verpasster

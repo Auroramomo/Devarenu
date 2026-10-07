@@ -464,11 +464,18 @@ Polnisch liegt vorbereitet. Alles andere läuft maschinell und ist am
 Pult als *experimentell* gekennzeichnet; der Hinweis auf dem Handy steht
 seit 0.5.0 in der Sprache selbst und bittet um Mithilfe.
 
-**Twi (Asante) und Arabisch** laufen seit 0.5.0 **ungeprüft mit
-Stimme**. Bei Twi ist das mehr als ein Etikett: gemma4:12b schreibt
-Twi gemessen schlecht (Wiederholungsschleifen, falsche Begriffe), und
-Twi hat kein Fachwortverzeichnis. Einschalten erst nach einer Hörprobe
-mit jemandem, der Twi spricht.
+**Arabisch** läuft seit 0.5.0 **ungeprüft mit Stimme**.
+
+**Twi (Asante) ist Versuchssprache** (`config.VERSUCHSSPRACHEN`):
+Stimme und Code liegen bereit, aber Twi erscheint weder am Pult noch
+auf dem Handy, solange der Schalter „Versuchssprachen“ aus ist
+(*Einrichtung → Fehlersuche → Erweitert*, Vorgabe aus). gemma4:12b
+schreibt Twi gemessen schlecht (Wiederholungsschleifen, erfundene
+Wörter, falsche Begriffe), und Twi hat kein Fachwortverzeichnis.
+**Twi wartet auf ein Übersetzungsmodell, das Twi kann.** gemma4:26b
+wäre besser, passt aber neben Whisper nicht auf 16 GB Grafikspeicher.
+Erst mit einem solchen Modell lohnt eine Hörprobe mit jemandem, der
+Twi spricht, und danach der Weg wie bei jeder anderen Sprache.
 
 **Bei Ukrainisch zu bestätigen:** 30 maschinelle Glossarbegriffe sind
 aus Ohienko berichtigt, nicht vom Prüfer gesehen

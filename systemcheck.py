@@ -847,6 +847,42 @@ def _protokoll(befunde):
         tun_en="Switch it off again under Setup on the control desk."))
 
 
+def _versuchssprachen(befunde):
+    """Laeuft eine Versuchssprache mit (config.VERSUCHSSPRACHEN)?
+
+    Seit dem Nachtrag zu 0.5.0 steht Twi hinter dem Schalter
+    "Versuchssprachen". Wer es vorher eingeschaltet hat, behaelt es --
+    niemand soll nach einem Update ohne Ansage Zuhoerer verlieren. Aber
+    es steht am Pult, dass diese Sprache nicht fuer den Gottesdienst
+    taugt. Ein Hinweis, kein Fehler: die Uebersetzung laeuft."""
+    try:
+        import config
+        import zustand as zustandsdatei
+        ziele = zustandsdatei.laden()[0].get("ziele") or []
+    except Exception:
+        return
+    laufend = [sp for sp in ziele
+               if sp in getattr(config, "VERSUCHSSPRACHEN", set())]
+    if not laufend:
+        return
+    namen = ", ".join(config.SPRACHNAMEN.get(sp, sp) for sp in laufend)
+    namen_en = ", ".join(getattr(config, "SPRACHNAMEN_EN", {}).get(sp, sp)
+                         for sp in laufend)
+    befunde.append(Befund(
+        "versuchssprache", HINWEIS,
+        f"{namen} laeuft mit. Das ist eine Versuchssprache: das "
+        "Uebersetzungsmodell beherrscht sie nicht gut genug fuer den "
+        "Gottesdienst (Wiederholungen, erfundene Woerter).",
+        "Am Pult unter Einrichtung -> Sprachen abwaehlen, wenn sie nicht "
+        "gerade mit jemandem ausprobiert wird, der die Sprache spricht.",
+        was_en=f"{namen_en} is running. It is an experimental language: "
+               "the translation model does not handle it well enough for "
+               "a church service (repetitions, invented words).",
+        tun_en="Deselect it under Setup -> Languages on the control desk "
+               "unless someone who speaks it is trying it out.",
+        laie=True))
+
+
 def _testmodus(befunde):
     """Laeuft dieser Rechner im Testmodus?
 
@@ -1173,6 +1209,7 @@ def pruefen():
     _ollama_gpu(befunde)
     _wartungsfenster(befunde)
     _protokoll(befunde)
+    _versuchssprachen(befunde)
     _mp3(befunde)
     _onlineupdate(befunde)
     _testmodus(befunde)
