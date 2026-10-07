@@ -889,7 +889,8 @@ const TEXTE = {
       ibanKopieren:"IBAN kopieren", ibanKopiert:"Kopiert",
       ibanVonHand:"Bitte von Hand kopieren",
       neuHinweis:"Diese Sprache ist neu und ihre Fachbegriffe hat noch niemand gegengelesen, der sie spricht. Sie funktioniert, kann aber mehr Fehler enthalten. Rückmeldungen sind sehr willkommen.",
-      keinGlossar:"Für diese Sprache gibt es noch kein Fachwortverzeichnis. Begriffe wie Sabbat, Gemeinde oder Vereinigung werden wörtlich übersetzt und können dadurch schief klingen. Die Übersetzung läuft, ist aber experimentell."},
+      keinGlossar:"Für diese Sprache gibt es noch kein Fachwortverzeichnis. Begriffe wie Sabbat, Gemeinde oder Vereinigung werden wörtlich übersetzt und können dadurch schief klingen. Die Übersetzung läuft, ist aber experimentell.",
+      hilfe:"Du sprichst diese Sprache? Hilf mit, die Fachbegriffe zu prüfen: unter „Mehr“ auf „Rückmeldung“ tippen und schreiben."},
   en:{titel:"Live translation", waehlen:"Choose a language", zuhoeren:"Listen",
       erst:"Choose a language first.",
       ton:"Sound", tonAus:"Sound off", text:"Text", textAus:"Text off", sprache:"Language",
@@ -921,7 +922,8 @@ const TEXTE = {
       ibanKopieren:"Copy IBAN", ibanKopiert:"Copied",
       ibanVonHand:"Please copy manually",
       neuHinweis:"This language is new and its technical terms have not yet been reviewed by a native speaker. It works, but may contain more errors. Feedback is very welcome.",
-      keinGlossar:"There is no glossary for this language yet. Terms like Sabbath, church or conference are translated literally and may sound off. The translation works, but it is experimental."},
+      keinGlossar:"There is no glossary for this language yet. Terms like Sabbath, church or conference are translated literally and may sound off. The translation works, but it is experimental.",
+      hilfe:"Do you speak this language? Help us check the terms: tap “More”, then “Feedback”, and write to us."},
   ru:{titel:"Синхронный перевод", waehlen:"Выберите язык", zuhoeren:"Слушать",
       erst:"Сначала выберите язык.",
       ton:"Звук", tonAus:"Без звука", text:"Текст", textAus:"Без текста", sprache:"Язык",
@@ -953,7 +955,8 @@ const TEXTE = {
       ibanKopieren:"Скопировать IBAN", ibanKopiert:"Скопировано",
       ibanVonHand:"Скопируйте вручную",
       neuHinweis:"Этот язык новый, его терминологию ещё не проверял носитель языка. Перевод работает, но ошибок может быть больше. Отзывы очень приветствуются.",
-      keinGlossar:"Для этого языка пока нет словаря терминов. Такие слова, как суббота, церковь или объединение, переводятся буквально и могут звучать странно. Перевод работает, но он экспериментальный."},
+      keinGlossar:"Для этого языка пока нет словаря терминов. Такие слова, как суббота, церковь или объединение, переводятся буквально и могут звучать странно. Перевод работает, но он экспериментальный.",
+      hilfe:"Вы говорите на этом языке? Помогите проверить термины: нажмите «Ещё», затем «Отзыв» и напишите нам."},
   fa:{titel:"ترجمهٔ همزمان", waehlen:"زبان را انتخاب کنید", zuhoeren:"شنیدن",
       erst:"ابتدا یک زبان انتخاب کنید.",
       ton:"صدا", tonAus:"صدا خاموش", text:"متن", textAus:"متن خاموش", sprache:"زبان",
@@ -985,8 +988,102 @@ const TEXTE = {
       ibanKopieren:"کپی IBAN", ibanKopiert:"کپی شد",
       ibanVonHand:"لطفاً دستی کپی کنید",
       neuHinweis:"این زبان تازه است و اصطلاحات تخصصی آن را هنوز کسی که به این زبان سخن می‌گوید بازبینی نکرده است. کار می‌کند، اما ممکن است خطای بیشتری داشته باشد. بازخورد شما بسیار ارزشمند است.",
-      keinGlossar:"برای این زبان هنوز واژه‌نامهٔ تخصصی وجود ندارد. واژه‌هایی مانند سَبَت، کلیسا یا اتحادیه تحت‌اللفظی ترجمه می‌شوند و ممکن است نادرست به نظر برسند. ترجمه کار می‌کند، اما آزمایشی است."},
+      keinGlossar:"برای این زبان هنوز واژه‌نامهٔ تخصصی وجود ندارد. واژه‌هایی مانند سَبَت، کلیسا یا اتحادیه تحت‌اللفظی ترجمه می‌شوند و ممکن است نادرست به نظر برسند. ترجمه کار می‌کند، اما آزمایشی است.",
+      hilfe:"به این زبان سخن می‌گویید؟ در بررسی اصطلاحات به ما کمک کنید: «بیشتر» و سپس «بازخورد» را بزنید و برایمان بنویسید."},
 };
+
+/* Der Hinweis für ungeprüfte Sprachen IN DIESEN SPRACHEN (0.5.0).
+   Bis dahin stand er nur auf de, en, ru und fa -- und weil eine
+   ungeprüfte Sprache nie eigene Oberflächentexte hat, las jeder ihn
+   auf Englisch, auch wer gerade Polnisch gewählt hatte.
+
+   MASCHINELL ÜBERSETZT (gemma4:26b) und von niemandem gegengelesen;
+   auf der Seite steht es dazu (mt). Drei offensichtliche Ausrutscher
+   sind von Hand berichtigt (hu, ro: Rechtschreibung; sr: ein Wort in
+   lateinischer statt kyrillischer Schrift).
+
+   Die Knöpfe heißen hier «More» und «Feedback», auf Englisch: so stehen
+   sie auf dem Handy, weil diese Sprachen keine eigenen Oberflächentexte
+   haben. Twi steht nicht hier -- dort gilt Englisch, wie auf der
+   QR-Seite. */
+const HINWEIS_UNGEPRUEFT = {
+  pl:{neu:"Ten język jest nowy i jego terminy techniczne nie zostały jeszcze sprawdzone przez rodzimego użytkownika języka. Działa, ale może zawierać więcej błędów. Uwagi są bardzo mile widziane.",
+      ohne:"Dla tego języka nie ma jeszcze słownika. Terminy kościelne są zatem tłumaczone słowo po słowie i mogą brzmieć dziwnie. Tłumaczenie działa, ale jest eksperymentalne.",
+      hilfe:"Czy mówisz w tym języku? Pomóż nam sprawdzić terminy techniczne: dotknij «More», następnie «Feedback» i napisz do nas.",
+      mt:"tłumaczenie maszynowe"},
+  ro:{neu:"Această limbă este nouă, iar termenii săi tehnici nu au fost încă revizuiți de un vorbitor nativ. Funcționează, dar poate conține mai multe erori. Feedback-ul este foarte binevenit.",
+      ohne:"Încă nu există un glosar pentru această limbă. Prin urmare, termenii bisericești sunt traduceți cuvânt cu cuvânt și pot suna ciudat. Traducerea funcționează, dar este experimentală.",
+      hilfe:"Vorbiți această limbă? Ajutați-ne să verificăm termenii tehnici: apăsați «More», apoi «Feedback» și scrieți-ne.",
+      mt:"traducere automată"},
+  fr:{neu:"Cette langue est nouvelle et ses termes techniques n'ont pas encore été révisés par un locuteur natif. Cela fonctionne, mais peut contenir plus d'erreurs. Vos commentaires sont les bienvenus.",
+      ohne:"Il n'y a pas encore de glossaire pour cette langue. Les termes de l'Église sont donc traduits mot à mot et peuvent sembler étranges. La traduction fonctionne, mais elle est expérimentale.",
+      hilfe:"Parlez-vous cette langue ? Aidez-nous à vérifier les termes techniques : appuyez sur «More», puis sur «Feedback», et écrivez-nous.",
+      mt:"traduction automatique"},
+  it:{neu:"Questa lingua è nuova e i suoi termini tecnici non sono ancora stati revisionati da un madrelingua. Funziona, ma potrebbe contenere più errori. I feedback sono molto graditi.",
+      ohne:"Non esiste ancora un glossario per questa lingua. I termini ecclesiali sono quindi tradotti parola per parola e potrebbero suonare strani. La traduzione funziona, ma è sperimentale.",
+      hilfe:"Parli questa lingua? Aiutaci a verificare i termini tecnici: tocca «More», poi «Feedback» e scrivici.",
+      mt:"traduzione automatica"},
+  tr:{neu:"Bu dil yenidir ve teknik terimleri henüz bir ana dil konuşmacısı tarafından gözden geçirilmemiştir. Çalışmaktadır ancak daha fazla hata içerebilir. Geri bildirimleriniz çok değerlidir.",
+      ohne:"Bu dil için henüz bir sözlük bulunmamaktadır. Bu nedenle kilise terimleri kelimesi kelimesine çevrilmektedir ve kulağa tuhaf gelebilir. Çeviri işlevseldir ancak deneyseldir.",
+      hilfe:"Bu dili konuşuyor musunuz? Teknik terimleri kontrol etmemize yardımcı olun: «More» kısmına, ardından «Feedback» kısmına dokunun ve bize yazın.",
+      mt:"makine tarafından çevrilmiştir"},
+  ar:{neu:"هذه اللغة جديدة ولم يتم مراجعة مصطلحاتها التقنية بعد من قبل متحدث أصلي. إنها تعمل، ولكن قد تحتوي على المزيد من الأخطاء. ملاحظاتكم مرحب بها جداً.",
+      ohne:"لا يوجد مسرد لهذه اللغة بعد. لذلك، يتم ترجمة المصطلحات الكنسية حرفياً وقد تبدو غريبة. الترجمة تعمل، ولكنها تجريبية.",
+      hilfe:"هل تتحدث هذه اللغة؟ ساعدنا في التحقق من المصطلحات التقنية: اضغط على «More»، ثم «Feedback»، واكتب لنا.",
+      mt:"ترجمة آلية"},
+  sw:{neu:"Lugha hii ni mpya na istilahi zake za kiufundi bado hazijapitiwa na mzungumzaji asilia. Inafanya kazi, lakini inaweza kuwa na makosa zaidi. Maoni yanakaribishwa sana.",
+      ohne:"Bado hakuna kamusi ya maneno kwa lugha hii. Kwa hivyo, maneno ya Kanisa yanatafsiriwa neno kwa neno na yanaweza kusikika ya ajabu. Tafsiri inafanya kazi, lakini ni ya majaribio.",
+      hilfe:"Je, unazungumza lugha hii? Tusaidie kukagua istilahi za kiufundi: bonyeza «More», kisha «Feedback», na utuandikie.",
+      mt:"imefasiriwa na mashine"},
+  nl:{neu:"Deze taal is nieuw en de technische termen zijn nog niet beoordeeld door een moedertaalspreker. Het werkt, maar kan meer fouten bevatten. Feedback is zeer welkom.",
+      ohne:"Er is nog geen woordenlijst voor deze taal. Kerktermen worden daarom woord voor woord vertaald en kunnen daarom vreemd klinken. De vertaling werkt, maar is experimenteel.",
+      hilfe:"Spreekt u deze taal? Help ons de technische termen te controleren: tik op «More», vervolgens op «Feedback», en schrijf naar ons.",
+      mt:"machinaal vertaald"},
+  vi:{neu:"Ngôn ngữ này còn mới và các thuật ngữ kỹ thuật của nó vẫn chưa được kiểm duyệt bởi người bản ngữ. Nó vẫn hoạt động được, nhưng có thể chứa nhiều lỗi hơn. Chúng tôi rất hoan nghênh các ý kiến phản hồi.",
+      ohne:"Chưa có bảng thuật ngữ cho ngôn ngữ này. Do đó, các thuật ngữ trong Nhà thờ được dịch sát nghĩa từng chữ và có thể nghe hơi lạ. Bản dịch vẫn hoạt động được, nhưng vẫn đang trong giai đoạn thử nghiệm.",
+      hilfe:"Bạn có nói ngôn ngữ này không? Hãy giúp chúng tôi kiểm tra các thuật ngữ kỹ thuật: nhấn «More», sau đó chọn «Feedback», và viết cho chúng tôi.",
+      mt:"bản dịch máy"},
+  hu:{neu:"Ez a nyelv új, és technikai kifejezéseit még nem ellenőrizte anyanyelvi beszélő. Működik, de több hibát is tartalmazhat. A visszajelzéseket nagyon várjuk.",
+      ohne:"Még nincs szótár erre a nyelvre. A templomi kifejezéseket ezért szóról szóra fordítják, és furcsának tűnhetnek. A fordítás működik, de kísérleti jellegű.",
+      hilfe:"Beszéled ezt a nyelvet? Segíts ellenőrizni a műszaki kifejezéseket: koppints a «More» gombra, majd a «Feedback» gombra, és írj nekünk.",
+      mt:"gépfordított"},
+  cs:{neu:"Tento jazyk je nový a jeho technické termíny ještě neproveril rodilý mluvčí. Funguje, ale může obsahovat více chyb. Zpětná vazba je velmi vítána.",
+      ohne:"Pro tento jazyk ještě neexistuje slovník. Církevní termíny jsou proto překládány doslovně a mohou znít zvláštně. Překlad funguje, ale je experimentální.",
+      hilfe:"Mluvíte tímto jazykem? Pomozte nám zkontrolovat odborné termíny: klepněte na «More», poté na «Feedback» a napište nám.",
+      mt:"strojově přeloženo"},
+  sr:{neu:"Овај језик је нов и његови технички термини још нису пресмотрени од стране носиоца језика. Функционише, али може садржати више грешака. Ваше повратне информације су веома добродошле.",
+      ohne:"За овај језик још увек нема глосара. Црквени термини се стога преводе реч по реч и могу звучати чудно. Превод функционише, али је експерименталан.",
+      hilfe:"Да ли говорите овај језик? Помозите нам да проверимо техничке термине: тапните «More», затим «Feedback», и пишите нам.",
+      mt:"машински преведено"},
+  el:{neu:"Αυτή η γλώσσα είναι νέα και οι τεχνικοί της όροι δεν έχουν ελεγχθεί ακόμη από φυσικό χρήστη. Λειτουργεί, αλλά ενδέχεται να περιέχει περισσότερα λάθη. Οι παρατηρήσεις σας είναι πολύ ευπρόδεκτες.",
+      ohne:"Δεν υπάρχει ακόμα γλωσσάρι για αυτή τη γλώσσα. Οι εκκλησιαστικοί όροι μεταφράζονται, επομένως, λέξη προς λέξη και μπορεί να ακούγονται περίεργοι. Η μετάφραση λειτουργεί, αλλά είναι πειραματική.",
+      hilfe:"Μιλάτε αυτή τη γλώσσα; Βοηθήστε μας να ελέγξουμε τους τεχνικούς όρους: πατήστε «More», μετά «Feedback», και γράψτε μας.",
+      mt:"μηχανικά μεταφρασμένο"},
+  ka:{neu:"ეს ენა ახალია და მისი ტექნიკური ტერმინები ჯერ კიდევ არ არის გადამოწმებული მშობლიური ენის მომხმარებლის მიერ. ის მუშაობს, თუმცა შეიძლება შეიცავდეს მეტ შეცდომას. უკუკავშირი ძალიან სასურველია.",
+      ohne:"ამ ენისთვის გლოსარიუმი ჯერ არ არსებობს. ამიტომ, ეკლესიის ტერმინები ითარგმნება სიტყვასიტყვით და შეიძლება უცნაურად ჟღერდეს. თარგმანი მუშაობს, თუმცა ის ექსპერიმენტულია.",
+      hilfe:"ამ ენაზე საუბრობთ? დაგვეხმარეთ ტექნიკური ტერმინების შემოწმებაში: დააწკაპუნეთ «More», შემდეგ «Feedback» და მოგვწერეთ.",
+      mt:"მანქანური თარგმანი"},
+};
+
+/* Der Hinweis zu einer ungeprüften Sprache, in der Sprache `anzeige`.
+   Steht er dort nicht, gilt die Oberflächensprache, sonst Englisch.
+
+   Die Bitte um Mithilfe nur, wenn es eine Rückmeldeadresse gibt: ohne
+   sie gibt es den Knopf «Rückmeldung» nicht, und die Bitte führte ins
+   Leere. rueckAdresse wird weiter unten mit let angelegt; die Kacheln
+   entstehen schon vorher, darum der Fang. */
+function hinweisText(sprache, anzeige){
+  const s = SPRACHEN[sprache] || {};
+  const ohne = s.glossar === false;
+  const h = HINWEIS_UNGEPRUEFT[anzeige];
+  const x = TEXTE[anzeige] || TEXTE.en;
+  let text = h ? (ohne ? h.ohne : h.neu) : (ohne ? x.keinGlossar : x.neuHinweis);
+  let adresse = "";
+  try { adresse = rueckAdresse; } catch(e) { adresse = ""; }
+  if(adresse) text += " " + (h ? h.hilfe : x.hilfe);
+  if(h) text += " (" + h.mt + ")";
+  return text;
+}
 
 
 /* ============================================================
@@ -1909,7 +2006,7 @@ function sprachkachelnBauen(behaelter, aufKlick){
       // dort stehen die Begriffe fest und koennten falsch sein, hier
       // stehen sie gar nicht fest.
       if(s.glossar === false) b.classList.add("ohneglossar");
-      b.title = (s.glossar === false) ? t().keinGlossar : t().neuHinweis;
+      b.title = hinweisText(код, zustand.sprache);
     }
     b.addEventListener("click", () => aufKlick(код));
     behaelter.append(b);
@@ -2015,8 +2112,11 @@ function startauswahlBauen(){
     const gewaehlt = SPRACHEN[code] || {};
     if(band){
       band.hidden = gewaehlt.original || gewaehlt.geprueft !== false;
-      band.textContent = (gewaehlt.glossar === false)
-        ? x.keinGlossar : x.neuHinweis;
+      // In der Sprache selbst, wenn es den Hinweis in ihr gibt -- und
+      // dann auch in ihrer Schreibrichtung.
+      band.textContent = hinweisText(code, code);
+      band.lang = HINWEIS_UNGEPRUEFT[code] ? code : "en";
+      band.dir = "auto";
     }
   });
 }
