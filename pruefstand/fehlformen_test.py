@@ -97,12 +97,17 @@ pruefe("die richtige Form kommt aus dem Glossar", "Вечеря Господня
        eintrag.ziel.get("uk"))
 pruefe("nur fuer Ukrainisch", ["uk"], sorted(config.FEHLFORMEN))
 treffer = GLOSSAR.finde_in(F04, "de")
+pruefe("zwei Regeln, beide an C041", ["C041", "C041"],
+       [r["glossar"] for r in config.FEHLFORMEN["uk"]])
 for form in ("Вечірня", "Вечірні", "Вечірню", "Вечірньою", "Вечерня",
-             "Вечерні", "Вечерню", "Вечернею", "вечірня", "ВЕЧЕРНІ"):
+             "Вечерні", "Вечерню", "Вечернею", "вечірня", "ВЕЧЕРНІ",
+             # Die zweite Regel: falsch geschrieben, gemma4:12b im
+             # zweiten Versuch zu F04.
+             "Вечерєю", "Вечерєй", "вечерє"):
     pruefe(f"Fehlform erkannt: {form}", 1,
            len(server.fehlformen_finden(treffer, f"Перед {form} ми", "uk")))
 for form in ("Вечеря Господня", "Вечері Господньої", "Вечерю Господню",
-             "Вечерею Господньою", "Вечерєю", "ввечері", "вечора", "вечір",
+             "Вечерею Господньою", "ввечері", "вечора", "вечір",
              "вечірній", "Вечір"):
     # "вечірній" (Adjektiv, abendlich) beginnt mit "вечірн" und wird
     # deshalb erkannt -- aber nur, wenn im Deutschen "Abendmahl" steht.
@@ -122,6 +127,10 @@ pruefe("der erste Prompt hat keinen Hinweis", False, "WICHTIG" in prompts[0])
 pruefe("der zweite nennt die richtige Form", True,
        "„Abendmahl“ heisst „Вечеря Господня“" in prompts[1])
 pruefe("mit den Beugungsformen", True, "Вечерею Господньою" in prompts[1])
+pruefe("der Instrumental ausdruecklich", True,
+       "Instrumental Вечерею Господньою" in prompts[1]
+       and "„Перед Вечерею Господньою“" in prompts[1])
+pruefe("und die Schreibung mit е", True, "nie mit є" in prompts[1])
 pruefe("und warum die Fehlform falsch ist", True, "Vesper" in prompts[1])
 pruefe("der Rest des Prompts ist derselbe", True,
        prompts[1].startswith(prompts[0]))
@@ -137,6 +146,20 @@ pruefe("gesendet wird die zweite Antwort, unveraendert", zweite, t)
 pruefe("ins Journal, als Warnung", True,
        "Fehlform uk blieb nach dem zweiten Versuch: Вечірньою" in journal)
 pruefe("auch dort ohne den Satz", False, "святкуємо" in journal)
+
+titel("3b) Beide Fehlformen zugleich: die Formen nur einmal")
+beide = "Перед Вечернею, тобто Вечерєю, ми звершуємо обмивання ніг."
+t, prompts, journal = uebersetzen(F04, "uk", beide, F04_RICHTIG)
+pruefe("zwei Aufrufe", 2, len(prompts))
+pruefe("beide Fehlformen im Hinweis", True,
+       "Nicht Вечірня/Вечерня" in prompts[1] and "Nicht Вечерє…" in prompts[1])
+pruefe("die Formen stehen einmal da", 1,
+       prompts[1].count("Instrumental Вечерею Господньою"))
+t, prompts, journal = uebersetzen(F04, "uk", F04_GEMMA,
+                                  "Перед Вечерєю Господньою ми звершуємо "
+                                  "обмивання ніг.")
+pruefe("der zweite Versuch mit є: gesendet und ins Journal", True,
+       "Fehlform uk blieb nach dem zweiten Versuch: Вечерєю" in journal)
 
 titel("4) Kein zweiter Aufruf, wo es nichts zu pruefen gibt")
 t, prompts, _ = uebersetzen(F04, "uk", F04_RICHTIG)

@@ -334,9 +334,18 @@ SCHLEIFE_KAPPEN = {"tw"}
 #             auf den Wortanfang -- erfasst alle Beugungen
 #   falsch    wie die Fehlform heisst, fuer Hinweis und Journal
 #   grund     warum sie falsch ist, fuer den Hinweis an das Modell
-#   formen    (frei) die richtige Form gebeugt, fuer den Hinweis --
-#             ohne sie trifft das Modell beim zweiten Versuch zwar das
-#             Wort, aber nicht die Endung (F04: "Вечерєю Господнію")
+#   formen    (frei) die richtige Form gebeugt, mit dem Fall benannt,
+#             fuer den Hinweis. Ohne sie trifft das Modell beim zweiten
+#             Versuch zwar das Wort, aber nicht die Endung (F04:
+#             "Вечерєю Господнію"); mit Formen, aber ohne Fall, noch
+#             immer nicht die Schreibung ("Вечерєю Господньою").
+#             Mehrere Regeln zum selben Glossarbegriff nennen sie
+#             im Hinweis nur einmal.
+_ABENDMAHL_UK = (
+    "Nominativ Вечеря Господня; Genitiv Вечері Господньої; Dativ Вечері "
+    "Господній; Akkusativ Вечерю Господню; Instrumental Вечерею "
+    "Господньою -- so nach „перед“, „з“, „над“, also zum Beispiel "
+    "„Перед Вечерею Господньою“. Geschrieben mit е, nie mit є.")
 FEHLFORMEN = {
     "uk": [
         # Belegt: pruefung/fallstricke_uk.csv F04, gemma4:12b schrieb
@@ -349,8 +358,15 @@ FEHLFORMEN = {
          "falsch": "Вечірня/Вечерня",
          "grund": "das heisst Vesper, ein Abendgottesdienst, nicht "
                   "Abendmahl",
-         "formen": "Вечеря Господня, Вечері Господньої, Вечері Господній, "
-                   "Вечерю Господню, Вечерею Господньою"},
+         "formen": _ABENDMAHL_UK},
+        # Belegt: derselbe Satz im zweiten Versuch, "Перед Вечерєю
+        # Господньою". Kein ukrainisches Wort -- nach р steht hier е.
+        {"glossar": "C041",
+         "fehlform": r"\bвечерє",
+         "falsch": "Вечерє…",
+         "grund": "das ist falsch geschrieben, es heisst Вечерею, "
+                  "Вечері, Вечерю",
+         "formen": _ABENDMAHL_UK},
     ],
 }
 

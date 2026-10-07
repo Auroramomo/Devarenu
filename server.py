@@ -1193,12 +1193,17 @@ class Werk:
             print(f"        Fehlform {sprache}: "
                   f"{', '.join(f['gefunden'] for f in fehl)} -- "
                   f"noch einmal mit Hinweis")
-            hinweis = "".join(
-                f"\n- WICHTIG: „{f['de']}“ heisst „{f['richtig']}“, passend "
-                f"gebeugt"
-                + (f" ({f['formen']})" if f.get("formen") else "")
-                + f". Nicht {f['falsch']} -- {f['grund']}."
-                for f in fehl)
+            # Je Glossarbegriff EIN Hinweis mit den gebeugten Formen,
+            # dazu jede gefundene Fehlform mit ihrem Grund.
+            hinweis = ""
+            for gid in dict.fromkeys(f["glossar"] for f in fehl):
+                zu = [f for f in fehl if f["glossar"] == gid]
+                hinweis += (f"\n- WICHTIG: „{zu[0]['de']}“ heisst "
+                            f"„{zu[0]['richtig']}“, passend gebeugt.")
+                if zu[0].get("formen"):
+                    hinweis += f" Die Formen: {zu[0]['formen']}"
+                for f in zu:
+                    hinweis += (f"\n  Nicht {f['falsch']} -- {f['grund']}.")
             t = self._modell_fragen(system + hinweis, text)
             for f in fehlformen_finden(treffer, t, sprache):
                 print(warnung(f"Fehlform {sprache} blieb nach dem zweiten "
