@@ -1355,15 +1355,22 @@ const Versuch = {
     this.protokoll = werte.includes("protokoll");
 
     Wach.laden();
+    // Woher der Stand kommt -- bei "aus" die erste Frage, wenn der
+    // Bildschirm doch dunkel wird (0.5.0): hat ihn jemand frueher im
+    // Browser abgeschaltet, oder steht ?versuch=aus in der Adresse?
+    const gemerkt = !Wach.an;
+    let woher = "";
     // Kompatibilitaet: der alte Versuch setzt jetzt den Schalter.
-    if(werte.includes("aus")) Wach.setzen(false);
-    else if(werte.includes("wach")) Wach.setzen(true);
+    if(werte.includes("aus")){ Wach.setzen(false); woher = "aus der Adresse"; }
+    else if(werte.includes("wach")){ Wach.setzen(true); woher = "aus der Adresse"; }
+    else if(gemerkt) woher = "im Browser gemerkt";
+    else woher = "Vorgabe";
 
     if(this.protokoll){
       const kasten = $("versuchkasten");
       if(kasten) kasten.hidden = false;
     }
-    this.merken("Bildschirm anlassen", Wach.an ? "an" : "aus");
+    this.merken("Bildschirm anlassen", (Wach.an ? "an" : "aus") + ", " + woher);
     this.merken("Wake Lock", ("wakeLock" in navigator) ? "vorhanden"
                                                        : "nicht vorhanden");
   },

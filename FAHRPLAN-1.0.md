@@ -515,8 +515,10 @@ beantwortet (`netzpruefung.py`).
 - **„Bildschirm anlassen" auf dem iPhone.** Seit 0.4.6 hält die
   Hörerseite den Bildschirm selbst an — Wake Lock, sonst ein Video mit
   stiller Tonspur. Belegt ist das im Quelltext von Firefox und
-  Chromium und am Galaxy Z Fold 7; **auf einem iPhone ist es
-  ungetestet.** Wer dort Probleme hat, schaltet es unter *Mehr* aus.
+  Chromium und am Galaxy Z Fold 7: mit 0.4.5-F und mit 0.4.6, in
+  Chrome, Samsung Internet und Firefox, jeweils mit laufender
+  Übersetzung und 30 Sekunden Bildschirm-Timeout — der Bildschirm blieb
+  an, der Ton lief weiter. **Auf einem iPhone ist es ungetestet.** Wer dort Probleme hat, schaltet es unter *Mehr* aus.
   Zu prüfen in demselben Durchgang wie oben: bleibt der Bildschirm
   fünf Minuten ohne Berührung an, läuft der Ton, wird er leiser?
 - **Ein zweiter Aufbau.** Jede Gemeinde hat ein anderes Hausnetz,

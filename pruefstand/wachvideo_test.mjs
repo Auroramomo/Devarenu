@@ -491,6 +491,28 @@ titel("10) Die Beschriftung, in allen Oberflaechensprachen");
            .startsWith(TEXTE.ru.wach));
 }
 
+titel("11) Das Protokoll sagt, woher \"aus\" kommt (0.5.0)");
+{
+  // Die erste Frage, wenn der Bildschirm doch dunkel wird: hat jemand
+  // ihn frueher im Browser abgeschaltet, oder steht es in der Adresse?
+  const erste = (p) => p.Versuch.ereignisse
+    .find((z) => z.includes("Bildschirm anlassen")) || "";
+  pruefe("Vorgabe: an, Vorgabe", true,
+         erste(laden()).endsWith("an, Vorgabe"));
+  pruefe("im Browser abgeschaltet: aus, gemerkt", true,
+         erste(laden({ gemerkt: { bildschirm: "aus" } }))
+           .endsWith("aus, im Browser gemerkt"));
+  pruefe("?versuch=aus: aus, aus der Adresse", true,
+         erste(laden({ suche: "?versuch=aus" }))
+           .endsWith("aus, aus der Adresse"));
+  pruefe("gemerkt an, aber ?versuch=aus: die Adresse gewinnt", true,
+         erste(laden({ suche: "?versuch=aus", gemerkt: { bildschirm: "an" } }))
+           .endsWith("aus, aus der Adresse"));
+  pruefe("gemerkt aus, ?versuch=wach: an, aus der Adresse", true,
+         erste(laden({ suche: "?versuch=wach", gemerkt: { bildschirm: "aus" } }))
+           .endsWith("an, aus der Adresse"));
+}
+
 console.log("");
 if (fehler) { console.log(`${fehler} FEHLER`); process.exit(1); }
 console.log("\x1b[32mAlle Faelle wie erwartet.\x1b[0m");

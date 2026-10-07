@@ -1795,6 +1795,22 @@ Umlegen des Schalters. Nichts davon geht an den Server.
 Zum Schluss einmal **Mehr → Bildschirm anlassen** auf aus stellen:
 dann muss der Bildschirm nach 30 Sekunden ausgehen.
 
+#### Was der Test ergeben hat
+
+**Galaxy Z Fold 7, Bildschirm-Timeout 30 Sekunden, mit laufender
+Übersetzung**, in **Chrome, Samsung Internet und Firefox**:
+
+| Fassung | Bildschirm | Ton |
+|---|---|---|
+| **0.4.5-F** (Video mit stiller Tonspur, bildschirmfüllend) | blieb an | lief weiter |
+| **0.4.6** (Bildschirm anlassen als Normalfall) | blieb an | lief weiter |
+
+Damit ist der Weg auf Android in den drei Browsern belegt, die dort
+praktisch vorkommen. Nicht berichtet wurde, ob der Ton **leiser**
+wurde oder eine **Medien-Benachrichtigung** auftauchte — das bleibt
+beim nächsten Durchgang mitzunotieren. **Auf dem iPhone ist es weiter
+ungetestet.**
+
 #### Was es kostet
 
 **Korrigiert gegenüber der ersten Fassung dieses Abschnitts.** Dort
