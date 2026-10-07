@@ -207,6 +207,18 @@ PAUSE_KOMMA_MS = {
     "pt_BR-jeff-medium": 180,
 }
 
+# Wer in einer Mehrsprecher-Stimme spricht, beim Namen aus der
+# .onnx.json (speaker_id_map). Ohne Eintrag spricht Sprecher 0 -- so
+# war es immer, und fuer jede ausgelieferte Stimme bleibt es so.
+#
+# uk_UA-ukrainian_tts-medium hat drei: lada (0), mykyta (1), tetiana
+# (2). Bis 0.4.6 sprach dort lada, ohne dass es jemand gewaehlt hatte.
+# Der Eintrag wirkt erst, wenn STIMMEN["uk"] auf diese Stimme zeigt
+# (siehe dort) -- heute spricht uk_UA-mykyta-high, eine eigene Stimme.
+STIMM_SPRECHER = {
+    "uk_UA-ukrainian_tts-medium": "mykyta",
+}
+
 # Wie eine Bibelstelle zwischen Kapitel und Vers getrennt wird.
 #
 # GEMESSEN, mit gemma4:12b, acht deutschen Saetzen mit Bibelstellen,
@@ -427,6 +439,12 @@ STIMMEN = {
     # Seit 0.5.0 mykyta (high) statt ukrainian_tts (medium). Die alte
     # Datei bleibt auf Rechnern, die sie haben -- Devarenu loescht keine
     # Stimmen. Lizenz und Messung: LIZENZEN.md, TEMPO_STIMME unten.
+    #
+    # Zurueck auf die alte Stimme, aber mit dem Sprecher mykyta
+    # (Hoerprobe c, Nachtrag zu 0.5.0) -- EINE Aenderung, diese Zeile:
+    #   "uk": "uk/uk_UA/ukrainian_tts/medium/uk_UA-ukrainian_tts-medium",
+    # Sprecher und Tempo stehen schon bereit (STIMM_SPRECHER und
+    # TEMPO_STIMME). Siehe LIZENZEN.md zur Lizenz dieser Stimme.
     "uk": "uk/uk_UA/mykyta/high/uk_UA-mykyta-high",
     "pl": "pl/pl_PL/darkman/medium/pl_PL-darkman-medium",
     "ro": "ro/ro_RO/mihai/medium/ro_RO-mihai-medium",
@@ -674,7 +692,14 @@ TEMPO_STIMME = {
     # Die Stimmwahl stand fest; dass sie so viel Tempo kostet, ist der
     # Preis. Bestaetigen muss es ein Hoerer -- wie bei pt.
     "uk_UA-mykyta-high": 1.51,  # Ukrainisch
-    "uk_UA-ukrainian_tts-medium": 1.03,  # Ukrainisch, nicht mehr ausgeliefert
+    # ukrainian_tts: die 1,028 oben galt Sprecher 0 (lada), gemessen
+    # mit verschluckten Grossbuchstaben (siehe server.zeichen_angleichen).
+    # Seit dem Nachtrag zu 0.5.0 spricht hier mykyta (STIMM_SPRECHER),
+    # und der ist so langsam wie mykyta-high: 1,499 gegen lada 1,136,
+    # gemessen auf den acht Satzpaaren aus pruefung/fallstricke_uk.csv,
+    # geeicht an mykyta-high (dort 1,626 -> 1,506). Eine Schaetzung auf
+    # wenigen Saetzen; gilt erst, wenn STIMMEN["uk"] umgestellt wird.
+    "uk_UA-ukrainian_tts-medium": 1.50,  # Ukrainisch, Sprecher mykyta, nicht ausgeliefert
     "vi_VN-vais1000-medium": 0.99,  # Vietnamesisch
     # Twi, seit 0.5.0. Gemessen 1.664 -- die langsamste Stimme hier. Mit
     # Aufschlag 1,76, gestutzt auf TEMPO_MAX 1,6. Ueber eine lange

@@ -645,6 +645,22 @@ class Werk:
         wert *= config.TEMPO_AUFSCHLAG * config.TEMPO_GLOBAL
         return max(config.TEMPO_MIN, min(config.TEMPO_MAX, wert))
 
+    def sprecher_fuer(self, sprache):
+        """Welcher Sprecher einer Mehrsprecher-Stimme spricht -- oder None.
+
+        config.STIMM_SPRECHER nennt ihn je Stimme beim Namen, die Nummer
+        steht in der .onnx.json daneben. Ohne Eintrag None: Piper nimmt
+        dann Sprecher 0, so wie bisher immer (Nachtrag zu 0.5.0)."""
+        name = self.stimmennamen.get(sprache, "")
+        wer = getattr(config, "STIMM_SPRECHER", {}).get(name)
+        if wer is None:
+            return None
+        nummer = _sprecher_karte(name).get(wer)
+        if nummer is None:
+            print(f"Sprecher {wer!r} gibt es in {name} nicht; "
+                  f"es spricht Sprecher 0.")
+        return nummer
+
     def stimme_nachladen(self, sprache):
         """Laedt die Stimme einer Sprache, die beim Start nicht dabei war.
 
@@ -1218,7 +1234,9 @@ class Werk:
                     if self.synth_art == "syn_config":
                         stimme.synthesize_wav(
                             teil, ziel,
-                            syn_config=SynthesisConfig(length_scale=skala))
+                            syn_config=SynthesisConfig(
+                                length_scale=skala,
+                                speaker_id=self.sprecher_fuer(sprache)))
                     elif self.synth_art == "length_scale":
                         stimme.synthesize_wav(teil, ziel, length_scale=skala)
                     else:
@@ -1250,7 +1268,9 @@ class Werk:
         with wave.open(str(datei), "wb") as ziel:
             if self.synth_art == "syn_config":
                 stimme.synthesize_wav(
-                    text, ziel, syn_config=SynthesisConfig(length_scale=skala))
+                    text, ziel, syn_config=SynthesisConfig(
+                        length_scale=skala,
+                        speaker_id=self.sprecher_fuer(sprache)))
             elif self.synth_art == "length_scale":
                 stimme.synthesize_wav(text, ziel, length_scale=skala)
             else:
@@ -1271,6 +1291,7 @@ class Werk:
         # Initial -- Piper liest ein einzelnes "G." als Buchstaben.
         for muster, ersatz in config.SPRECHFORM.get(sprache, ()):
             text = re.sub(muster, ersatz, text)
+        text = zeichen_angleichen(self.stimmennamen.get(sprache, ""), text)
 
         datei = self.tmp / f"{sprache}_{nummer:05d}.wav"
 
@@ -1297,7 +1318,8 @@ class Werk:
                     from piper import SynthesisConfig
                     stimme.synthesize_wav(
                         text, ziel, syn_config=SynthesisConfig(
-                            length_scale=skala))
+                            length_scale=skala,
+                            speaker_id=self.sprecher_fuer(sprache)))
                 elif self.synth_art == "length_scale":
                     stimme.synthesize_wav(text, ziel, length_scale=skala)
                 else:
@@ -1307,7 +1329,8 @@ class Werk:
 
         from laengenfaktor import sprich
         dauer = sprich(self.piper, self.stimmen[sprache], text, datei,
-                       self.tempo_fuer(sprache))
+                       self.tempo_fuer(sprache),
+                       sprecher=self.sprecher_fuer(sprache))
         return datei, dauer
 
     @staticmethod
@@ -2011,6 +2034,44 @@ class Lauf:
 # ================================================================
 # Mikrofon
 # ================================================================
+
+_STIMM_JSON = {}
+
+
+def _stimm_json(name):
+    """Die .onnx.json einer Stimme, einmal gelesen und behalten; leer,
+    wenn es sie nicht gibt."""
+    if name not in _STIMM_JSON:
+        try:
+            pfad = config.BASIS / "voices" / f"{name}.onnx.json"
+            _STIMM_JSON[name] = json.loads(pfad.read_text(encoding="utf-8"))
+        except Exception:
+            _STIMM_JSON[name] = {}
+    return _STIMM_JSON[name]
+
+
+def _sprecher_karte(name):
+    """Name -> Nummer der Sprecher einer Stimme, aus ihrer .onnx.json."""
+    return _stimm_json(name).get("speaker_id_map") or {}
+
+
+def zeichen_angleichen(name, text):
+    """Fuer Stimmen, die Zeichen statt Laute lesen (phoneme_type "text"):
+    ein Buchstabe, den die Stimme nicht kennt, wohl aber klein
+    geschrieben, wird klein geschrieben.
+
+    Gefunden mit der Hoerprobe zum Nachtrag 0.5.0: uk_UA-ukrainian_tts
+    kennt nur Kleinbuchstaben, und Piper laesst jedes unbekannte Zeichen
+    stillschweigend weg -- aus "Наступної" wurde "аступної", aus "Ми"
+    "и". Bis 0.4.6 sprach Devarenu so. Alle espeak-Stimmen und Twi
+    (kennt Grossbuchstaben) bleiben unberuehrt."""
+    d = _stimm_json(name)
+    if d.get("phoneme_type") != "text":
+        return text
+    karte = d.get("phoneme_id_map") or {}
+    return "".join(z if z in karte or z.lower() not in karte else z.lower()
+                   for z in text)
+
 
 def stimmen_finden(sprachen=None, quelle=None):
     """Sucht im Ordner voices die Stimmen zu den genannten Sprachen.

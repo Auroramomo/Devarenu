@@ -58,6 +58,14 @@ nachgereicht.
   Ohienko zählt die Psalmen hebräisch und Joel/Maleachi englisch —
   belegt an der Ausgabe der Bibelgesellschaft, nicht an der
   umnummerierten getbible-Datei. `pruefung/fallstricke_uk.csv`.
+  Vorbereitet, nicht umgestellt: die alte Stimme `ukrainian_tts` mit
+  dem Sprecher *mykyta* — eine Zeile in `config.py` (bei `STIMMEN`).
+  Neu dafür `config.STIMM_SPRECHER` (wer in einer Mehrsprecher-Stimme
+  spricht; ohne Eintrag wie bisher Sprecher 0) und
+  `server.zeichen_angleichen`: `ukrainian_tts` kennt nur
+  Kleinbuchstaben, und Piper ließ jeden Großbuchstaben still weg — bis
+  0.4.6 hörte man „аступної“ statt „Наступної“. Für alle ausgelieferten
+  Stimmen ändert sich nichts (`sprecherwahl_test.py`).
 * **Twi** (Teil B). `NUR_ZIEL`: Whisper kennt Twi nicht. Die Stimme ist
   ein Coqui-Modell, umgewandelt nach ONNX (`werkzeuge/twi_stimme.py`)
   und mit Coqui verglichen: dieselben Zeichennummern, dieselben
