@@ -215,6 +215,11 @@ def vorgabe():
         # das ist die Vorgabe, denn dieser Rechner weiss nicht, wo er
         # steht, bis es ihm jemand sagt.
         "gemeinde": "",
+        # Die Kontaktadresse fuer Datenschutzfragen (0.5.0) -- eine
+        # Mailadresse oder eine Zeile wie "Gemeindebuero, Tel. ...".
+        # Steht im Datenschutzhinweis auf jedem Handy. Leer heisst: die
+        # Zeile faellt dort weg.
+        "kontakt": "",
         # Dem Entwickler melden, dass es hier laeuft: Gemeindename,
         # Fassung, Datum. Sonst nichts. Vorgabe AUS -- und es steht
         # am Pult, was gesendet wird.
@@ -343,6 +348,13 @@ def _uebernehmen(roh, daten):
         daten["gemeinde"] = " ".join(roh["gemeinde"].split())[:60]
     elif roh.get("gemeinde") is not None:
         fehlerhaft.append("gemeinde")
+
+    # Wie der Gemeindename: einzeilig und gekuerzt. Er steht auf jedem
+    # Handy im Saal.
+    if isinstance(roh.get("kontakt"), str):
+        daten["kontakt"] = " ".join(roh["kontakt"].split())[:120]
+    elif roh.get("kontakt") is not None:
+        fehlerhaft.append("kontakt")
 
     # Eine Zeichenkette oder gar nichts. Steht dort Unsinn, faellt sie
     # auf leer zurueck -- also auf ein offenes Pult. Andersherum waere

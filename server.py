@@ -60,6 +60,7 @@ import pultschutz
 import grafikwacht
 import rueckmeldung
 import qr_texte
+import datenschutz
 import zustand as zustandsdatei
 from glossar import Glossar, glossarzeilen, vokalisieren
 import zaehlung
@@ -4780,6 +4781,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 # aber mitten im Gottesdienst.
                 "befunde": befunde_mit_grafik(),
                 "gemeinde": lauf.zustand.get("gemeinde", ""),
+                "kontakt": lauf.zustand.get("kontakt", ""),
                 "nutzung_melden": bool(lauf.zustand.get("nutzung_melden")),
                 "spendenkonto": KONTO_GRUND,
                 "sprachverdacht": (lauf.sprachwache.satz()
@@ -4945,16 +4947,22 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         if "gemeinde" in daten:
             stand["gemeinde"] = " ".join(
                 str(daten.get("gemeinde") or "").split())[:60]
+        # Seit 0.5.0: der Kontakt fuer den Datenschutzhinweis.
+        if "kontakt" in daten:
+            stand["kontakt"] = " ".join(
+                str(daten.get("kontakt") or "").split())[:120]
         if "melden" in daten:
             stand["nutzung_melden"] = bool(daten.get("melden"))
         if not zustandsdatei.speichern(stand):
             return JSONResponse({"grund": "nicht_schreibbar"},
                                 status_code=500)
         lauf.zustand["gemeinde"] = stand["gemeinde"]
+        lauf.zustand["kontakt"] = stand.get("kontakt", "")
         lauf.zustand["nutzung_melden"] = stand["nutzung_melden"]
         print(f"Gemeinde: {stand['gemeinde'] or '(ohne Namen)'}, "
               f"Nutzungsmeldung {'an' if stand['nutzung_melden'] else 'aus'}.")
         return {"gemeinde": stand["gemeinde"],
+                "kontakt": stand.get("kontakt", ""),
                 "melden": stand["nutzung_melden"]}
 
     @app.post("/api/pruefprotokoll")
@@ -5293,6 +5301,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             "geduld": qr_texte.fuer(sp)["geduld"],
             "internet": qr_texte.fuer(sp)["internet"],
             "hoeren": qr_texte.fuer(sp)["hoeren"],
+            "datenschutz": qr_texte.datenschutz(sp),
         } for sp in folge]
 
         # ------------------------------------------- Bausteine
@@ -5340,6 +5349,8 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                         f'<p class=satz dir="{richtung}">'
                         f'{html_escape(d[feld])}</p></div>'
                         for farbe, feld, zeichen in KAESTEN)
+                    + f'<p class=dszeile dir="{richtung}">'
+                      f'{html_escape(d["datenschutz"])}</p>'
                     + '</section>')
             return "".join(teile)
 
@@ -5520,6 +5531,26 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 "mail": config.RUECKMELDUNG_MAIL,
                 "bericht_link": bericht_link()}
 
+    # ------------------------------------------------- Datenschutz (0.5.0)
+    # Zwei Stufen, beide von diesem Rechner: das Saalnetz hat kein
+    # Internet, ein Verweis nach draussen fuehrte ins Leere. Texte und
+    # Begruendung in datenschutz.py. ENTWURF, vor Freigabe durch den
+    # Datenschutzbeauftragten -- das steht auf beiden Stufen.
+    @app.get("/api/datenschutz")
+    def datenschutz_kurz(sprache: str = ""):
+        """Stufe 1 fuer das Blatt auf dem Handy, in seiner Sprache."""
+        return datenschutz.stufe1(sprache,
+                                  lauf.zustand.get("gemeinde", ""),
+                                  lauf.zustand.get("kontakt", ""))
+
+    @app.get("/datenschutz")
+    def datenschutz_lang(request: Request, sprache: str = "de"):
+        """Stufe 2, die ausfuehrliche Fassung, als eigene Seite."""
+        return ausliefern(request, datenschutz.stufe2_html(
+            sprache, lauf.zustand.get("gemeinde", ""),
+            lauf.zustand.get("kontakt", ""), config.VERSION),
+            "text/html; charset=utf-8")
+
     @app.get("/anleitung.pdf")
     def anleitung(request: Request, teil: str = "alles", sprache: str = ""):
         """Die Bedienungsanleitung. Fertig gebaut, liegt im Repo.
@@ -5528,7 +5559,12 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         hier wird nur ausgeliefert. Der Gemeinderechner bekommt dafuer
         kein zusaetzliches Paket -- und er hat im Betrieb ohnehin kein
         Netz, ueber das eines nachkommen koennte."""
-        if teil != "zuhoerer":
+        # Seit 0.5.0 zwei Druckvorlagen zum Datenschutz, beide Entwurf.
+        einzeln = {"aushang": "Devarenu-Aushang-Datenschutz.pdf",
+                   "gastprediger": "Devarenu-Gastprediger.pdf"}
+        if teil in einzeln:
+            name = einzeln[teil]
+        elif teil != "zuhoerer":
             name = "Devarenu-Anleitung.pdf"
         else:
             # In der Sprache, die der Zuhoerer gewaehlt hat. Wer
@@ -6044,6 +6080,7 @@ QR_SEITE = """<!doctype html><html lang=de><meta charset=utf-8>
  .blau{border-color:var(--blau-rand);background:var(--blau-grund);
    color:var(--blau-text)}
  .blau svg{stroke:var(--blau-rand)} .blau .wort{color:var(--blau-rand)}
+ .dszeile{margin:.6rem 0 0;font-size:.85rem;opacity:.75;text-align:center}
  .lila{border-color:var(--lila-rand);background:var(--lila-grund);
    color:var(--lila-text)}
  .lila svg{stroke:var(--lila-rand)} .lila .wort{color:var(--lila-rand)}
@@ -6123,6 +6160,7 @@ QR_SEITE = """<!doctype html><html lang=de><meta charset=utf-8>
   </div>
 
 <!--KAESTEN-->
+<p class=dszeile id=datenschutz></p>
  </section>
 </main>
 
@@ -6135,7 +6173,7 @@ QR_SEITE = """<!doctype html><html lang=de><meta charset=utf-8>
 // Wer uebersetzt mithoert, liest kein Deutsch -- und Englisch ist die
 // Sprache, in der am ehesten jemand mitkommt, dessen eigene fehlt.
 const SPRACHEN = <!--SPRACHDATEN-->;
-const FELDER = ["titel1","titel2","geduld","internet","hoeren"];
+const FELDER = ["titel1","titel2","geduld","internet","hoeren","datenschutz"];
 let wo = 0;
 
 function punkteBauen(){
@@ -6897,6 +6935,17 @@ geschnitten wird an Sprechpausen. „Automatisch“ folgt dem Raumpegel.
 <input type=text id=gemeindefeld maxlength=60 onchange=gemeindeSetzen()>
 <p class="hin" data-t=gemeinde_hin>Erscheint auf der QR-Seite als
 „Devarenu · &lt;Name&gt;“. Leer lassen heißt: keine Anzeige.</p>
+<label for=kontaktfeld data-t=kontakt_name>Kontakt für Datenschutzfragen</label>
+<input type=text id=kontaktfeld maxlength=120 onchange=gemeindeSetzen()>
+<p class="hin" data-t=kontakt_hin>Steht mit dem Namen der Gemeinde im
+Datenschutzhinweis auf jedem Handy (unter „Mehr“). Etwa eine Mailadresse
+oder „Gemeindebüro, Tel. …“. Leer lassen heißt: die Zeile entfällt.</p>
+<p class="hin"><a href="/anleitung.pdf?teil=aushang" target=_blank
+  data-t=ds_aushang>Aushang Datenschutz (PDF)</a> ·
+  <a href="/anleitung.pdf?teil=gastprediger" target=_blank
+  data-t=ds_gast>Blatt für Gastprediger (PDF)</a> ·
+  <a href="/datenschutz" target=_blank data-t=ds_lang>Ausführlicher
+  Hinweis, wie ihn die Handys zeigen</a></p>
 <label class=haken><input type=checkbox id=meldeschalter
   onchange=gemeindeSetzen()> <span data-t=melden_an>Nutzung an den
   Entwickler melden</span></label>
@@ -7391,6 +7440,14 @@ const TEXTE={
    gemeinde_name:"Name der Gemeinde",
    gemeinde_hin:"Erscheint auf der QR-Seite als \u201eDevarenu \u00b7 "
      +"<Name>\u201c. Leer lassen hei\u00dft: keine Anzeige.",
+   kontakt_name:"Kontakt f\u00fcr Datenschutzfragen",
+   kontakt_hin:"Steht mit dem Namen der Gemeinde im Datenschutzhinweis "
+     +"auf jedem Handy (unter \u201eMehr\u201c). Etwa eine Mailadresse oder "
+     +"\u201eGemeindeb\u00fcro, Tel. \u2026\u201c. Leer lassen hei\u00dft: "
+     +"die Zeile entf\u00e4llt.",
+   ds_aushang:"Aushang Datenschutz (PDF)",
+   ds_gast:"Blatt f\u00fcr Gastprediger (PDF)",
+   ds_lang:"Ausf\u00fchrlicher Hinweis, wie ihn die Handys zeigen",
    melden_an:"Nutzung an den Entwickler melden",
    melden_hin:"Gesendet werden Name der Gemeinde, Fassung und Datum "
      +"\u2014 sonst nichts. Kein Predigttext, keine Zuschriften, keine "
@@ -7715,6 +7772,13 @@ const TEXTE={
    gemeinde_name:"Name of the church",
    gemeinde_hin:"Shown on the QR page as \u201cDevarenu \u00b7 "
      +"<name>\u201d. Leave empty for no display.",
+   kontakt_name:"Contact for privacy questions",
+   kontakt_hin:"Shown with the church name in the privacy notice on every "
+     +"phone (under \u201cMore\u201d). For example an e-mail address or "
+     +"\u201cChurch office, phone \u2026\u201d. Leave empty to omit the line.",
+   ds_aushang:"Privacy poster (PDF, German)",
+   ds_gast:"Sheet for guest preachers (PDF, German)",
+   ds_lang:"Full notice as the phones show it",
    melden_an:"Report usage to the developer",
    melden_hin:"What is sent: name of the church, version and date "
      +"\u2014 nothing else. It goes out during the maintenance window "
@@ -8797,10 +8861,12 @@ async function gemeindeSetzen(){
   const a = await fetch("/api/gemeinde",{method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({gemeinde:gemeindefeld.value,
+                         kontakt:kontaktfeld.value,
                          melden:meldeschalter.checked})});
   const d = await a.json().catch(()=>({}));
   if(a.ok){
     gemeindefeld.value = d.gemeinde || "";
+    kontaktfeld.value = d.kontakt || "";
     meldeschalter.checked = !!d.melden;
   }
 }
@@ -9165,6 +9231,8 @@ async function lies(){
     // Feld bei jedem Takt auf den gespeicherten Wert zurueck.
     if(document.activeElement !== gemeindefeld)
       gemeindefeld.value = d.gemeinde || "";
+    if(document.activeElement !== kontaktfeld)
+      kontaktfeld.value = d.kontakt || "";
     meldeschalter.checked = !!d.nutzung_melden;
     if(d.thema_im_prompt!==undefined)
       themaschalter.checked = !!d.thema_im_prompt;

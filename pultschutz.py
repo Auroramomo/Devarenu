@@ -59,6 +59,8 @@ OFFEN_GENAU = {
     "/favicon.ico",
     "/spende.svg",
     "/anleitung.pdf",
+    "/datenschutz",             # der Datenschutzhinweis, ausfuehrlich
+    "/api/datenschutz",         # ... und kurz, fuer das Blatt "Mehr"
     "/pult-anmeldung",          # sonst kaeme niemand hinein
 }
 OFFEN_ANFANG = ("/ton/",)       # die Tonhaeppchen je Sprache

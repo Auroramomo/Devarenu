@@ -80,10 +80,18 @@ titel("2) Keine Funktion ist verloren");
 titel("3) Was unter Mehr steht");
 {
   // Seit 0.4.6 steht obenan der Schalter "Bildschirm anlassen".
-  pruefe("die Urteilsknöpfe, der Schalter und die drei Zeilen",
+  // Seit 0.5.0 unten der kleine Link "Datenschutz" neben "Schliessen".
+  pruefe("die Urteilsknöpfe, der Schalter, die drei Zeilen, Datenschutz",
          ["mehr-titel", "urteil", "u-gut", "u-schwer",
-          "w-wach", "w-post", "rueckmeldung", "zurueck", "mehr-zu"],
+          "w-wach", "w-post", "rueckmeldung", "zurueck", "ds-link",
+          "mehr-zu"],
          kennungen(MEHR));
+  // Die Obergrenze aus dem Auftrag zu 0.5.0: hoechstens neun Eintraege,
+  // gezaehlt wird alles, was man antippen kann.
+  const eintraege = (MEHR.match(/<(button|a)\b/g) || []).length;
+  pruefe("höchstens neun Einträge unter Mehr", true, eintraege <= 9);
+  pruefe("Datenschutz ist ein Textlink, kein Knopf", true,
+         /<a [^>]*id="ds-link"/.test(MEHR));
   // Zurueck steht hier und nicht in der Leiste: es fuehrt beinahe
   // zum selben Ziel wie Sprache.
   pruefe("zurueck ist aus der Leiste heraus", false,

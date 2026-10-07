@@ -290,9 +290,52 @@ TEXTE = {
 }
 
 
+# Eine schmale Zeile unter den Kaesten (0.5.0): was mit den Daten
+# geschieht, und wo der Hinweis steht. ENTWURF wie der ganze
+# Datenschutzhinweis (datenschutz.py).
+#
+# de, en, ru, fa nennen den Knopf so, wie er dort heisst. Alle anderen
+# Sprachen haben keine eigenen Oberflaechentexte -- auf dem Handy steht
+# «More», also steht es hier auch so. Maschinell (gemma4:26b) wie alles
+# in dieser Datei; "hall" hiess zuerst mehrfach "Flur" und ist darum
+# als "room" uebersetzt worden.
+DATENSCHUTZ = {
+    "de": "Alles bleibt auf diesem Rechner im Saal – keine Cloud, kein "
+          "Konto. Datenschutz: auf dem Handy unter „Mehr“.",
+    "en": "Everything stays on this computer in the room – no cloud, no "
+          "account. Privacy: on your phone under “More”.",
+    "ru": "Всё остаётся на компьютере в этом зале – без облака, без "
+          "учётной записи. Защита данных: на телефоне в разделе «Ещё».",
+    "fa": "همه‌چیز روی رایانهٔ همین سالن می‌ماند – بدون فضای ابری، بدون "
+          "حساب کاربری. حریم خصوصی: روی گوشی، زیر «بیشتر».",
+    "uk": "Усе залишається на цьому комп'ютері тут, у кімнаті – без хмарних сховищ, без облікових записів. Конфіденційність: на вашому телефоні в розділі «More».",
+    "pl": "Wszystko zostaje na tym komputerze w tym pokoju – bez chmury, bez konta. Prywatność: na Twoim telefonie w zakładce «More».",
+    "ro": "Totul rămâne pe acest computer din această încăpere – fără cloud, fără cont. Confidențialitate: pe telefonul tău la «More».",
+    "es": "Todo permanece en esta computadora aquí en la sala – sin nube, sin cuenta. Privacidad: en su teléfono bajo «More».",
+    "fr": "Tout reste sur cet ordinateur ici dans la pièce – pas de cloud, pas de compte. Confidentialité : sur votre téléphone sous «More».",
+    "pt": "Tudo permanece neste computador aqui na sala – sem nuvem, sem conta. Privacidade: no seu telefone em «More».",
+    "it": "Tutto rimane su questo computer qui nella stanza – niente cloud, niente account. Privacy: sul tuo telefono sotto «More».",
+    "tr": "Her şey bu odadaki bu bilgisayarda kalır – bulut yok, hesap yok. Gizlilik: telefonunuzda «More» kısmında.",
+    "ar": "كل شيء يبقى على هذا الكمبيوتر هنا في الغرفة – لا سحابة، ولا حساب. الخصوصية: على هاتفك تحت «More».",
+    "sw": "Kila kitu kinabaki kwenye kompyuta hii hapa chumbani – hakuna wingu (cloud), hakuna akaunti. Faragha: kwenye simu yako chini ya «More».",
+    "nl": "Alles blijft op deze computer hier in de ruimte – geen cloud, geen account. Privacy: op je telefoon onder «More».",
+    "vi": "Mọi thứ đều được lưu trữ ngay tại máy tính trong phòng này – không đám mây, không tài khoản. Quyền riêng tư: xem trên điện thoại của bạn tại mục «More».",
+    "hu": "Minden ezen a számítógépen marad itt a szobában – nincs felhő, nincs fiók. Adatvédelem: az Ön telefonján a «More» alatt.",
+    "cs": "Vše zde v místnosti zůstává v tomto počítači – žádný cloud, žádný účet. Ochrana soukromí: ve vašem telefonu pod «More».",
+    "sr": "Све остаје на овом компјутеру овде у просторији – без облака, без налога. Приватност: на вашем телефону под «More».",
+    "el": "Όλα παραμένουν σε αυτόν τον υπολογιστή εδώ στο δωμάτιο – χωρίς cloud, χωρίς λογαριασμό. Προστασία απορρήτου: στο τηλέφωνό σας κάτω από «More».",
+    "ka": "ყველაფერი რჩება ამ კომპიუტერში, ამ ოთახში – არანაირი ღრუბელი, არანაირი ანგარიში. კონფიდენციალურობა: თქვენს ტელეფონში, განყოფილებაში «More».",
+}
+
+
 def fuer(code):
     """Die Texte einer Sprache -- oder Englisch, wenn es sie nicht gibt."""
     return TEXTE.get(code) or TEXTE["en"]
+
+
+def datenschutz(code):
+    """Die Datenschutzzeile -- oder die englische."""
+    return DATENSCHUTZ.get(code) or DATENSCHUTZ["en"]
 
 
 def name(code):

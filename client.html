@@ -533,6 +533,14 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
   background:var(--tinte); color:#fff; border:0; width:100%;
 }
 .knopf-still{background:none; color:var(--leise); margin-top:.5rem}
+/* "Datenschutz" neben "Schließen": klein, leise, kein Knopf. */
+.mehr-fuss{display:flex; align-items:center; gap:.8rem; margin-top:.5rem}
+.mehr-fuss .knopf-klein{flex:1; width:auto; margin-top:0}
+.leiselink{font-family:var(--schild); font-size:.78rem; color:var(--leise);
+  white-space:nowrap}
+.entwurf{font-family:var(--schild); font-size:.78rem; font-weight:600;
+  color:#8a4b0f; border:1.5px solid currentColor; padding:.35rem .55rem}
+.ds-mehr{font-size:.85rem}
 
 @media (min-width:34rem){
   .sprachen{grid-template-columns:repeat(4,1fr)}
@@ -774,7 +782,27 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
       </button>
     </div>
 
-    <button class="knopf-klein knopf-still" id="mehr-zu">Schließen</button>
+    <!-- Datenschutz als kleiner Textlink neben "Schließen", kein
+         eigener Knopf: wer ihn sucht, findet ihn; wer zuhört, wird
+         nicht von einer achten Zeile aufgehalten (0.5.0). -->
+    <div class="mehr-fuss">
+      <a href="/datenschutz" class="leiselink" id="ds-link">Datenschutz</a>
+      <button class="knopf-klein knopf-still" id="mehr-zu">Schließen</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Stufe 1 des Datenschutzhinweises, in der Sprache des Zuhörers.
+     Text und Angaben kommen vom Rechner (/api/datenschutz); die
+     ausführliche Fassung liegt ebenfalls dort (/datenschutz). -->
+<dialog id="datenschutzblatt">
+  <div class="blatt-innen">
+    <p class="entwurf" id="ds-entwurf"></p>
+    <h2 id="ds-titel">Datenschutz</h2>
+    <div id="ds-text"></div>
+    <p class="ds-mehr"><a id="ds-lang" href="/datenschutz"></a>
+      <span id="ds-lang-hin"></span></p>
+    <button class="knopf-klein knopf-still" id="ds-zu">Schließen</button>
   </div>
 </dialog>
 
@@ -890,7 +918,8 @@ const TEXTE = {
       ibanVonHand:"Bitte von Hand kopieren",
       neuHinweis:"Diese Sprache ist neu und ihre Fachbegriffe hat noch niemand gegengelesen, der sie spricht. Sie funktioniert, kann aber mehr Fehler enthalten. Rückmeldungen sind sehr willkommen.",
       keinGlossar:"Für diese Sprache gibt es noch kein Fachwortverzeichnis. Begriffe wie Sabbat, Gemeinde oder Vereinigung werden wörtlich übersetzt und können dadurch schief klingen. Die Übersetzung läuft, ist aber experimentell.",
-      hilfe:"Du sprichst diese Sprache? Hilf mit, die Fachbegriffe zu prüfen: unter „Mehr“ auf „Rückmeldung“ tippen und schreiben."},
+      hilfe:"Du sprichst diese Sprache? Hilf mit, die Fachbegriffe zu prüfen: unter „Mehr“ auf „Rückmeldung“ tippen und schreiben.",
+      datenschutz:"Datenschutz"},
   en:{titel:"Live translation", waehlen:"Choose a language", zuhoeren:"Listen",
       erst:"Choose a language first.",
       ton:"Sound", tonAus:"Sound off", text:"Text", textAus:"Text off", sprache:"Language",
@@ -923,7 +952,8 @@ const TEXTE = {
       ibanVonHand:"Please copy manually",
       neuHinweis:"This language is new and its technical terms have not yet been reviewed by a native speaker. It works, but may contain more errors. Feedback is very welcome.",
       keinGlossar:"There is no glossary for this language yet. Terms like Sabbath, church or conference are translated literally and may sound off. The translation works, but it is experimental.",
-      hilfe:"Do you speak this language? Help us check the terms: tap “More”, then “Feedback”, and write to us."},
+      hilfe:"Do you speak this language? Help us check the terms: tap “More”, then “Feedback”, and write to us.",
+      datenschutz:"Privacy"},
   ru:{titel:"Синхронный перевод", waehlen:"Выберите язык", zuhoeren:"Слушать",
       erst:"Сначала выберите язык.",
       ton:"Звук", tonAus:"Без звука", text:"Текст", textAus:"Без текста", sprache:"Язык",
@@ -956,7 +986,8 @@ const TEXTE = {
       ibanVonHand:"Скопируйте вручную",
       neuHinweis:"Этот язык новый, его терминологию ещё не проверял носитель языка. Перевод работает, но ошибок может быть больше. Отзывы очень приветствуются.",
       keinGlossar:"Для этого языка пока нет словаря терминов. Такие слова, как суббота, церковь или объединение, переводятся буквально и могут звучать странно. Перевод работает, но он экспериментальный.",
-      hilfe:"Вы говорите на этом языке? Помогите проверить термины: нажмите «Ещё», затем «Отзыв» и напишите нам."},
+      hilfe:"Вы говорите на этом языке? Помогите проверить термины: нажмите «Ещё», затем «Отзыв» и напишите нам.",
+      datenschutz:"Защита данных"},
   fa:{titel:"ترجمهٔ همزمان", waehlen:"زبان را انتخاب کنید", zuhoeren:"شنیدن",
       erst:"ابتدا یک زبان انتخاب کنید.",
       ton:"صدا", tonAus:"صدا خاموش", text:"متن", textAus:"متن خاموش", sprache:"زبان",
@@ -989,7 +1020,8 @@ const TEXTE = {
       ibanVonHand:"لطفاً دستی کپی کنید",
       neuHinweis:"این زبان تازه است و اصطلاحات تخصصی آن را هنوز کسی که به این زبان سخن می‌گوید بازبینی نکرده است. کار می‌کند، اما ممکن است خطای بیشتری داشته باشد. بازخورد شما بسیار ارزشمند است.",
       keinGlossar:"برای این زبان هنوز واژه‌نامهٔ تخصصی وجود ندارد. واژه‌هایی مانند سَبَت، کلیسا یا اتحادیه تحت‌اللفظی ترجمه می‌شوند و ممکن است نادرست به نظر برسند. ترجمه کار می‌کند، اما آزمایشی است.",
-      hilfe:"به این زبان سخن می‌گویید؟ در بررسی اصطلاحات به ما کمک کنید: «بیشتر» و سپس «بازخورد» را بزنید و برایمان بنویسید."},
+      hilfe:"به این زبان سخن می‌گویید؟ در بررسی اصطلاحات به ما کمک کنید: «بیشتر» و سپس «بازخورد» را بزنید و برایمان بنویسید.",
+      datenschutz:"حریم خصوصی"},
 };
 
 /* Der Hinweis für ungeprüfte Sprachen IN DIESEN SPRACHEN (0.5.0).
@@ -2033,6 +2065,8 @@ function beschriftungenSetzen(){
   $("w-mehr").querySelector(".beschriftung").textContent = x.mehr;
   $("mehr-titel").textContent = x.mehrTitel;
   $("mehr-zu").textContent = x.schliessen;
+  $("ds-link").textContent = x.datenschutz;
+  $("ds-zu").textContent = x.schliessen;
   Wach.zeichnen();
 
   $("wechsel-titel").textContent = x.wechseln;
@@ -2398,10 +2432,43 @@ $("iban-kopieren").addEventListener("click", () => {
 
 $("dank-zu").addEventListener("click", () => $("dankblatt").close());
 
+/* Datenschutz, Stufe 1 (0.5.0). Der Text kommt vom Rechner: dort stehen
+   Gemeinde und Kontakt aus der Einrichtung, und es gibt EINE Quelle für
+   Handy und Aushang (datenschutz.py). Geht die Anfrage schief, öffnet der
+   Link die ausführliche Fassung direkt -- er ist ein echter Verweis. */
+async function datenschutzZeigen(){
+  const a = await fetch("/api/datenschutz?sprache="
+                        + encodeURIComponent(zustand.sprache || "en"));
+  const d = await a.json();
+  const blatt = $("datenschutzblatt");
+  blatt.lang = d.sprache;
+  blatt.dir = d.rtl ? "rtl" : "ltr";
+  $("ds-entwurf").textContent = d.entwurf;
+  $("ds-titel").textContent = d.titel;
+  const kasten = $("ds-text");
+  kasten.textContent = "";
+  for(const satz of [...d.absaetze, ...d.angaben]){
+    const p = document.createElement("p");
+    p.textContent = satz;
+    kasten.append(p);
+  }
+  $("ds-lang").textContent = d.mehr;
+  $("ds-lang").href = d.link;
+  $("ds-lang-hin").textContent = d.mehr_hin;
+  blatt.showModal();
+}
+$("ds-link").addEventListener("click", (e) => {
+  e.preventDefault();
+  $("mehrblatt").close();
+  datenschutzZeigen().catch(() => { location.href = "/datenschutz"; });
+});
+$("ds-zu").addEventListener("click", () => $("datenschutzblatt").close());
+
 /* Ein Klick neben das Blatt schliesst es. Das Ereignis trifft bei einem
    dialog-Element den Rahmen selbst, sobald daneben geklickt wird; innen
    trifft es das Blatt. Also nur schliessen, wenn das Ziel der Dialog ist. */
-for(const kennung of ["dankblatt", "postblatt", "wechsel", "mehrblatt"]){
+for(const kennung of ["dankblatt", "postblatt", "wechsel", "mehrblatt",
+                      "datenschutzblatt"]){
   const blatt = $(kennung);
   if(!blatt) continue;
   blatt.addEventListener("click", (e) => {

@@ -56,6 +56,15 @@ pruefe("Twi zeigt mit Absicht Englisch", qr_texte.TEXTE["en"],
        qr_texte.fuer("tw"))
 pruefe("eine Ausnahme mit eigenen Texten waere ein Widerspruch", [],
        [c for c in qr_texte.ENGLISCH_GENUEGT if c in qr_texte.TEXTE])
+# Die Datenschutzzeile (0.5.0): jede Sprache mit eigenen Texten hat sie
+# auch, und wer keine hat, bekommt die englische.
+pruefe("jede Sprache mit Texten hat die Datenschutzzeile", [],
+       sorted(c for c in qr_texte.TEXTE if c not in qr_texte.DATENSCHUTZ))
+pruefe("Twi bekommt die englische Zeile", qr_texte.DATENSCHUTZ["en"],
+       qr_texte.datenschutz("tw"))
+pruefe("ohne eigene Oberflaeche heisst der Knopf «More»", [],
+       sorted(c for c, z in qr_texte.DATENSCHUTZ.items()
+              if c not in ("de", "en", "ru", "fa") and "«More»" not in z))
 pruefe("keine Sprache hat zu viel oder zu wenig Felder", [],
        sorted(c for c, t in qr_texte.TEXTE.items() if set(t) != felder))
 pruefe("kein Feld ist leer", [],

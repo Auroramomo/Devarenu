@@ -505,8 +505,14 @@ def bauen(quellen, ziel, untertitel, teile, rtl=False, maschinell="",
         pdf.titelseite(untertitel, teile, maschinell, worte=buchstaben)
     for quelle, buchstabe in quellen:
         pdf.teilbuchstabe = buchstabe
-        roh = quelle.read_text(encoding="utf-8")
-        pdf.lateinisch_pruefen(roh, quelle.name)
+        # Eine Quelle ist eine Datei -- oder fertiger Text, wenn er aus
+        # einer anderen Stelle des Projekts kommt (der Aushang aus
+        # datenschutz.py: dieselben Saetze wie auf dem Handy).
+        if isinstance(quelle, str):
+            roh, name = quelle, "(Text)"
+        else:
+            roh, name = quelle.read_text(encoding="utf-8"), quelle.name
+        pdf.lateinisch_pruefen(roh, name)
         pdf.markdown(roh)
 
     # Reproduzierbar: ohne feste Kennung und festes Datum traegt jedes
@@ -532,6 +538,33 @@ def bauen(quellen, ziel, untertitel, teile, rtl=False, maschinell="",
     if einblatt and pdf.page_no() != 1:
         sys.exit(f"  {ziel.name} soll EIN Blatt sein, hat aber "
                  f"{pdf.page_no()} Seiten. Text kuerzen.")
+
+
+def aushang_text():
+    """Der Aushang am Eingang, aus Stufe 1 in datenschutz.py.
+
+    Gemeinde und Kontakt kennt der Bau nicht -- sie stehen auf dem
+    Gemeinderechner, nicht hier. Auf dem Papier sind es darum Zeilen
+    zum Ausfuellen; wer keinen Kontakt hat, streicht die Zeile, wie sie
+    auf dem Handy dann ebenfalls entfaellt."""
+    sys.path.insert(0, str(WURZEL))
+    import config
+    import datenschutz
+    t = datenschutz.STUFE1["de"]
+    zeilen = ["# Live-Übersetzung im Gottesdienst", "",
+              f"**{datenschutz.ENTWURF['de']}.**", ""]
+    for satz in t["absaetze"]:
+        zeilen += [satz, ""]
+    zeilen += ["## Verantwortlich und Kontakt", "",
+               "Verantwortlich: ______________________________________", "",
+               "Kontakt: ____________________________________________", "",
+               "## Ausführlich", "",
+               "Die ausführliche Fassung liegt auf dem Rechner im Saal, denn "
+               "das Saal-WLAN hat kein Internet:", "",
+               f"- auf dem Handy unter **„Mehr“** → **„Datenschutz“**",
+               f"- oder im Saal-WLAN unter **http://{config.NETZ_ADRESSE}"
+               f"/datenschutz**", ""]
+    return "\n".join(zeilen)
 
 
 def main():
@@ -573,6 +606,16 @@ def main():
     if versionen.exists():
         bauen([(versionen, "")], hier / "Devarenu-Fassungen.pdf",
               "Die Fassungen", [], einblatt=True)
+
+    # Datenschutz (0.5.0), beide als ENTWURF. Der Aushang fuer den
+    # Eingang traegt Stufe 1 -- aus datenschutz.py, damit Wand und
+    # Handy dasselbe sagen. Daneben das Blatt fuer Gastprediger.
+    bauen([(aushang_text(), "")], hier / "Devarenu-Aushang-Datenschutz.pdf",
+          "Aushang Datenschutz", [], einblatt=True)
+    gast = hier / "05_gastprediger.md"
+    if gast.exists():
+        bauen([(gast, "")], hier / "Devarenu-Gastprediger.pdf",
+              "Für Gastprediger", [], einblatt=True)
 
     # Teil A einzeln, in jeder Sprache, die die Zuhoererseite anbietet.
     # Wer uebersetzt mithoert, spricht ja gerade kein Deutsch.

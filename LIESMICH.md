@@ -222,8 +222,12 @@ nicht überschrieben: gibt es welche, bricht es ab und zeigt sie.
 ## Datenschutz
 
 Was das Programm über Zuhörer speichert — und was nicht — steht in
-[DATENSCHUTZ.md](DATENSCHUTZ.md), mit einem Textbaustein zum
-Übernehmen in die eigene Datenschutzerklärung.
+[DATENSCHUTZ.md](DATENSCHUTZ.md): ein Verzeichnis der
+Verarbeitungstätigkeiten, der Rechtsrahmen für Adventgemeinden (DSVO)
+und für andere Träger (DSGVO), und die Information der Teilnehmenden in
+zwei Stufen — auf jedem Handy unter *Mehr* → *Datenschutz*, als Aushang
+für den Eingang und als Blatt für Gastprediger. **Alles davon ist ein
+Entwurf, vor Freigabe durch den Datenschutzbeauftragten.**
 
 ## Spenden und offizielle Fassung
 
