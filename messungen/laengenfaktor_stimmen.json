@@ -9,10 +9,22 @@
   "stimmen": {
     "ar_JO-kareem-medium": {
       "sprache": "ar",
-      "ausgeliefert": true,
+      "ausgeliefert": false,
+      "sprecher": null,
+      "sprecher_gesamt": 1,
       "gegen_deutsch": 1.535,
-      "gegen_original": 1.4,
-      "streuung": 0.534,
+      "gegen_original": 1.364,
+      "streuung": 0.567,
+      "saetze": 20
+    },
+    "ar_miro_espeak_V2": {
+      "sprache": "ar",
+      "ausgeliefert": true,
+      "sprecher": null,
+      "sprecher_gesamt": 1,
+      "gegen_deutsch": 0.996,
+      "gegen_original": 0.878,
+      "streuung": 0.333,
       "saetze": 20
     },
     "cs_CZ-jirka-medium": {

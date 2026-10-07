@@ -156,6 +156,7 @@ legt sie offen.
 | Sprache | Stimme | Lizenz des Datensatzes | Anmerkung |
 |---|---|---|---|
 | Arabisch | ~~`ar_JO-kareem-medium`~~ | keine genannt (0.4.3 nachgesehen) | **keine Lizenz — seit 0.4.5 nicht mehr ausgeliefert** |
+| Arabisch | `ar_miro_espeak_V2` | CC BY-NC-ND 4.0 | **nichtkommerziell, unverändert** — seit 0.5.0, siehe unten |
 | Tschechisch | `cs_CZ-jirka-medium` | CC0 | |
 | Deutsch | `de_DE-thorsten-medium` | CC0 | |
 | Griechisch | `el_GR-rapunzelina-medium` | CC0 | |
@@ -218,6 +219,41 @@ Vorrat (`teile.json`); `einrichten.sh` sagt das, statt es zu versuchen.
 Für die Verszählung (`zaehlung.json`) wurde die Asante-Twi-Bibel von
 Biblica über ebible.org ausgezählt — wie bei den anderen Bibeln nur die
 Verszahlen, kein Text.
+
+### Arabisch (Miro V2) — seit 0.5.0
+
+**`ar_miro_espeak_V2`** ist die Stimme *Miro* aus
+`OpenVoiceOS/phoonnx_ar_miro_espeak_V2` auf Hugging Face, Revision
+`8c5783a11d450ffad2ed99fc7c6dc8d6c8f86ccb`.
+
+* **Namensnennung:** Stimme, Trainingsdaten und Modell gehören
+  **TigreGotico Lda** (<https://tigregotico.pt>), veröffentlicht über
+  **OpenVoiceOS**.
+* **Lizenz:** **CC BY-NC-ND 4.0** — **nichtkommerziell** und **ohne
+  Bearbeitung**. Eine Gemeinde nutzt die Stimme nicht kommerziell; wer
+  Devarenu verkauft oder in ein bezahltes Angebot einbaut, darf diese
+  Stimme nicht mitgeben.
+* **Unverändert:** Die Modelldatei wird Byte für Byte so ausgeliefert,
+  wie sie veröffentlicht ist (sha256 `4e9ef893…`, gleich der
+  LFS-Kennung bei Hugging Face; geprüft in
+  `pruefstand/stimmlizenz_test.py`). Sie liegt nur unter einem anderen
+  **Dateinamen** (`ar_miro_espeak_V2.onnx` statt `miro_ar.onnx`), weil
+  Devarenu die Sprache am Namensanfang erkennt. Daneben liegt eine
+  **eigene Beschreibung** für Piper (`stimmen/ar_miro_espeak_V2.onnx.json`)
+  mit denselben Werten wie die mitgelieferte `miro_ar.json`, nur im
+  Format, das Piper liest. Am Modell ist nichts umgewandelt, nichts
+  feinabgestimmt.
+* **Laden und Klang:** Piper lädt die Datei so, wie sie ist (Eingänge
+  `input`, `input_lengths`, `scales`). Die Vokalzeichen, die gemma nicht
+  schreibt, setzt Pipers eingebaute Diakritisierung (libtashkeel) — dieselbe
+  Aufgabe, die bei phoonnx `add_diacritics` erledigt. Gemessen mit
+  Whisper als Hörer an zwölf übersetzten Sätzen: im Mittel 0,98
+  Übereinstimmung mit dem Text (ohne Diakritisierung 0,89, die alte
+  `kareem` 0,975). Ob sie **gut** klingt, sagt erst jemand, der
+  Arabisch spricht. Arabisch bleibt **ungeprüft**.
+
+`einrichten.sh` und `teile.py --aus-dem-netz` holen die Datei von
+genau dieser Revision und prüfen sie gegen die sha256 in `teile.json`.
 
 ### Zwei davon laufen in Rostock
 

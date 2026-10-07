@@ -48,8 +48,11 @@ def titel(t):
 
 
 titel("1) Nicht mehr in config.STIMMEN")
-for sprache in ("ka", "ar"):
-    pruefe(f"{sprache} hat keine Stimme", "", config.STIMMEN.get(sprache, ""))
+pruefe("ka hat keine Stimme", "", config.STIMMEN.get("ka", ""))
+# Arabisch hat seit 0.5.0 wieder eine -- Miro V2, mit Lizenz (Abschnitt
+# 5). Die lizenzlose kareem bleibt draussen.
+pruefe("ar spricht nicht mehr kareem", False,
+       "kareem" in config.STIMMEN.get("ar", ""))
 # Aber die Sprache selbst bleibt waehlbar -- Untertitel ohne Ton.
 for sprache in ("ka", "ar"):
     pruefe(f"{sprache} bleibt eine Sprache", True,
@@ -64,9 +67,7 @@ teile = json.loads((BASIS / "teile.json").read_text(encoding="utf-8"))
 drin = [e["pfad"] for e in teile["teile"]
         if any(n in e["pfad"] for n in OHNE_LIZENZ)]
 pruefe("kein Teil nennt sie", [], drin)
-for sprache in ("ka", "ar"):
-    pruefe(f"{sprache} steht nicht in der Stimmenliste", False,
-           sprache in teile["stimmen"])
+pruefe("ka steht nicht in der Stimmenliste", False, "ka" in teile["stimmen"])
 # Die Summe muss zu den Teilen passen, sonst meldet der Stick spaeter
 # eine Abweichung, die keine ist.
 pruefe("die Byte-Summe stimmt", sum(e["bytes"] for e in teile["teile"]),
@@ -102,6 +103,24 @@ for sprache in ROSTOCK:
            sprache in teile["stimmen"])
 pruefe("die Zielsprachen sind unveraendert", ["en", "fa", "ru"],
        sorted(config.ZIELSPRACHEN))
+
+titel("5) Arabisch: Miro V2, unveraendert (CC BY-NC-ND 4.0)")
+# ND heisst: keine Bearbeitung. Ausgeliefert wird die Datei, wie
+# OpenVoiceOS sie veroeffentlicht hat -- belegt ueber die sha256, die
+# Hugging Face fuer genau diese Revision als LFS-Kennung nennt.
+MIRO_SHA = "4e9ef89322e654077b058010fa3b4253a9763cb2ebab654c671a240bc2c5d7f0"
+miro = [e for e in teile["teile"] if e["pfad"] == "ar_miro_espeak_V2.onnx"]
+pruefe("Miro steht in teile.json", 1, len(miro))
+pruefe("mit der sha256 der veroeffentlichten Datei", MIRO_SHA,
+       miro[0]["sha256"] if miro else "")
+quelle = config.STIMM_QUELLE.get("ar_miro_espeak_V2", {})
+pruefe("die Adresse nennt eine feste Revision", True,
+       "/resolve/8c5783a11d450ffad2ed99fc7c6dc8d6c8f86ccb/" in quelle.get("onnx", ""))
+pruefe("die Lizenz ist genannt", True, "BY-NC-ND" in quelle.get("lizenz", ""))
+lizenzen = (BASIS / "LIZENZEN.md").read_text(encoding="utf-8")
+pruefe("LIZENZEN.md nennt TigreGotico und OpenVoiceOS", True,
+       "TigreGotico" in lizenzen and "OpenVoiceOS" in lizenzen)
+pruefe("Arabisch bleibt ungeprueft", False, "ar" in config.GEPRUEFT)
 
 print("")
 if fehler:

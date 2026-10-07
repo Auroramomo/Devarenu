@@ -428,12 +428,12 @@ STIMMEN = {
     "pt": "pt/pt_BR/jeff/medium/pt_BR-jeff-medium",
     "it": "it/it_IT/paola/medium/it_IT-paola-medium",
     "tr": "tr/tr_TR/dfki/medium/tr_TR-dfki-medium",
-    # Seit 0.4.5 leer: ar_JO-kareem-medium hat KEINE Lizenzangabe. Ohne
-    # Lizenz gibt es keine Erlaubnis, sie weiterzugeben -- und eine
-    # Gemeinde, die einen Stick weiterreicht, tut genau das.
-    # Einzelheiten in LIZENZEN.md. Arabisch laeuft damit als reiner
-    # Untertitel, wie jede Sprache ohne Stimme.
-    "ar": "",
+    # Von 0.4.5 bis 0.4.6 leer: ar_JO-kareem-medium hat KEINE
+    # Lizenzangabe und wird nicht mehr ausgeliefert. Seit 0.5.0 Miro V2
+    # von OpenVoiceOS, CC BY-NC-ND 4.0 -- die Datei ist unveraendert,
+    # nur umbenannt; siehe STIMM_QUELLE und LIZENZEN.md. Arabisch bleibt
+    # ungeprueft.
+    "ar": "ar/ar_miro_espeak_V2",
     "sw": "sw/sw_CD/lanfrica/medium/sw_CD-lanfrica-medium",
     "nl": "nl/nl_NL/mls/medium/nl_NL-mls-medium",
     "vi": "vi/vi_VN/vais1000/medium/vi_VN-vais1000-medium",
@@ -467,6 +467,18 @@ STIMM_QUELLE = {
         "onnx": None,
         "lizenz": "CC BY-SA 4.0 (Coqui, Daten BibleTTS/Open.Bible); "
                   "Umwandlung nach ONNX ebenfalls CC BY-SA 4.0",
+    },
+    # Miro V2. Die Adresse nennt die REVISION, nicht "main": aendert der
+    # Anbieter die Datei, passt sie nicht mehr zur sha256 in teile.json,
+    # und eine andere Stimme als die gemessene waere eine Ueberraschung.
+    # Gespeichert wird sie unter anderem Namen, Inhalt Byte fuer Byte
+    # gleich -- die Lizenz (ND) erlaubt keine Bearbeitung.
+    "ar_miro_espeak_V2": {
+        "onnx": "https://huggingface.co/OpenVoiceOS/"
+                "phoonnx_ar_miro_espeak_V2/resolve/"
+                "8c5783a11d450ffad2ed99fc7c6dc8d6c8f86ccb/miro_ar.onnx",
+        "lizenz": "CC BY-NC-ND 4.0 (TigreGotico Lda / OpenVoiceOS), "
+                  "nichtkommerziell, unveraendert",
     },
 }
 
@@ -565,7 +577,9 @@ TEMPO_STIMME = {
     # Gemessen, bevor die Stimme wegen fehlender Lizenz aus STIMMEN
     # genommen wurde (0.4.5). Die Zahl bleibt als Messwert stehen; sie
     # wird nicht mehr nachgeschlagen.
-    "ar_JO-kareem-medium": 1.53,  # Arabisch
+    "ar_JO-kareem-medium": 1.53,  # Arabisch, nicht mehr ausgeliefert
+    # Seit 0.5.0, im selben Lauf wie kareem (1.535) gemessen: 0.996.
+    "ar_miro_espeak_V2": 1.00,  # Arabisch
     "cs_CZ-jirka-medium": 1.46,  # Tschechisch
     "de_DE-thorsten-medium": 1.00,  # Deutsch
     "el_GR-rapunzelina-medium": 1.02,  # Griechisch
@@ -658,7 +672,7 @@ TEMPO_STIMME = {
 # Rueckfall je Sprache, falls eine andere Stimme eingesetzt wird als die
 # gemessene. Grob, aber besser als die Vorgabe.
 TEMPO_SPRACHE = {
-    "ar": 1.53,   # Arabisch
+    "ar": 1.00,   # Arabisch (miro, seit 0.5.0)
     "cs": 1.46,   # Tschechisch
     "de": 1.00,   # Deutsch
     "el": 1.02,   # Griechisch

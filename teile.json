@@ -2,6 +2,7 @@
   "fassung": "0.4.6",
   "hinweis": "Erzeugt von teile.py --erfassen. Nur Metadaten -- die Dateien selbst liegen nicht im Repo.",
   "stimmen": [
+    "ar",
     "cs",
     "de",
     "el",
@@ -25,8 +26,20 @@
   ],
   "whisper": "large-v3-turbo",
   "sprachmodell": "gemma4:12b",
-  "bytes": 10571326172,
+  "bytes": 10634770484,
   "teile": [
+    {
+      "art": "stimmen",
+      "pfad": "ar_miro_espeak_V2.onnx",
+      "bytes": 63438846,
+      "sha256": "4e9ef89322e654077b058010fa3b4253a9763cb2ebab654c671a240bc2c5d7f0"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "ar_miro_espeak_V2.onnx.json",
+      "bytes": 5466,
+      "sha256": "17e15548a631e37fb986d19b5ee1c61a3dfcef888becbb435d6447ba923df53b"
+    },
     {
       "art": "stimmen",
       "pfad": "cs_CZ-jirka-medium.onnx",
