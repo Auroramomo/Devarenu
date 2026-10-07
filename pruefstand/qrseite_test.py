@@ -48,7 +48,14 @@ def pruefe(was, erwartet, ist):
 print("\n\033[1m== 1) Die Texttabelle\033[0m")
 felder = {"schritt1", "schritt2", "geduld", "internet", "hoeren"}
 pruefe("jede angebotene Sprache hat Texte", [],
-       sorted(c for c in qr_texte.SPRACHEN if c not in qr_texte.TEXTE))
+       sorted(c for c in qr_texte.SPRACHEN if c not in qr_texte.TEXTE
+              and c not in qr_texte.ENGLISCH_GENUEGT))
+# Die Ausnahme ist ausdruecklich und begruendet (qr_texte.ENGLISCH_GENUEGT),
+# nicht vergessen -- und sie zeigt wirklich Englisch.
+pruefe("Twi zeigt mit Absicht Englisch", qr_texte.TEXTE["en"],
+       qr_texte.fuer("tw"))
+pruefe("eine Ausnahme mit eigenen Texten waere ein Widerspruch", [],
+       [c for c in qr_texte.ENGLISCH_GENUEGT if c in qr_texte.TEXTE])
 pruefe("keine Sprache hat zu viel oder zu wenig Felder", [],
        sorted(c for c, t in qr_texte.TEXTE.items() if set(t) != felder))
 pruefe("kein Feld ist leer", [],

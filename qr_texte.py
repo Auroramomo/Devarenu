@@ -54,7 +54,18 @@ SPRACHEN = {
     "sr": ("Српски",     False),
     "el": ("Ελληνικά",   False),
     "ka": ("ქართული",    False),
+    # Twi (Asante) seit 0.5.0. Keine eigenen Texte: es gilt Englisch,
+    # siehe ENGLISCH_GENUEGT.
+    "tw": ("Twi",        False),
 }
+
+# Sprachen, die ABSICHTLICH keine eigenen Texte haben und Englisch
+# zeigen. Twi: Englisch ist die Amtssprache Ghanas, jeder, der Twi
+# liest, liest auch Englisch -- und das Sprachmodell schreibt Twi so
+# schlecht (gemessen mit 0.5.0), dass eine maschinelle Fassung an der
+# Wand mehr verwirrte als hilft. Hier steht es, damit eine vergessene
+# Sprache nicht wie eine absichtlich ausgelassene aussieht.
+ENGLISCH_GENUEGT = ("tw",)
 
 # schritt1  ueber dem WLAN-Code
 # schritt2  ueber dem Seiten-Code

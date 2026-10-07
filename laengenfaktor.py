@@ -313,6 +313,25 @@ def stimmen_laden(ordner=None):
         for pfad in liste:
             name = pfad.split("/")[-1]
             print(f"{sp}: versuche {name} ...", end=" ", flush=True)
+            # Seit 0.5.0 liegt nicht jede Stimme im Piper-Vorrat. Woher
+            # sie kommt, weiss teile.stimm_herkunft -- an einer Stelle.
+            if name in getattr(config, "STIMM_QUELLE", {}):
+                import shutil
+                import teile
+                art, woher = teile.stimm_herkunft(name + ".onnx")
+                if art != "netz":
+                    print("nein (nur ueber Stick oder Vorrat)")
+                    continue
+                try:
+                    urllib.request.urlretrieve(woher, STIMMEN_ORDNER / (name + ".onnx"))
+                    _art, beschr = teile.stimm_herkunft(name + ".onnx.json")
+                    shutil.copy(beschr, STIMMEN_ORDNER / (name + ".onnx.json"))
+                    print("ok")
+                    geschafft = True
+                    break
+                except Exception as e:
+                    print(f"nein ({type(e).__name__})")
+                    continue
             try:
                 for endung in (".onnx", ".onnx.json"):
                     urllib.request.urlretrieve(BASIS_URL + pfad + endung,

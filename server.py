@@ -485,6 +485,38 @@ class Segmentierer:
 # Verarbeitung
 # ================================================================
 
+def schleife_kappen(text, mal=4, laengste=6):
+    """Kappt eine Wiederholungsschleife des Sprachmodells.
+
+    Gesucht wird die FRUEHESTE Stelle, an der sich ein Wort oder eine
+    Gruppe von bis zu `laengste` Woertern mindestens `mal`-mal direkt
+    hintereinander wiederholt. Stehen bleibt alles bis einschliesslich
+    des ersten Vorkommens. Verglichen wird ohne Satzzeichen und
+    Gross/Klein; ausgegeben werden die Woerter, wie sie dastanden.
+
+    Drei Wiederholungen ("heilig, heilig, heilig") bleiben stehen --
+    das ist Rede, keine Schleife. Dazu Silbenketten in einem Wort
+    ("nɔnɔnɔnɔnɔnɔ"): sechs gleiche Silben und mehr werden auf zwei
+    gekuerzt. Gilt nur fuer config.SCHLEIFE_KAPPEN."""
+    woerter = text.split()
+    norm = [re.sub(r"[\W_]", "", w.lower()) for w in woerter]
+    schnitt = None
+    for i in range(len(norm)):
+        for n in range(1, laengste + 1):
+            gruppe = norm[i:i + n]
+            if len(gruppe) < n or not any(gruppe):
+                break
+            if all(norm[i + k * n:i + (k + 1) * n] == gruppe
+                   for k in range(1, mal)):
+                schnitt = i + n
+                break
+        if schnitt is not None:
+            break
+    if schnitt is not None:
+        text = " ".join(woerter[:schnitt]).rstrip(",;:") + " …"
+    return re.sub(r"(\w{1,3}?)\1{5,}", r"\1\1", text)
+
+
 class Werk:
     """Whisper, Uebersetzung und Piper. Alles blockierend, deshalb laeuft es
     in Threads und nicht im Ereignisschleifen-Thread."""
@@ -1120,6 +1152,12 @@ class Werk:
         if "</think>" in t:
             t = t.split("</think>", 1)[1]
         t = re.sub(r"[*`]+", "", t).strip().strip('"').strip()
+        if sprache in getattr(config, "SCHLEIFE_KAPPEN", ()):
+            gekappt = schleife_kappen(t)
+            if gekappt != t:
+                print(f"        Schleife {sprache}: {len(t)} -> "
+                      f"{len(gekappt)} Zeichen gekappt")
+                t = gekappt
         # Nachsehen, ob die umgerechnete Angabe wirklich dasteht. Wenn
         # nicht, einsetzen -- aber nur, wo die alte Angabe woertlich im
         # Text steht. Sonst bleibt alles, wie es ist, und es geht ins
@@ -1573,6 +1611,13 @@ class Lauf:
         geladen: die Erkennungssprache ist ein Aufrufparameter, kein
         Bestandteil des Modells."""
         vorher = set(self.sprachen)
+        if quelle and quelle in getattr(config, "NUR_ZIEL", set()):
+            # Whisper kennt sie nicht -- siehe config.NUR_ZIEL. Die
+            # bisherige Quelle bleibt, statt dass jeder Abschnitt an der
+            # Erkennung scheitert.
+            print(f"Sprachwahl: {quelle} kann keine Ausgangssprache sein, "
+                  f"es bleibt {self.quelle}.")
+            quelle = None
         if quelle:
             self.quelle = quelle
         if ziele is not None:
@@ -4529,6 +4574,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                            or sp in auf_platte),
                 "geprueft": sp in getattr(config, "GEPRUEFT", set()),
                 "glossar": sp in glossar_sprachen(),
+                # Taugt sie als Predigtsprache? Nicht, wenn Whisper sie
+                # nicht kennt (config.NUR_ZIEL).
+                "quelle": sp not in getattr(config, "NUR_ZIEL", set()),
             } for sp, name in sorted(config.SPRACHNAMEN.items(),
                                      key=lambda x: x[1])],
         }
@@ -7979,7 +8027,8 @@ async function sprachenSetzen(){
 async function sprachenLaden(){
   const d=await(await fetch("/api/sprachen")).json();
   NAMEN={}; d.liste.forEach(x=>NAMEN[x.code]=x.name);
-  quellwahl.innerHTML=d.moeglich.map(x=>
+  // Nur, was Whisper erkennen kann (Feld "quelle", config.NUR_ZIEL).
+  quellwahl.innerHTML=d.moeglich.filter(x=>x.quelle!==false).map(x=>
     `<option value="${x.code}"${x.code===d.quelle?" selected":""}>`
     +`${x.name}</option>`).join("");
   // Geprüfte oben, ungeprüfte darunter mit eigener Überschrift. Eine

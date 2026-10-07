@@ -114,9 +114,17 @@ def main():
     print(f"{BLAU}== {len(config.STIMMEN)} ausgelieferte Stimmen{AUS}")
     zeilen = []
     for sprache, pfad in sorted(config.STIMMEN.items()):
+        if not pfad:
+            continue            # ka: seit 0.4.5 ohne Stimme
         name = pfad.rsplit("/", 1)[1]
-        text = karte_holen(pfad)
-        lizenz, url, training = auslesen(text)
+        sonder = getattr(config, "STIMM_QUELLE", {}).get(name)
+        if sonder is not None:
+            # Nicht aus dem Piper-Vorrat, also keine Modellkarte dort.
+            # Die Lizenz steht in config.STIMM_QUELLE und LIZENZEN.md.
+            lizenz, url, training = sonder.get("lizenz", ""), sonder.get("onnx") or "", ""
+        else:
+            text = karte_holen(pfad)
+            lizenz, url, training = auslesen(text)
         heikel = einstufen(lizenz)
         zeilen.append({
             "sprache": sprache,

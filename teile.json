@@ -19,12 +19,13 @@
     "sr",
     "sw",
     "tr",
+    "tw",
     "uk",
     "vi"
   ],
   "whisper": "large-v3-turbo",
   "sprachmodell": "gemma4:12b",
-  "bytes": 10457073996,
+  "bytes": 10571326172,
   "teile": [
     {
       "art": "stimmen",
@@ -229,6 +230,18 @@
       "pfad": "tr_TR-dfki-medium.onnx.json",
       "bytes": 4960,
       "sha256": "13ebd7810f1b61b5027583cf3131a0a233b6ea81c38f2200ebc4ff41c3cca039"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "tw_GH-openbible_asante-vits.onnx",
+      "bytes": 114247616,
+      "sha256": "14443b8d50eaca631f4733bee180845dd32748b84a1b632bb3ab93f39626d7e0"
+    },
+    {
+      "art": "stimmen",
+      "pfad": "tw_GH-openbible_asante-vits.onnx.json",
+      "bytes": 4560,
+      "sha256": "e5d64a183597bc9c3246020d19114b46ce33ad1e89c946cf7b1ddb046624eabc"
     },
     {
       "art": "stimmen",

@@ -293,6 +293,16 @@
       "streuung": 0.229,
       "saetze": 20
     },
+    "tw_GH-openbible_asante-vits": {
+      "sprache": "tw",
+      "ausgeliefert": true,
+      "sprecher": null,
+      "sprecher_gesamt": 1,
+      "gegen_deutsch": 1.664,
+      "gegen_original": 1.401,
+      "streuung": 4.989,
+      "saetze": 20
+    },
     "uk_UA-mykyta-high": {
       "sprache": "uk",
       "ausgeliefert": true,

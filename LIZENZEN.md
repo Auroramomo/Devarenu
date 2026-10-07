@@ -176,6 +176,7 @@ legt sie offen.
 | Türkisch | `tr_TR-dfki-medium` | CC-BY-NC-SA 4.0 | **nichtkommerziell** |
 | Ukrainisch | uk_UA-mykyta-high | Apache 2.0 | Trainingsweg laut Modellkarte nicht angegeben |
 | Vietnamesisch | `vi_VN-vais1000-medium` | CC-BY 4.0 | |
+| Twi (Asante) | `tw_GH-openbible_asante-vits` | CC BY-SA 4.0 | Umwandlung, siehe unten |
 
 Ukrainisch ist mit 0.5.0 von `uk_UA-ukrainian_tts-medium` (CC0) auf
 `uk_UA-mykyta-high` umgestellt. Die Modellkarte nennt als Datensatz
@@ -184,6 +185,39 @@ und verweist für das Training nur auf
 <https://huggingface.co/RomanStasyshyn/uk_UA-mykyta-high>. Die alte
 Stimme wird nicht mehr mitgeliefert; wo sie liegt, bleibt sie liegen
 — Devarenu löscht keine Stimmen.
+
+### Twi (Asante) — seit 0.5.0
+
+**`tw_GH-openbible_asante-vits`** ist keine Piper-Stimme, sondern eine
+Umwandlung.
+
+* **Vorlage:** das Modell `tts_models--tw_asante--openbible--vits` von
+  **Coqui** (coqui-ai/TTS, Release `v0.6.2_models`), Lizenz laut Coqui
+  **CC BY-SA 4.0**.
+* **Daten:** **BibleTTS** (Meyer u. a., 2022), Lesungen der Asante-Twi-
+  Bibel von **Open.Bible**, Text © 1996, 2020 Biblica, Inc., ebenfalls
+  CC BY-SA 4.0.
+* **Was geändert ist:** Das Modell ist einmalig am Entwicklungsrechner
+  aus dem Coqui-Format nach ONNX umgewandelt. Dabei ist ein Fehler in
+  Coquis Exportfunktion berichtigt (die Rauschwerte aus dem Eingang
+  `scales` kamen nicht an); die Gewichte sind unverändert. Dazu kommt
+  eine Beschreibung für Piper (`.onnx.json`), die die Zeichen genau so
+  auf Nummern abbildet wie Coqui. Werkzeug und Begründung:
+  `werkzeuge/twi_stimme.py`, die Beschreibung liegt unter `stimmen/`.
+* **Lizenz der Umwandlung:** Die ONNX-Fassung ist eine Bearbeitung und
+  steht **ebenfalls unter CC BY-SA 4.0** — wer sie weitergibt, gibt
+  sie unter derselben Lizenz und mit dieser Namensnennung weiter.
+
+Belegt ist die Umwandlung durch einen Vergleich mit Coqui selbst: drei
+Sätze, Rauschen 0, dieselben Zeichennummern und dieselbe Zahl an
+Abtastwerten, größte Abweichung 0,0003.
+
+Die Datei gibt es nirgends zum Herunterladen. Sie kommt über Stick und
+Vorrat (`teile.json`); `einrichten.sh` sagt das, statt es zu versuchen.
+
+Für die Verszählung (`zaehlung.json`) wurde die Asante-Twi-Bibel von
+Biblica über ebible.org ausgezählt — wie bei den anderen Bibeln nur die
+Verszahlen, kein Text.
 
 ### Zwei davon laufen in Rostock
 

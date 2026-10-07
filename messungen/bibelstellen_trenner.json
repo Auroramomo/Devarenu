@@ -301,6 +301,14 @@
      "Ми почнемо з молитви, а потім прочитаємо 2-е до коринтян 5, 17."
     ],
     "ergebnis": "Komma 7 von 7, wie im deutschen Satz. Keine Anweisung (config.STELLEN_TRENNER). Die Saetze zeigen zugleich, warum die Evangelien im Glossar ohne 'Від' stehen: 'з Від Матвія' ist kein Ukrainisch. Gemessen vor dieser Aenderung."
+   },
+   "tw": {
+    "trenner": {":": 6},
+    "beispiele": [
+     "Mmohwɛ: 1 Samuel 15:22.",
+     "Yɛnkyerɛe wɔi nkyekyem mu, na yɛbɛkyerɛe 2 Korintofo 5:17."
+    ],
+    "ergebnis": "Doppelpunkt 6 von 6 (zwei Saetze ohne Stelle in der Ausgabe). Eingetragen in config.STELLEN_TRENNER wie en und ru. Drei der acht Saetze liefen in eine Wiederholungsschleife bis zur Laengengrenze -- siehe config.SCHLEIFE_KAPPEN. Die Twi-Saetze selbst sind ueberwiegend kein brauchbares Twi; gezeigt sind nur die Stellenangaben."
    }
   }
  }

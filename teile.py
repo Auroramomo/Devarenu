@@ -408,6 +408,33 @@ def _stimmpfad(dateiname):
     return None
 
 
+# Die Piper-Beschreibungen der Stimmen aus config.STIMM_QUELLE.
+STIMMEN_REPO = config.BASIS / "stimmen"
+
+
+def stimm_herkunft(dateiname):
+    """Woher eine Datei aus voices/ nachkommt.
+
+    ("netz", Adresse)    herunterladen
+    ("repo", Pfad)       liegt im Repo unter stimmen/
+    ("stick", None)      gibt es nirgends zum Herunterladen
+    (None, None)         unbekannt -- steht nicht in config.STIMMEN
+
+    Seit 0.5.0 liegen nicht mehr alle Stimmen im Piper-Vorrat (Twi,
+    Arabisch). Ohne diese Unterscheidung fragte --aus-dem-netz dort nach
+    einer Datei, die es nicht gibt, und meldete einen Fehler, der keiner
+    ist: die Stimme kommt auf diesem Weg schlicht nicht."""
+    stamm = dateiname.removesuffix(".json").removesuffix(".onnx")
+    sonder = getattr(config, "STIMM_QUELLE", {}).get(stamm)
+    if sonder is not None:
+        if dateiname.endswith(".json"):
+            return "repo", STIMMEN_REPO / dateiname
+        adresse = sonder.get("onnx")
+        return ("netz", adresse) if adresse else ("stick", None)
+    rel = _stimmpfad(dateiname)
+    return ("netz", f"{PIPER_BASIS}/{rel}") if rel else (None, None)
+
+
 def aus_dem_netz(nur_stimmen=True):
     """Holt fehlende Stimmen aus dem Netz und prueft sie gegen teile.json.
 
@@ -457,16 +484,22 @@ def aus_dem_netz(nur_stimmen=True):
     wurzel.mkdir(parents=True, exist_ok=True)
     geholt, misslungen = 0, []
     for e in noetig:
-        rel = _stimmpfad(e["pfad"])
-        if rel is None:
+        art, woher = stimm_herkunft(e["pfad"])
+        if art is None:
             misslungen.append(f"{e['pfad']} (steht nicht in config.STIMMEN)")
+            continue
+        if art == "stick":
+            misslungen.append(f"{e['pfad']} (kommt nur ueber Stick oder "
+                              f"Vorrat, nicht aus dem Netz)")
             continue
         ziel = wurzel / e["pfad"]
         zwischen = ziel.with_name(ziel.name + ".halb")
         try:
-            with urllib.request.urlopen(f"{PIPER_BASIS}/{rel}",
-                                        timeout=120) as ein, \
-                    open(zwischen, "wb") as aus:
+            if art == "repo":
+                ein = open(woher, "rb")
+            else:
+                ein = urllib.request.urlopen(woher, timeout=120)
+            with ein, open(zwischen, "wb") as aus:
                 h = hashlib.sha256()
                 gesamt = 0
                 while True:

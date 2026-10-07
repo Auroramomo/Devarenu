@@ -241,30 +241,52 @@ mkdir -p voices
 # Einundzwanzig Stimmen sind rund 1,3 GB. Einmalig, bei der Einrichtung,
 # wo ohnehin Internet gebraucht wird. Der Gemeinderechner hat danach
 # keins mehr.
+# Je Stimme: Sprache, Name, woher das Modell, woher die Beschreibung.
+# Seit 0.5.0 nicht mehr nur aus dem Piper-Vorrat -- teile.stimm_herkunft
+# sagt es je Datei: eine Adresse, "repo:<Pfad>" oder "-" fuer "nur
+# ueber Stick und Vorrat".
 $PY - <<'PYCODE' > /tmp/stimmenliste 2>/dev/null || echo "" > /tmp/stimmenliste
-import config
+import config, teile
+def wo(datei):
+    art, woher = teile.stimm_herkunft(datei)
+    return {"netz": str(woher), "repo": f"repo:{woher}"}.get(art, "-")
 for sp, pfad in config.STIMMEN.items():
     if pfad:
-        print(sp, pfad)
+        name = pfad.rsplit("/", 1)[-1]
+        print(sp, name, wo(name + ".onnx"), wo(name + ".onnx.json"))
 PYCODE
 anzahl=$(wc -l < /tmp/stimmenliste)
 printf '        %s\n' "$anzahl Stimmen laut config.py, rund $((anzahl * 63)) MB"
 
-BASIS="https://huggingface.co/rhasspy/piper-voices/resolve/main"
-while read -r sprache pfad; do
-  [ -z "${pfad:-}" ] && continue
-  name="${pfad##*/}"
+holen() {
+  # holen <Quelle> <Ziel>: Adresse herunterladen oder aus dem Repo kopieren.
+  case "$1" in
+    repo:*) cp "${1#repo:}" "$2" ;;
+    -)      return 1 ;;
+    *)      curl -fsSL -o "$2" "$1" ;;
+  esac
+}
+
+while read -r sprache name onnx beschreibung; do
+  [ -z "${name:-}" ] && continue
   if [ -f "voices/$name.onnx" ] && [ -f "voices/$name.onnx.json" ]; then
     gut "$sprache: $name"
     continue
   fi
+  if [ "$onnx" = "-" ]; then
+    # Twi: umgewandelt am Entwicklungsrechner, nirgends zum Herunterladen.
+    warn "$sprache: $name kommt nur ueber Stick oder Vorrat."
+    warn "  Bis dahin laeuft $sprache als reiner Untertitel."
+    echo "$sprache" >> /tmp/stimmen_fehlen
+    continue
+  fi
   fehlt "$sprache: $name wird geladen"
-  if curl -fsSL -o "voices/$name.onnx"      "$BASIS/$pfad.onnx" &&
-     curl -fsSL -o "voices/$name.onnx.json" "$BASIS/$pfad.onnx.json"; then
+  if holen "$onnx" "voices/$name.onnx" &&
+     holen "$beschreibung" "voices/$name.onnx.json"; then
     gut "$sprache geladen"
   else
     warn "$sprache fehlgeschlagen. Laeuft dann als reiner Untertitel."
-    warn "  Pfad pruefen: huggingface.co/rhasspy/piper-voices/tree/main/$sprache"
+    warn "  Quelle pruefen: $onnx"
     rm -f "voices/$name.onnx" "voices/$name.onnx.json"
     echo "$sprache" >> /tmp/stimmen_fehlen
   fi

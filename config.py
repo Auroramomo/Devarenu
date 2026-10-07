@@ -154,7 +154,35 @@ PROMPT_EINLEITUNG = ("Mitschrift einer Predigt im Gottesdienst der "
 _ZIFFER = r"[0-9\u0660-\u0669\u06F0-\u06F9]"
 _STELLE_ZU_KOMMA = (rf"({_ZIFFER})\s*:\s*({_ZIFFER})", r"\1,\2")
 
+# TWI (0.5.0). Die Stimme ist ein Zeichenmodell aus Coqui, umgewandelt
+# fuer Piper (werkzeuge/twi_stimme.py). Coqui hat den Text vor dem
+# Training so bereinigt (multilingual_cleaners): ";" und ":" zu ",",
+# "-" zu Leerzeichen, <>()[]" weg, Weissraum zusammengezogen. Genau das
+# passiert hier, damit die Stimme bekommt, was sie kennt.
+#
+# Kleinbuchstaben braucht es hier NICHT: die .onnx.json bildet Ɛ auf
+# dieselbe Nummer ab wie ɛ, Ɔ wie ɔ.
+#
+# Was die Stimme gar nicht kennt, faellt vorher weg -- vor allem
+# Ziffern und typografische Anfuehrungszeichen. Piper wuerde sie
+# ebenfalls weglassen, aber fuer JEDES Zeichen eine Warnung ins Journal
+# schreiben. Ziffern spricht die Twi-Stimme also nicht: "Dwom 23:1" wird
+# "Dwom ,". Im Untertitel steht die Zahl; gesprochen fehlt sie.
+_TWI_KENNT = ("!',.?—…abcdefghijklmnoprstuvwxyz"
+              "ABCDEFGHIJKLMNOPRSTUVWXYZ"
+              "àáãèéìíòóõùúāăĩńŋũūƒƙǹɓɔɖɗɛɣʋṣẹẽọ"
+              "ÀÁÃÈÉÌÍÒÓÕÙÚĀĂĨŃŊŨŪƑƘǸƁƆƉƊƐƔƲṢẸẼỌ"
+              "̀́̃ ")
+_TWI = [(r"[’ʼ‘]", "'"),
+        (r"[;:]", ","),
+        (r"-", " "),
+        (r'[<>()\[\]"]', ""),
+        (r"[^" + _TWI_KENNT + r"]", " "),
+        (r"\s+", " "),
+        (r"^ | $", "")]
+
 SPRECHFORM = {
+    "tw": _TWI,
     "fa": [_STELLE_ZU_KOMMA],
     "es": [(r"\bElena\s+G\.\s+de\s+White\b", "Elena de White"),
            (r"\bEllen\s+G\.\s+White\b", "Elena de White")],
@@ -247,12 +275,30 @@ PAUSE_KOMMA_MS = {
 # Anweisung, und die umgerechnete Angabe (Joel 3,1 -> Йоїл 2,28) kommt
 # mit Komma, wie das Modell es ohnehin schreibt. Ergebnis in
 # messungen/bibelstellen_trenner.json unter "nachtrag_0_5_0".
+#
+# TWI, ebenfalls 0.5.0: Doppelpunkt 6 von 6 ("Yohanna 3:16"), ohne
+# Anweisung -- wie Englisch, dessen Zaehlung Twi folgt. Eingetragen aus
+# demselben Grund wie en und ru: sonst kaeme die umgerechnete Angabe
+# ("Yoɛl 2:28") mit dem deutschen Komma in den Prompt.
 STELLEN_TRENNER = {
     "en": ":",
     "es": ":",
     "pt": ":",
     "ru": ":",
+    "tw": ":",
 }
+
+# Sprachen, bei denen eine Wiederholungsschleife des Sprachmodells
+# gekappt wird. gemma4:12b laeuft auf Twi in 7 von 20 Pruefsaetzen in
+# eine Schleife ("honnim honnim honnim ..." bis zur Laengengrenze) --
+# auf dem Handy eine Seite voll derselben Silbe, und die Stimme spricht
+# sie eine Minute lang. Gekappt wird, wo sich ein Wort oder eine
+# Gruppe von bis zu sechs Woertern mindestens viermal direkt
+# wiederholt; stehen bleibt das erste Vorkommen.
+#
+# NUR fuer die hier genannten. In en, ru und fa ist das nie aufgetreten,
+# und dort soll kein neuer Filter zwischen Modell und Zuhoerer stehen.
+SCHLEIFE_KAPPEN = {"tw"}
 
 # ----------------------------------------------------------------- Anrede
 #
@@ -309,7 +355,18 @@ SPRACHNAMEN = {
     "ar": "Arabisch", "sw": "Suaheli", "nl": "Niederländisch",
     "vi": "Vietnamesisch", "hu": "Ungarisch", "cs": "Tschechisch",
     "sr": "Serbisch", "el": "Griechisch", "ka": "Georgisch",
+    # Seit 0.5.0. NUR Asante-Twi -- nicht Akuapem, nicht Fante. Der
+    # Name geht so in den Uebersetzungsprompt ("nach Twi (Asante)"),
+    # und die Stimme ist auf der Asante-Bibel trainiert.
+    "tw": "Twi (Asante)",
 }
+
+# Sprachen, die Whisper nicht kennt. Sie sind Zielsprache, nie
+# Ausgangssprache: als Predigtsprache gewaehlt, scheiterte die
+# Erkennung an jedem Abschnitt ("'tw' is not a valid language code").
+# Das Pult bietet sie darum nicht als Quelle an, und der Server nimmt
+# sie dort nicht an.
+NUR_ZIEL = {"tw"}
 
 # Dieselben Sprachen auf Englisch. Gebraucht fuer die englischen
 # Meldungen am Pult: "Rumänisch is switched on" ist kein englischer
@@ -326,6 +383,7 @@ SPRACHNAMEN_EN = {
     "ar": "Arabic", "sw": "Swahili", "nl": "Dutch",
     "vi": "Vietnamese", "hu": "Hungarian", "cs": "Czech",
     "sr": "Serbian", "el": "Greek", "ka": "Georgian",
+    "tw": "Twi (Asante)",
 }
 
 # Sprachen, deren Fachwortverzeichnis ein Muttersprachler durchgesehen
@@ -388,6 +446,28 @@ STIMMEN = {
     # Gemeinde ist eine Organisation. Einzelheiten in LIZENZEN.md.
     # Georgisch laeuft damit als reiner Untertitel.
     "ka": "",
+    # Seit 0.5.0. Nicht aus dem Piper-Vorrat: umgewandelt aus einem
+    # Coqui-Modell, siehe STIMM_QUELLE unten und werkzeuge/twi_stimme.py.
+    "tw": "tw/tw_GH-openbible_asante-vits",
+}
+
+# Stimmen, die NICHT im Piper-Vorrat (rhasspy/piper-voices) liegen.
+# Schluessel ist der Dateiname ohne Endung, wie in voices/.
+#
+#   onnx    Woher das Modell kommt -- eine Adresse, oder None: dann gibt
+#           es die Datei nirgends zum Herunterladen, und sie kommt nur
+#           ueber Stick und Vorrat (teile.json).
+#   lizenz  Was werkzeuge/stimmlizenzen.py statt einer Modellkarte nennt.
+#
+# Die Piper-Beschreibung (.onnx.json) dieser Stimmen liegt im Repo unter
+# stimmen/ -- sie stammt von hier, nicht vom Anbieter. Woher, steht in
+# LIZENZEN.md.
+STIMM_QUELLE = {
+    "tw_GH-openbible_asante-vits": {
+        "onnx": None,
+        "lizenz": "CC BY-SA 4.0 (Coqui, Daten BibleTTS/Open.Bible); "
+                  "Umwandlung nach ONNX ebenfalls CC BY-SA 4.0",
+    },
 }
 
 # NLLB-Modelle. Auskommentieren, was nicht getestet werden soll.
@@ -568,6 +648,11 @@ TEMPO_STIMME = {
     "uk_UA-mykyta-high": 1.51,  # Ukrainisch
     "uk_UA-ukrainian_tts-medium": 1.03,  # Ukrainisch, nicht mehr ausgeliefert
     "vi_VN-vais1000-medium": 0.99,  # Vietnamesisch
+    # Twi, seit 0.5.0. Gemessen 1.664 -- die langsamste Stimme hier. Mit
+    # Aufschlag 1,76, gestutzt auf TEMPO_MAX 1,6. Ueber eine lange
+    # Predigt laeuft Twi darum hinterher. Hoeher als 1,6 wird es nicht
+    # gestellt: dort faellt die Verstaendlichkeit (0.2.5).
+    "tw_GH-openbible_asante-vits": 1.66,  # Twi (Asante)
 }
 
 # Rueckfall je Sprache, falls eine andere Stimme eingesetzt wird als die
@@ -594,6 +679,7 @@ TEMPO_SPRACHE = {
     "tr": 1.13,   # Türkisch
     "uk": 1.51,   # Ukrainisch (mykyta, seit 0.5.0)
     "vi": 0.99,   # Vietnamesisch
+    "tw": 1.66,   # Twi (Asante)
 }
 
 # Rueckfall des Rueckfalls: eine Stimme, die niemand gemessen hat. Liegt
