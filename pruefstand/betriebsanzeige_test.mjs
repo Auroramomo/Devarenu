@@ -214,6 +214,30 @@ block("Englisch");
          p.text("fensterliste").includes("Woke up, update failed."));
   pruefe("Wecker unknown", true, p.text("weckerliste").includes("Next planned wake-up: unknown."));
 }
+{
+  // Wie im Browser: Einrichtung -> Update offen, dann nur DE/EN gedrueckt,
+  // nichts von Hand nachgeladen. Bis zum Fix blieb alles deutsch.
+  const p = await pult({
+    dienst: { vorhanden: true, eingeschaltet: "disabled", aktiv: "inactive",
+              unter: "dead", neustarts: 0, seit: "" },
+    laufart: "sitzung", startprotokoll: [], fenster: FENSTER,
+    wecker: { lesbar: false, gestellt: "", vorbei: false, geplant: "" } });
+  p.fenster.unterseiteWaehlen("eUpdate");
+  for (let i = 0; i < 5; i++) await ruhe();
+  pruefe("DE: Wecker deutsch", true,
+         p.text("weckerliste").includes("Nächstes geplantes Aufwachen: unbekannt."));
+  p.fenster.uiSprache();
+  for (let i = 0; i < 5; i++) await ruhe();
+  pruefe("nur umgeschaltet: Autostart off", true,
+         p.text("dienstliste").includes("Autostart: off (disabled)."));
+  pruefe("nur umgeschaltet: Woke up, update failed", true,
+         p.text("fensterliste").includes("Woke up, update failed."));
+  pruefe("nur umgeschaltet: Wecker unknown", true,
+         p.text("weckerliste").includes("Next planned wake-up: unknown."));
+  pruefe("nichts Deutsches mehr in Fenster und Wecker", false,
+         /Aufgewacht|Nächstes geplantes/.test(p.text("fensterliste")
+                                              + p.text("weckerliste")));
+}
 
 console.log();
 if (fehler) { console.log(`\x1b[31m${fehler} Fehler.\x1b[0m`); process.exit(1); }

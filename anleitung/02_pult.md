@@ -172,6 +172,20 @@ Die ungeprüften stehen unter einer eigenen Überschrift *Noch nicht
 geprüft*. Wird eine eingeschaltet, legt Devarenu einen Hinweis in den
 Briefkasten — einmal je Sprache.
 
+**Die gesprochene Sprache** steht mit in der Liste: fest angehakt, mit
+dem Zusatz *Original, ohne Übersetzung*. Abwählen lässt sie sich
+nicht. Wird oben die *Gesprochene Sprache* umgestellt, bleibt die
+bisherige angehakt und wird ab dann übersetzt. Alle anderen Haken
+bleiben, wie sie sind; nur der Zusatz *Original* wandert.
+
+- Gesprochen Deutsch, übersetzt nach Englisch, Russisch, Persisch.
+  Umgestellt auf Russisch: Deutsch ist angehakt (Russisch nach
+  Deutsch), Englisch und Persisch bleiben.
+- Zurück auf Deutsch: Russisch bleibt angehakt.
+- Nach einem Gastprediger in einer anderen Sprache, etwa Ukrainisch,
+  bleibt diese nach dem Zurückstellen angehakt und kostet Rechenzeit.
+  Wird sie nicht mehr gebraucht: abwählen.
+
 ## Etwas funktioniert nicht
 
 Am Laptop steht oben rechts **Fehler melden**, am Handy unter

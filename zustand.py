@@ -624,10 +624,27 @@ def kurzfassung(daten):
         geraet = daten["geraet_name"] or f"Geraet {daten['geraet']}"
     if daten["geraet_kanaele"] > 1:
         geraet += f" ({kanalname(daten['geraet_kanal'], daten['geraet_kanaele'])})"
-    schwelle = daten["schwelle"]["wert"]
+    # Die Quelle kann seit 0.5.1 unter den Zielen stehen (sie bleibt
+    # angehakt, waehrend sie gesprochen wird). Uebersetzt wird sie dann
+    # nicht, also steht sie hier auch nicht als Ziel.
+    ziele = [z for z in dict.fromkeys(daten["ziele"]) if z != daten["quelle"]]
+    # Der Modus, nicht der Wert: seit 0.4.1 heisst wert=None "aus" oder
+    # "automatisch", je nach Modus. Bis 0.5.1 stand hier fuer beides
+    # "mitlaufend", auch wenn die Schwelle aus war.
+    # Dieselbe Entscheidung wie in server.main(): "fest" ohne Wert und
+    # alles Unbekannte laufen als "aus".
+    s = daten["schwelle"]
+    modus = s.get("modus") or ("automatisch" if s.get("wert") is None
+                               else "fest")
+    if modus == "fest" and s.get("wert") is not None:
+        schwelle = f"fest {s['wert']:.4f}"
+    elif modus == "automatisch":
+        schwelle = "automatisch"
+    else:
+        schwelle = "aus"
     return (f"{geraet}, {daten['quelle']} -> "
-            f"{', '.join(daten['ziele']) or 'nichts'}, "
-            f"Schwelle {'mitlaufend' if schwelle is None else f'{schwelle:.4f}'}"
+            f"{', '.join(ziele) or 'nichts'}, "
+            f"Schwelle {schwelle}"
             f"{', WLAN gesetzt' if daten['wlan']['ssid'] else ''}")
 
 

@@ -14,18 +14,37 @@
 //
 // In Rostock hoeren Ukrainer auf Russisch.
 //
-// Hier laeuft das echte Pult-Skript aus server.py gegen einen kleinen
-// nachgebauten Server, der /api/sprachen und /api/sprachwahl so
-// beantwortet wie der echte (sprachwahl, versuch_erlaubt,
-// Lauf.sprachen_setzen). Was der echte Server mit einer Zielliste macht,
-// in der die Quelle steht, prueft sprachen_test.py.
+// Seit 0.5.1 (zweiter Schritt) gilt mehr: die gesprochene Sprache steht
+// als Kachel da, fest an, mit "Original, ohne Uebersetzung". Wechselt
+// die Quelle, bleibt die bisherige als Ziel angewaehlt und wird ab dann
+// uebersetzt. Kein Haken springt, nur die Kennzeichnung wandert:
+//
+//   gesprochen de, Ziele en, ru, fa
+//   -> ru:  de an (ru -> de), ru Original, en und fa bleiben
+//   -> de:  ru an, de Original
+//
+// Die Bloecke 1 bis 5 lassen das echte Pult-Skript aus server.py gegen
+// einen kleinen nachgebauten Server laufen, der /api/sprachen und
+// /api/sprachwahl so beantwortet wie der echte (sprachwahl,
+// versuch_erlaubt, Lauf.sprachen_setzen) -- und ein zweites Mal gegen
+// einen ohne die neue Regel (beideServer). Block 6 ruft den ECHTEN
+// Server (Kopie, --nur-text) am Pult vorbei auf: die Regel muss auch
+// dort gelten.
 //
 // node gibt es nur auf dem Arbeitsrechner.
 
+import { spawn } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import vm from "node:vm";
 import { pultBauen, baumBauen } from "./pultnachbau.mjs";
 
 let fehler = 0;
+let zusatz = "";
 function pruefe(was, erwartet, ist) {
+  was += zusatz;
   if (JSON.stringify(erwartet) === JSON.stringify(ist)) {
     console.log(`   ok    ${was}`);
   } else {
@@ -36,6 +55,26 @@ function pruefe(was, erwartet, ist) {
 }
 function block(t) { console.log(`\n\x1b[1m== ${t}\x1b[0m`); }
 const ruhe = () => new Promise((f) => setTimeout(f, 0));
+// Ein Fall, der mit einer Ausnahme abbricht -- etwa weil es eine Kachel
+// gar nicht gibt --, zaehlt als ein Fehler; die uebrigen laufen weiter.
+async function fall(fn) {
+  try { await fn(); }
+  catch (e) {
+    console.log(`   FEHL  Abbruch: ${e.message}${zusatz}`);
+    fehler++;
+  }
+}
+// Die Pult-Faelle laufen zweimal: gegen den nachgebauten Server mit der
+// Regel (wie der echte) und gegen einen ohne sie. Im zweiten Lauf muss
+// das Pult die Regel allein halten -- wie gegenueber einem Server, der
+// noch nicht aktualisiert ist.
+async function beideServer(fn) {
+  for (const regel of [true, false]) {
+    zusatz = regel ? "" : "  [Server ohne Regel]";
+    await fall(() => fn(regel));
+  }
+  zusatz = "";
+}
 
 // ------------------------------------------------- der nachgebaute Server
 // Auszug aus config.py: genug Sprachen fuer die Faelle, dazu Twi als
@@ -45,7 +84,14 @@ const SPRACHNAMEN = { de: "Deutsch", en: "Englisch", ru: "Russisch",
 const NUR_ZIEL = new Set(["tw"]);
 const VERSUCHSSPRACHEN = new Set(["tw"]);
 
-function serverBauen({ quelle, ziele, versuch = false }) {
+// regel: false baut den Server von vor 0.5.1 nach -- ohne die Regel,
+// dass die bisherige Quelle Ziel bleibt. Damit laesst sich pruefen,
+// dass das Pult sie auch allein einhaelt.
+// arten: true macht uk ungeprueft (mit Glossar) und Twi zu einer Sprache
+// ohne Glossar und ohne Stimme -- damit alle Hinweise unter den Kacheln
+// erscheinen. Sonst gelten alle als geprueft, mit Glossar und Stimme.
+function serverBauen({ quelle, ziele, versuch = false, regel = true,
+                       arten = false }) {
   const s = { quelle, ziele: [...ziele], versuch,
               gespeichert: [...ziele], gesendet: [], getrennt: [] };
   const sprachen = () => [s.quelle, ...s.ziele.filter((z) => z !== s.quelle)];
@@ -58,18 +104,23 @@ function serverBauen({ quelle, ziele, versuch = false }) {
       liste: sprachen().map((sp) => ({ code: sp, name: SPRACHNAMEN[sp],
                                        original: sp === s.quelle })),
       moeglich: Object.keys(SPRACHNAMEN).filter(erlaubt).map((sp) => ({
-        code: sp, name: SPRACHNAMEN[sp], stimme: true, geprueft: true,
-        glossar: true, quelle: !NUR_ZIEL.has(sp) })),
+        code: sp, name: SPRACHNAMEN[sp],
+        stimme: !(arten && sp === "tw"),
+        geprueft: !(arten && (sp === "uk" || sp === "tw")),
+        glossar: !(arten && sp === "tw"), quelle: !NUR_ZIEL.has(sp) })),
     }),
     "/api/sprachwahl": (daten) => {
       s.gesendet.push(daten);
       let z = daten.ziele;
       if (Array.isArray(z)) z = z.filter(erlaubt);
       const vorher = new Set(sprachen());
+      const alt = s.quelle;
       let q = daten.quelle;
       if (q && NUR_ZIEL.has(q)) q = null;
       if (q) s.quelle = q;
       if (Array.isArray(z)) s.ziele = z.filter((x) => x in SPRACHNAMEN);
+      if (regel && s.quelle !== alt && !s.ziele.includes(alt))
+        s.ziele.push(alt);
       const jetzt = new Set(sprachen());
       const entfallen = [...vorher].filter((x) => !jetzt.has(x)).sort();
       s.getrennt.push(...entfallen);
@@ -107,7 +158,10 @@ async function pultMit(stand) {
       this._html = String(w); this._text = ""; this.kinder = [];
       for (const k of baumBauen(this._html).kinder) this.appendChild(k);
       for (const e of this.alle())
-        if (e.tagName === "INPUT") e.checked = "checked" in e.attribute;
+        if (e.tagName === "INPUT") {
+          e.checked = "checked" in e.attribute;
+          e.disabled = "disabled" in e.attribute;
+        }
     },
   });
   // Und Nachkommen-Auswahl wie "#zielwahl input:checked".
@@ -125,11 +179,25 @@ async function pultMit(stand) {
   doc.querySelector = (w) => waehle(w)[0] ?? null;
 
   await fenster.sprachenLaden();
-  const kacheln = () => [...zielwahl.alle()].filter((e) => e.tagName === "INPUT");
+  // Der Browser nimmt die Option mit "selected"; der Nachbau nicht.
+  nachId.get("quellwahl").value = server.quelle;
+  const kacheln =() => [...zielwahl.alle()].filter((e) => e.tagName === "INPUT");
+  const kachel = (sp) => kacheln().find((x) => x.value === sp);
+  // Das Etikett um eine Kachel, mit Klassen und Text.
+  const etikett = (sp) => [...zielwahl.alle()].find((e) => e.tagName === "LABEL"
+    && [...e.alle()].some((k) => k.tagName === "INPUT" && k.value === sp));
   return {
-    server,
+    server, fenster,
+    // Textknoten legt der Nachbau nicht an; der Wortlaut steht im HTML.
+    html: () => zielwahl.innerHTML,
     sichtbar: () => kacheln().map((e) => e.value),
     angehakt: () => kacheln().filter((e) => e.checked).map((e) => e.value),
+    kachel, etikett,
+    // Welche Kachel traegt die Kennzeichnung "Original"?
+    original: () => kacheln().filter((e) => {
+      const l = etikett(e.value);
+      return l && l.classList.contains("original");
+    }).map((e) => e.value),
     quellen: () => [...nachId.get("quellwahl").alle()]
       .filter((e) => e.tagName === "OPTION").map((e) => e.attribute.value),
     // Was ein Mensch am Pult tut -- und was der Browser dann aufruft.
@@ -138,105 +206,317 @@ async function pultMit(stand) {
       await fenster.sprachenSetzen(); await ruhe();
     },
     async haken(sp, an) {
-      const e = kacheln().find((x) => x.value === sp);
+      const e = kachel(sp);
       if (!e) throw new Error(`keine Kachel ${sp}`);
       e.checked = an;
       await fenster.sprachenSetzen(); await ruhe();
+    },
+    // Ein Klick so, wie der Browser ihn behandelt: gesperrt heisst kein
+    // Ereignis; onclick="return false" nimmt den Haken zurueck, und
+    // change kommt nicht. Sonst kippt der Haken und onchange laeuft.
+    async klicken(sp) {
+      const e = kachel(sp);
+      if (!e) throw new Error(`keine Kachel ${sp}`);
+      if (e.disabled) return "gesperrt";
+      if (/return\s+false/.test(e.attribute.onclick || "")) return "abgefangen";
+      e.checked = !e.checked;
+      if (e.attribute.onchange) { await fenster.sprachenSetzen(); await ruhe(); }
+      return "geklickt";
     },
   };
 }
 
 // =====================================================================
-block("1) Die vier Schritte aus der Meldung");
-{
-  const p = await pultMit({ quelle: "de", ziele: ["en", "ru", "fa"] });
+block("1) Rostock: de -> ru -> de, nur die Kennzeichnung wandert");
+await beideServer(async (regel) => {
+  const p = await pultMit({ quelle: "de", ziele: ["en", "ru", "fa"], regel });
   pruefe("Ausgang: Quelle de, Ziele en, ru, fa",
          ["de", ["en", "ru", "fa"]], [p.server.quelle, p.server.gespeichert]);
+  pruefe("die de-Kachel ist zu sehen", true, p.sichtbar().includes("de"));
+  pruefe("und als an zu erkennen: Haken und Klasse an",
+         [true, true], [p.kachel("de")?.checked,
+                        p.etikett("de")?.classList.contains("an")]);
+  pruefe("nur de traegt die Kennzeichnung Original", ["de"], p.original());
+  pruefe("mit dem Zusatz \"Original, ohne Übersetzung\"", true,
+         p.html().includes("Deutsch<span class=originaltag>"
+                           + "Original, ohne Übersetzung</span>"));
+  pruefe("der Zusatz steht nur einmal da", 1,
+         p.html().split("class=originaltag").length - 1);
+  pruefe("nicht gesperrt, also nicht grau", false, p.kachel("de")?.disabled);
+  pruefe("angehakt: de, en, ru, fa", ["de", "en", "ru", "fa"], p.angehakt());
+
   await p.quelleStellen("ru");
-  pruefe("Quelle ru: die ru-Kachel ist ausgeblendet",
-         false, p.sichtbar().includes("ru"));
-  pruefe("Quelle ru: de steht leer da",
-         [true, false], [p.sichtbar().includes("de"), p.angehakt().includes("de")]);
-  pruefe("Quelle ru: gespeichert bleibt en, ru, fa",
-         ["en", "ru", "fa"], p.server.gespeichert);
-  await p.haken("de", true);
-  pruefe("de angehakt: gespeichert en, ru, fa, de",
-         ["en", "ru", "fa", "de"], p.server.gespeichert);
-  pruefe("dabei laeuft ru nicht als Uebersetzung",
-         ["ru", "en", "fa", "de"], p.server.sprachen());
+  pruefe("auf ru: gesprochen ru", "ru", p.server.quelle);
+  pruefe("de ist automatisch angewaehlt (ru -> de)",
+         true, p.server.gespeichert.includes("de"));
+  pruefe("en und fa bleiben", [true, true],
+         [p.server.gespeichert.includes("en"), p.server.gespeichert.includes("fa")]);
+  pruefe("es laeuft ru -> en, fa, de", ["ru", "en", "fa", "de"],
+         p.server.sprachen());
+  pruefe("die Kennzeichnung ist zu ru gewandert", ["ru"], p.original());
+  pruefe("alle vier Kacheln angehakt", 4, p.angehakt().length);
+
   await p.quelleStellen("de");
-  pruefe("Quelle zurueck auf de: gespeichert en, ru, fa, de",
-         ["en", "ru", "fa", "de"], p.server.gespeichert);
-  pruefe("Russisch laeuft wieder, de nicht doppelt",
-         ["de", "en", "ru", "fa"], p.server.sprachen());
-  pruefe("die ru-Kachel ist wieder da und angehakt",
-         true, p.angehakt().includes("ru"));
-  // de-Hoerer schon: zwischen Schritt 2 und 3 lief Deutsch nicht. Das
-  // ist richtig so.
-  pruefe("die ru-Hoerer wurden nie getrennt",
-         false, p.server.getrennt.includes("ru"));
-  await p.quelleStellen("ru");
-  pruefe("wieder auf ru: de ist angehakt",
-         true, p.angehakt().includes("de"));
+  pruefe("zurueck auf de: ru ist wieder angewaehlt",
+         true, p.server.gespeichert.includes("ru"));
+  pruefe("es laeuft de -> en, ru, fa", ["de", "en", "ru", "fa"],
+         p.server.sprachen());
+  pruefe("de ist wieder Original", ["de"], p.original());
+  pruefe("die ru-Kachel ist angehakt und kein Original",
+         [true, false], [p.angehakt().includes("ru"),
+                         p.etikett("ru")?.classList.contains("original")]);
+  pruefe("dabei wurde niemand getrennt, auch die de-Hoerer nicht",
+         [], p.server.getrennt);
   pruefe("kein Absenden schickte eine Sprache doppelt", true,
          p.server.gesendet.every((d) => new Set(d.ziele).size === d.ziele.length));
-}
+  p.fenster.uiSprache(); await ruhe();
+  await p.fenster.sprachenLaden();
+  pruefe("Pult auf Englisch: \"Original, not translated\"", true,
+         p.html().includes("Deutsch<span class=originaltag>"
+                           + "Original, not translated</span>"));
+  p.fenster.uiSprache(); await ruhe();
+});
 
-block("2) Hin und zurueck, ohne etwas anzuhaken");
-{
-  const p = await pultMit({ quelle: "de", ziele: ["en", "ru", "fa"] });
-  await p.quelleStellen("ru");
-  pruefe("auf ru: Ziele unveraendert", ["en", "ru", "fa"], p.server.gespeichert);
-  await p.quelleStellen("de");
-  pruefe("zurueck auf de: Ziele unveraendert",
-         ["en", "ru", "fa"], p.server.gespeichert);
-  pruefe("und es laeuft de -> en, ru, fa",
-         ["de", "en", "ru", "fa"], p.server.sprachen());
-}
-{
-  // Gegenprobe: die Quelle stand nie in den Zielen.
-  const p = await pultMit({ quelle: "de", ziele: ["en", "fa"] });
-  await p.quelleStellen("ru");
-  await p.quelleStellen("de");
-  pruefe("Quelle nicht unter den Zielen: hin und zurueck bleibt en, fa",
-         ["en", "fa"], p.server.gespeichert);
-}
-
-block("3) Abwaehlen geht weiter, und die Hoerer gehen mit");
-{
-  const p = await pultMit({ quelle: "de", ziele: ["en", "ru", "fa", "de"] });
-  pruefe("Quelle de: keine de-Kachel", false, p.sichtbar().includes("de"));
-  await p.haken("fa", false);
-  pruefe("fa abgewaehlt, de bleibt gespeichert",
-         ["en", "ru", "de"], p.server.gespeichert);
+block("2) Die Originalkachel laesst sich nicht abwaehlen");
+await beideServer(async (regel) => {
+  const p = await pultMit({ quelle: "de", ziele: ["en", "ru", "fa"], regel });
+  pruefe("ein Klick auf de wird abgefangen", "abgefangen", await p.klicken("de"));
+  pruefe("de bleibt angehakt", true, p.kachel("de")?.checked);
+  pruefe("und es geht nichts an den Server", 0, p.server.gesendet.length);
+  pruefe("die anderen Kacheln reagieren wie bisher", "geklickt",
+         await p.klicken("fa"));
+  pruefe("fa ist abgewaehlt", ["en", "ru"], p.server.gespeichert);
   pruefe("die fa-Hoerer werden getrennt", ["fa"], p.server.getrennt);
-  await p.haken("ru", false);
-  pruefe("ru abgewaehlt", ["en", "de"], p.server.gespeichert);
+  pruefe("de kam dabei nicht in die gespeicherten Ziele",
+         false, p.server.gespeichert.includes("de"));
+});
+await fall(async () => {
+  // Das Pult haelt die Regel auch allein, gegen einen Server ohne sie --
+  // selbst wenn der Haken der Originalkachel fehlt.
+  const p = await pultMit({ quelle: "de", ziele: ["en", "fa"], regel: false });
+  const k = p.kachel("de");
+  if (k) k.checked = false;
   await p.quelleStellen("ru");
-  pruefe("auf ru: de ist angehakt, ru steht leer da",
-         [true, false], [p.angehakt().includes("de"), p.angehakt().includes("ru")]);
+  pruefe("Pult allein: de geht beim Wechsel als Ziel mit",
+         ["en", "fa", "de"], p.server.gespeichert);
+});
+
+block("3) Die fruehere Originalsprache ist frei abwaehlbar");
+await beideServer(async (regel) => {
+  const p = await pultMit({ quelle: "de", ziele: ["en", "ru", "fa"], regel });
+  await p.quelleStellen("ru");
   await p.haken("de", false);
-  pruefe("de unter Quelle ru abgewaehlt: weg", ["en"], p.server.gespeichert);
-}
+  pruefe("de unter Quelle ru abgewaehlt: weg",
+         false, p.server.gespeichert.includes("de"));
+  pruefe("es laeuft ru -> en, fa", ["ru", "en", "fa"], p.server.sprachen());
+  pruefe("die de-Hoerer werden getrennt", ["de"], p.server.getrennt);
+  pruefe("ru bleibt Original und angehakt",
+         [["ru"], true], [p.original(), p.angehakt().includes("ru")]);
+  await p.quelleStellen("de");
+  pruefe("zurueck auf de: de Original, ru angewaehlt",
+         [["de"], true], [p.original(), p.server.gespeichert.includes("ru")]);
+  pruefe("es laeuft de -> en, ru, fa", ["de", "en", "ru", "fa"],
+         p.server.sprachen());
+  await p.haken("ru", false);
+  pruefe("und ru laesst sich jetzt abwaehlen", ["de", "en", "fa"],
+         p.server.sprachen());
+});
+await beideServer(async (regel) => {
+  // Ohne Haken hin und zurueck: die bisherige Quelle kommt dazu, auch
+  // wenn sie vorher nicht unter den Zielen stand.
+  const p = await pultMit({ quelle: "de", ziele: ["en", "fa"], regel });
+  await p.quelleStellen("ru");
+  pruefe("auf ru: de kommt dazu", ["ru", "en", "fa", "de"], p.server.sprachen());
+  await p.quelleStellen("de");
+  pruefe("zurueck auf de: ru bleibt dabei", ["de", "en", "fa", "ru"],
+         p.server.sprachen());
+});
 
 block("4) Versuchssprachen und Sprachen, die nicht Quelle sein koennen");
-{
-  const p = await pultMit({ quelle: "de", ziele: ["en", "tw"] });
+await beideServer(async (regel) => {
+  const p = await pultMit({ quelle: "de", ziele: ["en", "tw"], regel });
   pruefe("Schalter aus, Twi laeuft schon: Kachel da",
          true, p.angehakt().includes("tw"));
+  pruefe("Twi steht nicht in der Quellwahl", false, p.quellen().includes("tw"));
+  await p.quelleStellen("ru");
+  pruefe("Wechsel auf ru: Twi bleibt, de kommt dazu",
+         ["ru", "en", "tw", "de"], p.server.sprachen());
+  await p.quelleStellen("de");
+  pruefe("zurueck: Twi bleibt, ru kommt dazu",
+         ["de", "en", "tw", "ru"], p.server.sprachen());
   await p.haken("tw", false);
   pruefe("abgewaehlt: Twi ist weg und kommt nicht wieder",
-         [["en"], false], [p.server.gespeichert, p.sichtbar().includes("tw")]);
-  pruefe("Twi steht nicht in der Quellwahl", false, p.quellen().includes("tw"));
-  await p.haken("en", false);
-  pruefe("und wird auch beim naechsten Absenden nicht mitgeschickt",
-         [], p.server.gespeichert);
-}
-{
-  const p = await pultMit({ quelle: "de", ziele: ["en"], versuch: true });
+         [false, false], [p.server.sprachen().includes("tw"),
+                          p.sichtbar().includes("tw")]);
+  await p.quelleStellen("ru");
+  pruefe("auch nicht beim naechsten Wechsel",
+         false, p.server.sprachen().includes("tw"));
+});
+await beideServer(async (regel) => {
+  const p = await pultMit({ quelle: "de", ziele: ["en"], regel });
+  await p.quelleStellen("ru");
+  pruefe("Schalter aus, Twi lief nie: der Wechsel bringt es nicht",
+         ["ru", "en", "de"], p.server.sprachen());
+});
+await beideServer(async (regel) => {
+  // Twi als Quelle, an der Quellwahl vorbei in das Feld gesetzt: der
+  // Server nimmt es nicht. Die Quelle bleibt, also wandert auch nichts.
+  const p = await pultMit({ quelle: "de", ziele: ["en", "tw"], regel });
+  await p.quelleStellen("tw");
+  pruefe("Twi wird nicht Quelle", "de", p.server.quelle);
+  pruefe("de bleibt Original, Twi Ziel", [["de"], true],
+         [p.original(), p.angehakt().includes("tw")]);
+  pruefe("es laeuft weiter de -> en, tw", ["de", "en", "tw"],
+         p.server.sprachen());
+  pruefe("Twi traegt nie die Kennzeichnung Original",
+         false, p.original().includes("tw"));
+});
+await beideServer(async (regel) => {
+  const p = await pultMit({ quelle: "de", ziele: ["en"], versuch: true, regel });
   await p.haken("tw", true);
   pruefe("Schalter an: Twi laesst sich anhaken", ["en", "tw"], p.server.gespeichert);
-}
+  await p.quelleStellen("uk");
+  pruefe("und bleibt beim Wechsel auf uk", ["uk", "en", "tw", "de"],
+         p.server.sprachen());
+});
+
+block("5) Die Fehlerkette von 0.5.0 bleibt behoben");
+await beideServer(async (regel) => {
+  const p = await pultMit({ quelle: "de", ziele: ["en", "ru", "fa"], regel });
+  await p.quelleStellen("ru");
+  await p.haken("de", true);           // schon an -- aendert nichts
+  await p.quelleStellen("de");
+  pruefe("Russisch laeuft nach hin, Haken, zurueck",
+         ["de", "en", "ru", "fa"], p.server.sprachen());
+  pruefe("die ru-Hoerer wurden nie getrennt",
+         false, p.server.getrennt.includes("ru"));
+});
+
+// =====================================================================
+// Der echte Server, am Pult vorbei. Eine Kopie wie in hilfe.arbeitskopie,
+// mit eigener zustand.json im Rostocker Stand von 0.5.0 -- unverwandelt.
+block("6) Am Pult vorbei: /api/sprachwahl am echten Server");
+await fall(async () => {
+  const WURZEL = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const PORT = 8191;
+  const ordner = fs.mkdtempSync(path.join(os.tmpdir(), "devarenu-zielwahl-"));
+  const beiwerk = ["client.html", "VERSION", "logo.png", "betreuer.txt"];
+  for (const n of fs.readdirSync(WURZEL)) {
+    if (n.endsWith(".py") || n.endsWith(".csv") || beiwerk.includes(n))
+      fs.copyFileSync(path.join(WURZEL, n), path.join(ordner, n));
+  }
+  const verknuepft = [".venv", "voices", "models"];
+  for (const v of verknuepft)
+    if (fs.existsSync(path.join(WURZEL, v)))
+      fs.symlinkSync(path.join(WURZEL, v), path.join(ordner, v));
+  const zustand = path.join(ordner, "zustand.json");
+  fs.writeFileSync(zustand, JSON.stringify(
+    { fassung: 3, quelle: "de", ziele: ["en", "ru", "fa"] }));
+  fs.chmodSync(zustand, 0o600);
+
+  let ausgabe = "";
+  const kind = spawn(path.join(ordner, ".venv/bin/python"),
+    ["server.py", "--port", String(PORT), "--nur-text"],
+    { cwd: ordner, stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, PYTHONUNBUFFERED: "1" } });
+  kind.stdout.on("data", (b) => { ausgabe += b; });
+  kind.stderr.on("data", (b) => { ausgabe += b; });
+  const url = `http://127.0.0.1:${PORT}`;
+  const holen = async () => (await fetch(`${url}/api/sprachen`)).json();
+  const waehlen = async (daten) => (await fetch(`${url}/api/sprachwahl`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(daten) })).json();
+  const laeuft = (d) => d.liste.map((x) => x.code);
+  const gespeichert = () => JSON.parse(fs.readFileSync(zustand, "utf-8"));
+
+  try {
+    let bereit = false;
+    for (let i = 0; i < 180 && !bereit; i++) {
+      try { await holen(); bereit = true; }
+      catch { await new Promise((f) => setTimeout(f, 500)); }
+    }
+    pruefe("der Server antwortet", true, bereit);
+    if (bereit) {
+      let d = await holen();
+      pruefe("zustand.json von 0.5.0 gilt wie sie ist: de -> en, ru, fa",
+             ["de", ["en", "ru", "fa"], ["de", "en", "ru", "fa"]],
+             [d.quelle, d.ziele, laeuft(d)]);
+
+      // Wie ein altes Pult oder ein Skript: nur die Ziele, die es
+      // sieht, ohne de.
+      let a = await waehlen({ quelle: "ru", ziele: ["en", "fa"] });
+      pruefe("ru mit Zielen en, fa: de kommt trotzdem dazu",
+             ["ru", ["en", "fa", "de"]], [a.quelle, a.ziele]);
+      pruefe("niemand getrennt, auch de nicht", [], a.getrennt);
+      pruefe("so steht es in zustand.json", ["en", "fa", "de"],
+             gespeichert().ziele);
+      pruefe("im Protokoll steht, dass de bleibt", true,
+             ausgabe.includes("de bleibt als Uebersetzung angewaehlt"));
+
+      a = await waehlen({ quelle: "de" });
+      d = await holen();
+      pruefe("nur die Quelle zurueck auf de: ru kommt dazu",
+             ["de", "en", "fa", "ru"], laeuft(d));
+      pruefe("de steht genau einmal da, als Original",
+             [["de", true]], d.liste.filter((x) => x.code === "de")
+               .map((x) => [x.code, x.original]));
+
+      a = await waehlen({ quelle: "de", ziele: ["en"] });
+      pruefe("ohne Wechsel bleibt Abwaehlen frei: de -> en",
+             [["en"], ["fa", "ru"]], [a.ziele, a.getrennt]);
+
+      a = await waehlen({ quelle: "tw", ziele: ["en"] });
+      pruefe("Twi als Quelle: abgelehnt, nichts wandert",
+             ["de", ["en"]], [a.quelle, a.ziele]);
+
+      a = await waehlen({ quelle: "ru", ziele: ["en", "tw"] });
+      pruefe("Versuchsschalter aus: Twi faellt weg, de kommt dazu",
+             ["ru", ["en", "de"]], [a.quelle, a.ziele]);
+
+      a = await waehlen({ quelle: "ru", ziele: ["en"] });
+      pruefe("ohne Wechsel laesst sich de wieder abwaehlen",
+             [["en"], ["de"]], [a.ziele, a.getrennt]);
+    }
+  } finally {
+    if (kind.exitCode === null && kind.signalCode === null) {
+      kind.kill("SIGTERM");
+      await new Promise((f) => {
+        const t = setTimeout(() => { kind.kill("SIGKILL"); f(); }, 15000);
+        kind.on("exit", () => { clearTimeout(t); f(); });
+      });
+    }
+    for (const v of verknuepft) {
+      try { fs.unlinkSync(path.join(ordner, v)); } catch {}
+    }
+    fs.rmSync(ordner, { recursive: true, force: true });
+  }
+});
+
+// =====================================================================
+// Gemeldet aus dem Browsertest zu 0.5.1: Pult auf EN umgestellt, unter
+// Setup -> Languages blieben Originalzusatz, "nur Text" und die
+// Hinweise unter den Kacheln deutsch. uiSprache() zeichnete nur die
+// data-t-Felder neu, die Zielwahl blieb in der Sprache des letzten
+// sprachenLaden(). Hier wird nur umgeschaltet, nichts von Hand geholt.
+block("7) Pult von DE auf EN: die Zielwahl folgt");
+await fall(async () => {
+  const p = await pultMit({ quelle: "de", ziele: ["en", "uk", "tw"],
+                            versuch: true, arten: true });
+  const T = vm.runInContext("TEXTE", p.fenster);
+  const stuecke = ["original_tag", "glossar_offen_ueber", "kein_glossar_ueber",
+                   "ohnestimme_ueber", "ohnestimme_hilfe", "nurtext",
+                   "experimentell"];
+  const da = (ui) => stuecke.filter((k) => p.html().includes(T[ui][k]));
+  pruefe("DE geladen: alle Texte der Zielwahl deutsch", stuecke, da("de"));
+  p.fenster.uiSprache();
+  for (let i = 0; i < 5; i++) await ruhe();
+  pruefe("auf EN umgeschaltet: alle Texte der Zielwahl englisch",
+         stuecke, da("en"));
+  pruefe("und keiner mehr deutsch", [], da("de"));
+  p.fenster.uiSprache();
+  for (let i = 0; i < 5; i++) await ruhe();
+  pruefe("zurueck auf DE: wieder deutsch", [stuecke, []], [da("de"), da("en")]);
+});
 
 console.log();
 if (fehler) { console.log(`\x1b[31m${fehler} Fehler.\x1b[0m`); process.exit(1); }

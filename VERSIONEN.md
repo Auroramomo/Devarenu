@@ -8,7 +8,9 @@ fallen heraus, damit dies ein Blatt bleibt.
 
 - **Die Sprachwahl am Pult behält alle Zielsprachen**, auch wenn die
   Sprache des Predigers hin- und zurückgestellt wird. Bis 0.5.0 konnte
-  dabei eine Zielsprache still wegfallen.
+  dabei eine Zielsprache still wegfallen. Die gesprochene Sprache
+  steht jetzt mit in der Liste; beim Umstellen bleibt die bisherige
+  angehakt und wird übersetzt.
 - **Datenschutz-Fenster:** hinter dem Link zur ausführlichen Fassung
   fehlte ein Punkt.
 - **Das Schreibtischsymbol beendet den Dienst nicht mehr.** Läuft

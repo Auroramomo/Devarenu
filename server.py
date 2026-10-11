@@ -644,7 +644,7 @@ class Werk:
                 self.piper = piper_pfad()
                 self.stimmen = gefunden
                 self.stimmennamen = {sp: d.stem for sp, d in gefunden.items()}
-            fehlt = [s for s in SPRACHEN if s not in self.stimmen]
+            fehlt = ohne_stimme(SPRACHEN, QUELLE, self.stimmen)
             if fehlt:
                 print(f"Ohne Stimme, nur Text: {', '.join(fehlt)}")
         self.tmp = config.ERGEBNIS_ORDNER / "live"
@@ -701,7 +701,11 @@ class Werk:
         Untertitel, so wie bisher auch."""
         if self.nur_text or sprache in self.stimmen or self.piper is None:
             return sprache in self.stimmen
-        gefunden = stimmen_finden([sprache], quelle=None)
+        # Die Quelle von JETZT (sprachen_setzen setzt sie vorher), nicht
+        # die globale vom Start: mit None ueberspraenge stimmen_finden die
+        # Startquelle -- nach dem Wechsel de -> ru liefe de dann ohne
+        # Stimme, obwohl thorsten daliegt (bis 0.5.1).
+        gefunden = stimmen_finden([sprache], quelle=self.quelle)
         datei = gefunden.get(sprache)
         if datei is None:
             return False
@@ -1743,8 +1747,15 @@ class Lauf:
         Zuhoerer einer abgewaehlten Sprache werden getrennt, sonst warten
         sie auf Abschnitte, die nie kommen. Das Whisper-Modell bleibt
         geladen: die Erkennungssprache ist ein Aufrufparameter, kein
-        Bestandteil des Modells."""
+        Bestandteil des Modells.
+
+        Wechselt die Quelle, bleibt die bisherige als Ziel angewaehlt
+        (0.5.1): wer eben noch zuhoerte, hoert jetzt die Uebersetzung,
+        statt getrennt zu werden. Das gilt fuer jeden Aufruf, auch am
+        Pult vorbei und von einer Pult-Seite, die noch von 0.5.0 offen
+        ist. Abwaehlen laesst sie sich danach wie jede andere."""
         vorher = set(self.sprachen)
+        alt = self.quelle
         if quelle and quelle in getattr(config, "NUR_ZIEL", set()):
             # Whisper kennt sie nicht -- siehe config.NUR_ZIEL. Die
             # bisherige Quelle bleibt, statt dass jeder Abschnitt an der
@@ -1756,6 +1767,9 @@ class Lauf:
             self.quelle = quelle
         if ziele is not None:
             self.ziele = [z for z in ziele if z in config.SPRACHNAMEN]
+        if self.quelle != alt and alt not in self.ziele:
+            self.ziele.append(alt)
+            print(f"Sprachwahl: {alt} bleibt als Uebersetzung angewaehlt.")
         self.werk.quelle = self.quelle
         # Was jetzt neu dazukommt, braucht seine Stimme. Sie wird hier
         # geholt und nicht beim Start: welche Sprachen laufen, entscheidet
@@ -1848,7 +1862,9 @@ class Lauf:
                 # kaemen sonst ohne Kopfdaten durch -- also genau die
                 # drei Wege, auf denen ueberhaupt gemessen wird.
                 self.messung.kopf(
-                    quelle=self.quelle, ziele=list(self.ziele),
+                    # Was uebersetzt wird, nicht was angehakt ist: die
+                    # Quelle kann in lauf.ziele stehen (0.5.1).
+                    quelle=self.quelle, ziele=list(self.sprachen[1:]),
                     sprachen=list(self.sprachen), betrieb=self.betrieb,
                     pool_groesse=self.pool_groesse,
                     sprachzahl=len(self.sprachen),
@@ -2126,6 +2142,16 @@ def zeichen_angleichen(name, text):
     karte = d.get("phoneme_id_map") or {}
     return "".join(z if z in karte or z.lower() not in karte else z.lower()
                    for z in text)
+
+
+def ohne_stimme(sprachen, quelle, stimmen):
+    """Welche Zielsprachen laufen ohne Stimme, nur als Text?
+
+    Ohne die Quelle: sie ist Originalton und braucht keine Stimme
+    (stimmen_finden laesst sie aus). Bis 0.5.1 stand sie in der
+    Startzeile "Ohne Stimme, nur Text" immer mit da."""
+    return [s for s in dict.fromkeys(sprachen)
+            if s != quelle and s not in stimmen]
 
 
 def stimmen_finden(sprachen=None, quelle=None):
@@ -6824,6 +6850,11 @@ input[type=range]{width:100%;min-height:44px}
 .chips input{margin:0;width:auto;min-height:0}
 .chips .nurtext{font-size:.72rem;color:var(--gelb);white-space:nowrap}
 .chips .experiment{font-size:.7rem;color:var(--grau)}
+/* Die gesprochene Sprache: fest an, nicht abwaehlbar. Absichtlich ohne
+   disabled -- ein gesperrter Haken sieht grau aus, also kaputt. Die
+   Kontur bleibt durchgezogen, auch unter den ungeprueften. */
+.chips label.original{cursor:default;border-style:solid}
+.chips .originaltag{font-size:.72rem;font-weight:400;color:var(--navy)}
 /* Noch nicht geprueft: gestrichelt, unter eigener Ueberschrift. */
 .chips.ungeprueft label{border-style:dashed}
 .chips.ohneglossar label{border-style:dotted}
@@ -7254,7 +7285,9 @@ oder „Gemeindebüro, Tel. …“. Leer lassen heißt: die Zeile entfällt.</p>
 <label data-t=ziele>Übersetzt nach</label>
 <div id=zielwahl></div>
 <p class=hin data-t=sprachen_hin>Alle Sprachen liegen auf dem Rechner. Nur
-die ausgewählten laufen mit, das spart Rechenzeit.</p>
+die ausgewählten laufen mit, das spart Rechenzeit. Wird die gesprochene
+Sprache umgestellt, bleibt die bisherige angewählt und wird ab dann
+übersetzt.</p>
 <label class=haken><input type=checkbox id=themaschalter
   onchange=themaSetzen()> <span data-t=thema_an>Thema und Bibelstellen
   auch der Übersetzung mitgeben</span></label>
@@ -7735,11 +7768,13 @@ const TEXTE={
    hoerer:"Zuhörer",tonda:"Ton kommt an",
    sprachen_hin:"Alle Sprachen liegen auf dem Rechner. Nur die ausgewählten "
      +"laufen mit, das spart Rechenzeit. Sprachen ohne Stimme erscheinen "
-     +"als Untertitel.",
+     +"als Untertitel. Wird die gesprochene Sprache umgestellt, bleibt die "
+     +"bisherige angewählt und wird ab dann übersetzt.",
    ungeprueft_ueber:"Noch nicht von einem Muttersprachler geprüft. "
      +"Funktionieren, aber die Fachbegriffe stammen unbesehen aus der "
      +"Maschine.",
    nurtext:"nur Text",
+   original_tag:"Original, ohne Übersetzung",
    ohnestimme_ueber:"Für diese Sprachen liegt keine Stimme auf dem "
      +"Rechner: sie werden übersetzt und mitgelesen, aber nicht "
      +"gesprochen. Wer sie wählt, bekommt Untertitel ohne Ton.",
@@ -8186,10 +8221,12 @@ const TEXTE={
    hoerer:"listeners",tonda:"audio arriving",
    sprachen_hin:"All languages are stored on the computer. Only the selected "
      +"ones run, which saves processing time. Languages without a voice "
-     +"appear as subtitles.",
+     +"appear as subtitles. When the spoken language is changed, the "
+     +"previous one stays selected and is translated from then on.",
    ungeprueft_ueber:"Not yet reviewed by a native speaker. They work, but "
      +"their technical terms come straight from the machine.",
    nurtext:"text only",
+   original_tag:"Original, not translated",
    ohnestimme_ueber:"No voice for these languages is stored on this "
      +"computer: they are translated and can be read along, but not "
      +"spoken. Choosing one gives subtitles without audio.",
@@ -8377,6 +8414,9 @@ let NAMEN={};
 // Die Ziele aus dem letzten /api/sprachen -- auch die, deren Kachel
 // gerade nicht zu sehen ist (sprachenSetzen).
 let ZIELE=[];
+// Die gesprochene Sprache, wie sie die Kacheln zeigen. Beim Umstellen
+// steht in quellwahl schon die neue; diese hier ist dann die alte.
+let QUELLE="";
 
 // ---------------------------------------------------------- Reiter
 // Vier Reiter, eine Unteransicht (Briefkasten oder Fehler melden) kann
@@ -8418,6 +8458,11 @@ function reiterWaehlen(name, ziel){
   // waehrend des Betriebs ein Mikrofon einsteckt, soll es finden, ohne
   // die Seite neu zu laden.
   if(name === "einrichtung"){ sprachenLaden(); wlanLaden(); updateLaden(); }
+  // Steht dort noch Update oder Autostart offen, auch deren Lage --
+  // sonst bliebe sie vom letzten Hinsehen stehen, samt alter Sprache.
+  if(name === "einrichtung" && (unterseiteJetzt === "eUpdate"
+                                || unterseiteJetzt === "eBetrieb"))
+    betriebLaden();
   if(name === "aufnahmen") aufnahmenLaden();
   // Der Tonscan macht fremde Geraete auf. Er laeuft nur, solange die
   // Feineinstellung offen ist UND dieser Reiter vorne steht.
@@ -8617,17 +8662,29 @@ function uiSprache(){
   UI=UI==="de"?"en":"de";
   localStorage.setItem("uiSprache",UI);
   uiZeichnen(); lies();
+  // Was erst beim Hinsehen geholt wird, steht in der Sprache, die beim
+  // Holen galt -- uiZeichnen() kennt nur die data-t-Felder. Also neu
+  // holen. Die Kanalliste holt sich selbst alle 500 ms.
+  sprachenLaden(); wlanLaden(); updateLaden(); aufnahmenLaden();
+  if(unterseiteJetzt === "eUpdate" || unterseiteJetzt === "eBetrieb")
+    betriebLaden();
 }
 
 async function sprachenSetzen(){
-  // Die Kachel der gesprochenen Sprache ist ausgeblendet. Steht sie
-  // unter den Zielen, geht sie trotzdem mit -- bis 0.5.0 fiel sie beim
-  // naechsten Haken still heraus und lief nach dem Zurueckstellen der
-  // Quelle nicht mehr. Reihenfolge wie bisher, Neues hinten an.
+  // Die Kachel der gesprochenen Sprache ist fest an. Wird gerade die
+  // Quelle umgestellt, geht sie als Ziel mit, auch wenn ihr Haken
+  // irgendwie fehlt: die bisherige Originalsprache wird ab jetzt
+  // uebersetzt. Der Server haelt dieselbe Regel, auch fuer Aufrufe am
+  // Pult vorbei (Lauf.sprachen_setzen). Sonst bleibt sie in den Zielen,
+  // wie sie dort stand -- wie jedes Ziel ohne Kachel; bis 0.5.0 fiel
+  // ein solches beim naechsten Haken still heraus. Reihenfolge wie
+  // bisher, Neues hinten an.
   const kacheln=[...document.querySelectorAll("#zielwahl input")];
   const sichtbar=new Set(kacheln.map(x=>x.value));
-  const an=kacheln.filter(x=>x.checked).map(x=>x.value);
-  const ziele=ZIELE.filter(z=>!sichtbar.has(z)||an.includes(z));
+  const wechsel=!!quellwahl.value&&quellwahl.value!==QUELLE;
+  const an=kacheln.filter(x=>x.value!==QUELLE&&x.checked).map(x=>x.value);
+  if(wechsel&&QUELLE) an.push(QUELLE);
+  const ziele=ZIELE.filter(z=>!sichtbar.has(z)||z===QUELLE||an.includes(z));
   for(const z of an) if(!ziele.includes(z)) ziele.push(z);
   await fetch("/api/sprachwahl",{method:"POST",
     headers:{"Content-Type":"application/json"},
@@ -8638,6 +8695,7 @@ async function sprachenLaden(){
   const d=await(await fetch("/api/sprachen")).json();
   NAMEN={}; d.liste.forEach(x=>NAMEN[x.code]=x.name);
   ZIELE=d.ziele;
+  QUELLE=d.quelle;
   // Nur, was Whisper erkennen kann (Feld "quelle", config.NUR_ZIEL).
   quellwahl.innerHTML=d.moeglich.filter(x=>x.quelle!==false).map(x=>
     `<option value="${x.code}"${x.code===d.quelle?" selected":""}>`
@@ -8650,6 +8708,15 @@ async function sprachenLaden(){
   // "(Text)": wer die Kachel waehlt, soll vorher wissen, dass daraus
   // kein Ton kommt -- und nicht erst im Gottesdienst.
   const kachel = (x) => {
+    // Die gesprochene Sprache steht mit da, an ihrem Platz, fest an.
+    // Wechselt die Quelle, wandert nur die Kennzeichnung; kein Haken
+    // springt. Nicht klickbar ueber "return false" statt disabled,
+    // damit der Haken nicht grau, also kaputt aussieht.
+    if(x.code===d.quelle)
+      return `<label class="an original">`
+        +`<input type=checkbox value="${x.code}" checked `
+        +`aria-disabled=true onclick="return false">${x.name}`
+        +`<span class=originaltag>${t.original_tag}</span></label>`;
     const an = d.ziele.includes(x.code);
     return `<label class="${an?"an":""}${x.stimme?"":" ohneton"}">`
       +`<input type=checkbox value="${x.code}"${an?" checked":""} `
@@ -8660,7 +8727,7 @@ async function sprachenLaden(){
       +(an&&!x.geprueft?`<span class=experiment>${t.experimentell}</span>`:"")
       +`</label>`;
   };
-  const wahl = d.moeglich.filter(x=>x.code!==d.quelle);
+  const wahl = d.moeglich;
   // Drei Zustaende. Bisher waren es zwei, und "Glossar da, aber
   // ungeprueft" sah aus wie "gar kein Glossar". Das sind verschiedene
   // Dinge: im einen Fall stehen die Begriffe fest und koennten falsch

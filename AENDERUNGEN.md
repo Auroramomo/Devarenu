@@ -19,7 +19,19 @@ Predigtsprache Russisch und Deutsch als Ziel angehakt; zurück auf
 Deutsch — und Russisch lief nicht mehr, die Zuhörer auf Russisch waren
 getrennt. Jetzt bleibt eine Zielsprache gewählt, auch während sie
 selbst gesprochen wird; sie läuft in der Zeit nur nicht als
-Übersetzung. Hin- und Zurückstellen ändert an den Zielsprachen nichts.
+Übersetzung.
+
+**Die gesprochene Sprache steht mit in der Liste**, fest angehakt und
+mit dem Zusatz *Original, ohne Übersetzung*. Wird sie umgestellt,
+bleibt die bisherige angehakt und wird ab dann übersetzt; kein Haken
+springt, nur der Zusatz wandert. Rostock: gesprochen Deutsch, Ziele
+Englisch, Russisch, Persisch; umgestellt auf Russisch ist Deutsch
+angehakt (Russisch nach Deutsch), Englisch und Persisch bleiben;
+zurück auf Deutsch ist Russisch angehakt. Wer bisher zuhörte, wird
+beim Umstellen nicht mehr getrennt. Danach lässt sich jede Sprache
+außer der gesprochenen wie gewohnt abwählen — auch nach einem
+Gastprediger dessen Sprache, die sonst angehakt bleibt und Rechenzeit
+kostet.
 
 **Englisches Datenschutz-Fenster:** hinter „Full version“ fehlte ein
 Punkt, es las sich „Full version It is kept on this computer …“.
@@ -42,19 +54,47 @@ Rechner zum letzten Wartungsfenster aufgewacht ist und warum ein
 Update gescheitert ist, und wann er das nächste Mal von selbst
 aufwacht (*Update*).
 
+**Das Pult wechselt zwischen DE und EN jetzt vollständig.** Bisher
+blieben dabei Sprachwahl, Update, Autostart, Aufnahmen und der Stand
+unter WLAN in der alten Sprache stehen, bis man die Seite neu öffnete.
+
+**Deutsch als Übersetzung kommt mit Stimme.** Wird eine andere Sprache
+als Deutsch gepredigt und Deutsch übersetzt, wird die deutsche Stimme
+jetzt nachgeladen. Bisher kam Deutsch dann nur als Text — seit 0.2.6.
+
 ### Für die Technik
 
-* **Zielwahl.** Die Kachel der gesprochenen Sprache ist ausgeblendet,
+* **Zielwahl.** Die Kachel der gesprochenen Sprache war ausgeblendet,
   und `sprachenSetzen()` schickte nur die sichtbaren angehakten
   Kacheln. Jetzt gehen dazu die Ziele aus dem letzten
   `/api/sprachen` mit, deren Kachel gerade nicht zu sehen ist;
-  Reihenfolge wie bisher, Neues hinten an. Der Server bleibt, wie er
-  ist: `Lauf.sprachen` lässt die Quelle schon heraus, die Hörerseite
-  sieht sie einmal, als Original, und der Glossar-Hinweis gilt ihr
-  erst, wenn sie übersetzt wird. Versuchssprachen-Schalter, `NUR_ZIEL`
-  und das Trennen der Hörer abgewählter Sprachen unverändert.
-  Prüfstand `zielwahl_test.mjs` (die vier Schritte und das Hin und
-  Zurück; mit 0.5.0 zwölf Fehler) und `sprachen_test.py`, Abschnitt 5.
+  Reihenfolge wie bisher, Neues hinten an. `Lauf.sprachen` lässt die
+  Quelle heraus, wenn sie zugleich unter den Zielen steht, die
+  Hörerseite sieht sie einmal, als Original, und der Glossar-Hinweis
+  gilt ihr erst, wenn sie übersetzt wird.
+* **Originalkachel und Quellwechsel.** Die gesprochene Sprache hat
+  wieder eine Kachel, an ihrem Platz in der Liste: angehakt, Klasse
+  `an original`, Zusatz `original_tag` (de/en). Gesperrt über
+  `onclick="return false"` statt `disabled`, damit der Haken nicht grau
+  aussieht. Die Regel „die bisherige Quelle bleibt Ziel“ sitzt in
+  `Lauf.sprachen_setzen()`: wechselt die Quelle, kommt die alte an die
+  Ziele, falls sie dort fehlt, mit einer Zeile im Journal. Damit gilt
+  sie auch für `/api/sprachwahl` am Pult vorbei und für eine noch
+  offene Pult-Seite von 0.5.0. Das Pult schickt die alte Quelle beim
+  Wechsel zusätzlich selbst mit, damit es nicht vom Server abhängt.
+  Ohne Wechsel bleibt die Zielliste frei, auch für die frühere
+  Quelle. Eine `zustand.json` von 0.5.0 gilt unverwandelt. Unverändert:
+  Versuchssprachen-Schalter (die alte Quelle kommt nach seinem Filter
+  dazu; eine Versuchssprache kann heute nie Quelle gewesen sein, Twi
+  steht in `NUR_ZIEL`), `NUR_ZIEL` (abgelehnte Quelle heißt kein
+  Wechsel),
+  Trennen der Hörer abgewählter Sprachen, Hörerseite, Zählung der
+  Grafikwacht. Prüfstand `zielwahl_test.mjs`: Rostock hin und zurück,
+  Originalkachel nicht klickbar, frühere Quelle abwählen,
+  Versuchssprache und `NUR_ZIEL`, die Pult-Fälle je gegen einen
+  nachgebauten Server mit und ohne die Regel, dazu der echte Server am
+  Pult vorbei (Kopie, `--nur-text`); gegen den ersten Commit von 0.5.1
+  48 Fehler. `sprachen_test.py`, Abschnitt 5.
 * **Grafikwacht** zählt die laufenden Zielsprachen
   (`len(lauf.sprachen) - 1`) statt `len(lauf.ziele)` — sonst stünde
   die Quelle, wenn sie unter den Zielen steht, als vierte Zielsprache
@@ -109,6 +149,24 @@ aufwacht (*Update*).
   `portbelegt_test.py`.
 * Der Einspielweg prüft jetzt von neun Startfassungen aus, `v0.3.7`
   bis `v0.5.0`.
+* **Pult DE/EN.** `uiSprache()` zeichnete nur die `data-t`-Felder neu.
+  Jetzt holt es auch Sprachwahl, Update, WLAN-Stand und Aufnahmen neu,
+  bei offener Unterseite *Update* oder *Autostart* auch deren Lage;
+  ebenso der Reiterwechsel nach *Einrichtung*
+  (`zielwahl_test.mjs` Block 7, `betriebsanzeige_test.mjs`).
+* **Stimme der früheren Quelle.** `Werk.stimme_nachladen()` fragte
+  `stimmen_finden()` mit der Quelle vom Start und übersprang sie
+  deshalb: nach dem Wechsel de → ru blieb de ohne Stimme, obwohl
+  thorsten auf der Platte lag (seit 0.2.6). Jetzt zählt die Quelle,
+  die gerade gilt.
+* **Startausgabe.** „Ohne Stimme, nur Text“ nannte immer die
+  Predigtsprache mit (`ohne_stimme()` lässt sie aus). Die Zustandszeile
+  nennt die Quelle nicht mehr als Ziel und den Schwellenmodus so, wie
+  der Server ihn setzt: aus, automatisch oder fest mit Wert — seit
+  0.4.1 stand bei „aus“ fälschlich „mitlaufend“. Der Kopf des
+  Messprotokolls nennt nur die Ziele, die übersetzt werden.
+  Prüfstand `systemcheck_start_test.py`: der echte Server mit Quelle
+  unter den Zielen, ohne Mikrofon und ohne Dienst.
 
 ---
 

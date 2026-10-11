@@ -505,9 +505,13 @@ def _dienste(befunde, netz):
         _devarenu(befunde)
     except Exception as e:
         print(f"Systemcheck: Dienstabfrage -- {type(e).__name__}")
+    # Das Komma am Ende ist Pflicht: ohne es ist das hier kein Tupel
+    # aus einem Eintrag, sondern der Eintrag selbst, und die Schleife
+    # zerlegt seine drei Texte (0.5.1, bis zum Nachtrag: "too many
+    # values to unpack", der ganze Systemcheck fiel aus).
     for name, warum, warum_en in (
             ("ollama", "Ohne ihn scheitert jede Uebersetzung.",
-             "Without it every translation fails.")):
+             "Without it every translation fails."),):
         laeuft, an = _dienst_an(name)
         if not an:
             befunde.append(Befund(
