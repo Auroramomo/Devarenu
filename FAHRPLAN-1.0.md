@@ -671,8 +671,8 @@ den einen Gemeinderechner.
 
 Dagegen steht einiges: alles ist aufgeschrieben und begründet
 (`AUFSTELLEN.md`, 2000 Zeilen mit der Geschichte jeder Entscheidung),
-45 Prüfstände halten die Zusicherungen fest (Stand 0.5.0: 32 in
-Python, neun in JavaScript, vier als Shell-Skript), das Repo ist öffentlich
+55 Prüfstände halten die Zusicherungen fest (Stand 0.5.1: 39 in
+Python, elf in JavaScript, fünf als Shell-Skript), das Repo ist öffentlich
 und unter GPLv3, und seit 0.4.0 gibt es eine Erstinstallation für
 Fremde.
 

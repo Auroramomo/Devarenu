@@ -50,6 +50,10 @@ for sp in ("de", "en", "ru", "fa"):
     s = datenschutz.stufe1(sp)
     pruefe(f"Stufe 1 {sp}: fuenf Absaetze, Entwurf, Link", (5, True, True),
            (len(s["absaetze"]), bool(s["entwurf"]), s["link"].startswith("/datenschutz")))
+    # Link und Satz danach stehen in einer Zeile: ohne Satzzeichen las
+    # man "Full version It is kept on this computer" (0.5.1).
+    pruefe(f"Stufe 1 {sp}: der Link endet mit einem Satzzeichen", True,
+           s["mehr"].rstrip()[-1:] in ".:")
 pruefe("eine Sprache ohne Text faellt auf Englisch", "en",
        datenschutz.stufe1("pl")["sprache"])
 pruefe("ohne Gemeinde und Kontakt: keine Zeile", [], datenschutz.stufe1("de")["angaben"])

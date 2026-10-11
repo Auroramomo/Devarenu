@@ -76,6 +76,11 @@ netz.json.*
 meldung.json
 meldung-offen.txt
 
+# Was das Schreibtischsymbol bei jedem Doppelklick vorgefunden und
+# entschieden hat (start.sh, 0.5.1). Gehoert zu genau einem Rechner.
+start-protokoll.txt
+start-protokoll.txt.neu
+
 # Die Marke fuer den Testmodus. Sie gehoert auf die Testmaschine und
 # nirgends sonst -- und darf mit keinem Update mitwandern.
 TESTMODUS

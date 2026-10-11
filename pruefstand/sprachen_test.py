@@ -114,6 +114,38 @@ try:
            f'const SEITENFASSUNG = "{config.VERSION}";' in seite)
     pruefe("kein Platzhalter mehr", False, "<!--FASSUNG-->" in seite)
     pruefe("/api/sprachen nennt dieselbe", config.VERSION, d.get("fassung"))
+
+    # Seit 0.5.1 schickt das Pult eine Zielsprache mit, deren Kachel
+    # gerade ausgeblendet ist, weil sie gesprochen wird. Sie muss
+    # gespeichert bleiben und darf nirgends doppelt auftauchen.
+    titel("5) Eine Quelle, die zugleich Ziel ist (0.5.1)")
+    rufen(PORT, "/api/sprachwahl", {"quelle": "ru",
+                                    "ziele": ["en", "ru", "fa", "de"]})
+    d = json.loads(rufen(PORT, "/api/sprachen")[1])
+    pruefe("die Ziele bleiben, wie geschickt", ["en", "ru", "fa", "de"],
+           d["ziele"])
+    gespeichert = json.loads((ordner / "zustand.json").read_text("utf-8"))
+    pruefe("und so in zustand.json", ["en", "ru", "fa", "de"],
+           gespeichert["ziele"])
+    pruefe("die Hoererseite sieht ru einmal, als Original",
+           [("ru", True), ("en", False), ("fa", False), ("de", False)],
+           [(x["code"], x["original"]) for x in d["liste"]])
+    rufen(PORT, "/api/sprachwahl", {"quelle": "de",
+                                    "ziele": ["en", "ru", "fa", "de"]})
+    d = json.loads(rufen(PORT, "/api/sprachen")[1])
+    pruefe("zurueck auf de: de -> en, ru, fa, ohne zweites de",
+           ["de", "en", "ru", "fa"], [x["code"] for x in d["liste"]])
+    # Der Glossar-Hinweis gilt der Uebersetzung. Eine ungepruefte
+    # Sprache, die gerade gesprochen wird, bekommt keinen.
+    rufen(PORT, "/api/sprachwahl", {"quelle": "ar", "ziele": ["en", "ar"]})
+    post = json.loads(rufen(PORT, "/api/zustand")[1]).get("nachrichten", [])
+    pruefe("ar gesprochen und angehakt: kein Glossar-Hinweis", [],
+           [n for n in post if n.get("sprache") == "ar"])
+    rufen(PORT, "/api/sprachwahl", {"quelle": "de", "ziele": ["en", "ar"]})
+    post = json.loads(rufen(PORT, "/api/zustand")[1]).get("nachrichten", [])
+    pruefe("ar als Uebersetzung: genau ein Hinweis", 1,
+           sum(1 for n in post if n.get("sprache") == "ar"
+               and n.get("art") == "system"))
 finally:
     server_stoppen(p)
 

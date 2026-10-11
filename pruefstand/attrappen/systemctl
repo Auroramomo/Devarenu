@@ -4,5 +4,14 @@ echo "systemctl $*" >> "${STUB_LOG:-/dev/null}"
 case "$1" in
   is-active) [ "${STUB_DIENST_LAEUFT:-ja}" = ja ] && exit 0 || exit 3 ;;
   restart)   [ "${STUB_RESTART_OK:-ja}" = ja ] && exit 0 || exit 1 ;;
+  show)
+    # Nachgebaute Ausgabe je Unit aus $STUB_SHOW/<unit> (betriebslage_test.py).
+    # Ohne STUB_SHOW wie bisher: nichts.
+    shift; unit=""
+    while [ $# -gt 0 ]; do
+      case "$1" in -p|--property) shift 2 ;; -*) shift ;; *) unit="$1"; shift ;; esac
+    done
+    [ -n "${STUB_SHOW:-}" ] && [ -f "$STUB_SHOW/$unit" ] && cat "$STUB_SHOW/$unit"
+    exit 0 ;;
 esac
 exit 0

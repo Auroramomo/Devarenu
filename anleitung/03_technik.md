@@ -9,6 +9,39 @@ Programmstart.
 
 Prüfen lässt sich das am Pult: **http://10.0.0.1/pult**
 
+### Läuft es von selbst? *Einrichtung → Autostart*
+
+Dort steht, ob Devarenu als Dienst eingerichtet ist, ob der **Autostart**
+an ist, ob der Dienst gerade läuft und wie oft er seit seinem Start von
+selbst neu gestartet wurde — jeweils mit einem Satz, was das bedeutet.
+Darunter: ob dieses Pult vom Dienst kommt oder vom Schreibtischsymbol,
+und die letzten zehn Doppelklicks auf das Symbol mit dem, was es
+jeweils getan hat.
+
+Steht dort **Autostart: aus**, startet Devarenu nach dem Einschalten
+nicht von selbst. Eingeschaltet wird das nur am Rechner, von Hand:
+
+    sudo systemctl enable devarenu
+
+Das Pult schaltet nichts ein, auch kein Update tut es.
+
+### Das Schreibtischsymbol
+
+Seit 0.5.1 sieht das Symbol zuerst nach, ob der Dienst schon läuft:
+
+- **Läuft er mit Ton**, startet es nichts. Im Fenster steht „Devarenu
+  läuft schon, mit Ton“ und die Adressen. Das Fenster kann zu.
+- **Startet er gerade** (kurz nach dem Einschalten), wartet es bis zu
+  drei Minuten und entscheidet dann.
+- **Läuft er ohne Ton**, hält es ihn für diese Sitzung an — dafür fragt
+  es nach dem Passwort des Rechners — und startet Devarenu im Fenster.
+  Wird das Fenster geschlossen, ist Devarenu weg, bis der Rechner neu
+  startet. Wird das Passwort nicht eingegeben, startet es **nichts**.
+- **Läuft kein Dienst**, startet es Devarenu im Fenster, wie bisher.
+
+„Mit Ton“ heißt: das Aufnahmegerät liefert. Stille im Saal ist dabei
+kein Problem — auch Stille kommt als Ton an.
+
 ## Ausschalten
 
 Netzschalter kurz drücken. Der Rechner fährt herunter. Nicht den Strom
@@ -65,6 +98,28 @@ Der Rechner stellt den vorigen Stand selbst wieder her: Code, Dienste,
 und die Einstellungen, falls das Update sie angefasst hat. Danach steht
 am Pult, was passiert ist und welche Fassung wieder läuft. Es ist kein
 Handgriff nötig.
+
+### Das letzte Wartungsfenster und der Wecker
+
+Unter *Einrichtung → Update* steht unter der Meldung des Updaters — jetzt
+vollständig, nicht mehr abgeschnitten — das letzte Wartungsfenster:
+
+- zuerst das Urteil: **nicht aufgewacht** oder **aufgewacht, Update
+  gescheitert** (eingespielt, nichts zu tun),
+- wann es begann, ob das Internet erreicht wurde, welche Fassung das
+  Ziel war,
+- bei einem Fehlschlag der **Grund**, so wie ihn der Updater
+  geschrieben hat.
+
+Darunter das **nächste geplante Aufwachen** aus der Uhr des Rechners.
+Der Wecker wird beim Hoch- und beim Herunterfahren gestellt, wenn das
+Wartungsfenster an ist. Er wirkt nur, wenn der Rechner Strom hat — eine
+ausgeschaltete Steckdosenleiste weckt nichts — und das BIOS das Wecken
+über die Uhr zulässt.
+
+Was der Rechner ohne Root-Rechte nicht verrät, steht dort als
+**unbekannt**. Den Grund eines Fensterlaufs liest das Pult aus dem
+Systemprotokoll; das darf nur ein Benutzer in der Gruppe *adm*.
 
 ### Wenn der Rechner den Stick nicht bemerkt
 

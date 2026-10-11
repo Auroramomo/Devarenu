@@ -46,7 +46,7 @@ STUFE1 = {
         ],
         "verantwortlich": "Verantwortlich: {}",
         "kontakt": "Kontakt: {}",
-        "mehr": "Ausführliche Fassung",
+        "mehr": "Ausführliche Fassung.",
         "mehr_hin": "Sie liegt auf diesem Rechner, denn das Saal-WLAN hat "
                     "kein Internet.",
     },
@@ -67,7 +67,7 @@ STUFE1 = {
         ],
         "verantwortlich": "Responsible: {}",
         "kontakt": "Contact: {}",
-        "mehr": "Full version",
+        "mehr": "Full version.",
         "mehr_hin": "It is kept on this computer, because the hall wi-fi has "
                     "no internet.",
     },
@@ -87,7 +87,7 @@ STUFE1 = {
         ],
         "verantwortlich": "Ответственный: {}",
         "kontakt": "Контакт: {}",
-        "mehr": "Подробная версия",
+        "mehr": "Подробная версия.",
         "mehr_hin": "Она хранится на этом компьютере, потому что у Wi-Fi "
                     "зала нет интернета.",
     },
@@ -106,7 +106,7 @@ STUFE1 = {
         ],
         "verantwortlich": "مسئول: {}",
         "kontakt": "تماس: {}",
-        "mehr": "نسخهٔ کامل",
+        "mehr": "نسخهٔ کامل.",
         "mehr_hin": "این نسخه روی همین رایانه است، چون وای‌فای سالن اینترنت "
                     "ندارد.",
     },

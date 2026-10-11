@@ -438,11 +438,74 @@ def _sitzung(befunde):
             tun_en="bash rechner_einrichten.sh"))
 
 
+def _devarenu(befunde):
+    """Der eigene Dienst, genauer als bei den anderen (0.5.1).
+
+    Drei Lagen, die bis 0.5.0 alle "startet nicht von selbst" hiessen:
+    gar nicht eingerichtet, eingerichtet aber ausgeschaltet (Autostart
+    aus), und eingeschaltet, aber er laeuft nicht. Dazu ein Dienst, der
+    immer wieder neu startet -- der laeuft zwischendurch und faellt am
+    Pult sonst nie auf. Eine Abfrage, kein Eingriff: eingeschaltet
+    wird hier nichts."""
+    import betriebslage
+    d = betriebslage.dienst()
+    art = betriebslage.laufart()
+    if d is None:
+        # Kein systemctl. Dann gibt es hier auch keinen Dienst, und
+        # das sagt der Befund wie bisher.
+        d = {"vorhanden": False}
+    if not d["vorhanden"]:
+        befunde.append(Befund(
+            "dienst_devarenu", FEHLT,
+            "Devarenu ist nicht als Dienst eingerichtet. Nach dem "
+            "Einschalten startet es nicht von selbst. Ohne ihn gibt es "
+            "keine Uebersetzung.",
+            "bash dienst.sh",
+            was_en="Devarenu is not set up as a service, so it does not "
+                   "start after switching on.",
+            tun_en="bash dienst.sh"))
+        return
+    if not betriebslage.autostart_an(d):
+        befunde.append(Befund(
+            "dienst_devarenu", FEHLT,
+            "Autostart ist aus: Devarenu ist als Dienst eingerichtet, "
+            "startet nach dem Einschalten aber nicht von selbst. Dann "
+            "muss jemand das Schreibtischsymbol anklicken.",
+            "sudo systemctl enable devarenu",
+            was_en="Autostart is off: the service exists but does not "
+                   "start after switching on.",
+            tun_en="sudo systemctl enable devarenu"))
+    elif d["aktiv"] not in ("active", "activating", "reloading"):
+        sitzung = (" Dieser Server laeuft aus einer Sitzung -- vermutlich "
+                   "hat das Schreibtischsymbol den Dienst fuer diese "
+                   "Sitzung angehalten." if art == "sitzung" else "")
+        befunde.append(Befund(
+            "dienst_devarenu_tot", FEHLT,
+            "Der Dienst devarenu ist eingeschaltet, laeuft aber nicht."
+            + sitzung,
+            "systemctl status devarenu",
+            was_en="Service devarenu is enabled but not running.",
+            tun_en="systemctl status devarenu"))
+    n = d.get("neustarts")
+    if n is not None and n >= betriebslage.NEUSTARTS_BEFUND:
+        befunde.append(Befund(
+            "dienst_neustarts", HINWEIS,
+            f"Der Dienst startet immer wieder neu: {n}-mal seit seinem "
+            f"Start. Er stuerzt ab oder wird beendet -- etwa vom "
+            f"Schreibtischsymbol einer aelteren Fassung.",
+            "journalctl -u devarenu -b",
+            was_en=f"The service keeps restarting: {n} times since it was "
+                   f"started. It crashes or gets killed.",
+            tun_en="journalctl -u devarenu -b"))
+
+
 def _dienste(befunde, netz):
     """Laufen und starten die Dienste, auf die es ankommt?"""
+    try:
+        _devarenu(befunde)
+    except Exception as e:
+        print(f"Systemcheck: Dienstabfrage -- {type(e).__name__}")
     for name, warum, warum_en in (
-            ("devarenu", "Ohne ihn gibt es keine Uebersetzung.",
-             "Without it there is no translation."),
             ("ollama", "Ohne ihn scheitert jede Uebersetzung.",
              "Without it every translation fails.")):
         laeuft, an = _dienst_an(name)

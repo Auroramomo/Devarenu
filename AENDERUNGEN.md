@@ -6,6 +6,112 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.5.1 — Keine Zielsprache geht mehr verloren
+
+*11.10.2026.*
+
+### Für alle
+
+**Die Sprachwahl am Pult behält alle Zielsprachen.** Bis 0.5.0 konnte
+eine Zielsprache still wegfallen, wenn die Sprache des Predigers
+umgestellt wurde: Deutsch → Englisch, Russisch, Persisch; dann
+Predigtsprache Russisch und Deutsch als Ziel angehakt; zurück auf
+Deutsch — und Russisch lief nicht mehr, die Zuhörer auf Russisch waren
+getrennt. Jetzt bleibt eine Zielsprache gewählt, auch während sie
+selbst gesprochen wird; sie läuft in der Zeit nur nicht als
+Übersetzung. Hin- und Zurückstellen ändert an den Zielsprachen nichts.
+
+**Englisches Datenschutz-Fenster:** hinter „Full version“ fehlte ein
+Punkt, es las sich „Full version It is kept on this computer …“.
+Ebenso auf Deutsch, Russisch und Persisch. Der Text ist weiter ein
+Entwurf vor Freigabe.
+
+**Das Schreibtischsymbol macht den Dienst nicht mehr kaputt.** Bis
+0.5.0 beendete ein Doppelklick den laufenden Dienst, und systemd
+startete ihn danach alle zehn Sekunden neu, jedes Mal mit der
+Spracherkennung im Grafikspeicher. Jetzt sieht das Symbol zuerst nach:
+Läuft Devarenu schon mit Ton, startet es nichts und zeigt die Adressen.
+Läuft es ohne Ton, hält es den Dienst nach Rückfrage (Passwort des
+Rechners) für diese Sitzung an und startet Devarenu im Fenster. Kurz
+nach dem Einschalten wartet es, bis der Dienst fertig geladen hat.
+
+**Unter Einrichtung steht, was am Rechner passiert**, für alle, die
+nicht davorsitzen: ob der Autostart an ist und der Dienst läuft
+(*Autostart*), was das Schreibtischsymbol zuletzt getan hat, ob der
+Rechner zum letzten Wartungsfenster aufgewacht ist und warum ein
+Update gescheitert ist, und wann er das nächste Mal von selbst
+aufwacht (*Update*).
+
+### Für die Technik
+
+* **Zielwahl.** Die Kachel der gesprochenen Sprache ist ausgeblendet,
+  und `sprachenSetzen()` schickte nur die sichtbaren angehakten
+  Kacheln. Jetzt gehen dazu die Ziele aus dem letzten
+  `/api/sprachen` mit, deren Kachel gerade nicht zu sehen ist;
+  Reihenfolge wie bisher, Neues hinten an. Der Server bleibt, wie er
+  ist: `Lauf.sprachen` lässt die Quelle schon heraus, die Hörerseite
+  sieht sie einmal, als Original, und der Glossar-Hinweis gilt ihr
+  erst, wenn sie übersetzt wird. Versuchssprachen-Schalter, `NUR_ZIEL`
+  und das Trennen der Hörer abgewählter Sprachen unverändert.
+  Prüfstand `zielwahl_test.mjs` (die vier Schritte und das Hin und
+  Zurück; mit 0.5.0 zwölf Fehler) und `sprachen_test.py`, Abschnitt 5.
+* **Grafikwacht** zählt die laufenden Zielsprachen
+  (`len(lauf.sprachen) - 1`) statt `len(lauf.ziele)` — sonst stünde
+  die Quelle, wenn sie unter den Zielen steht, als vierte Zielsprache
+  in der Tageszeile. Ebenso die Zeile `Sprachen: …` im Journal.
+* **Datenschutz.** `datenschutz.py`, Stufe 1: der Linktext (`mehr`)
+  endet in allen vier Sprachen mit einem Punkt. Inhalt unverändert
+  (`datenschutz_test.py`).
+* **Autostart sichtbar (A1).** Neues Modul `betriebslage.py`, nur
+  lesend, ohne sudo, jede Abfrage mit drei bis fünf Sekunden Frist;
+  fehlt `systemctl` oder eine Datei, entfällt die Zeile. Neue
+  Unterseite *Einrichtung → Autostart*: eingerichtet, eingeschaltet,
+  aktiv, `NRestarts` (aus einem `systemctl show`), ob der Server als
+  Dienst oder aus der Sitzung läuft (an der cgroup), und die letzten
+  zehn Zeilen von `start-protokoll.txt`. Endpunkt `/api/betriebslage`,
+  gerufen erst beim Öffnen der Seite, zehn Sekunden zwischengespeichert.
+  Systemcheck: „nicht eingerichtet“, „Autostart ist aus“ und
+  „eingeschaltet, läuft aber nicht“ sind getrennte Sätze (Kennung
+  weiter `dienst_devarenu` bzw. `dienst_devarenu_tot`), neu
+  `dienst_neustarts` ab drei Neustarts. In den Briefkasten geht
+  davon nichts — der Systemcheck legt seit 0.4.2 nichts mehr hinein.
+* **Update-Lage (A2).** Unter *Einrichtung → Update* der Satz des
+  Updaters vollständig und mit Umbruch, darunter das letzte
+  Wartungsfenster: aufgewacht ja/nein/unbekannt (aus
+  `journalctl --list-boots`, der Marke `autoupdate-<Fenster>` in der
+  Ablage oder dem letzten Lauf des Fenster-Timers), Internet, Ziel,
+  Ergebnis und bei Fehlschlag der Grund — aus dem Journal von
+  `devarenu-fenster.service`, wenn der Benutzer es lesen darf (Gruppe
+  adm, wheel oder systemd-journal), sonst „unbekannt“. Protokollzeilen
+  gehen durch `schwaerzen()`: WLAN-Passwort, ntfy-Thema, Betreuer,
+  Kontakt, Mailadressen, Adressen mit http und Heimatordner fallen
+  heraus.
+* **Wecker (A3).** Das nächste Aufwachen aus
+  `/sys/class/rtc/rtc0/wakealarm` (für alle lesbar), daneben das
+  geplante aus `wartungsfenster.py`.
+* **`start.sh` (B4).** Fünf Zweige statt `fuser -k`: kein Dienst →
+  wie bisher; Dienst lädt → bis zu 180 s warten; Dienst mit Ton
+  (`audio_quelle` in `/api/zustand` höchstens 10 s alt; der Block kommt
+  auch bei Stille) → nichts starten; ohne Ton oder nicht feststellbar →
+  `sudo systemctl stop devarenu`, warten bis Port, Hauptprozess und
+  Grafikspeicher (`nvidia-smi`) frei sind, dann starten; scheitert das
+  Anhalten, startet nichts. Beendet werden nur noch Reste früherer
+  Sitzungen, nie der Dienst (Hauptprozess oder seine cgroup). Jeder
+  Lauf schreibt eine Zeile nach `start-protokoll.txt` (in
+  `.gitignore`). Prüfstand `startskript_test.sh` (alle Zweige, beide
+  Symbole; mit dem `start.sh` von 0.5.0 35 Fehler).
+* **„Port belegt“ (B5).** `starten_auf()` wirft `PortBelegt`, `main()`
+  erkennt es und gibt den vorgesehenen Hinweis samt Rückgabe 1 statt
+  eines Tracebacks (`portbelegt_test.py`).
+* Neue Prüfstände: `betriebslage_test.py` (mit nachgebautem
+  `systemctl show` und `journalctl` in `pruefstand/attrappen`),
+  `betriebsanzeige_test.mjs`, `startskript_test.sh`,
+  `portbelegt_test.py`.
+* Der Einspielweg prüft jetzt von neun Startfassungen aus, `v0.3.7`
+  bis `v0.5.0`.
+
+---
+
 ## 0.5.0 — Sprachen und Stimmen
 
 *07.10.2026.*

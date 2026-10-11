@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Attrappe. Gibt nachgebaute Journalausgaben aus $STUB_JOURNAL aus:
+#   boots.json    fuer --list-boots
+#   fenster.txt   fuer -u devarenu-fenster.service
+# Ohne STUB_JOURNAL: nichts, wie ein Journal, das man nicht lesen darf.
+echo "journalctl $*" >> "${STUB_LOG:-/dev/null}"
+[ -n "${STUB_JOURNAL:-}" ] || exit 0
+case " $* " in
+  *" --list-boots "*) cat "$STUB_JOURNAL/boots.json" 2>/dev/null ;;
+  *" -u devarenu-fenster.service "*) cat "$STUB_JOURNAL/fenster.txt" 2>/dev/null ;;
+esac
+exit 0

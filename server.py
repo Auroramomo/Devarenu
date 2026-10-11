@@ -2337,6 +2337,15 @@ def sockel(port):
     return s
 
 
+class PortBelegt(OSError):
+    """Der Hauptport ist schon vergeben -- meist laeuft der Dienst.
+
+    Eine eigene Art, damit main() sie erkennt. Bis 0.5.0 suchte main()
+    in der Meldung nach "address" oder "10048" (Windows), fand in
+    "Port 8000 ist belegt" keines von beiden und warf einen Traceback
+    statt des Hinweises auf den laufenden Dienst."""
+
+
 def starten_auf(app, port):
     """Startet den Server auf Port 8000 und, wenn moeglich, auch auf 80.
 
@@ -2349,7 +2358,7 @@ def starten_auf(app, port):
     import uvicorn
     haupt = sockel(port)
     if haupt is None:
-        raise OSError(f"Port {port} ist belegt")
+        raise PortBelegt(f"Port {port} ist belegt")
     sockets = [haupt]
 
     lage = netzzustand.laden()[0]
@@ -4807,7 +4816,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 except Exception:
                     pass
             lauf.hoerer.pop(sp, None)
-        print(f"Sprachen: {lauf.quelle} -> {', '.join(lauf.ziele)}")
+        print(f"Sprachen: {lauf.quelle} -> {', '.join(lauf.sprachen[1:])}")
 
         # Wer eine ungeprueufte Sprache einschaltet, soll wissen, worauf
         # er sich einlaesst -- aber nicht durch ein Fenster, das
@@ -5963,6 +5972,23 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         stand["live"] = lauf.laeuft
         return stand
 
+    # Dienst, letztes Wartungsfenster, Wecker, Schreibtischsymbol (0.5.1).
+    # Nur fuer die Einrichtung und erst, wenn jemand die Seite oeffnet:
+    # dahinter stehen systemctl- und journalctl-Aufrufe mit kurzer
+    # Frist, und die gehoeren nicht in den Takt von /api/zustand. Kein
+    # async: die Aufrufe blockieren, und so laufen sie im Threadpool
+    # statt in der Ereignisschleife, an der die Zuhoerer haengen.
+    betrieb_zwischen = {"zeit": 0.0, "wert": None}
+
+    @app.get("/api/betriebslage")
+    def betriebslage_lesen():
+        jetzt = time.time()
+        if (betrieb_zwischen["wert"] is None
+                or jetzt - betrieb_zwischen["zeit"] > 10.0):
+            import betriebslage
+            betrieb_zwischen.update(zeit=jetzt, wert=betriebslage.lage(basis))
+        return betrieb_zwischen["wert"]
+
     @app.post("/api/thema-im-prompt")
     async def thema_im_prompt(daten: dict):
         """Geht das Thema auch in den Uebersetzungsprompt?
@@ -6113,7 +6139,10 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
     # Gezaehlt werden seit 0.4.6 nur die ZIELsprachen. Bis dahin stand
     # hier "+ 1" fuer die Ausgangssprache, und aus "4 Sprachen" in
     # der Grafikwacht las man vier Zielsprachen, wo es drei waren.
-    grafikwacht.anwerfen(lambda: lauf.laeuft, lambda: len(lauf.ziele))
+    # Und gezaehlt wird, was als Uebersetzung LAEUFT: seit 0.5.1 bleibt
+    # die Quelle in lauf.ziele stehen, wenn sie dort angehakt war.
+    grafikwacht.anwerfen(lambda: lauf.laeuft,
+                         lambda: len(lauf.sprachen) - 1)
 
     try:
         systemnachricht()
@@ -6815,6 +6844,16 @@ input[type=range]{width:100%;min-height:44px}
 .zurueck{margin-bottom:.8rem}
 .unterseite h3{font:600 .95rem var(--schild);margin:0 0 .6rem;
                color:var(--text)}
+/* Dienst, Fenster, Wecker (0.5.1). Umbrechen statt abschneiden: in
+   Rostock war die Update-Meldung abgeschnitten, und den Grund kannte
+   danach niemand. */
+.unterseite h4{font:600 .85rem var(--schild);margin:1.1rem 0 .2rem;
+               color:var(--text)}
+.lage li{overflow-wrap:anywhere}
+.lage li .hin{display:block;margin:.15rem 0 0}
+.lage li .grund,.langtext{white-space:pre-wrap;overflow-wrap:anywhere}
+.lage li .grund{display:block;margin:.3rem 0 0;font-size:.8rem}
+.protokoll li{font:.78rem/1.4 ui-monospace,monospace;color:var(--grau)}
 /* Abgesetzt: Update und Fehlersuche gehoeren nicht zu dem, was man
    einmal je Gemeinde einstellt. */
 .seitennav .trenner{height:1px;background:var(--linie);margin:.5rem 0}
@@ -7269,10 +7308,29 @@ bleibt immer offen, und an diesem Rechner wird nie gefragt.</p>
   <code>python werkzeuge/pult_passwort.py --loeschen</code></p></div></details>
 </div>
 
+<!-- Autostart (0.5.1): laeuft Devarenu von selbst, und was hat das
+     Schreibtischsymbol zuletzt getan? Nur lesend; eingeschaltet wird
+     hier nichts. -->
+<div class=unterseite id=eBetrieb hidden>
+<h3 data-t=e_betrieb>Autostart</h3>
+<ul class="wartungliste lage" id=dienstliste></ul>
+<h4 data-t=sp_ueber>Schreibtischsymbol, letzte Starts</h4>
+<ul class="wartungliste lage protokoll" id=startliste></ul>
+<p class=hin data-t=sp_hin>Jeder Doppelklick auf das Symbol schreibt
+hier eine Zeile: wann, wie der Dienst stand und was das Symbol daraufhin
+getan hat.</p>
+</div>
+
 <div class=unterseite id=eUpdate hidden>
 <h3 data-t=e_update>Update</h3>
 <p class=hin id=fassung></p>
 <p class=hin id=updatestand hidden></p>
+<p class="hin langtext" id=updatetext hidden></p>
+<!-- Das letzte Wartungsfenster und der Wecker (0.5.1). -->
+<h4 data-t=ul_ueber>Letztes Wartungsfenster</h4>
+<ul class="wartungliste lage" id=fensterliste></ul>
+<h4 data-t=wk_ueber>Wecker</h4>
+<ul class="wartungliste lage" id=weckerliste></ul>
 <button class=btn id=updateknopf onclick=updateJetzt() hidden
         data-t=upd_jetzt>Jetzt einspielen</button>
 <!-- Der Weg ueber das Netz. Nur am Gemeinde-PC selbst sichtbar: ein
@@ -7502,6 +7560,97 @@ const TEXTE={
    erkannt_namen:"{n} von {g} Namen im Prompt:",
    // --- Einrichtung ---
    e_gemeinde:"Gemeinde", e_update:"Update", e_fehlersuche:"Fehlersuche",
+   e_betrieb:"Autostart",
+   sp_ueber:"Schreibtischsymbol, letzte Starts",
+   sp_hin:"Jeder Doppelklick auf das Symbol schreibt hier eine Zeile: "
+     +"wann, wie der Dienst stand und was das Symbol daraufhin getan hat.",
+   sp_leer:"Noch kein Eintrag.",
+   ul_ueber:"Letztes Wartungsfenster", wk_ueber:"Wecker",
+   bl_nicht_eingerichtet:"Dienst: nicht eingerichtet.",
+   bl_nicht_eingerichtet_h:"Nach dem Einschalten startet Devarenu nicht "
+     +"von selbst. Einrichten am Rechner mit: bash dienst.sh",
+   bl_auto_an:"Autostart: an.",
+   bl_auto_an_h:"Nach dem Einschalten startet Devarenu von selbst.",
+   bl_auto_aus:"Autostart: aus ({w}).",
+   bl_auto_aus_h:"Nach dem Einschalten startet Devarenu nicht von selbst – "
+     +"dann muss jemand das Schreibtischsymbol anklicken. Einschalten am "
+     +"Rechner: sudo systemctl enable devarenu",
+   bl_aktiv:"Dienst: läuft, seit {seit}.",
+   bl_aktiv_h:"So soll es sein. Das Schreibtischsymbol wird nicht gebraucht.",
+   bl_startet:"Dienst: startet gerade ({u}).",
+   bl_startet_h:"Er lädt noch oder wartet nach einem Absturz auf den "
+     +"nächsten Versuch.",
+   bl_inaktiv:"Dienst: läuft nicht ({a}).",
+   bl_inaktiv_h:"Läuft Devarenu trotzdem, dann vom Schreibtischsymbol. Ist "
+     +"der Autostart an, kommt der Dienst beim nächsten Einschalten wieder.",
+   bl_neustarts:"Neustarts durch systemd seit dem Start des Dienstes: {n}.",
+   bl_neustarts_null:"Er lief ohne Unterbrechung.",
+   bl_neustarts_einige:"Einzelne Neustarts kommen vor, etwa wenn der "
+     +"Prozess beendet wurde.",
+   bl_neustarts_viele:"Der Dienst stürzt ab oder wird immer wieder "
+     +"beendet. Nachsehen am Rechner: journalctl -u devarenu -b",
+   bl_art_dienst:"Dieses Pult kommt vom Dienst.",
+   bl_art_dienst_h:"So soll es sein.",
+   bl_art_sitzung:"Dieses Pult kommt vom Schreibtischsymbol, nicht vom Dienst.",
+   bl_art_sitzung_h:"Wird das Fenster am Rechner geschlossen oder meldet "
+     +"sich jemand ab, ist Devarenu weg, bis der Rechner neu startet.",
+   bl_art_unbekannt:"Ob dieses Pult vom Dienst kommt: unbekannt.",
+   fe_aus:"Wartungsfenster: aus.",
+   fe_aus_h:"Ohne Fenster gibt es kein Autoupdate und keinen Wecker. "
+     +"Updates nur per Stick oder am Rechner von Hand.",
+   fe_noch_keins:"Es gab noch kein Wartungsfenster.",
+   fe_offen:"Das Wartungsfenster ist gerade offen.",
+   fe_nicht_wach:"Der Rechner ist zum Fenster nicht aufgewacht.",
+   fe_nicht_wach_h:"Das Systemprotokoll reicht weiter zurück und zeigt in "
+     +"der Fensterzeit keinen Start. Wecker, Strom und BIOS prüfen.",
+   fe_wach_gescheitert:"Aufgewacht, Update gescheitert.",
+   fe_wach_eingespielt:"Aufgewacht, Update eingespielt.",
+   fe_wach_nichts:"Aufgewacht, es gab keine neuere Fassung.",
+   fe_wach_kein_versuch:"Aufgewacht, aber kein Update versucht.",
+   fe_wach_unbekannt:"Aufgewacht, Ergebnis unbekannt.",
+   fe_wach_unklar:"Ob der Rechner zum Fenster aufgewacht ist: unbekannt.",
+   fe_journal_zu:"Das Systemprotokoll ist für diesen Benutzer nicht "
+     +"lesbar (dafür braucht er die Gruppe adm). Ohne Root lässt sich "
+     +"nicht mehr sagen.",
+   fe_einstellung:"Fenster: {tag} {von}–{bis}, Autoupdate {auto}.",
+   fe_an:"an", fe_aus_wort:"aus",
+   fe_auto_aus_h:"Im Fenster wird dann nur verbunden, nicht aktualisiert.",
+   fe_beginn:"Zuletzt begonnen: {b}.",
+   fe_beleg_marke:"Beleg: der Updater hat für dieses Fenster eine Marke "
+     +"angelegt.",
+   fe_beleg_timer:"Beleg: der Fenster-Timer lief in dieser Zeit.",
+   fe_beleg_journal:"Beleg: das Systemprotokoll.",
+   fe_netz_ja:"Internet erreicht: ja.",
+   fe_netz_nein:"Internet erreicht: nein.",
+   fe_netz_nein_h:"git fetch ist gescheitert: kein Netz im Fenster – oder "
+     +"ein Tag zeigt drüben woanders hin.",
+   fe_netz_unbekannt:"Internet erreicht: unbekannt.",
+   fe_ziel:"Zielfassung: {v}.",
+   fe_erg_gescheitert:"Ergebnis: gescheitert.",
+   fe_erg_gescheitert_h:"Die alte Fassung läuft weiter. Der Grund, so wie "
+     +"ihn der Updater geschrieben hat:",
+   fe_grund_fehlt:"(Im Systemprotokoll steht kein Grund.)",
+   fe_erg_eingespielt:"Ergebnis: eingespielt.",
+   fe_erg_nichts_zu_tun:"Ergebnis: nichts zu tun, es gab keine neuere Fassung.",
+   fe_erg_kein_versuch:"Ergebnis: kein Update versucht – etwa weil gerade "
+     +"übersetzt wurde oder das Autoupdate aus war.",
+   fe_erg_versucht:"Ergebnis: ein Update wurde versucht, es endete {ende}.",
+   fe_erg_versucht_h:"Wie es ausging, steht nur im Protokoll unter "
+     +"/var/lib/devarenu/updates, und das darf nur root lesen: unbekannt.",
+   wk_unbekannt:"Nächstes geplantes Aufwachen: unbekannt.",
+   wk_keiner:"Nächstes geplantes Aufwachen: keines.",
+   wk_keiner_geplant:"Das Fenster verlangt {g}, aber in der Uhr ist kein "
+     +"Wecker gestellt. Dann wacht der Rechner nicht von selbst auf. "
+     +"Gestellt wird er beim Hoch- und beim Herunterfahren.",
+   wk_keiner_h:"Ohne Wartungsfenster wird keiner gestellt.",
+   wk_vorbei:"Wecker: {g} – liegt in der Vergangenheit.",
+   wk_vorbei_h:"Er wird beim nächsten Herunterfahren neu gestellt.",
+   wk_gestellt:"Nächstes geplantes Aufwachen: {g}.",
+   wk_abweichend:"Das Fenster verlangt {g}. Neu gestellt wird beim "
+     +"nächsten Herunterfahren.",
+   wk_passt:"Passt zum Wartungsfenster.",
+   wk_grenze:"Der Wecker wirkt nur, wenn der Rechner Strom hat "
+     +"(Steckdosenleiste an) und das BIOS das Wecken über die Uhr zulässt.",
    grafik_ueber:"Grafikkarte", grafik_tage:"Die letzten Tage",
    grafik_zeile:"Heute höchstens {belegt} von {gesamt} MB belegt "
      +"({voll} %), Auslastung {spitze} % Spitze / {mittel} % mittel, "
@@ -7867,6 +8016,96 @@ const TEXTE={
    erkannt_vor:"Recognised:",
    erkannt_namen:"{n} of {g} names in the prompt:",
    e_gemeinde:"Congregation", e_update:"Update", e_fehlersuche:"Diagnostics",
+   e_betrieb:"Autostart",
+   sp_ueber:"Desktop icon, recent starts",
+   sp_hin:"Every double-click on the icon writes a line here: when, what "
+     +"state the service was in and what the icon did about it.",
+   sp_leer:"No entry yet.",
+   ul_ueber:"Last maintenance window", wk_ueber:"Wake-up alarm",
+   bl_nicht_eingerichtet:"Service: not set up.",
+   bl_nicht_eingerichtet_h:"Devarenu does not start by itself after "
+     +"switching on. Set it up on the computer with: bash dienst.sh",
+   bl_auto_an:"Autostart: on.",
+   bl_auto_an_h:"Devarenu starts by itself after switching on.",
+   bl_auto_aus:"Autostart: off ({w}).",
+   bl_auto_aus_h:"Devarenu does not start by itself after switching on – "
+     +"someone has to click the desktop icon. Switch on at the computer: "
+     +"sudo systemctl enable devarenu",
+   bl_aktiv:"Service: running since {seit}.",
+   bl_aktiv_h:"As it should be. The desktop icon is not needed.",
+   bl_startet:"Service: starting ({u}).",
+   bl_startet_h:"It is still loading or waiting for the next attempt "
+     +"after a crash.",
+   bl_inaktiv:"Service: not running ({a}).",
+   bl_inaktiv_h:"If Devarenu runs anyway, it was started from the desktop "
+     +"icon. With autostart on, the service comes back at the next start.",
+   bl_neustarts:"Restarts by systemd since the service was started: {n}.",
+   bl_neustarts_null:"It ran without interruption.",
+   bl_neustarts_einige:"A few restarts happen, for example when the "
+     +"process was killed.",
+   bl_neustarts_viele:"The service crashes or keeps getting killed. Look "
+     +"on the computer: journalctl -u devarenu -b",
+   bl_art_dienst:"This control desk comes from the service.",
+   bl_art_dienst_h:"As it should be.",
+   bl_art_sitzung:"This control desk comes from the desktop icon, not from "
+     +"the service.",
+   bl_art_sitzung_h:"If the window on the computer is closed or someone "
+     +"logs out, Devarenu is gone until the computer restarts.",
+   bl_art_unbekannt:"Whether this control desk comes from the service: "
+     +"unknown.",
+   fe_aus:"Maintenance window: off.",
+   fe_aus_h:"Without a window there is no automatic update and no wake-up "
+     +"alarm. Updates only by USB stick or by hand on the computer.",
+   fe_noch_keins:"There has been no maintenance window yet.",
+   fe_offen:"The maintenance window is open right now.",
+   fe_nicht_wach:"The computer did not wake up for the window.",
+   fe_nicht_wach_h:"The system log goes back further and shows no start "
+     +"during the window. Check the alarm, the power and the BIOS.",
+   fe_wach_gescheitert:"Woke up, update failed.",
+   fe_wach_eingespielt:"Woke up, update installed.",
+   fe_wach_nichts:"Woke up, there was no newer version.",
+   fe_wach_kein_versuch:"Woke up, but no update was attempted.",
+   fe_wach_unbekannt:"Woke up, outcome unknown.",
+   fe_wach_unklar:"Whether the computer woke up for the window: unknown.",
+   fe_journal_zu:"This user may not read the system log (that needs the "
+     +"group adm). Without root nothing more can be said.",
+   fe_einstellung:"Window: {tag} {von}–{bis}, automatic update {auto}.",
+   fe_an:"on", fe_aus_wort:"off",
+   fe_auto_aus_h:"The window then only connects, it does not update.",
+   fe_beginn:"Last started: {b}.",
+   fe_beleg_marke:"Evidence: the updater left a marker for this window.",
+   fe_beleg_timer:"Evidence: the window timer ran during that time.",
+   fe_beleg_journal:"Evidence: the system log.",
+   fe_netz_ja:"Internet reached: yes.",
+   fe_netz_nein:"Internet reached: no.",
+   fe_netz_nein_h:"git fetch failed: no network during the window – or a "
+     +"tag points somewhere else upstream.",
+   fe_netz_unbekannt:"Internet reached: unknown.",
+   fe_ziel:"Target version: {v}.",
+   fe_erg_gescheitert:"Result: failed.",
+   fe_erg_gescheitert_h:"The old version keeps running. The reason, as the "
+     +"updater wrote it (in German):",
+   fe_grund_fehlt:"(The system log gives no reason.)",
+   fe_erg_eingespielt:"Result: installed.",
+   fe_erg_nichts_zu_tun:"Result: nothing to do, there was no newer version.",
+   fe_erg_kein_versuch:"Result: no update attempted – for example because "
+     +"a translation was running or automatic updates were off.",
+   fe_erg_versucht:"Result: an update was attempted, it ended {ende}.",
+   fe_erg_versucht_h:"How it went is only in the log under "
+     +"/var/lib/devarenu/updates, which only root may read: unknown.",
+   wk_unbekannt:"Next planned wake-up: unknown.",
+   wk_keiner:"Next planned wake-up: none.",
+   wk_keiner_geplant:"The window needs {g}, but no alarm is set in the "
+     +"clock. The computer will not wake up by itself. It is set when the "
+     +"computer starts and when it shuts down.",
+   wk_keiner_h:"Without a maintenance window none is set.",
+   wk_vorbei:"Alarm: {g} – in the past.",
+   wk_vorbei_h:"It is set again at the next shutdown.",
+   wk_gestellt:"Next planned wake-up: {g}.",
+   wk_abweichend:"The window needs {g}. It is set again at the next shutdown.",
+   wk_passt:"Matches the maintenance window.",
+   wk_grenze:"The alarm only works if the computer has power (power strip "
+     +"on) and the BIOS allows waking by the clock.",
    grafik_ueber:"Graphics card", grafik_tage:"The last few days",
    grafik_zeile:"Today at most {belegt} of {gesamt} MB used ({voll} %), "
      +"load {spitze} % peak / {mittel} % average, {sprachen} target languages.",
@@ -8135,6 +8374,9 @@ const TEXTE={
      +"no answer."}};
 let UI=localStorage.getItem("uiSprache")||"de";
 let NAMEN={};
+// Die Ziele aus dem letzten /api/sprachen -- auch die, deren Kachel
+// gerade nicht zu sehen ist (sprachenSetzen).
+let ZIELE=[];
 
 // ---------------------------------------------------------- Reiter
 // Vier Reiter, eine Unteransicht (Briefkasten oder Fehler melden) kann
@@ -8250,6 +8492,7 @@ const UNTERSEITEN = [
   {id:"eWlan",        t:"wlan"},
   {id:"ePasswort",    t:"pw_kurz_ueber"},
   {id:"trenner"},
+  {id:"eBetrieb",     t:"e_betrieb"},
   {id:"eUpdate",      t:"e_update"},
   {id:"eFehlersuche", t:"e_fehlersuche"},
 ];
@@ -8283,7 +8526,8 @@ function unterseiteWaehlen(id){
   unterseitenZeichnen();
   if(id === "eSprachen") sprachenLaden();
   if(id === "eWlan") wlanLaden();
-  if(id === "eUpdate") updateLaden();
+  if(id === "eUpdate"){ updateLaden(); betriebLaden(); }
+  if(id === "eBetrieb") betriebLaden();
 }
 function unterseiteZu(){
   unterseiteJetzt = SCHMAL() ? null : unterseiteJetzt;
@@ -8376,8 +8620,15 @@ function uiSprache(){
 }
 
 async function sprachenSetzen(){
-  const ziele=[...document.querySelectorAll("#zielwahl input:checked")]
-    .map(x=>x.value);
+  // Die Kachel der gesprochenen Sprache ist ausgeblendet. Steht sie
+  // unter den Zielen, geht sie trotzdem mit -- bis 0.5.0 fiel sie beim
+  // naechsten Haken still heraus und lief nach dem Zurueckstellen der
+  // Quelle nicht mehr. Reihenfolge wie bisher, Neues hinten an.
+  const kacheln=[...document.querySelectorAll("#zielwahl input")];
+  const sichtbar=new Set(kacheln.map(x=>x.value));
+  const an=kacheln.filter(x=>x.checked).map(x=>x.value);
+  const ziele=ZIELE.filter(z=>!sichtbar.has(z)||an.includes(z));
+  for(const z of an) if(!ziele.includes(z)) ziele.push(z);
   await fetch("/api/sprachwahl",{method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({quelle:quellwahl.value,ziele:ziele})});
@@ -8386,6 +8637,7 @@ async function sprachenSetzen(){
 async function sprachenLaden(){
   const d=await(await fetch("/api/sprachen")).json();
   NAMEN={}; d.liste.forEach(x=>NAMEN[x.code]=x.name);
+  ZIELE=d.ziele;
   // Nur, was Whisper erkennen kann (Feld "quelle", config.NUR_ZIEL).
   quellwahl.innerHTML=d.moeglich.filter(x=>x.quelle!==false).map(x=>
     `<option value="${x.code}"${x.code===d.quelle?" selected":""}>`
@@ -8999,6 +9251,12 @@ async function updateLaden(){
     const s=updateSatz(d);
     updatestand.hidden=!s;
     if(s) updatestand.textContent=s;
+    // Darunter der Satz des Updaters selbst, vollstaendig und mit
+    // Umbruch (0.5.1). Er ist deutsch und nennt Pfade -- aber nur er
+    // kennt den Grund.
+    const lang = d.text ? (d.zeit ? d.zeit + "  " : "") + d.text : "";
+    updatetext.hidden = !lang;
+    updatetext.textContent = lang;
     // Der Knopf nur, wenn er etwas bewirkt: etwas ist vorgemerkt, es
     // wurde noch nicht gedrueckt, und die Uebersetzung laeuft nicht.
     // Waehrend sie laeuft bleibt er sichtbar, aber gesperrt -- sonst
@@ -9006,6 +9264,167 @@ async function updateLaden(){
     updateknopf.hidden = !(d.bereit && !d.gedrueckt);
     updateknopf.disabled = !!d.live;
     updateknopf.title = d.live ? TEXTE[UI].upd_laeuft : "";
+  }catch(e){}
+}
+
+// ------------------------------------- Autostart, Fenster, Wecker (0.5.1)
+// Jede Zeile: was ist, und darunter ein Satz, was das fuer die Technik
+// heisst. Fehlt eine Angabe ganz (kein systemctl, keine Datei), fehlt
+// die Zeile. Was der Rechner ohne Wurzelrechte nicht verraet, heisst
+// "unbekannt" -- geraten wird nichts.
+function lagezeile(liste, was, heisst, grund, schwer){
+  const li = document.createElement("li");
+  if(schwer) li.className = "schwer";
+  const b = document.createElement("b");
+  b.textContent = was;
+  li.appendChild(b);
+  if(heisst){
+    const h = document.createElement("span");
+    h.className = "hin";
+    h.textContent = heisst;
+    li.appendChild(h);
+  }
+  if(grund){
+    const g = document.createElement("span");
+    g.className = "grund";
+    g.textContent = grund;
+    li.appendChild(g);
+  }
+  liste.appendChild(li);
+}
+const fuellen = (s, w) => Object.keys(w).reduce(
+  (a, k) => a.split("{"+k+"}").join(w[k] ?? ""), s);
+
+function dienstZeichnen(d, art){
+  const t = TEXTE[UI];
+  dienstliste.textContent = "";
+  if(d){
+    if(!d.vorhanden){
+      lagezeile(dienstliste, t.bl_nicht_eingerichtet, t.bl_nicht_eingerichtet_h,
+                "", true);
+    }else{
+      const an = ["enabled","enabled-runtime","static","alias"]
+        .includes(d.eingeschaltet);
+      if(an) lagezeile(dienstliste, t.bl_auto_an, t.bl_auto_an_h);
+      else lagezeile(dienstliste, fuellen(t.bl_auto_aus,
+                       {w: d.eingeschaltet || "?"}), t.bl_auto_aus_h, "", true);
+      if(d.aktiv === "active")
+        lagezeile(dienstliste, fuellen(t.bl_aktiv, {seit: d.seit || "?"}),
+                  t.bl_aktiv_h);
+      else if(d.aktiv === "activating" || d.aktiv === "reloading")
+        lagezeile(dienstliste, fuellen(t.bl_startet, {u: d.unter || "?"}),
+                  t.bl_startet_h);
+      else
+        lagezeile(dienstliste, fuellen(t.bl_inaktiv, {a: d.aktiv || "?"}),
+                  t.bl_inaktiv_h, "", an);
+      if(d.neustarts !== null && d.neustarts !== undefined){
+        const viele = d.neustarts >= 3;
+        lagezeile(dienstliste, fuellen(t.bl_neustarts, {n: d.neustarts}),
+                  viele ? t.bl_neustarts_viele
+                        : (d.neustarts ? t.bl_neustarts_einige
+                                       : t.bl_neustarts_null), "", viele);
+      }
+    }
+  }
+  if(art === "dienst") lagezeile(dienstliste, t.bl_art_dienst, t.bl_art_dienst_h);
+  else if(art === "sitzung")
+    lagezeile(dienstliste, t.bl_art_sitzung, t.bl_art_sitzung_h);
+  else if(art) lagezeile(dienstliste, t.bl_art_unbekannt, "");
+}
+
+function startZeichnen(zeilen){
+  const t = TEXTE[UI];
+  startliste.textContent = "";
+  if(!zeilen || !zeilen.length){
+    lagezeile(startliste, t.sp_leer, "");
+    return;
+  }
+  // Juengste oben: wer nachsieht, will wissen, was zuletzt war.
+  for(const z of [...zeilen].reverse()){
+    const li = document.createElement("li");
+    li.textContent = z;
+    startliste.appendChild(li);
+  }
+}
+
+function fensterZeichnen(f){
+  const t = TEXTE[UI];
+  fensterliste.textContent = "";
+  if(!f) return;
+  if(!f.an){
+    lagezeile(fensterliste, t.fe_aus, t.fe_aus_h);
+    return;
+  }
+  // Zuerst das Urteil: aufgewacht oder nicht, und wenn ja, was wurde.
+  let urteil, schwer = false;
+  if(!f.beginn) urteil = t.fe_noch_keins;
+  else if(f.laeuft) urteil = t.fe_offen;
+  else if(f.wach === "nein"){ urteil = t.fe_nicht_wach; schwer = true; }
+  else if(f.wach === "ja"){
+    const e = f.ergebnis;
+    urteil = e === "gescheitert" ? t.fe_wach_gescheitert
+           : e === "eingespielt" ? t.fe_wach_eingespielt
+           : e === "nichts_zu_tun" ? t.fe_wach_nichts
+           : e === "kein_versuch" ? t.fe_wach_kein_versuch
+           : t.fe_wach_unbekannt;
+    schwer = e === "gescheitert";
+  }else urteil = t.fe_wach_unklar;
+  lagezeile(fensterliste, urteil,
+            f.wach === "nein" ? t.fe_nicht_wach_h
+            : (!f.journal && f.wach !== "ja") ? t.fe_journal_zu : "",
+            "", schwer);
+  lagezeile(fensterliste,
+            fuellen(t.fe_einstellung, {tag: f.tag, von: f.von, bis: f.bis,
+              auto: f.autoupdate ? t.fe_an : t.fe_aus_wort}),
+            f.autoupdate ? "" : t.fe_auto_aus_h);
+  if(f.beginn)
+    lagezeile(fensterliste, fuellen(t.fe_beginn, {b: f.beginn}),
+              f.wach === "ja" ? (t["fe_beleg_"+f.beleg] || "") : "");
+  if(f.beginn && f.wach !== "nein"){
+    lagezeile(fensterliste, t["fe_netz_"+f.internet] || t.fe_netz_unbekannt,
+              f.internet === "nein" ? t.fe_netz_nein_h : "");
+    if(f.ziel) lagezeile(fensterliste, fuellen(t.fe_ziel, {v: f.ziel}), "");
+    const e = f.ergebnis;
+    if(e === "gescheitert")
+      lagezeile(fensterliste, t.fe_erg_gescheitert, t.fe_erg_gescheitert_h,
+                f.grund || t.fe_grund_fehlt, true);
+    else if(e === "eingespielt" || e === "nichts_zu_tun" || e === "kein_versuch")
+      lagezeile(fensterliste, t["fe_erg_"+e], "");
+    else if(f.versucht === "ja")
+      lagezeile(fensterliste, fuellen(t.fe_erg_versucht,
+                  {ende: f.ende_lauf || "?"}), t.fe_erg_versucht_h);
+  }
+}
+
+function weckerZeichnen(w){
+  const t = TEXTE[UI];
+  weckerliste.textContent = "";
+  if(!w) return;
+  let was, heisst = "";
+  if(!w.lesbar) was = t.wk_unbekannt;
+  else if(!w.gestellt){
+    was = t.wk_keiner;
+    heisst = w.geplant ? fuellen(t.wk_keiner_geplant, {g: w.geplant})
+                       : t.wk_keiner_h;
+  }else if(w.vorbei){
+    was = fuellen(t.wk_vorbei, {g: w.gestellt});
+    heisst = t.wk_vorbei_h;
+  }else{
+    was = fuellen(t.wk_gestellt, {g: w.gestellt});
+    heisst = w.geplant && w.geplant !== w.gestellt
+      ? fuellen(t.wk_abweichend, {g: w.geplant}) : t.wk_passt;
+  }
+  lagezeile(weckerliste, was, heisst, "", w.lesbar && !w.gestellt && !!w.geplant);
+  lagezeile(weckerliste, t.wk_grenze, "");
+}
+
+async function betriebLaden(){
+  try{
+    const d = await(await fetch("/api/betriebslage")).json();
+    dienstZeichnen(d.dienst, d.laufart);
+    startZeichnen(d.startprotokoll);
+    fensterZeichnen(d.fenster);
+    weckerZeichnen(d.wecker);
   }catch(e){}
 }
 
@@ -10058,21 +10477,28 @@ def main():
     if tonquelle is not None or testton is not None:
         kanalscan = Kanalscan(lauf, tonquelle, testton, a.rate)
 
+    belegt = False
     try:
         starten_auf(app_bauen(lauf, basis, a.port, tonquelle, kanalscan),
                     a.port)
+    except PortBelegt:
+        belegt = True
     except OSError as e:
         if "10048" in str(e) or "address" in str(e).lower():
-            print(f"\nPort {a.port} ist belegt. Laeuft der Dienst schon?")
-            print("  systemctl status devarenu")
-            print(f"Anderen Port nehmen: server.py --geraet {geraet} "
-                  f"--port {a.port + 1}")
+            belegt = True
         else:
             raise
     finally:
         stoppen.set()
         if tonquelle is not None:
             tonquelle.anhalten()
+    if belegt:
+        # Mit Rueckgabe 1 statt 0: start.sh und systemd sollen sehen,
+        # dass dieser Start nichts geworden ist.
+        print(f"\nPort {a.port} ist belegt. Laeuft der Dienst schon?")
+        print("  systemctl status devarenu")
+        print(f"Anderen Port nehmen: server.py --port {a.port + 1}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

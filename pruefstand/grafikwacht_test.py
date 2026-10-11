@@ -153,11 +153,13 @@ text = "\n".join(grafikwacht.zeilen())
 pruefe("die alte Zeile sagt es dazu", True,
        "4 Sprachen mit Ausgangssprache" in text)
 pruefe("die neue sagt Zielsprachen", True, "3 Zielsprachen" in text)
-# Und der Server zaehlt ohne "+ 1".
+# Und der Server zaehlt ohne "+ 1" -- und seit 0.5.1 ohne die Quelle,
+# auch wenn sie unter den Zielen steht (lauf.sprachen ohne Dubletten).
 server_quelle = (WURZEL / "server.py").read_text(encoding="utf-8")
-pruefe("server.py zaehlt len(lauf.ziele), ohne + 1", True,
-       "lambda: len(lauf.ziele))" in server_quelle
-       and "len(lauf.ziele) + 1" not in server_quelle)
+pruefe("server.py zaehlt die laufenden Zielsprachen, ohne die Quelle", True,
+       "lambda: len(lauf.sprachen) - 1)" in server_quelle
+       and "len(lauf.ziele) + 1" not in server_quelle
+       and "lambda: len(lauf.ziele))" not in server_quelle)
 
 print("\n11. Hinweis ab 90 Prozent Tagesspitze")
 # Ausdruecklich KEIN Entwicklungsrechner -- der Pruefstand laeuft genau

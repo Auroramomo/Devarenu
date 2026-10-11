@@ -4,6 +4,18 @@ Was sich für Gemeinde und Pult geändert hat. Ausführlich:
 `AENDERUNGEN.md`. Hier stehen nur die letzten Fassungen — ältere
 fallen heraus, damit dies ein Blatt bleibt.
 
+**0.5.1 — 11.10.2026**
+
+- **Die Sprachwahl am Pult behält alle Zielsprachen**, auch wenn die
+  Sprache des Predigers hin- und zurückgestellt wird. Bis 0.5.0 konnte
+  dabei eine Zielsprache still wegfallen.
+- **Datenschutz-Fenster:** hinter dem Link zur ausführlichen Fassung
+  fehlte ein Punkt.
+- **Das Schreibtischsymbol beendet den Dienst nicht mehr.** Läuft
+  Devarenu schon mit Ton, startet es nichts. Unter *Einrichtung* steht
+  jetzt, ob der Autostart an ist, wie das letzte Wartungsfenster
+  ausging und wann der Rechner das nächste Mal aufwacht.
+
 **0.5.0 — 07.10.2026**
 
 - **Ukrainisch ist geprüft**, mit neuer Stimme und Bibelstellen nach
@@ -25,16 +37,7 @@ fallen heraus, damit dies ein Blatt bleibt.
 - **Am Pult ein Hinweis, bevor die Grafikkarte voll wird**, mit dem,
   was zu tun ist.
 
-**0.4.5 — 04.10.2026**
-
-- **Eine Bedienleiste statt dreier Reihen:** Ton, Text, Dunkler,
-  Sprache, Mehr. Unter *Mehr* steht das Seltenere — die beiden
-  Rückmeldeknöpfe, *Melden* und *Zurück*. Nichts ist weggefallen.
-- **Georgisch und Arabisch ohne Stimme.** Beide laufen als reiner
-  Untertitel weiter. Grund ist die Lizenz der Stimmen; vorhandene
-  Dateien werden nicht gelöscht.
-
-**0.2.1 bis 0.4.4 — die Anfänge**
+**0.2.1 bis 0.4.5 — die Anfänge**
 
 - Übersetzung in mehrere Sprachen zugleich, Ton und Text auf jedem
   Handy, ohne App, WLAN vom Rechner selbst. Aufnahmen nur nach
@@ -45,3 +48,6 @@ fallen heraus, damit dies ein Blatt bleibt.
   vom Stick nach Prüfsumme, zwei Rückmeldeknöpfe für die Zuhörer.
 - Mit 0.4.3 und 0.4.4: sichtbare Umrisse, die Grafikkarte schreibt
   mit, Bildschirm abdunkeln; der Tonstrom ist erprobt und verworfen.
+- Mit 0.4.5: eine Bedienleiste statt dreier Reihen (Ton, Text,
+  Dunkler, Sprache, Mehr); Georgisch läuft aus Lizenzgründen ohne
+  Stimme.
