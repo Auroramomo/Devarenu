@@ -17,6 +17,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync,
 import { join } from "node:path";
 import { execFile, execFileSync } from "node:child_process";
 import { createServer } from "node:http";
+import { ohneKarte } from "./firefox_ohne_karte.mjs";
 
 const AUSGABE = new URL("../.tmp/hoererbilder", import.meta.url).pathname;
 const ZWISCHEN = new URL("../.tmp/hoererbilder/bau", import.meta.url).pathname;
@@ -155,7 +156,7 @@ function schiessen(firefox, profil, adresse, b, h, bild) {
     execFile(firefox, ["--headless", "--profile", profil,
                        "--window-size", `${b},${h}`,
                        "--screenshot", bild, adresse],
-             { timeout: 120000 },
+             { timeout: 120000, env: ohneKarte(profil) },
              (fehler) => fehler ? scheitern(fehler) : fertig());
   });
 }

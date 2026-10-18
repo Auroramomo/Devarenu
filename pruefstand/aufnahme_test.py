@@ -34,7 +34,8 @@ sys.path.insert(0, str(WURZEL))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import aufnahme      # noqa: E402
-from hilfe import BEIWERK, eigene_adresse  # noqa: E402
+from hilfe import (BEIWERK, BEIWERK_ORDNER, eigene_adresse,  # noqa: E402
+                   mithoeren, ollama_umlenken)
 import pultschutz    # noqa: E402
 
 GRUEN, ROT, AUS = "\033[32m", "\033[31m", "\033[0m"
@@ -258,10 +259,10 @@ def starten_mit(zustand_zusatz=None):
     z.update(zustand_zusatz or {})
     (ARBEIT / "zustand.json").write_text(json.dumps(z), encoding="utf-8")
     os.chmod(ARBEIT / "zustand.json", 0o600)
-    p = subprocess.Popen(
+    p = mithoeren(subprocess.Popen(
         [str(ARBEIT / ".venv/bin/python"), "server.py",
          "--port", str(PORT), "--nur-text"],
-        cwd=ARBEIT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        cwd=ARBEIT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
     for _ in range(90):
         if holen("/api/sprachen")[0] == 200:
             return p
@@ -284,15 +285,18 @@ try:
     for name in BEIWERK:
         if (WURZEL / name).exists():
             shutil.copy2(WURZEL / name, ARBEIT / name)
+    for name in BEIWERK_ORDNER:
+        shutil.copytree(WURZEL / name, ARBEIT / name)
     for v in (".venv", "voices", "models"):
         if (WURZEL / v).exists():
             (ARBEIT / v).symlink_to(WURZEL / v)
+    ollama_umlenken(ARBEIT)
 
     lauf = starten_mit()
     if holen("/api/sprachen")[0] != 200:
         print(f"   {ROT}FEHL{AUS}  der Server kam nicht hoch")
         FEHLER += 1
-        raise SystemExit
+        raise SystemExit(1)
 
     print("\n   -- Einwilligung --")
     st, _ = holen("/api/mitschnitt", {})

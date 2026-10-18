@@ -7,6 +7,7 @@ einen einen Fall ergaenzt, laesst ihn in der anderen stehen. Das faellt
 erst auf, wenn ein Prueflauf gruen ist, der es nicht sein duerfte.
 """
 
+import atexit
 import json
 import os
 import shutil
@@ -39,7 +40,120 @@ def _glossarname():
 
 BEIWERK = ("client.html", "VERSION", "logo.png", "betreuer.txt",
            _glossarname(), "namen_block_b.csv")
+# Ordner, die als KOPIE mitkommen und nicht als Verknuepfung: ein
+# Pruefstand darf darin loeschen, ohne die Arbeitskopie zu treffen.
+BEIWERK_ORDNER = ("web",)
 VERKNUEPFT = (".venv", "voices", "models")
+
+
+# ---------------------------------------------- Was der Server ausgibt
+# Bis 0.5.1 ging die Ausgabe jedes gestarteten Servers nach /dev/null.
+# Dort stand in 765b1d7 "Systemcheck fehlgeschlagen (too many values to
+# unpack ...)", und kein Pruefstand schlug an. Jetzt liest ein Faden
+# mit, und am Ende des Laufs gilt: steht eine dieser Zeilen da, ist der
+# Pruefstand rot -- gleich, was er selbst gezaehlt hat.
+ALARM = ("Systemcheck fehlgeschlagen", "Traceback")
+_mitgehoert = []
+# Ungepuffert, damit auch ein Server, der hart beendet wird, seine
+# letzten Zeilen noch abgibt. Gilt fuer jeden Python-Kindprozess dieses
+# Pruefstands, auch fuer die, die er selbst startet.
+os.environ["PYTHONUNBUFFERED"] = "1"
+# Die Grafikkarte bleibt frei: kein Pruefstand und kein Server, den er
+# startet, sieht sie. Whisper faellt dann von selbst auf die CPU zurueck
+# (Werk._whisper_laden); fuer einen Pruefstand reicht das.
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
+
+def firefox_ohne_karte(profil):
+    """Wie firefox_ohne_karte.mjs: user.js ins Profil, Mesa als GL.
+
+    Firefox kennt --disable-gpu nicht (mit dem Schalter endete
+    --screenshot still ohne Bild). Zurueck: die Umgebung fuer den Aufruf."""
+    shutil.copy2(WURZEL / "pruefstand" / "firefox_ohne_karte.user.js",
+                 Path(profil) / "user.js")
+    return dict(os.environ, CUDA_VISIBLE_DEVICES="", LIBGL_ALWAYS_SOFTWARE="1",
+                __GLX_VENDOR_LIBRARY_NAME="mesa",
+                __EGL_VENDOR_LIBRARY_FILENAMES=(
+                    "/usr/share/glvnd/egl_vendor.d/50_mesa.json"))
+
+
+# ----------------------------------------------------- Ollama-Attrappe
+# Ohne laufendes Ollama wartet der Server beim Start 90 Sekunden darauf,
+# und genau so lange warten die Pruefstaende auf ihn. Die Attrappe
+# (attrappen/ollama_attrappe.py) antwortet sofort; die Wegwerfkopie
+# wird auf sie gelenkt. Das Repo und der Server bleiben, wie sie sind.
+OLLAMA_ZEILE = 'OLLAMA_URL = "http://localhost:11434"'
+_ollama_adresse = None
+
+
+def ollama_attrappe():
+    """Startet die Attrappe einmal je Pruefstand. Zurueck: ihre Adresse."""
+    global _ollama_adresse
+    if _ollama_adresse is None:
+        import sys
+        sys.path.insert(0, str(WURZEL / "pruefstand" / "attrappen"))
+        import ollama_attrappe as attrappe
+        _ollama_adresse = attrappe.starten()
+    return _ollama_adresse
+
+
+def ollama_umlenken(ordner):
+    """Lenkt config.py einer Wegwerfkopie auf die Attrappe. Nie das Repo."""
+    ordner = Path(ordner).resolve()
+    if ordner == WURZEL:
+        raise RuntimeError("ollama_umlenken: das ist das Repo, keine Kopie")
+    datei = ordner / "config.py"
+    text = datei.read_text(encoding="utf-8")
+    if text.count(OLLAMA_ZEILE) != 1:
+        raise RuntimeError(f"{datei}: die Zeile {OLLAMA_ZEILE!r} fehlt")
+    datei.write_text(text.replace(
+        OLLAMA_ZEILE, f'OLLAMA_URL = "{ollama_attrappe()}"'), encoding="utf-8")
+
+
+def mithoeren(p, name="Server"):
+    """Liest stdout eines Popen mit (stdout=PIPE, stderr=STDOUT).
+
+    Gibt p zurueck, damit es um ein Popen(...) herumpasst."""
+    import threading
+    zeilen = []
+    _mitgehoert.append((name, zeilen))
+
+    def lesen():
+        for roh in p.stdout:
+            zeilen.append(roh.decode("utf-8", "replace").rstrip("\n")
+                          if isinstance(roh, bytes) else roh.rstrip("\n"))
+
+    threading.Thread(target=lesen, daemon=True).start()
+    return p
+
+
+def alarmzeilen():
+    """[(name, zeile), ...] fuer jede Zeile, die nach ALARM aussieht."""
+    return [(name, z) for name, zeilen in _mitgehoert for z in list(zeilen)
+            if any(a in z for a in ALARM)]
+
+
+def _urteil_am_ende():
+    funde = alarmzeilen()
+    if not funde:
+        return
+    import sys
+    print(f"\n   \033[31mFEHL\033[0m  der Server meldete "
+          f"{' oder '.join(ALARM)}:")
+    for name, zeilen in _mitgehoert:
+        if any(any(a in z for a in ALARM) for z in zeilen):
+            print(f"\n   Ausgabe ({name}):")
+            for z in zeilen[-80:]:
+                print(f"     {z}")
+    sys.stdout.flush()
+    # os._exit und nicht sys.exit: aus einem atexit-Haken heraus aendert
+    # sys.exit den Rueckgabewert nicht mehr. Dieser Haken wird beim
+    # Import eingetragen und laeuft darum ALS LETZTER -- die
+    # Wegwerfordner sind dann schon fort.
+    os._exit(1)
+
+
+atexit.register(_urteil_am_ende)
 
 
 def wegwerfordner(praefix):
@@ -93,6 +207,9 @@ def arbeitskopie(ziel, zustand=None):
     for name in BEIWERK:
         if (WURZEL / name).exists():
             shutil.copy2(WURZEL / name, ziel / name)
+    for name in BEIWERK_ORDNER:
+        if (WURZEL / name).is_dir() and not (ziel / name).exists():
+            shutil.copytree(WURZEL / name, ziel / name)
     for v in VERKNUEPFT:
         if (WURZEL / v).exists() and not (ziel / v).exists():
             (ziel / v).symlink_to(WURZEL / v)
@@ -100,16 +217,17 @@ def arbeitskopie(ziel, zustand=None):
     z.update(zustand or {})
     (ziel / "zustand.json").write_text(json.dumps(z), encoding="utf-8")
     os.chmod(ziel / "zustand.json", 0o600)
+    ollama_umlenken(ziel)
     return ziel
 
 
 def server_starten(ordner, port, warten=90):
     """Startet einen Server auf der Kopie und wartet, bis er antwortet."""
-    p = subprocess.Popen(
+    p = mithoeren(subprocess.Popen(
         [str(Path(ordner) / ".venv/bin/python"), "server.py",
          "--port", str(port), "--nur-text"],
-        cwd=str(ordner), stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL)
+        cwd=str(ordner), stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT), f"Server :{port}")
     for _ in range(warten):
         if rufen(port, "/api/sprachen")[0] == 200:
             break

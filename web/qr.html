@@ -1,0 +1,220 @@
+<!doctype html><html lang=de><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Übersetzung</title>
+<style>
+ /* Fuer den Beamer gebaut, 16:9. Links die zwei Schritte mit den
+    Codes, rechts die drei Saetze, die sonst als Rueckfrage kommen.
+    Aus zwoelf Metern liest niemand einen Nebensatz -- deshalb wenig
+    Text, grosse Codes, klare Farben. */
+ *{box-sizing:border-box;margin:0}
+ :root{
+   --tinte:#141f52; --grau:#6b7385; --linie:#d9dce4;
+   --gelb-rand:#c8912b; --gelb-grund:#fff7e6; --gelb-text:#5a3f0a;
+   --blau-rand:#1c6fa8; --blau-grund:#eaf4fb; --blau-text:#0d3f63;
+   --lila-rand:#6b4a9e; --lila-grund:#f3eefb; --lila-text:#3b1e73;
+ }
+ body{font:16px/1.4 Georgia,serif;color:var(--tinte);background:#fff;
+   height:100vh;display:flex;flex-direction:column;padding:2.2vh 2.4vw}
+ header{display:flex;align-items:center;gap:1.2vw;flex:0 0 auto}
+ .logo{height:5.2vh;width:auto;opacity:.9}
+ h1{font-size:clamp(1.3rem,3.6vh,3rem);font-weight:400;
+   letter-spacing:.1em;text-transform:uppercase}
+ .streifen{height:.5vh;flex:1;margin-left:.6vw;
+   background:linear-gradient(90deg,#3b1e73,#1c3a8f 52%,#1fa5d8)}
+
+ main{display:grid;grid-template-columns:1fr 1fr;gap:2.4vw;
+   flex:1;min-height:0;padding-top:1.6vh}
+
+ /* ---------------------------------------------------- links */
+ .links{display:grid;grid-template-rows:1fr 1fr;gap:1.6vh;min-height:0}
+ .schritt{display:grid;grid-template-columns:auto 1fr;
+   grid-template-rows:auto 1fr;column-gap:1.2vw;row-gap:.6vh;min-height:0}
+ .nr{grid-row:1 / span 2;display:grid;place-items:center;
+   width:6.4vh;height:6.4vh;border-radius:50%;
+   background:var(--tinte);color:#fff;
+   font:3.2vh/1 system-ui,sans-serif}
+ .kopf{display:flex;align-items:center;gap:.7vw;min-width:0}
+ .kopf svg{width:4.2vh;height:4.2vh;flex:0 0 auto;stroke:var(--tinte)}
+ /* Alle Groessen in vh und mit hohen Obergrenzen: die Seite haengt
+    am Beamer, nicht auf einem Bildschirm. Bei 1080p ist 1vh rund
+    11 Pixel -- eine Obergrenze von 1,4rem haette den Text auf 22
+    Pixel gedeckelt, und aus zwoelf Metern liest das niemand. */
+ .was{font-size:clamp(1.1rem,3.2vh,2.6rem);min-width:0}
+ .codefeld{display:flex;align-items:center;gap:1.2vw;min-height:0}
+ .codefeld img{height:100%;max-height:30vh;width:auto;
+   image-rendering:pixelated}
+ /* Netzname, Passwort und Adresse werden von hinten abgetippt.
+    Sie sind die groesste Schrift der Seite nach den Ueberschriften. */
+ .zugang{font:2.9vh/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
+   word-break:break-word;min-width:0;letter-spacing:.02em}
+ .zugang b{display:block;font:1.9vh/1.4 system-ui,sans-serif;
+   color:var(--grau);font-weight:600;letter-spacing:.04em;
+   text-transform:uppercase}
+ .zugang span{display:block;margin-bottom:.8vh}
+
+ /* ---------------------------------------------------- rechts */
+ .rechts{display:flex;flex-direction:column;gap:1.2vh;min-height:0}
+ .sprachkopf{display:flex;align-items:center;justify-content:space-between;
+   gap:1vw;flex:0 0 auto;border-bottom:1px solid var(--linie);
+   padding-bottom:.6vh}
+ .sprachname{font-size:clamp(1.05rem,3.1vh,2.4rem);color:var(--tinte)}
+ .punkte{display:flex;gap:.5vw}
+ .punkt{width:1.1vh;height:1.1vh;border-radius:50%;
+   background:var(--linie)}
+ .punkt.an{background:var(--tinte)}
+
+ .kasten{display:grid;grid-template-columns:auto 1fr;gap:1.1vw;
+   align-items:center;border:.25vh solid;border-radius:.7vh;
+   padding:1.2vh 1.2vw;flex:1;min-height:0}
+ /* Das Symbolfeld bleibt LINKS, in jeder Sprache. Wer vorn sagt
+    "der gelbe Kasten oben", muss auch auf Farsi recht haben --
+    also dreht sich nur der Text, nie die Anordnung. */
+ .zeichen{display:flex;align-items:center;gap:.5vw;flex:0 0 auto}
+ .zeichen svg{width:5.6vh;height:5.6vh}
+ .zeichen .wort{font:2.4vh/1 system-ui,sans-serif;font-weight:700}
+ .satz{font:clamp(1.05rem,3vh,2.3rem)/1.32 system-ui,sans-serif;
+   min-width:0}
+ .gelb{border-color:var(--gelb-rand);background:var(--gelb-grund);
+   color:var(--gelb-text)}
+ .gelb svg{stroke:var(--gelb-rand)} .gelb .wort{color:var(--gelb-rand)}
+ .blau{border-color:var(--blau-rand);background:var(--blau-grund);
+   color:var(--blau-text)}
+ .blau svg{stroke:var(--blau-rand)} .blau .wort{color:var(--blau-rand)}
+ .dszeile{margin:.6rem 0 0;font-size:.85rem;opacity:.75;text-align:center}
+ .lila{border-color:var(--lila-rand);background:var(--lila-grund);
+   color:var(--lila-text)}
+ .lila svg{stroke:var(--lila-rand)} .lila .wort{color:var(--lila-rand)}
+
+ svg{fill:none;stroke-width:1.9;stroke-linecap:round;
+   stroke-linejoin:round}
+ .voll{fill:currentColor;stroke:none}
+ .weg{stroke:#c0392b;stroke-width:2.4}
+
+ .holen{font:1.7vh system-ui,sans-serif;text-align:center;
+   flex:0 0 auto;padding-top:1vh}
+ .holen a{color:#1c3a8f;margin:0 .7em}
+
+ /* Gedruckt: eine Seite JE SPRACHE, zum Auslegen am Eingang. Der
+    Beamer zeigt immer genau eine und wechselt; Papier kann nicht
+    wechseln. Die Seiten entstehen im Server, nicht im Skript --
+    gedruckt wird oft aus einer Vorschau, und ob dort ein Zeitgeber
+    lief, soll keine Rolle spielen. */
+ .drucksatz{display:none}
+ @media print{
+   body{height:auto;display:block;padding:1.2cm;font-size:11pt}
+   main,.holen,.streifen{display:none}
+   .drucksatz{display:block}
+   .druckseite{break-after:page}
+   .druckseite:last-child{break-after:auto}
+   .druckseite h2{font:1.2rem Georgia,serif;font-weight:400;
+     margin:0 0 .5cm;padding-bottom:.2cm;
+     border-bottom:1px solid var(--linie)}
+   .druckcodes{display:flex;gap:1cm;margin-bottom:.6cm}
+   .druckcodes img{width:6.5cm;height:auto}
+   .druckcodes p{font:10pt/1.4 ui-monospace,monospace;word-break:break-all}
+   .druckcodes b{display:block;font:9pt system-ui,sans-serif;
+     color:var(--grau);text-transform:uppercase;letter-spacing:.04em}
+   .drucksatz .kasten{break-inside:avoid;margin-bottom:.35cm;
+     padding:.35cm;display:grid;grid-template-columns:auto 1fr;gap:.5cm}
+   .drucksatz .zeichen svg{width:1.1cm;height:1.1cm}
+   .drucksatz .satz{font-size:11pt}
+ }
+ /* "Devarenu . <Gemeinde>". Klein und unter dem Titel: wer im Saal
+    sitzt, weiss, wo er ist -- die Zeile ist fuer den, der ein Foto
+    der Wand sieht oder die Seite ausdruckt. Ohne Namen faellt sie
+    ganz weg. */
+ .marke{font:1rem system-ui,sans-serif;color:var(--grau);
+   margin:.1rem 0 0}
+ /* Ein ungueltiges Spendenkonto ist kein Grund, dem Zuhoerer etwas
+    wegzunehmen -- aber es muss dastehen, bevor jemand ueberweist. */
+ .kontowarnung{margin:.4rem 1.2rem;padding:.5rem .8rem;
+   border:2px solid #9c2d22;border-radius:.4rem;background:#fdeceb;
+   color:#9c2d22;font:1rem/1.35 system-ui,sans-serif}
+ @media print{ .kontowarnung{border-width:1pt} }
+</style>
+<header>
+  <img class=logo src="<!--LOGO-->" alt="" onerror="this.remove()">
+  <h1>Übersetzung</h1>
+  <p class=marke><!--MARKE--></p>
+  <div class=streifen></div>
+</header>
+<!--KONTOHINWEIS-->
+
+<main>
+ <section class=links>
+<!--WLANSCHRITT-->
+  <div class=schritt>
+    <span class=nr><!--NRSEITE--></span>
+    <div class=kopf><!--ZEICHENSEITE--><p class=was id=titel2></p></div>
+    <div class=codefeld>
+      <img src="<!--SEITENQR-->" alt="">
+      <p class=zugang><b>Adresse</b><span><!--ADRESSE--></span></p>
+    </div>
+  </div>
+ </section>
+
+ <section class=rechts>
+  <div class=sprachkopf>
+    <span class=sprachname id=sprachname></span>
+    <span class=punkte id=punkte></span>
+  </div>
+
+<!--KAESTEN-->
+<p class=dszeile id=datenschutz></p>
+ </section>
+</main>
+
+<p class=holen><!--HOLEN--></p>
+
+<div class=drucksatz><!--DRUCKSATZ--></div>
+
+<script>
+// Die Sprachen, die am Pult eingeschaltet sind, dazu immer Englisch.
+// Wer uebersetzt mithoert, liest kein Deutsch -- und Englisch ist die
+// Sprache, in der am ehesten jemand mitkommt, dessen eigene fehlt.
+const SPRACHEN = <!--SPRACHDATEN-->;
+const FELDER = ["titel1","titel2","geduld","internet","hoeren","datenschutz"];
+let wo = 0;
+
+function punkteBauen(){
+  const p = document.getElementById("punkte");
+  p.innerHTML = "";
+  for(let i = 0; i < SPRACHEN.length; i++){
+    const d = document.createElement("span");
+    d.className = "punkt" + (i === wo ? " an" : "");
+    p.appendChild(d);
+  }
+}
+
+function zeigen(i){
+  const s = SPRACHEN[i];
+  if(!s) return;
+  document.getElementById("sprachname").textContent = s.name;
+  // NUR der Text dreht sich. Kaesten, Symbole und Farben bleiben, wo
+  // sie sind -- sonst stimmt kein Hinweis mehr, den jemand vorn gibt.
+  for(const feld of FELDER){
+    const el = document.getElementById(feld);
+    if(!el) continue;
+    el.textContent = s[feld] || "";
+    el.lang = s.code;
+    el.dir = s.rtl ? "rtl" : "ltr";
+  }
+  const n = document.getElementById("sprachname");
+  n.lang = s.code; n.dir = s.rtl ? "rtl" : "ltr";
+  punkteBauen();
+}
+
+// Mit einem Anker startet der Durchlauf bei dieser Sprache:
+// /qr#fa zeigt sofort Farsi. Zum Nachsehen vor dem Gottesdienst --
+// und damit sich jede Sprache pruefen laesst, ohne zu warten.
+const gewuenscht = decodeURIComponent((location.hash || "").slice(1));
+const start = SPRACHEN.findIndex(s => s.code === gewuenscht);
+wo = start < 0 ? 0 : start;
+zeigen(wo);
+if(SPRACHEN.length > 1){
+  // Acht Sekunden: lang genug, um drei kurze Saetze zu lesen, kurz
+  // genug, dass niemand denkt, die Seite haenge.
+  setInterval(() => { wo = (wo + 1) % SPRACHEN.length; zeigen(wo); }, 8000);
+}
+</script>
+</html>

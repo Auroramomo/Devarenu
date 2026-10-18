@@ -6,6 +6,12 @@ Keine `Co-Authored-By`-Zeile und keine sonstige Zuschreibung an Claude,
 weder in Commit-Nachrichten noch in PR-Beschreibungen. Claude ist hier
 ein Werkzeug, kein Autor.
 
+## Namen
+
+Neue Funktionen und Variablen heißen nach dem, was sie tun oder
+enthalten, nicht nach einer Eigenschaft: `enthaelt_predigttext` statt
+`verdaechtig`. Bestehender Code wird dafür nicht umbenannt.
+
 ## Dateien ändern
 
 Dateien **nur** mit dem Edit- oder Write-Werkzeug ändern. Nie per

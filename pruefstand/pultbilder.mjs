@@ -26,6 +26,7 @@ import { join } from "node:path";
 import { execFile, execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import { pultLesen } from "./pultnachbau.mjs";
+import { ohneKarte } from "./firefox_ohne_karte.mjs";
 
 // Alles Fluechtige bleibt im Arbeitsordner. .tmp steht in .gitignore
 // und ist genau dafuer da; /tmp liegt ausserhalb und ist bei jedem
@@ -51,8 +52,7 @@ const OHNE_SCROLLEN_AB = 375 * 667;
 
 function seiteBauen(server, zustand, pegel, lupe) {
   const { koerper, skript } = pultLesen(server);
-  const quelle = readFileSync(server, "utf8");
-  const pult = quelle.split('PULT = """')[1].split('"""')[0];
+  const pult = readFileSync(server, "utf8");
   const kopf = pult.slice(0, pult.indexOf("<div class=app>"));
   // Die Abrufe gegen Attrappen tauschen, bevor das Skript laeuft.
   const vorab = (zustand._ansicht === "stoerung")
@@ -118,8 +118,8 @@ function messen(firefox, profil, adresse, b, h, bild) {
     execFile(firefox, ["--headless", "--profile", profil,
                        "--window-size", `${b},${h}`,
                        "--screenshot", bild, adresse],
-             { timeout: 120000 }, (fehler) => fehler ? scheitern(fehler)
-                                                     : fertig());
+             { timeout: 120000, env: ohneKarte(profil) },
+             (fehler) => fehler ? scheitern(fehler) : fertig());
   });
 }
 
@@ -139,7 +139,7 @@ export async function bilderMachen(zustaende, { ZUSTAND_LEER, PEGEL_LEER }) {
   mkdirSync(ZWISCHEN, { recursive: true });
   const profil = mkdtempSync(join(ZWISCHEN, "ff-"));
   const arbeit = mkdtempSync(join(ZWISCHEN, "seiten-"));
-  const server = new URL("../server.py", import.meta.url).pathname;
+  const server = new URL("../web/pult.html", import.meta.url).pathname;
   // Dieselbe Datei, die /logo.png im Betrieb ausliefert. Fehlt sie,
   // faellt das Logo still weg -- auch hier, und das ist richtig so.
   const logo = new URL("../logo.png", import.meta.url).pathname;

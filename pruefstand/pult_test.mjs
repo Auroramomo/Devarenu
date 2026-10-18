@@ -19,6 +19,7 @@ import { readFileSync } from "node:fs";
 import { pultBauen, pultLesen } from "./pultnachbau.mjs";
 
 const SERVER = new URL("../server.py", import.meta.url).pathname;
+const PULT_DATEI = new URL("../web/pult.html", import.meta.url).pathname;
 let fehler = 0;
 
 function pruefe(was, bedingung, einzelheit = "") {
@@ -624,8 +625,8 @@ block("8b. Branding");
   pruefe("es steht als erstes im Kopf, vor dem Namen",
          !!logo && logo.eltern.kinder.indexOf(logo) === 0);
   {
-    const quelle = readFileSync(SERVER, "utf8");
-    const stil = quelle.split('PULT = """')[1].split("<style>")[1]
+    const quelle = readFileSync(PULT_DATEI, "utf8");
+    const stil = quelle.split("<style>")[1]
                        .split("</style>")[0].replace(/\s+/g, "");
     pruefe("keine Regel blendet es aus",
            !/\.logo\{[^}]*display:none/.test(stil)
@@ -647,8 +648,8 @@ block("8b. Branding");
   const q = await pult({ live: true });
   pruefe("angehalten wird dunkelblau, ohne .start",
          !q.g("bStart").classList.contains("start"), q.g("bStart").className);
-  const quelle = readFileSync(SERVER, "utf8");
-  const stil = quelle.split('PULT = """')[1].split("<style>")[1].split("</style>")[0];
+  const quelle = readFileSync(PULT_DATEI, "utf8");
+  const stil = quelle.split("<style>")[1].split("</style>")[0];
   pruefe(".start traegt den Verlauf von 0.4.0",
          /\.btn\.primaer\.start\{background:linear-gradient\(100deg,#3b1e73,#1c3a8f 52%,/
            .test(stil.replace(/\s+/g, " ").replace(/ \{/g, "{")),
@@ -660,8 +661,8 @@ block("8b. Branding");
 
 block("8c. Aufnahmeknopf in Ruhe");
 {
-  const quelle = readFileSync(SERVER, "utf8");
-  const stil = quelle.split('PULT = """')[1].split("<style>")[1]
+  const quelle = readFileSync(PULT_DATEI, "utf8");
+  const stil = quelle.split("<style>")[1]
                      .split("</style>")[0].replace(/\s+/g, "");
   pruefe("kein roter Rahmen und keine rote Schrift in Ruhe",
          !/\.rec\{[^}]*(border-color:var\(--rot\)|color:var\(--rot\))/.test(stil),
@@ -675,8 +676,8 @@ block("8c. Aufnahmeknopf in Ruhe");
 
 block("8d. Kopf und Reiter bei enger Schrift");
 {
-  const quelle = readFileSync(SERVER, "utf8");
-  const stil = quelle.split('PULT = """')[1].split("<style>")[1]
+  const quelle = readFileSync(PULT_DATEI, "utf8");
+  const stil = quelle.split("<style>")[1]
                      .split("</style>")[0].replace(/\s+/g, "");
   pruefe("der Kopf darf umbrechen",
          /\.top\{[^}]*flex-wrap:wrap/.test(stil));
@@ -693,8 +694,8 @@ block("8d. Kopf und Reiter bei enger Schrift");
 
 block("8e. Abstand unter der Knopfzeile");
 {
-  const quelle = readFileSync(SERVER, "utf8");
-  const stil = quelle.split('PULT = """')[1].split("<style>")[1]
+  const quelle = readFileSync(PULT_DATEI, "utf8");
+  const stil = quelle.split("<style>")[1]
                      .split("</style>")[0].replace(/\s+/g, "");
   pruefe("die Knopfzeile hat Abstand nach unten",
          /\.haupt\{[^}]*margin:00 ?1rem/.test(stil)
@@ -742,7 +743,7 @@ block("10. Pult-Passwort");
 
 block("11. Alle Texte stehen in beiden Oberflaechensprachen");
 {
-  const { koerper, skript } = pultLesen(SERVER);
+  const { koerper, skript } = pultLesen(PULT_DATEI);
   const schluessel = new Set([...koerper.matchAll(/data-t=([\w-]+)/g)].map(m => m[1]));
   for (const m of skript.matchAll(/\bt\.([a-z][\w]*)/g)) schluessel.add(m[1]);
   for (const m of skript.matchAll(/TEXTE\[UI\]\.([a-z][\w]*)/g)) schluessel.add(m[1]);
@@ -759,8 +760,8 @@ block("11. Alle Texte stehen in beiden Oberflaechensprachen");
 
 block("12. Gestaltung: was die Farbregel verlangt");
 {
-  const quelle = readFileSync(SERVER, "utf8");
-  const stil = quelle.split('PULT = """')[1].split("<style>")[1].split("</style>")[0];
+  const quelle = readFileSync(PULT_DATEI, "utf8");
+  const stil = quelle.split("<style>")[1].split("</style>")[0];
   // Dunkelblau als FLAECHE nur an der Hauptaktion und am aktiven Reiter.
   const flaechen = [...stil.matchAll(/([^{}]+)\{([^}]*background:\s*var\(--navy\)[^}]*)\}/g)]
     .map(m => m[1].trim());
@@ -771,7 +772,7 @@ block("12. Gestaltung: was die Farbregel verlangt");
   pruefe("die Fusszone des Geraets ist eingerechnet",
          /padding-bottom:\s*env\(safe-area-inset-bottom\)/.test(stil));
   pruefe("viewport-fit=cover steht im Kopf",
-         /viewport-fit=cover/.test(quelle.split('PULT = """')[1].slice(0, 400)));
+         /viewport-fit=cover/.test(quelle.slice(0, 400)));
   pruefe("die Leiste weicht dem Tippen",
          /body\.tippt\s+\.reiter\{display:none\}/.test(stil));
   // Fingergroesse
@@ -804,8 +805,8 @@ block("12b. Konturen: Kanten von Bedienelementen");
   // Bis 0.4.2 stand ueberall --linie, auch an Knoepfen und Feldern:
   // 1,26:1 auf Weiss, also praktisch unsichtbar. Ein weisser Knopf
   // auf weissem Grund ist nur an seiner Kante als Knopf zu erkennen.
-  const quelle = readFileSync(SERVER, "utf8");
-  const stil = quelle.split('PULT = """')[1].split("<style>")[1]
+  const quelle = readFileSync(PULT_DATEI, "utf8");
+  const stil = quelle.split("<style>")[1]
                      .split("</style>")[0];
   const v = {};
   for (const m of stil.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})/g))
@@ -840,8 +841,8 @@ block("12b. Konturen: Kanten von Bedienelementen");
 
 block("13. Kontrast der Schriftfarben");
 {
-  const quelle = readFileSync(SERVER, "utf8");
-  const stil = quelle.split('PULT = """')[1].split("<style>")[1].split("</style>")[0];
+  const quelle = readFileSync(PULT_DATEI, "utf8");
+  const stil = quelle.split("<style>")[1].split("</style>")[0];
   const v = {};
   for (const m of stil.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})/g)) v[m[1]] = m[2];
   const L = (hex) => {
@@ -875,9 +876,9 @@ block("13. Kontrast der Schriftfarben");
 
 block("14. Der Erklaertext ist nicht geloescht, nur eingeklappt");
 {
-  const { koerper } = pultLesen(SERVER);
-  const quelle = readFileSync(SERVER, "utf8");
-  const skript = quelle.split('PULT = """')[1];
+  const { koerper } = pultLesen(PULT_DATEI);
+  const quelle = readFileSync(PULT_DATEI, "utf8");
+  const skript = quelle;
   // Stichproben aus den Erklaertexten von 0.4.0. Sie muessen weiter da
   // sein -- irgendwo, und sei es hinter einem Fragezeichen.
   const proben = [
@@ -907,7 +908,7 @@ block("14. Der Erklaertext ist nicht geloescht, nur eingeklappt");
 
 block("15. Keine fest eingebauten deutschen Woerter im Skript");
 {
-  const { skript } = pultLesen(SERVER);
+  const { skript } = pultLesen(PULT_DATEI);
   const nachTexte = skript.slice(skript.indexOf("let UI="))
     // Kommentare zuerst weg: dort stehen Zitate alter Meldungen, und
     // die sind Begruendung, nicht Oberflaeche.

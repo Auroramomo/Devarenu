@@ -94,7 +94,7 @@ finally:
     server_stoppen(p)
 
 titel("6) Pult und Texte")
-quelle = (WURZEL / "server.py").read_text(encoding="utf-8")
+quelle = (WURZEL / "web" / "pult.html").read_text(encoding="utf-8")
 funktion = quelle.split("async function protokollSetzen(){")[1] \
                  .split("\n}\n")[0]
 pruefe("das Pult fragt vor dem Einschalten", True,

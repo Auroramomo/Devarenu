@@ -106,6 +106,7 @@ try:
     text = ausgabe.read_text(encoding="utf-8", errors="replace")
     pruefe("kein \"Systemcheck fehlgeschlagen\"", False,
            "Systemcheck fehlgeschlagen" in text)
+    pruefe("kein Traceback", False, "Traceback" in text)
     pruefe("keine Dienstabfrage gescheitert", False,
            "Systemcheck: Dienstabfrage" in text)
     code, roh = rufen(PORT, "/api/zustand")

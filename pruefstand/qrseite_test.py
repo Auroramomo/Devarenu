@@ -29,7 +29,8 @@ sys.path.insert(0, str(WURZEL))
 
 import qr_texte  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from hilfe import BEIWERK  # noqa: E402
+from hilfe import (BEIWERK, BEIWERK_ORDNER, mithoeren,  # noqa: E402
+                   ollama_umlenken)
 
 GRUEN, ROT, AUS = "\033[32m", "\033[31m", "\033[0m"
 FEHLER = 0
@@ -118,9 +119,12 @@ try:
         q = WURZEL / name
         if q.exists():
             shutil.copy2(q, ARBEIT / name)
+    for name in BEIWERK_ORDNER:
+        shutil.copytree(WURZEL / name, ARBEIT / name)
     for v in (".venv", "voices", "models"):
         if (WURZEL / v).exists():
             (ARBEIT / v).symlink_to(WURZEL / v)
+    ollama_umlenken(ARBEIT)
 
     # Erfundene Zugangsdaten. Die echten stehen in der Arbeitskopie und
     # werden hier nicht angefasst.
@@ -130,10 +134,10 @@ try:
     }), encoding="utf-8")
     os.chmod(ARBEIT / "zustand.json", 0o600)
 
-    lauf = subprocess.Popen(
+    lauf = mithoeren(subprocess.Popen(
         [str(ARBEIT / ".venv/bin/python"), "server.py",
          "--port", str(PORT), "--nur-text"],
-        cwd=ARBEIT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        cwd=ARBEIT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
     for _ in range(90):
         try:
             hole("/api/sprachen")
@@ -143,7 +147,7 @@ try:
     else:
         print(f"   {ROT}FEHL{AUS}  der Server kam nicht hoch")
         FEHLER += 1
-        raise SystemExit
+        raise SystemExit(1)
 
     seite = hole("/qr")
     codes = [s["code"] for s in sprachliste(seite)]

@@ -114,7 +114,7 @@ for sp, wort in (("de", "Solange eines davon läuft, steht es auf jedem Handy"),
            "nicht angezeigt" in seite or "do not show it" in seite)
 
 titel("3) Das Pult")
-quelle = (WURZEL / "server.py").read_text(encoding="utf-8")
+quelle = (WURZEL / "web" / "pult.html").read_text(encoding="utf-8")
 gd = quelle.split("<section id=gottesdienst")[1].split("</section>")[0]
 pruefe("die Zeile steht unter Gottesdienst", True,
        "id=mitschriftlaeuft hidden" in gd)

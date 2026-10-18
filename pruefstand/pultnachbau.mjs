@@ -124,8 +124,7 @@ export function baumBauen(html) {
 }
 
 export function pultLesen(pfad) {
-  const quelle = readFileSync(pfad, "utf8");
-  const pult = quelle.split('PULT = """')[1].split('"""')[0];
+  const pult = readFileSync(pfad, "utf8");
   const i = pult.indexOf("<script>");
   return { koerper: pult.slice(0, i),
            skript: pult.slice(i + 8).replace(/<\/script>[\s\S]*$/, "") };
@@ -133,7 +132,7 @@ export function pultLesen(pfad) {
 
 export function pultBauen({ zustand, pegel, extra = {} } = {}) {
   const { koerper, skript } = pultLesen(
-    new URL("../server.py", import.meta.url).pathname);
+    new URL("../web/pult.html", import.meta.url).pathname);
   const wurzel = baumBauen(koerper);
   const nachId = new Map();
   for (const e of wurzel.alle()) if (e.id) nachId.set(e.id, e);

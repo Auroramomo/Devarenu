@@ -183,7 +183,7 @@ titel("6) Am Pult: kein Erklaertext ohne Schalter")
 # hinstellt. Die zweite Zuweisung in pruefprotokollSetzen() ist eine
 # Antwort auf einen Klick -- und klicken kann nur, wer den Schalter
 # sieht.
-quelle = (Path(__file__).resolve().parent.parent / "server.py") \
+quelle = (Path(__file__).resolve().parent.parent / "web" / "pult.html") \
     .read_text(encoding="utf-8")
 anzeigen = quelle.split("function pruefprotokollAnzeigen(")[-1].split("\n}")[0]
 zuweisungen = [z.strip() for z in anzeigen.splitlines()

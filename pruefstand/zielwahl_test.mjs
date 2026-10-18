@@ -414,11 +414,32 @@ await fall(async () => {
     { fassung: 3, quelle: "de", ziele: ["en", "ru", "fa"] }));
   fs.chmodSync(zustand, 0o600);
 
+  // Wie hilfe.ollama_umlenken: die Kopie fragt die Attrappe, nicht
+  // localhost:11434 -- sonst wartet der Server 90 Sekunden auf Ollama.
+  const attrappe = spawn("python3",
+    [path.join(WURZEL, "pruefstand/attrappen/ollama_attrappe.py")],
+    { stdio: ["ignore", "pipe", "ignore"] });
+  const attrappenPort = await new Promise((f) => {
+    let roh = "";
+    attrappe.stdout.on("data", (b) => {
+      roh += b;
+      const m = roh.match(/PORT (\d+)/);
+      if (m) f(m[1]);
+    });
+  });
+  const cfgDatei = path.join(ordner, "config.py");
+  const zeile = 'OLLAMA_URL = "http://localhost:11434"';
+  const cfg = fs.readFileSync(cfgDatei, "utf-8");
+  if (!cfg.includes(zeile)) throw new Error("config.py: OLLAMA_URL fehlt");
+  fs.writeFileSync(cfgDatei, cfg.replace(zeile,
+    `OLLAMA_URL = "http://127.0.0.1:${attrappenPort}"`));
+
   let ausgabe = "";
   const kind = spawn(path.join(ordner, ".venv/bin/python"),
     ["server.py", "--port", String(PORT), "--nur-text"],
     { cwd: ordner, stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, PYTHONUNBUFFERED: "1" } });
+      env: { ...process.env, PYTHONUNBUFFERED: "1",
+             CUDA_VISIBLE_DEVICES: "" } });
   kind.stdout.on("data", (b) => { ausgabe += b; });
   kind.stderr.on("data", (b) => { ausgabe += b; });
   const url = `http://127.0.0.1:${PORT}`;
@@ -485,6 +506,11 @@ await fall(async () => {
         kind.on("exit", () => { clearTimeout(t); f(); });
       });
     }
+    attrappe.kill("SIGTERM");
+    // Wie hilfe.ALARM: bis 0.5.1 sah niemand, was der Server sagte.
+    pruefe('der Server meldet kein "Systemcheck fehlgeschlagen"', false,
+           ausgabe.includes("Systemcheck fehlgeschlagen"));
+    pruefe("und keinen Traceback", false, ausgabe.includes("Traceback"));
     for (const v of verknuepft) {
       try { fs.unlinkSync(path.join(ordner, v)); } catch {}
     }

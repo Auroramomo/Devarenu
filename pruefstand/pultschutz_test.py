@@ -35,7 +35,8 @@ sys.path.insert(0, str(WURZEL))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import pultschutz  # noqa: E402
-from hilfe import BEIWERK, eigene_adresse  # noqa: E402
+from hilfe import (BEIWERK, BEIWERK_ORDNER, eigene_adresse,  # noqa: E402
+                   mithoeren, ollama_umlenken)
 
 GRUEN, ROT, AUS = "\033[32m", "\033[31m", "\033[0m"
 FEHLER = 0
@@ -182,10 +183,13 @@ try:
         q = WURZEL / name
         if q.exists():
             shutil.copy2(q, ARBEIT / name)
+    for name in BEIWERK_ORDNER:
+        shutil.copytree(WURZEL / name, ARBEIT / name)
     for verknuepft in (".venv", "voices", "models"):
         ziel = WURZEL / verknuepft
         if ziel.exists():
             (ARBEIT / verknuepft).symlink_to(ziel)
+    ollama_umlenken(ARBEIT)
 
     # Eine EIGENE Zustandsdatei. Die der Arbeitskopie wird nicht
     # angefasst -- in ihr steht das WLAN-Passwort der Gemeinde.
@@ -194,10 +198,10 @@ try:
                       encoding="utf-8")
     os.chmod(zdatei, 0o600)
 
-    lauf = subprocess.Popen(
+    lauf = mithoeren(subprocess.Popen(
         [str(ARBEIT / ".venv/bin/python"), "server.py",
          "--port", str(PORT), "--nur-text"],
-        cwd=ARBEIT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        cwd=ARBEIT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
 
     for _ in range(90):
         if holen("/api/sprachen")[0] == 200:
@@ -206,7 +210,7 @@ try:
     else:
         print(f"   {ROT}FEHL{AUS}  der Server kam nicht hoch")
         FEHLER += 1
-        raise SystemExit
+        raise SystemExit(1)
 
     print("\n   -- ohne Passwort: alles wie bisher --")
     pruefe("das Pult ist offen", 200, holen("/pult")[0])

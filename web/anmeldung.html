@@ -1,0 +1,30 @@
+<!doctype html><html lang=de><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Pult</title>
+<style>
+ *{{box-sizing:border-box}}
+ body{{font:16px/1.5 Georgia,serif;color:#141f52;background:#f7f8fa;
+   margin:0;min-height:100vh;display:grid;place-items:center;padding:1.5rem}}
+ form{{background:#fff;border:1px solid #d9dce4;border-radius:.6rem;
+   padding:1.6rem;max-width:22rem;width:100%}}
+ h1{{font-size:1.25rem;font-weight:400;margin:0 0 .3rem;
+   letter-spacing:.06em;text-transform:uppercase}}
+ p{{font:.9rem/1.45 system-ui,sans-serif;color:#6b7385;margin:.2rem 0 1.1rem}}
+ input{{font:1.05rem system-ui,sans-serif;width:100%;padding:.7rem;
+   border:1px solid #d9dce4;border-radius:.35rem;margin-bottom:.8rem}}
+ button{{font:1rem Georgia,serif;letter-spacing:.06em;width:100%;
+   padding:.8rem;border:0;border-radius:.35rem;background:#1c3a8f;
+   color:#fff;cursor:pointer}}
+ .fehler{{color:#c0392b;font:.9rem system-ui,sans-serif;margin:0 0 .8rem}}
+</style>
+<form method=post action="/pult-anmeldung">
+ <h1>Pult</h1>
+ <p>Diese Gemeinde hat das Pult mit einem Passwort versehen. Einmal
+ eingeben, danach merkt sich dieses Gerät die Anmeldung.</p>
+ {fehler}
+ <input type=password name=passwort placeholder="Passwort" autofocus
+   autocomplete="current-password">
+ <input type=hidden name=ziel value="{ziel}">
+ <button type=submit>Weiter</button>
+</form>
+</html>

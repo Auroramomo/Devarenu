@@ -69,7 +69,7 @@ pruefe("tw steht nicht in den Vorgabe-Zielsprachen", False,
        "tw" in config.ZIELSPRACHEN)
 
 titel("2) Der Schalter am Pult: versteckt, mit Begruendung")
-quelle = (WURZEL / "server.py").read_text(encoding="utf-8")
+quelle = (WURZEL / "web" / "pult.html").read_text(encoding="utf-8")
 seite = quelle.split('<div class=unterseite id=eSprachen hidden>')[1] \
               .split("</div>")[0]
 pruefe("nicht unter Sprachen", False, "versuchsschalter" in seite)

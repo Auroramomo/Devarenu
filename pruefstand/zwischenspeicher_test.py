@@ -33,7 +33,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from hilfe import WURZEL, arbeitskopie, server_starten, server_stoppen  # noqa
+from hilfe import (WURZEL, arbeitskopie, firefox_ohne_karte,  # noqa
+                   server_starten, server_stoppen)
 
 GRUEN, ROT, GELB, AUS = "\033[32m", "\033[31m", "\033[33m", "\033[0m"
 FEHLER = 0
@@ -129,7 +130,7 @@ try:
     if holen("/api/sprachen")[0] != 200:
         print(f"   {ROT}FEHL{AUS}  der Server kam nicht hoch")
         FEHLER += 1
-        raise SystemExit
+        raise SystemExit(1)
 
     # ----------------------------------------------------- Teil 1
     titel("1) Die Hoererseite: Kopfzeilen und bedingter Abruf")
@@ -197,7 +198,7 @@ try:
                  "--window-size", "390,844", "--screenshot", str(bild),
                  f"http://127.0.0.1:{PORT}/"],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                timeout=120)
+                timeout=120, env=firefox_ohne_karte(profil))
             return gemeldet[-1] if gemeldet else None
 
         pruefe("erster Besuch: Fassung A", "fassung-A", browser())

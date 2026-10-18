@@ -230,7 +230,7 @@ pruefe("der Systemcheck ruft ihn auf", True,
 pruefe("der Server mischt sie in /api/zustand", True,
        '"befunde": befunde_mit_grafik()' in server_quelle)
 pruefe("die Stoerungsansicht zeigt den Laien-Satz", True,
-       "b.laie ?" in server_quelle)
+       "b.laie ?" in (WURZEL / "web" / "pult.html").read_text(encoding="utf-8"))
 
 print("\n14. Auf dem Entwicklungsrechner kein 90-Prozent-Hinweis (0.5.0)")
 grafikwacht._tage.clear()
