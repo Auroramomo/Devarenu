@@ -186,8 +186,9 @@ titel("5) Der Knopf ist zu treffen");
   pruefe("mindestens 44 px hoch", true, hoch >= 44);
   // Eine Leiste, fuenf Eintraege -- und Abdunkeln ist einer davon.
   const leiste = STIL.split(".fussleiste{")[1].split("}")[0];
+  // minmax(0,1fr) seit 28.10.2026 (siehe fussleiste_test.mjs).
   pruefe("die Leiste hat fünf Spalten", true,
-         /grid-template-columns:repeat\(5,1fr\)/.test(leiste));
+         /grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/.test(leiste));
   const bar = QUELLE.split('<nav class="fussleiste" aria-label')[1]
                     .split("</nav>")[0];
   pruefe("Abdunkeln steht darin, nicht unter Mehr", true,

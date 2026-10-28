@@ -29,7 +29,9 @@ import zustand as zustandsdatei  # noqa: E402
 
 ROT, GRUEN, AUS = "\033[31m", "\033[32m", "\033[0m"
 FEHLER = 0
-PORT = 8188
+# Nicht 8188: das ist der Standardport von ComfyUI, und auf dem
+# Arbeitsrechner antwortete dort am 28.10.2026 ComfyUI statt Devarenu.
+PORT = 8193
 JA = {"person_gefragt": True}
 
 

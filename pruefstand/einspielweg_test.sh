@@ -53,7 +53,7 @@ export PATH="$ECHT/pruefstand/attrappen:$PATH"
 
 GRUEN="\033[32m"; ROT="\033[31m"; GELB="\033[33m"; AUS="\033[0m"
 FEHLER=0
-VON="v0.3.7 v0.3.8 v0.4.1 v0.4.2 v0.4.3 v0.4.4 v0.4.5 v0.4.6 v0.5.0"
+VON="v0.3.7 v0.3.8 v0.4.1 v0.4.2 v0.4.3 v0.4.4 v0.4.5 v0.4.6 v0.5.0 v0.5.1"
 
 aufraeumen() {
   for t in $VON; do
@@ -274,6 +274,8 @@ durchlauf() {
       STUB_LOG="$BASIS/stub-$start.log" \
       STUB_FASSUNG="$NEU" \
       DEVARENU_KEIN_NETZ=1 \
+      DEVARENU_LLAMA_OHNE_ROOT=1 \
+      DEVARENU_LLAMA_OPT="$BASIS/opt-$start" \
       bash ./aktualisieren.sh 2>&1 )
 }
 
@@ -347,6 +349,27 @@ for start in $VON; do
       && [ -f "$ZIEL/sichern.sh" ] && echo ja || echo nein)"
   pruefe "das aktive Glossar liegt dabei" "ja" \
     "$([ -f "$ZIEL/glossar_v0.9.csv" ] && echo ja || echo nein)"
+
+  # Der Umstieg auf llama-server (28.10.2026): die NEUE
+  # aktualisierung.sh stoesst ihn am Ende an, gleich von welcher
+  # Fassung aus -- auch von v0.5.1, der Fassung in Rostock (mit
+  # Ollama). Hier ohne Netz und ohne Teile: er wird uebersprungen und
+  # gemeldet, das Update bleibt bestehen, Ollama wird nicht angefasst.
+  pruefe "der llama-Schritt lief" "ja" \
+    "$(grep -q 'Sprachmodell-Server (llama-server)' "$BASIS/lauf-$start.txt" \
+       && echo ja || echo nein)"
+  pruefe "  und meldet in einem Satz, warum nicht" "ja" \
+    "$(grep -q 'llama-server NICHT eingerichtet: kein Internet' \
+       "$BASIS/lauf-$start.txt" && echo ja || echo nein)"
+  pruefe "  Ollama wurde nicht angehalten" "nein" \
+    "$(grep -qE 'systemctl (stop|disable).*ollama' "$BASIS/stub-$start.log" \
+       2>/dev/null && echo ja || echo nein)"
+  if [ "$start" = "v0.5.1" ]; then
+    pruefe "v0.5.1 (Rostock) -> $NEU: der Schritt ist Teil des Updates" "ja" \
+      "$(grep -q 'llama-lage\|llama-server NICHT eingerichtet' \
+         "$BASIS/lauf-$start.txt" && [ -f "$ZIEL/update/llama-lage.json" ] \
+         && echo ja || echo nein)"
+  fi
 
   # Die Hilfsreferenz gehoert aufgeraeumt.
   pruefe "die Hilfsreferenz ist wieder weg" "" \

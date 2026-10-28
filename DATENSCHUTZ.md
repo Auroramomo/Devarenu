@@ -113,7 +113,7 @@ einmal gegen die Muster der Segmentzeilen prüft.
 |---|---|
 | **Zweck** | Eine Predigt nachhören oder weitergeben |
 | **Daten** | Der Ton der Predigt als MP3. Daneben ein Vermerk mit dem Zeitpunkt der Einwilligung — **ohne Namen** |
-| **Empfänger** | Niemand. Abrufbar nur am Gerät selbst, nicht aus dem Saalnetz |
+| **Empfänger** | Wer das Pult bedienen darf: mit Pult-Passwort nur, wer es kennt; ohne Pult-Passwort jeder im Saal-WLAN. Bis zum 28.10.2026 nur am Gerät selbst |
 | **Speicherdauer** | Sieben Tage, einstellbar; stündlicher Aufräumlauf; von Hand löschbar am Pult |
 | **Schalter** | Zwei Häkchen am Pult, beide Pflicht: die predigende Person wurde gefragt, und es läuft nur die Predigt mit. Vorgabe **aus**. Solange sie läuft, steht es auf jedem Handy |
 
@@ -123,9 +123,9 @@ einmal gegen die Muster der Segmentzeilen prüft.
 |---|---|
 | **Zweck** | Bei einem Test sehen, wo die Übersetzungskette kippt |
 | **Daten** | Je Abschnitt: erkannter Text, jede Übersetzung, Dauer der Schritte — **der Predigttext im Wortlaut**, nichts über Zuhörer |
-| **Empfänger** | Niemand. Abrufbar nur am Gerät selbst |
+| **Empfänger** | Wie bei der Tonaufnahme: wer das Pult bedienen darf |
 | **Speicherdauer** | Sieben Tage |
-| **Schalter** | Am Pult, nur am Gerät selbst, mit Einwilligung der sprechenden Person. Vorgabe **aus**, endet beim Neustart. Solange es läuft, steht es auf jedem Handy und am Pult unter *Gottesdienst* |
+| **Schalter** | Am Pult, mit Einwilligung der sprechenden Person. Vorgabe **aus**, endet beim Neustart. Solange es läuft, steht es auf jedem Handy und am Pult unter *Gottesdienst* |
 
 ### 10. Mitschrift im Journal
 
@@ -265,7 +265,13 @@ Nicht technisch, und vor einer zweiten Gemeinde zu klären:
   nicht beschlossen.
 - **Das Pult ist per Vorgabe offen im Saalnetz.** Das Passwort ist
   freiwillig. Das passt nicht zu den datenschutzfreundlichen
-  Voreinstellungen und gehört entschieden.
+  Voreinstellungen und gehört entschieden. Ohne Pult-Passwort kann
+  jeder im Saal-WLAN das Pult bedienen, auch die Aufnahmen. Wer
+  Aufnahmen macht, sollte ein Pult-Passwort setzen. Das Passwort geht
+  über HTTP unverschlüsselt durchs Saal-WLAN. (Seit dem 28.10.2026:
+  vorher gingen Aufnahmen, Testprotokoll und der Knopf *Jetzt aus dem
+  Netz aktualisieren* nur am Gemeinde-PC selbst. Der läuft aber ohne
+  Bildschirm.)
 - **Ob die Nutzungsmeldung** eine Übermittlung ist, die die Gemeinde
   ihrerseits nennen muss.
 - **Stufe 1 auf Russisch und Farsi** und **Stufe 2 auf Englisch** sind

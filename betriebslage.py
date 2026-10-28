@@ -165,6 +165,25 @@ def dienst(name=NAME):
             "seit": w.get("ActiveEnterTimestamp", "")}
 
 
+def dienst_befehl(basis=BASIS, heim=None):
+    """Der Befehl, der den Dienst einrichtet und einschaltet (0.5.2).
+
+    Mit dem Ordner, in dem DIESES Devarenu liegt -- nicht mit einem
+    festen ~/Devarenu: auf einem Rechner, auf dem es woanders liegt,
+    waere der Befehl sonst falsch, und wer ihn abtippt, steht vor
+    "Datei nicht gefunden". Liegt der Ordner unter dem Heimordner,
+    mit ~ und damit kuerzer zum Abtippen; sonst der ganze Pfad.
+    Leerzeichen und Sonderzeichen werden fuer die Shell geschuetzt."""
+    import shlex
+    pfad = Path(basis).resolve() / "dienst.sh"
+    try:
+        heim = Path(heim or Path.home()).resolve()
+        rest = pfad.relative_to(heim)
+    except (ValueError, RuntimeError, OSError):
+        return f"bash {shlex.quote(str(pfad))}"
+    return f"bash ~/{shlex.quote(str(rest))}"
+
+
 def autostart_an(d):
     return bool(d) and d.get("eingeschaltet") in (
         "enabled", "enabled-runtime", "static", "alias")
@@ -427,6 +446,54 @@ def wecker(datei=WECKER_DATEI, jetzt=None):
 
 # ----------------------------------------------------------- Alles
 
+# ------------------------------------------- Meldekanal und Wartungs-WLAN
+# Beide sind Geheimnisse, und beide gehen NIE an den Browser (28.10.2026).
+# Das Pult erfaehrt nur, ob etwas eingetragen ist.
+
+def meldekanal(basis=BASIS):
+    """{"gesetzt": bool}. Ob meldung.json einen brauchbaren Kanal hat --
+    dieselbe Pruefung wie meldung.sh, ohne den Kanal herauszugeben."""
+    try:
+        d = json.loads((basis / "meldung.json").read_text(encoding="utf-8"))
+        url = str(d.get("ntfy") or "").strip()
+    except (OSError, ValueError, AttributeError):
+        url = ""
+    return {"gesetzt": url.startswith(("https://", "http://"))}
+
+
+def wartungs_wlan(netz=None):
+    """{"eingetragen": bool, "passwort": "gesetzt"|"nicht_gesetzt"|
+    "unbekannt"}.
+
+    Das Passwort selbst fragt hier niemand ab: nmcli bekommt weder -s
+    noch ein psk-Feld, nur die Art der Absicherung. "wpa-psk" oder "sae"
+    heisst, im Profil steht ein Passwort. Der Profilname bleibt auch
+    draussen -- _geheime_werte zaehlt ihn zu dem, was in keine Anzeige
+    gehoert."""
+    import wartungsfenster
+    profil = wartungsfenster.einstellung(netz)["profil"].strip()
+    if not profil:
+        return {"eingetragen": False, "passwort": "unbekannt"}
+    nmcli = os.environ.get("DEVARENU_NMCLI", "nmcli")
+    try:
+        a = subprocess.run([nmcli, "-g", "802-11-wireless-security.key-mgmt",
+                            "connection", "show", profil],
+                           capture_output=True, text=True, timeout=FRIST,
+                           stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return {"eingetragen": True, "passwort": "unbekannt"}
+    if a.returncode != 0:
+        # Profil fehlt oder nmcli verweigert -- nichts raten.
+        return {"eingetragen": True, "passwort": "unbekannt"}
+    art = a.stdout.strip()
+    if art in ("wpa-psk", "sae"):
+        return {"eingetragen": True, "passwort": "gesetzt"}
+    if art in ("", "none", "owe"):
+        # Offenes WLAN (owe ist verschluesselt, aber ohne Passwort).
+        return {"eingetragen": True, "passwort": "nicht_gesetzt"}
+    return {"eingetragen": True, "passwort": "unbekannt"}
+
+
 def lage(basis=BASIS):
     """Alles fuer die Einrichtung am Pult. Jeder Teil fuer sich: faellt
     einer aus, stehen die anderen trotzdem da."""
@@ -437,10 +504,17 @@ def lage(basis=BASIS):
             ("laufart", laufart),
             ("startprotokoll", lambda: startprotokoll(basis, geheim=geheim)),
             ("fenster", lambda: fenster(geheim=geheim)),
-            ("wecker", wecker)):
+            ("wecker", wecker),
+            ("meldekanal", lambda: meldekanal(basis)),
+            ("wartungs_wlan", wartungs_wlan)):
         try:
             aus[schluessel] = holen()
         except Exception as e:
             print(f"Betriebslage: {schluessel} -- {type(e).__name__}")
             aus[schluessel] = None
+    # Der Befehl zum Einrichten gehoert zum Dienst und steht darum dort,
+    # nicht als eigener Teil (0.5.2). Das Pult zeigt ihn, wenn der
+    # Autostart aus ist oder der Dienst fehlt.
+    if isinstance(aus.get("dienst"), dict):
+        aus["dienst"]["befehl"] = dienst_befehl(basis)
     return aus

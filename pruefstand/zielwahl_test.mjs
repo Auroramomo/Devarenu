@@ -81,6 +81,9 @@ async function beideServer(fn) {
 // Versuchssprache, die nicht Quelle sein kann.
 const SPRACHNAMEN = { de: "Deutsch", en: "Englisch", ru: "Russisch",
                       fa: "Persisch", uk: "Ukrainisch", tw: "Twi (Asante)" };
+// Und auf Englisch, fuer das Pult auf EN (0.5.2, config.SPRACHNAMEN_EN).
+const SPRACHNAMEN_EN = { de: "German", en: "English", ru: "Russian",
+                         fa: "Persian", uk: "Ukrainian", tw: "Twi (Asante)" };
 const NUR_ZIEL = new Set(["tw"]);
 const VERSUCHSSPRACHEN = new Set(["tw"]);
 
@@ -102,9 +105,10 @@ function serverBauen({ quelle, ziele, versuch = false, regel = true,
     "/api/sprachen": () => ({
       quelle: s.quelle, ziele: [...s.ziele],
       liste: sprachen().map((sp) => ({ code: sp, name: SPRACHNAMEN[sp],
+                                       name_en: SPRACHNAMEN_EN[sp],
                                        original: sp === s.quelle })),
       moeglich: Object.keys(SPRACHNAMEN).filter(erlaubt).map((sp) => ({
-        code: sp, name: SPRACHNAMEN[sp],
+        code: sp, name: SPRACHNAMEN[sp], name_en: SPRACHNAMEN_EN[sp],
         stimme: !(arten && sp === "tw"),
         geprueft: !(arten && (sp === "uk" || sp === "tw")),
         glossar: !(arten && sp === "tw"), quelle: !NUR_ZIEL.has(sp) })),
@@ -271,8 +275,9 @@ await beideServer(async (regel) => {
          p.server.gesendet.every((d) => new Set(d.ziele).size === d.ziele.length));
   p.fenster.uiSprache(); await ruhe();
   await p.fenster.sprachenLaden();
+  // Seit 0.5.2 heisst die Sprache auf EN "German" (Block 8).
   pruefe("Pult auf Englisch: \"Original, not translated\"", true,
-         p.html().includes("Deutsch<span class=originaltag>"
+         p.html().includes("German<span class=originaltag>"
                            + "Original, not translated</span>"));
   p.fenster.uiSprache(); await ruhe();
 });
@@ -431,8 +436,12 @@ await fall(async () => {
   const zeile = 'OLLAMA_URL = "http://localhost:11434"';
   const cfg = fs.readFileSync(cfgDatei, "utf-8");
   if (!cfg.includes(zeile)) throw new Error("config.py: OLLAMA_URL fehlt");
+  // Und LLAMA_URL ins Leere (28.10.2026), wie in hilfe.ollama_umlenken:
+  // sonst faende die Kopie einen echten llama-server auf diesem Rechner.
   fs.writeFileSync(cfgDatei, cfg.replace(zeile,
-    `OLLAMA_URL = "http://127.0.0.1:${attrappenPort}"`));
+    `OLLAMA_URL = "http://127.0.0.1:${attrappenPort}"`)
+    .replace('LLAMA_URL = "http://127.0.0.1:8091"',
+             'LLAMA_URL = "http://127.0.0.1:9"'));
 
   let ausgabe = "";
   const kind = spawn(path.join(ordner, ".venv/bin/python"),
@@ -542,6 +551,126 @@ await fall(async () => {
   p.fenster.uiSprache();
   for (let i = 0; i < 5; i++) await ruhe();
   pruefe("zurueck auf DE: wieder deutsch", [stuecke, []], [da("de"), da("en")]);
+});
+
+// =====================================================================
+// 0.5.2: Auf EN heissen die Sprachen am Pult englisch -- in der
+// Quellwahl, in den Kacheln und in der Zuhoererzaehlung. Bis 0.5.1
+// stand dort "Russisch" unter einer englischen Oberflaeche.
+block("8) Pult auf EN: die Sprachen heissen englisch");
+await fall(async () => {
+  const p = await pultMit({ quelle: "de", ziele: ["en", "ru"] });
+  p.server.antworten["/api/zustand"] = () => ({ hoerer: { ru: 3, en: 2 },
+                                                gesamt: 5 });
+  const quellwahl = () => p.fenster.quellwahl.innerHTML;
+  const optionen = () => [...quellwahl().matchAll(/>([^<]+)<\/option>/g)]
+    .map((m) => m[1]);
+  const zahlen = () => p.fenster.zahlen.innerHTML;
+  await p.fenster.lies(); await ruhe();
+  // Auf DE in der Reihenfolge des Servers (der Nachbau hier sortiert
+  // nicht; der echte nach dem deutschen Namen).
+  const DE = ["Deutsch", "Englisch", "Russisch", "Persisch", "Ukrainisch"];
+  pruefe("DE: Quellwahl deutsch", DE, optionen());
+  pruefe("DE: Kacheln deutsch", true,
+         p.html().includes(">Russisch") && !p.html().includes(">Russian"));
+  pruefe("DE: Zuhoerer je Sprache deutsch", true,
+         zahlen().includes("Russisch") && !zahlen().includes("Russian"));
+
+  p.fenster.uiSprache();
+  for (let i = 0; i < 5; i++) await ruhe();
+  await p.fenster.lies(); await ruhe();
+  pruefe("EN: Quellwahl englisch, nach dem englischen Namen sortiert",
+         ["English", "German", "Persian", "Russian", "Ukrainian"], optionen());
+  pruefe("EN: Kacheln englisch", true,
+         p.html().includes(">Russian") && p.html().includes(">German")
+         && !p.html().includes(">Russisch") && !p.html().includes(">Deutsch"));
+  pruefe("EN: Zuhoerer je Sprache englisch", true,
+         zahlen().includes("Russian") && zahlen().includes("English")
+         && !zahlen().includes("Russisch"));
+
+  p.fenster.uiSprache();
+  for (let i = 0; i < 5; i++) await ruhe();
+  await p.fenster.lies(); await ruhe();
+  pruefe("zurueck auf DE: wieder deutsch", DE, optionen());
+});
+
+// =====================================================================
+// 0.5.2: Nach einem Wechsel der gesprochenen Sprache bleibt die
+// bisherige angewaehlt (Regel seit 0.5.1). Das steht jetzt in einer
+// Zeile unter den Kacheln, mit "Abwaehlen" -- bis zum naechsten Klick
+// in der Sprachwahl.
+block("9) Die bisherige Sprache bleibt angewaehlt: eine Zeile darunter");
+await fall(async () => {
+  const p = await pultMit({ quelle: "de", ziele: ["en"] });
+  const hin = p.fenster.bleibthin;
+  const zeile = () => (hin.hidden ? "" : hin.innerHTML);
+  pruefe("vorher keine Zeile", "", zeile());
+
+  await p.quelleStellen("ru");
+  pruefe("de -> ru: de bleibt Ziel", true, p.server.ziele.includes("de"));
+  pruefe("und die Zeile sagt es", true,
+         zeile().startsWith("Deutsch bleibt angewählt. Nicht mehr gebraucht? "));
+  pruefe("mit dem Weg zum Abwaehlen", true,
+         zeile().includes('onclick="return abwaehlen()">Abwählen</a>.'));
+
+  // Ein Klick irgendwo in der Sprachwahl: weg.
+  p.fenster.zielwahl.ausloesen("click");
+  pruefe("der naechste Klick in der Sprachwahl nimmt sie weg", "", zeile());
+
+  // Zurueckstellen -- der Fall, um den es geht: ru bleibt stehen.
+  await p.quelleStellen("de");
+  pruefe("ru -> de: ru bleibt Ziel", true, p.server.ziele.includes("ru"));
+  pruefe("die Zeile nennt ru", true,
+         zeile().startsWith("Russisch bleibt angewählt."));
+
+  // Abwaehlen ueber die Zeile selbst.
+  pruefe("abwaehlen() wird abgefangen (kein Sprung nach #)", false,
+         p.fenster.abwaehlen());
+  for (let i = 0; i < 5; i++) await ruhe();
+  pruefe("ru ist abgewaehlt", false, p.server.ziele.includes("ru"));
+  pruefe("en und de bleiben", ["en", "de"], p.server.ziele);
+  pruefe("und die Zeile ist weg", "", zeile());
+
+  // Ein Haken an einer anderen Kachel nimmt sie ebenso weg.
+  await p.quelleStellen("ru");
+  pruefe("wieder gewechselt: die Zeile steht", true, zeile() !== "");
+  p.fenster.zielwahl.ausloesen("click");
+  await p.haken("fa", true);
+  pruefe("ein Haken an fa: die Zeile ist weg", "", zeile());
+});
+
+block("9b) Die Zeile auf EN");
+await fall(async () => {
+  const p = await pultMit({ quelle: "de", ziele: ["en"] });
+  p.fenster.uiSprache();
+  for (let i = 0; i < 5; i++) await ruhe();
+  await p.quelleStellen("ru");
+  const hin = p.fenster.bleibthin;
+  pruefe("German stays selected. No longer needed? Deselect.", true,
+         !hin.hidden && hin.innerHTML.startsWith(
+           "German stays selected. No longer needed? ")
+         && hin.innerHTML.includes(">Deselect</a>."));
+  p.fenster.uiSprache();
+  for (let i = 0; i < 5; i++) await ruhe();
+  pruefe("zurueck auf DE: die Zeile wechselt mit", true,
+         hin.innerHTML.startsWith("Deutsch bleibt angewählt."));
+});
+
+block("8b) Ein Server ohne name_en (vor 0.5.2): das Pult bleibt deutsch");
+await fall(async () => {
+  const p = await pultMit({ quelle: "de", ziele: ["ru"] });
+  const echt = p.server.antworten["/api/sprachen"];
+  p.server.antworten["/api/sprachen"] = () => {
+    const d = echt();
+    for (const x of [...d.liste, ...d.moeglich]) delete x.name_en;
+    return d;
+  };
+  p.fenster.uiSprache();
+  for (let i = 0; i < 5; i++) await ruhe();
+  pruefe("auf EN ohne name_en: die Namen kommen trotzdem (deutsch)", true,
+         p.html().includes(">Russisch"));
+  p.fenster.uiSprache();
+  for (let i = 0; i < 5; i++) await ruhe();
 });
 
 console.log();

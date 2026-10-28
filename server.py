@@ -558,6 +558,9 @@ class Werk:
         from faster_whisper import WhisperModel
         import requests
         self.requests = requests
+        # Welcher Sprachmodell-Server uebersetzt (sprachmodell.erkennen).
+        # Gesetzt von main() nach dem Warten; leer heisst: noch keiner.
+        self.sprachmodell = {"art": "", "grund": "keiner"}
         self.nur_text = nur_text
         if geladen:
             print(f"CUDA-Bibliotheken vorgeladen: {', '.join(geladen)}")
@@ -900,6 +903,31 @@ class Werk:
         r"(mediagroup|presse|text).*"
         r"|im\s+auftrag\s+(des|der)\s+(wdr|ndr|zdf|ard|swr|mdr|rbb).*"
         r"|mit\s+freundlicher\s+unterst(ü|ue)tzung.*"
+        # Russisch (0.5.2), fuer eine russische Predigt. NUR Formeln, die
+        # belegt bei Whisper vorkommen, wenn niemand spricht:
+        #   [G] gist.github.com/waveletdeboshir/8bf52f04bf78018194f25b2390c08309
+        #       whisper-large-v2 auf 13 Stunden Rauschaufnahmen
+        #   [H] huggingface.co/datasets/sachaarbonel/whisper-hallucinations
+        #       Whisper auf reinen Geraeuschaufnahmen, nach Sprache gezaehlt
+        #       (phrases.csv, Zeilen "ru,...")
+        # Jede Zeile hier ist am 28.10.2026 gegen die Quelle selbst
+        # nachgesehen. Bis dahin stand als dritte Quelle arXiv
+        # 2609.32560 da; der Aufsatz nennt keine Einzelbeispiele und
+        # ist gestrichen.
+        # Nicht aufgenommen: die Geraeuschbeschriftungen aus [G]
+        # ("СМЕХ", "ПЕСНЯ", "ПОЛИЦИЯ", "Поехали!") -- kein Abspann, und
+        # einige davon sind Woerter, die in einer Predigt allein stehen
+        # koennen.
+        r"|субтитр\w*\b.*"                                     # [G]
+        r"|спасибо\s+за\s+(субтитры|просмотр)"   # субтитры [G], просмотр [H]
+        r"|редактор\s+субтитров.*"                             # [G]
+        # Nur mit "части"/"серии" dahinter: "Смотрите продолжение этой
+        # мысли в пятой главе" ist ein Predigtsatz.
+        r"|смотрите\s+продолжение\s+(во?\s+)?(\w+\s+)?"        # [G]
+        r"(част\w*|сери\w*)(\s+видео)?"
+        r"|продолжение\s+следует"                              # [G]
+        r"|подпишись(\s+на\s+канал)?"                          # [G]
+        r"|подписывайтесь\s+на\s+мой\s+канал"                  # [H]
     )
     ERFUNDEN = re.compile(r"\W*(?:" + _FLOSKEL + r")\W*", re.IGNORECASE)
 
@@ -1237,19 +1265,32 @@ class Werk:
         return t
 
     def _modell_fragen(self, system, text):
-        """Ein Aufruf des Uebersetzungsmodells, die Antwort bereinigt."""
-        a = self.requests.post(
-            f"{config.OLLAMA_URL}/api/chat",
-            json={"model": config.LIVE_MODELL, "stream": False, "think": False,
-                  "options": {"temperature": 0.1, "num_predict": 400},
-                  "messages": [{"role": "system", "content": system},
-                               {"role": "user", "content": text}]},
-            timeout=30)
-        a.raise_for_status()
-        t = a.json()["message"]["content"]
-        if "</think>" in t:
-            t = t.split("</think>", 1)[1]
-        return re.sub(r"[*`]+", "", t).strip().strip('"').strip()
+        """Ein Aufruf des Uebersetzungsmodells, die Antwort bereinigt.
+
+        Seit dem 28.10.2026 ueber sprachmodell.py: llama-server
+        (/v1/chat/completions) oder Ollama (/api/chat), je nachdem,
+        welcher Server beim Start erkannt wurde. Antwortet keiner,
+        wird hier noch einmal gesucht -- ein Sprachmodell-Server, der
+        nach dem Dienst hochkommt, soll nicht bis zum naechsten
+        Neustart ungenutzt bleiben."""
+        import sprachmodell
+        art = self.sprachmodell.get("art")
+        if not art:
+            self.sprachmodell = sprachmodell.erkennen(self.requests)
+            art = self.sprachmodell.get("art")
+            if not art:
+                raise RuntimeError("kein Sprachmodell-Server")
+        try:
+            return sprachmodell.fragen(art, system, text, self.requests)
+        except self.requests.exceptions.ConnectionError:
+            # Der erkannte Server ist weg -- etwa Ollama, nachdem
+            # llama_einrichten.py umgestellt hat. Einmal neu suchen.
+            self.sprachmodell = sprachmodell.erkennen(self.requests)
+            neu = self.sprachmodell.get("art")
+            if not neu or neu == art:
+                raise
+            print(f"Sprachmodell: umgestellt von {art} auf {neu}.")
+            return sprachmodell.fragen(neu, system, text, self.requests)
 
     # ---- Piper ----
     def original_ablegen(self, audio, nummer):
@@ -4165,7 +4206,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                     f"diesem Update. Sie werden NICHT sofort geloescht -- "
                     f"die Frist von {tage} Tagen laeuft ab heute, sie gehen "
                     f"also am {wann}. Wer eine davon behalten will, sichert "
-                    f"sie vorher. Abrufen nur am Gemeinde-PC selbst.")
+                    f"sie vorher -- am Pult unter Aufnahmen.")
                 print(warnung(nachricht))
 
         weg = aufnahme.aufraeumen(lauf.mitschnitt.ordner, tage, ab)
@@ -4315,7 +4356,10 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         if neu_wort and len(neu_wort) < 4:
             return JSONResponse({"grund": "zu_kurz"}, status_code=400)
         stand["pult_passwort"] = pultschutz.hashen(neu_wort) if neu_wort else ""
-        if not zustandsdatei.speichern(stand):
+        # Ausdruecklich: sonst nimmt speichern() den alten Wert aus der
+        # Datei (zustand.speichern, 28.10.2026).
+        if not zustandsdatei.speichern(
+                stand, pult_passwort_neu=stand["pult_passwort"]):
             return JSONResponse({"grund": "nicht_schreibbar"}, status_code=500)
         print(f"Pult-Passwort {'gesetzt' if neu_wort else 'geloescht'}.")
         # Der Keks dieses Browsers wird mit dem neuen Hash ungueltig --
@@ -4763,6 +4807,33 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         _ = marke
         return None
 
+    # Der Systemcheck laeuft beim Start. Nach einem Update ist das ZU
+    # FRUEH fuer den Reparaturvorrat: aktualisieren.sh zieht ihn erst
+    # nach, wenn der Dienst schon neu laeuft. In Rostock stand danach am
+    # Pult "Der Vorrat gehoert zu Fassung 0.5.0", obwohl er laengst auf
+    # 0.5.1 stand (A4c, 28.10.2026). Jetzt: aendert sich vorrat.json,
+    # laeuft der Systemcheck neu. Nachgesehen wird bei der Abfrage von
+    # /api/zustand, hoechstens alle 20 Sekunden -- ein stat.
+    def _vorrat_stand():
+        try:
+            return systemcheck.vorrat_datei().stat().st_mtime_ns
+        except OSError:
+            return None
+
+    vorrat_wache = {"stand": _vorrat_stand(), "geprueft": 0.0}
+
+    def systemcheck_nachziehen():
+        jetzt = time.monotonic()
+        if jetzt - vorrat_wache["geprueft"] < 20.0:
+            return
+        vorrat_wache["geprueft"] = jetzt
+        stand = _vorrat_stand()
+        if stand == vorrat_wache["stand"]:
+            return
+        vorrat_wache["stand"] = stand
+        print("Reparaturvorrat geaendert -- Systemcheck laeuft neu.")
+        threading.Thread(target=systemnachricht, daemon=True).start()
+
     @app.get("/api/sprachen")
     def sprachen():
         """Welche Sprachen dieser Server anbietet.
@@ -4797,6 +4868,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             "liste": [{
                 "code": sp,
                 "name": config.SPRACHNAMEN.get(sp, sp),
+                # Fuer das Pult auf EN (0.5.2). Die Hoererseite nimmt
+                # weiter die Eigennamen aus client.html.
+                "name_en": name_englisch(sp),
                 "original": sp == lauf.quelle,
                 "ton": sp == lauf.quelle or sp in vorhanden,
                 # Geprueft heisst: ein Muttersprachler hat das
@@ -4819,6 +4893,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             "moeglich": [{
                 "code": sp,
                 "name": name,
+                "name_en": name_englisch(sp),
                 "stimme": (sp in vorhanden or sp == lauf.quelle
                            or sp in auf_platte),
                 "geprueft": sp in getattr(config, "GEPRUEFT", set()),
@@ -4830,6 +4905,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                                      key=lambda x: x[1])
                 if versuch_erlaubt(sp)],
         }
+
+    def name_englisch(sp):
+        """Der englische Name aus config.SPRACHNAMEN_EN, sonst der deutsche."""
+        return getattr(config, "SPRACHNAMEN_EN", {}).get(
+            sp, config.SPRACHNAMEN.get(sp, sp))
 
     def versuch_erlaubt(sp):
         """Darf sp gewaehlt werden? Nein bei einer Versuchssprache
@@ -4976,8 +5056,72 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
             zustandsdatei.speichern(lauf.zustand)
         return {"quittiert": neu}
 
+    # Der Sprachmodell-Server (28.10.2026). Fehlt er oder sein Modell,
+    # startet der Server trotzdem (sprachmodell_abwarten) -- und das Pult
+    # sagt es, statt nur das Journal. Solange etwas fehlt, wird alle 30
+    # Sekunden neu nachgesehen: ein Server, der spaeter hochkommt, soll
+    # ohne Neustart von Devarenu genommen werden.
+    modell_wache = {"geprueft": 0.0}
+
+    def sprachmodell_nachsehen():
+        lage = getattr(lauf.werk, "sprachmodell", None) or {}
+        if lage.get("bereit") and lage.get("modell_da"):
+            return lage
+        jetzt = time.monotonic()
+        if jetzt - modell_wache["geprueft"] < 30.0:
+            return lage
+        modell_wache["geprueft"] = jetzt
+        import sprachmodell
+        try:
+            neu = sprachmodell.erkennen(lauf.werk.requests)
+        except Exception:
+            return lage
+        if neu.get("grund") != lage.get("grund") or \
+                neu.get("art") != lage.get("art"):
+            print(f"Sprachmodell: {sprachmodell.beschreiben(neu)}")
+        lauf.werk.sprachmodell = neu
+        return neu
+
+    def sprachmodell_befund():
+        """Ein Befund fuer die Stoerungsansicht, oder None."""
+        lage = sprachmodell_nachsehen()
+        grund = lage.get("grund", "keiner")
+        if not grund:
+            return None
+        art, modell = lage.get("art") or "", lage.get("modell") or ""
+        texte = {
+            "keiner": (
+                True,
+                "Kein Sprachmodell-Server antwortet. Untertitel in der "
+                "Ausgangssprache laufen, übersetzt wird nichts.",
+                "No language model server answers. Captions in the source "
+                "language work, nothing is translated.",
+                "systemctl status devarenu-llama ollama"),
+            "laedt": (
+                False,
+                f"{art} lädt noch das Modell. Gleich geht es.",
+                f"{art} is still loading the model.",
+                ""),
+            "schluessel": (
+                True,
+                f"{art} verlangt einen API-Schlüssel, Devarenu hat keinen.",
+                f"{art} wants an API key; Devarenu has none.",
+                "LLAMA_SCHLUESSEL_DATEI in config.py"),
+            "modell_fehlt": (
+                True,
+                f"{art} läuft, aber das Modell {modell} fehlt dort. "
+                f"Übersetzt wird nichts.",
+                f"{art} runs, but the model {modell} is missing there.",
+                "bash pruefen.sh"),
+        }
+        schwer, was, was_en, tun = texte.get(grund, texte["keiner"])
+        return {"kennung": f"sprachmodell_{grund}", "schwer": schwer,
+                "wartung": False, "laie": True, "was": was, "was_en": was_en,
+                "tun": tun, "tun_en": tun}
+
     def befunde_mit_grafik():
-        """lauf.befunde plus die aktuellen Hinweise der Grafikwacht.
+        """lauf.befunde plus die aktuellen Hinweise der Grafikwacht und
+        die Lage des Sprachmodell-Servers.
 
         Billig: grafikwacht.hinweise() ruft hier nichts auf, sondern
         liest die letzte Messung. Was der Systemcheck beim Start schon
@@ -4990,16 +5134,25 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                      "tun_en": h["tun_en"]}
                     for h in grafikwacht.hinweise()
                     if h["kennung"] not in schon]
+            b = sprachmodell_befund()
+            if b and b["kennung"] not in schon:
+                dazu.append(b)
             return lauf.befunde + dazu
         except Exception:
             return lauf.befunde
 
     @app.get("/api/zustand")
     def zustand(request: Request):
+        systemcheck_nachziehen()
         return {"live": lauf.laeuft, "gesendet": lauf.n, "hoerer": lauf.anzahl,
                 # Worauf tatsaechlich gerechnet wird. Stand vorher nur im
                 # Terminal, und das liest im Gottesdienst niemand.
                 "fassung": config.VERSION,
+                # Wer uebersetzt (28.10.2026): llama-server oder Ollama,
+                # und ob das Modell da ist. Die Adresse bleibt draussen.
+                "sprachmodell": {
+                    k: (getattr(lauf.werk, "sprachmodell", None) or {}).get(k)
+                    for k in ("art", "modell", "grund")},
                 # Leer, solange keine gefunden ist. Wer aus der Ferne
                 # fragt, soll den Unterschied sehen zwischen "noch keine"
                 # und einer Adresse, die nicht stimmt.
@@ -5028,7 +5181,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 # Hat jemand Thema und Bibelstellen uebernommen? Ohne sie
                 # laeuft alles -- nur ohne den Prompt, der Whisper die
                 # Eigennamen des Kapitels vorlegt, und das ist genau der
-                # Unterschied zwischen "Sanballat" und "San Ballard".
+                # Unterschied zwischen "Silas" und "Sie las".
                 "kontext_fehlt": not lauf.werk.stt_prompt,
                 "thema_im_prompt": bool(
                     getattr(lauf.werk, "thema_im_prompt", False)),
@@ -5038,12 +5191,9 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
                 # Verfuegung, und laeuft gerade einer?
                 "online_lauf": online_lauf() or None,
                 "online_vorgemerkt": (basis / "update" / "online-jetzt").exists(),
-                # Ob dieses Pult ueberhaupt am Gemeinde-PC selbst
-                # offen ist. Der Schalter wird sonst gar nicht
-                # angezeigt -- ein Knopf, der immer "geht nicht"
-                # sagt, ist schlechter als keiner.
-                "am_rechner": pultschutz.vom_rechner_selbst(
-                    request.client.host if request.client else ""),
+                # "am_rechner" stand hier bis zum 28.10.2026 und
+                # blendete Online-Knopf und Testprotokoll aus dem Saal
+                # aus. Seitdem gehen beide auch vom Handy.
                 "wartung": lauf.wartungsbefunde,
                 # Alles, was der Systemcheck gefunden hat -- fuer die
                 # Stoerungsansicht hinter der Statuspille. Dazu die
@@ -5193,16 +5343,16 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         return {"datei": Path(datei).name,
                 "einwilligung": lauf.mitschnitt.einwilligung.zeit}
 
-    def nur_am_rechner(request):
-        """Aufnahmen gibt es nur am Gemeinde-PC selbst.
-
-        Unabhaengig vom Pult-Passwort, und das ist Absicht: ein
-        Passwort kann gesetzt sein oder nicht, kann weitergegeben
-        werden oder im Browser gespeichert. Eine Tonaufnahme einer
-        Predigt soll das Geraet gar nicht erst verlassen koennen, auf
-        dem sie liegt."""
-        host = request.client.host if request.client else ""
-        return pultschutz.vom_rechner_selbst(host)
+    # Bis zum 28.10.2026 gab es hier nur_am_rechner(): Aufnahmen,
+    # Testprotokoll und der Knopf "Jetzt aus dem Netz" verlangten den
+    # Gemeinde-PC selbst, unabhaengig vom Pult-Passwort. Der Gemeinde-PC
+    # laeuft aber ohne Bildschirm, und "am Rechner" hiess damit "nie".
+    # Seitdem schuetzt allein das Pult-Passwort (pult_schuetzen oben):
+    # ist eines gesetzt, kommt aus dem Saal nur herein, wer sich
+    # angemeldet hat; ist keines gesetzt, ist das Pult offen -- auch
+    # fuer Aufnahmen. Das steht so in der Anleitung und in
+    # DATENSCHUTZ.md, samt dem Hinweis, dass das Passwort ueber HTTP
+    # unverschluesselt durchs Saal-WLAN geht.
 
     @app.post("/api/gemeinde")
     async def gemeinde_setzen(daten: dict):
@@ -5237,17 +5387,14 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
     async def pruefprotokoll_schalten(daten: dict, request: Request):
         """Schaltet das Testprotokoll an oder aus.
 
-        NUR AM RECHNER SELBST. Darin steht der Predigttext und jede
-        Uebersetzung davon, Wort fuer Wort -- dieselbe Ueberlegung wie
-        bei der Aufnahme: das soll das Geraet gar nicht erst verlassen
-        koennen, auf dem es liegt.
+        Darin steht der Predigttext und jede Uebersetzung davon, Wort
+        fuer Wort. Bis zum 28.10.2026 ging das nur am Rechner selbst;
+        seitdem schuetzt es wie alles am Pult das Pult-Passwort.
 
         Die Einwilligung wird HIER geprueft und nicht nur im Browser.
         Anders als bei der Aufnahme genuegt EIN Haken: dass die
         sprechende Person gefragt wurde. Der zweite ("nur die
         Predigt") ergibt bei einem Test keinen Sinn."""
-        if not nur_am_rechner(request):
-            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
         if not daten.get("an"):
             lage = lauf.pruefprotokoll.beenden()
             if lage:
@@ -5268,8 +5415,6 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
 
     @app.get("/api/pruefprotokolle")
     def pruefprotokolle_liste(request: Request):
-        if not nur_am_rechner(request):
-            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
         stand = zustandsdatei.laden()[0]
         tage = stand.get("aufnahme_tage", pruefprotokoll.TAGE_VORGABE)
         liste = pruefprotokoll.protokolle(lauf.pruefprotokoll.ordner)
@@ -5279,8 +5424,6 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
 
     @app.get("/pruefprotokoll/{name}")
     def pruefprotokoll_holen(name: str, request: Request):
-        if not nur_am_rechner(request):
-            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
         # Kein Pfad aus dem Namen: nur ein Eintrag aus der eigenen
         # Liste zaehlt. Ein "../" darf hier nichts finden.
         for a in pruefprotokoll.protokolle(lauf.pruefprotokoll.ordner):
@@ -5292,8 +5435,6 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
 
     @app.post("/api/aufnahme/tage")
     async def aufnahme_tage(daten: dict, request: Request):
-        if not nur_am_rechner(request):
-            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
         try:
             tage = int(daten.get("tage"))
         except (TypeError, ValueError):
@@ -5315,8 +5456,6 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
     @app.get("/api/aufnahmen")
     def aufnahmen_liste(request: Request):
         """Was liegt, wie alt, wann faellig."""
-        if not nur_am_rechner(request):
-            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
         stand = zustandsdatei.laden()[0]
         tage = stand.get("aufnahme_tage", aufnahme.TAGE_VORGABE)
         ab = stand.get("aufnahme_frist_ab") or 0
@@ -5335,18 +5474,14 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
 
     @app.post("/api/aufnahme/loeschen")
     async def aufnahme_loeschen(daten: dict, request: Request):
-        """Eine Aufnahme von Hand loeschen. Nur am Gemeinderechner selbst.
+        """Eine Aufnahme von Hand loeschen.
 
-        Dieselbe Schranke wie beim Herunterladen: wer im Saal sitzt,
-        darf eine Predigtaufnahme nicht abrufen, und loeschen schon gar
-        nicht. Ein Pult-Passwort wuerde das nicht ersetzen -- es ginge
-        im Saalnetz unverschluesselt ueber HTTP.
+        Dieselbe Schranke wie beim Herunterladen: das Pult-Passwort.
+        Bis zum 28.10.2026 ging es nur am Gemeinderechner selbst.
 
         Die Rueckfrage steht am Pult, nicht hier: eine Schnittstelle,
         die zweimal gefragt werden will, ist keine Schnittstelle.
         Geloescht wird nur, was in der eigenen Liste steht."""
-        if not nur_am_rechner(request):
-            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
         name = (daten.get("name") or "").strip()
         if not name:
             return JSONResponse({"grund": "kein_name"}, status_code=400)
@@ -5365,11 +5500,6 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
 
     @app.get("/mitschnitt/{name}")
     def mitschnitt_holen(name: str, request: Request):
-        if not nur_am_rechner(request):
-            # Kein 404: der Unterschied zwischen "gibt es nicht" und
-            # "nicht fuer dich" gehoert gesagt, sonst sucht jemand im
-            # Saal den Fehler bei sich.
-            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
         # Nur Dateinamen ohne Pfadanteile: sonst liesse sich ueber die
         # Adresse jede Datei des Rechners abrufen.
         datei = lauf.mitschnitt.ordner / Path(name).name
@@ -5770,6 +5900,22 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         return Response(content=puffer.getvalue(), media_type="image/png",
                         headers={"Cache-Control": "no-store"})
 
+    @app.get("/update-zip-qr.png")
+    def update_zip_qr():
+        """Der QR-Code zum Update-ZIP (0.5.2), fuer Einrichtung -> Update.
+
+        Ein Helfer scannt ihn mit dem Handy, laedt das ZIP zuhause und
+        kopiert es auf einen Stick. Der Link ist oeffentlich und fest
+        (config.UPDATE_ZIP_LINK); hier steht nichts von diesem Rechner."""
+        import segno
+        code = segno.make(config.UPDATE_ZIP_LINK, error="m")
+        puffer = io.BytesIO()
+        module = code.symbol_size(border=2)[0]
+        code.save(puffer, kind="png", scale=max(4, 560 // module), border=2,
+                  dark="#141f52", light="#ffffff")
+        return Response(content=puffer.getvalue(), media_type="image/png",
+                        headers={"Cache-Control": "no-store"})
+
     def bericht_link():
         """Der Link, unter dem ein Handy im Saal den Bericht holt.
 
@@ -5959,6 +6105,45 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         zustandsdatei.speichern(lauf.zustand)
         return lauf.wlan
 
+    # Der Meldekanal (ntfy) aendern, vom Pult aus (28.10.2026). Das Thema
+    # ist das ganze Geheimnis des Kanals -- es gibt kein Passwort dafuer.
+    # Darum geht es nur HINEIN: keine Antwort, keine Seite und kein
+    # Fehlerbericht nennt es. Das Pult erfaehrt aus /api/betriebslage
+    # nur "gesetzt" oder "nicht gesetzt".
+    #
+    # Streng gepruefte Form: meldung.sh laeuft auch als root (im
+    # Wartungsfenster) und uebergibt die Adresse an curl. Nur Schema,
+    # Rechner, Port und ein Thema aus Buchstaben, Ziffern, - und _.
+    MELDEKANAL_FORM = re.compile(
+        r"https?://[A-Za-z0-9.-]{1,253}(:[0-9]{1,5})?/[A-Za-z0-9_-]{1,64}")
+
+    @app.post("/api/meldekanal")
+    async def meldekanal_setzen(daten: dict):
+        adresse = str(daten.get("ntfy") or "").strip()
+        datei = basis / "meldung.json"
+        if adresse and not MELDEKANAL_FORM.fullmatch(adresse):
+            return JSONResponse({"grund": "form"}, status_code=400)
+        try:
+            if not adresse:
+                datei.unlink(missing_ok=True)
+            else:
+                # Erst eine Nebendatei mit 600, dann umbenennen: zu
+                # keinem Zeitpunkt steht das Thema lesbar fuer alle da.
+                neu = datei.with_suffix(".json.neu")
+                fd = os.open(neu, os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
+                             0o600)
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    json.dump({"ntfy": adresse}, f)
+                os.chmod(neu, 0o600)
+                os.replace(neu, datei)
+        except OSError as e:
+            print(f"Meldekanal nicht schreibbar: {type(e).__name__}")
+            return JSONResponse({"grund": "nicht_schreibbar"},
+                                status_code=500)
+        print(f"Meldekanal {'gesetzt' if adresse else 'entfernt'} "
+              f"(am Pult).")
+        return {"gesetzt": bool(adresse)}
+
     # ------------------------------------------------------------ Update
     # Was das Update per USB-Stick zuletzt gemacht hat. Geschrieben wird
     # die Datei von stick_update.sh, hier wird sie nur gelesen: ueber
@@ -6125,7 +6310,7 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
 
     @app.post("/api/update/online")
     async def update_online(request: Request):
-        """Stoesst ein Update ueber das Netz an. Nur am Gemeinderechner.
+        """Stoesst ein Update ueber das Netz an.
 
         DER SERVER BEKOMMT DAFUER KEIN RECHT. Er legt eine Datei in
         seinem eigenen Ordner an -- update/online-jetzt --, und
@@ -6133,13 +6318,11 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         danach. Kein sudo, kein Parameter, den jemand unterschieben
         koennte. Derselbe Weg, den der Stick-Knopf seit 0.2.12 geht.
 
-        Ausdruecklich NICHT per Pult-Passwort aus dem Saal: das
-        Passwort ginge dort unverschluesselt ueber HTTP. Wer per
-        RustDesk auf den Bildschirm des Rechners sieht, bedient einen
-        Browser, der auf dem Rechner laeuft -- fuer den Server ist das
-        Loopback, und damit gilt er als am Rechner."""
-        if not nur_am_rechner(request):
-            return JSONResponse({"grund": "nur_am_rechner"}, status_code=403)
+        Bis zum 28.10.2026 nur am Gemeinderechner selbst; seitdem auch
+        vom Handy, geschuetzt allein durch das Pult-Passwort. Was das
+        Update holt, bleibt dabei dasselbe: nur signierte Tags, gegen
+        schluessel.erlaubt geprueft, mit Ruecksprung. Wer den Knopf
+        drueckt, kann also den Zeitpunkt waehlen, nicht den Inhalt."""
         if lauf.laeuft:
             return JSONResponse({"grund": "uebersetzung"}, status_code=409)
         # Ein zweiter Klick waehrend eines Laufs startet nichts Neues.
@@ -6174,6 +6357,10 @@ def app_bauen(lauf, basis, port=8000, tonquelle=None, kanalscan=None):
         seite = web_lesen("pult.html")
         if seite is None:
             return fehlende_datei_seite("pult.html")
+        # Wie bei client.html (0.5.0): das Pult traegt seine Fassung in
+        # sich und laedt sich neu, wenn der Server spaeter eine andere
+        # meldet (0.5.2). Ersetzt wird hier und nicht in der Datei.
+        seite = seite.replace("<!--FASSUNG-->", config.VERSION, 1)
         return ausliefern(request, seite, "text/html; charset=utf-8")
 
     # Einmal beim Start nachsehen, wie der Rechner eingestellt ist.
@@ -6293,34 +6480,48 @@ def logo_datenadresse(basis):
 
 # ================================================================
 
-def ollama_abwarten(frist=90.0):
-    """Wartet, bis Ollama antwortet. Gibt zurueck, ob es soweit ist.
+def sprachmodell_abwarten(frist=90.0):
+    """Wartet, bis ein Sprachmodell-Server mit Modell antwortet.
 
-    Im Systemdienst reicht After=ollama.service nicht: systemd haelt eine
+    Zurueck kommt die Lage aus sprachmodell.erkennen() -- auch wenn die
+    Frist ablaeuft. Bis zum 28.10.2026 hiess das ollama_abwarten und
+    kannte nur Ollama.
+
+    Im Systemdienst reicht After= nicht: systemd haelt eine
     Type=simple-Unit fuer gestartet, sobald der Prozess exec\'t ist, nicht
     wenn die Schnittstelle antwortet. Ohne dieses Warten scheitert nach
     dem Einschalten die erste Uebersetzung -- also die im Gottesdienst.
 
     Laeuft die Frist ab, geht es trotzdem weiter: Untertitel, Pult und
-    Einrichtung funktionieren auch ohne Ollama. Ein Abbruch waere die
-    schlechtere Antwort -- dann kaeme der Techniker nicht einmal ans Pult,
-    um nachzusehen."""
+    Einrichtung funktionieren auch ohne Sprachmodell, und das Pult sagt,
+    was fehlt. Ein Abbruch waere die schlechtere Antwort -- dann kaeme
+    der Techniker nicht einmal ans Pult, um nachzusehen. Ebenso bei
+    einem FALSCHEN Server (antwortet, aber ohne das Modell): kein
+    Abbruch, eine Meldung."""
     import requests
+    import sprachmodell
+    # Nur fuer Pruefstaende: 90 Sekunden Warten auf einen Server, den es
+    # dort mit Absicht nicht gibt, kosten sonst jeden Lauf.
+    frist = float(os.environ.get("DEVARENU_SPRACHMODELL_FRIST", frist))
     ende = time.time() + frist
     gemeldet = False
     while True:
         try:
-            if requests.get(config.OLLAMA_URL + "/api/tags", timeout=3).ok:
-                return True
-        except Exception:
-            pass
+            lage = sprachmodell.erkennen(requests)
+        except Exception as e:
+            lage = {"art": "", "grund": "keiner", "adresse": "?",
+                    "modell": "", "fehler": str(e)[:120]}
+        if lage.get("bereit") and lage.get("modell_da"):
+            return lage
         if time.time() >= ende:
-            print(f"\nOllama antwortet nicht auf {config.OLLAMA_URL}. Der "
-                  f"Server laeuft weiter, aber ohne Uebersetzung.")
-            print("  Laeuft der Dienst?  systemctl status ollama\n")
-            return False
+            print(f"\n{sprachmodell.beschreiben(lage)}")
+            if lage.get("grund") == "keiner":
+                print("  Laeuft einer?  systemctl status devarenu-llama "
+                      "ollama\n")
+            return lage
         if not gemeldet:
-            print(f"Warte auf Ollama auf {config.OLLAMA_URL} ...")
+            print(f"Warte auf den Sprachmodell-Server "
+                  f"({sprachmodell.beschreiben(lage)}) ...")
             gemeldet = True
         time.sleep(1.0)
 
@@ -6624,7 +6825,9 @@ def main():
             print(f"\nKein Ton: {grund}")
             print("Am Pult unter Einrichtung ein anderes Geraet waehlen.\n")
 
-    ollama_da = ollama_abwarten()
+    werk.sprachmodell = sprachmodell_abwarten()
+    import sprachmodell
+    modell_satz = sprachmodell.beschreiben(werk.sprachmodell)
 
     import uvicorn
     # Nachfassen, aber nur solange nichts da ist. Mit fest eingebauter
@@ -6658,9 +6861,8 @@ def main():
         threading.Thread(target=adresse_nachtragen,
                          args=(lauf, a.port, ADRESSE_FRIST, adresse_seit),
                          daemon=True).start()
-    print(f"  Modell    {config.LIVE_MODELL}"
-          f"{'  (nur Text)' if a.nur_text else ''}"
-          f"{'' if ollama_da else '  (Ollama antwortet nicht)'}")
+    print(f"  Modell    {modell_satz}"
+          f"{'  (nur Text)' if a.nur_text else ''}")
     print(f"  Fassung   {config.VERSION}")
     print(f"  Rechnet   {werk.rechenwerk}")
     print(f"  Zustand   {woher}")

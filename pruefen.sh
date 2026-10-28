@@ -572,43 +572,54 @@ fi
 
 fi
 
-# ------------------------------------------------------------- Ollama
-blau "Ollama"
+# --------------------------------------------------- Sprachmodell-Server
+# llama-server (devarenu-llama) oder Ollama -- seit dem 28.10.2026.
+# Vorher stand hier nur Ollama; ein Rechner mit llama-server haette
+# "Dienst ollama laeuft nicht" gemeldet und keine Uebersetzung geprueft.
+blau "Sprachmodell-Server"
 
-if [ "$SYSTEMD" != ja ]; then
-  :
-elif systemctl list-unit-files ollama.service >/dev/null 2>&1 && \
-   systemctl cat ollama.service >/dev/null 2>&1; then
-  if systemctl is-active --quiet ollama.service; then
-    gut "Dienst ollama laeuft"
-  else
-    fehl "Dienst ollama laeuft nicht. Starten mit:"
-    info "  sudo systemctl enable --now ollama"
+if [ "$SYSTEMD" = ja ]; then
+  SM_DIENST=""
+  for d in devarenu-llama ollama; do
+    if systemctl cat "$d.service" >/dev/null 2>&1; then
+      if systemctl is-active --quiet "$d.service"; then
+        gut "Dienst $d laeuft"; SM_DIENST="$d"
+      elif systemctl is-enabled --quiet "$d.service" 2>/dev/null; then
+        fehl "Dienst $d ist eingeschaltet, laeuft aber nicht:"
+        info "  systemctl status $d"
+      fi
+    fi
+  done
+  if [ -z "$SM_DIENST" ]; then
+    warn "Kein Sprachmodell-Dienst laeuft (devarenu-llama, ollama). Laeuft"
+    warn "einer anders, ist das in Ordnung -- die naechsten Zeilen entscheiden."
   fi
-else
-  warn "Keine ollama.service gefunden. Laeuft Ollama anders, ist das in"
-  warn "Ordnung -- die naechste Zeile entscheidet."
 fi
 
 mit_python '
 import sys; sys.path.insert(0, ".")
-import config, json, urllib.request
-try:
-    with urllib.request.urlopen(config.OLLAMA_URL + "/api/tags", timeout=5) as a:
-        modelle = [m["name"] for m in json.load(a).get("models", [])]
-except Exception as e:
-    print("FEHL|Ollama antwortet nicht auf %s (%s)" % (config.OLLAMA_URL, str(e)[:60]))
-    print("INFO|Ohne Ollama gibt es keine Uebersetzung. Nachsehen mit:")
-    print("INFO|  systemctl status ollama")
+import requests, sprachmodell
+lage = sprachmodell.erkennen(requests)
+if not lage["art"]:
+    print("FEHL|%s" % sprachmodell.beschreiben(lage))
+    print("INFO|Ohne ihn gibt es keine Uebersetzung. Nachsehen mit:")
+    print("INFO|  systemctl status devarenu-llama ollama")
     raise SystemExit
-print("OK|Ollama antwortet auf %s" % config.OLLAMA_URL)
-gesucht = config.LIVE_MODELL
-if any(m == gesucht or m.split(":")[0] == gesucht.split(":")[0] for m in modelle):
-    print("OK|Modell %s ist da" % gesucht)
+print("OK|%s antwortet auf %s" % (lage["art"], lage["adresse"]))
+if lage["grund"]:
+    print("FEHL|%s" % sprachmodell.beschreiben(lage))
+    if lage["art"] == "ollama":
+        print("INFO|  ollama pull %s" % lage["modell"])
+    print("INFO|Vorhanden waeren: %s" % (", ".join(lage.get("modelle") or []) or "keins"))
 else:
-    print("FEHL|Modell %s fehlt. Holen mit:" % gesucht)
-    print("INFO|  ollama pull %s" % gesucht)
-    print("INFO|Vorhanden waeren: %s" % (", ".join(modelle) or "keins"))
+    print("OK|Modell %s ist da" % lage["modell"])
+karte = sprachmodell.auf_der_karte()
+arten = sorted({a for a, _p, _m in karte})
+if len(arten) > 1:
+    print("FEHL|Ollama UND llama-server halten ein Modell im Grafikspeicher. "
+          "Es darf nur einer laufen.")
+for a, p, m in karte:
+    print("INFO|  auf der Karte: %s (PID %s), %s MB" % (a, p, m))
 '
 
 # --------------------------------------------- Modelle und Stimmen

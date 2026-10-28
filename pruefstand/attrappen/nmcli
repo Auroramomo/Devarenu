@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Attrappe fuer nmcli: ein Wartungs-WLAN "Gastzugang-Pruefstand" mit
+# WPA-Passwort. Jeder Aufruf steht in $NMCLI_PROTOKOLL.
+#
+# Das Passwort gibt sie NUR heraus, wenn jemand ausdruecklich nach
+# Geheimnissen fragt (-s, --show-secrets oder ein Feld mit "psk" im
+# Namen). Ein Server, der das je tut, faellt damit doppelt auf: im
+# Protokoll und, wenn er es weitergibt, an der Zeichenkette im Browser.
+[ -n "${NMCLI_PROTOKOLL:-}" ] && printf '%s\n' "$*" >> "$NMCLI_PROTOKOLL"
+GEHEIM="${NMCLI_GEHEIM:-WartungsGeheim-4711}"
+case " $* " in
+  *" -s "*|*" --show-secrets "*|*".psk"*)
+    printf '%s\n' "$GEHEIM"; exit 0 ;;
+esac
+case "$*" in
+  *"802-11-wireless-security.key-mgmt"*"connection show"*)
+    case "$*" in
+      *Gastzugang-Pruefstand*) printf 'wpa-psk\n'; exit 0 ;;
+      *Offen-Pruefstand*) printf '\n'; exit 0 ;;
+      *) echo "Error: Gastzugang-Unbekannt - no such connection profile." >&2
+         exit 10 ;;
+    esac ;;
+  *"STATE general"*) printf 'connected\n'; exit 0 ;;
+esac
+exit 0

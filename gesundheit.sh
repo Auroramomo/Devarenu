@@ -12,6 +12,7 @@
 #   - der Dienst laeuft
 #   - /api/zustand antwortet binnen 120 Sekunden
 #   - er meldet die erwartete Fassung, falls eine vorgegeben ist
+#   - /pult kommt mit 200 und ist nicht die Fehlerseite (seit 0.5.2)
 #   - der Systemcheck hat keinen NEUEN Fehler, den es vorher nicht gab
 #
 # Der letzte Punkt ist der Grund fuer --vorher: ein Rechner, bei dem
@@ -111,11 +112,42 @@ if [ -n "$ERWARTET" ]; then
   gut "meldet Fassung $ERWARTET"
 fi
 
+# ------------------------------------------------------------- Das Pult
+# Seit 0.5.2 liegt es in web/pult.html und wird bei jedem Aufruf
+# gelesen. Fehlt die Datei, antwortet der Dienst trotzdem auf
+# /api/zustand -- nur das Pult ist eine Fehlerseite, und niemand kommt
+# an die Bedienung. Gefragt wird ueber 127.0.0.1: von dort gilt der
+# Aufruf als "am Rechner", ein Pult-Passwort steht nicht im Weg.
+#
+# 200 UND nicht die Fehlerseite. Die kommt heute mit 500, aber darauf
+# allein soll sich dieser Check nicht verlassen.
+PULT_ANTWORT="$(curl -s -m 10 -w '\n%{http_code}' \
+                "http://127.0.0.1:$PORT/pult" 2>/dev/null)"
+PULT_STATUS="$(printf '%s' "$PULT_ANTWORT" | tail -n 1)"
+if [ "$PULT_STATUS" != 200 ]; then
+  fehl "Das Pult kommt nicht (HTTP ${PULT_STATUS:-keine Antwort})."
+  exit 1
+fi
+if printf '%s' "$PULT_ANTWORT" | grep -q 'pult.html fehlt'; then
+  fehl "Das Pult kommt nicht: web/pult.html fehlt."
+  exit 1
+fi
+gut "Pult antwortet"
+
 # -------------------------------------------------------- Neue Befunde
 # Nur NEUE zaehlen. Ein Rechner ohne Reparaturvorrat war vorher schon
 # ohne Reparaturvorrat -- das ist kein Grund, ein Update zurueckzurollen.
+#
+# Umbenannte Befunde zaehlen als dieselben (0.5.2, 28.10.2026): der
+# Systemcheck sagt "sprachmodell_dienst" statt "dienst_ollama". Die
+# Grundlinie schreibt beim Sprung auf 0.5.2 noch die ALTE Fassung --
+# ohne diese Abbildung haette ein Rechner, auf dem Ollama schon vorher
+# hing, das Update zurueckgerollt.
 if [ -s "$MERKDATEI" ]; then
-  NEU="$(befunde_jetzt | sort | comm -13 "$MERKDATEI" - 2>/dev/null)"
+  NEU="$(befunde_jetzt | sort | comm -13 <(sed \
+           -e 's/^dienst_ollama_tot$/sprachmodell_dienst_tot/' \
+           -e 's/^dienst_ollama$/sprachmodell_dienst/' "$MERKDATEI" | sort) \
+         - 2>/dev/null)"
 else
   NEU="$(befunde_jetzt | sort)"
 fi

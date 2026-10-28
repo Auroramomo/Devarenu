@@ -261,8 +261,15 @@ try:
         pruefe(f"{weg}: anderes ETag -> 200", 200,
                holen(PORT,weg, {"If-None-Match": '"anders"'})[0])
         if datei == "pult.html":
-            pruefe("/pult ist web/pult.html, Byte fuer Byte", True,
-                   inhalt == (WURZEL / "web" / "pult.html").read_bytes())
+            # Seit 0.5.2 setzt der Server die Fassung ein (Selbst-
+            # Neuladen, pult_fassung_test.mjs) -- sonst Byte fuer Byte.
+            fassung = (WURZEL / "VERSION").read_text(encoding="utf-8").strip()
+            pruefe("/pult ist web/pult.html, nur mit eingesetzter Fassung",
+                   True, inhalt == (WURZEL / "web" / "pult.html").read_text(
+                       encoding="utf-8").replace("<!--FASSUNG-->", fassung, 1)
+                   .encode("utf-8"))
+            pruefe("   und die Fassung steht darin", True,
+                   f'const SEITENFASSUNG = "{fassung}";'.encode() in inhalt)
 
     # Die Anmeldung kam schon in 0.5.1 mit 401 und ohne ETag: sie ist
     # eine Antwort auf "du darfst nicht", keine Seite zum Aufheben, und

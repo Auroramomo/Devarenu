@@ -49,6 +49,9 @@ cp "${DEVARENU_START_SH:-$ECHT/start.sh}" "$ORDNER/start.sh"
 for f in server.py zustand.py grafikkarte.py glossar.py bibelstellen.py \
          skript_lesen.py namen_aus_bibel.py laengenfaktor.py tonhelfer.py \
          client.html logo.png glossar.csv; do : > "$ORDNER/$f"; done
+# Seit 0.5.2 fragt start.sh auch nach den Seiten unter web/.
+mkdir -p "$ORDNER/web"
+for f in pult.html anmeldung.html qr.html; do : > "$ORDNER/web/$f"; done
 echo 'GLOSSAR_CSV = "glossar.csv"' > "$ORDNER/config.py"
 
 cat > "$BASIS/attrappe_server.py" <<'PY'

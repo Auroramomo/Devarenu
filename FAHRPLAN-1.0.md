@@ -380,7 +380,7 @@ verlässt.
 | | |
 |---|---|
 | Mitschrift im Protokoll | aus, Schalter am Pult, Systemcheck meldet ihn |
-| Aufnahme | zwei bestätigte Häkchen, sichtbar, Frist sieben Tage, nur am Rechner abrufbar, seit 0.4.0 von Hand löschbar |
+| Aufnahme | zwei bestätigte Häkchen, sichtbar, Frist sieben Tage, abrufbar über das Pult (seit 0.5.2 auch vom Handy, geschützt allein durch das Pult-Passwort), seit 0.4.0 von Hand löschbar |
 | DHCP-Mietliste | im Arbeitsspeicher, nicht im Journal, seit 0.3.8 mit Rechten `0640` |
 | Fehlerbericht | Erlaubnisliste plus Riegel, mit erfundenen Daten geprüft |
 | Pult | freiwilliges Passwort, Vorgabe offen |
@@ -507,7 +507,7 @@ Erwartet wird: keine Änderung.
 ## S2. Qualität im Betrieb
 
 **Stand:** Es gibt keine Messung aus einem echten Gottesdienst. Das
-**Testprotokoll** (seit 0.3.3, am Pult nur am Gemeinde-PC) schreibt je
+**Testprotokoll** (seit 0.3.3, am Pult; seit 0.5.2 auch vom Handy) schreibt je
 Abschnitt den erkannten Satz, jede Übersetzung und die Dauer jedes
 Schrittes — das Werkzeug ist da, benutzt wurde es nicht.
 
@@ -671,8 +671,8 @@ den einen Gemeinderechner.
 
 Dagegen steht einiges: alles ist aufgeschrieben und begründet
 (`AUFSTELLEN.md`, 2000 Zeilen mit der Geschichte jeder Entscheidung),
-56 Prüfstände halten die Zusicherungen fest (Stand 0.5.1: 40 in
-Python, elf in JavaScript, fünf als Shell-Skript), das Repo ist öffentlich
+64 Prüfstände halten die Zusicherungen fest (Stand 0.5.2: 41 in
+Python, 14 in JavaScript, neun als Shell-Skript), das Repo ist öffentlich
 und unter GPLv3, und seit 0.4.0 gibt es eine Erstinstallation für
 Fremde.
 

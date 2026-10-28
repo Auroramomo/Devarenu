@@ -97,17 +97,42 @@ def ollama_attrappe():
     return _ollama_adresse
 
 
-def ollama_umlenken(ordner):
-    """Lenkt config.py einer Wegwerfkopie auf die Attrappe. Nie das Repo."""
+# Seit dem 28.10.2026 sucht der Server zuerst einen llama-server
+# (config.LLAMA_URL, sprachmodell.py). Auf dem Arbeitsrechner laeuft dort
+# womoeglich ein echter -- mit Modell auf der Grafikkarte. Die Kopie
+# fragt darum an einer Adresse, an der sicher niemand antwortet (Port 9,
+# "discard": abgewiesen, sofort), und landet bei der Ollama-Attrappe.
+# Wer den llama-Weg pruefen will, lenkt ausdruecklich um
+# (llama_umlenken).
+LLAMA_ZEILE = 'LLAMA_URL = "http://127.0.0.1:8091"'
+NIRGENDS = "http://127.0.0.1:9"
+
+
+def _zeile_ersetzen(ordner, alt, neu):
     ordner = Path(ordner).resolve()
     if ordner == WURZEL:
-        raise RuntimeError("ollama_umlenken: das ist das Repo, keine Kopie")
+        raise RuntimeError("umlenken: das ist das Repo, keine Kopie")
     datei = ordner / "config.py"
     text = datei.read_text(encoding="utf-8")
-    if text.count(OLLAMA_ZEILE) != 1:
-        raise RuntimeError(f"{datei}: die Zeile {OLLAMA_ZEILE!r} fehlt")
-    datei.write_text(text.replace(
-        OLLAMA_ZEILE, f'OLLAMA_URL = "{ollama_attrappe()}"'), encoding="utf-8")
+    if text.count(alt) != 1:
+        raise RuntimeError(f"{datei}: die Zeile {alt!r} fehlt")
+    datei.write_text(text.replace(alt, neu), encoding="utf-8")
+
+
+def ollama_umlenken(ordner):
+    """Lenkt config.py einer Wegwerfkopie auf die Attrappe. Nie das Repo."""
+    _zeile_ersetzen(ordner, OLLAMA_ZEILE,
+                    f'OLLAMA_URL = "{ollama_attrappe()}"')
+    text = (Path(ordner) / "config.py").read_text(encoding="utf-8")
+    if LLAMA_ZEILE in text:
+        _zeile_ersetzen(ordner, LLAMA_ZEILE, f'LLAMA_URL = "{NIRGENDS}"')
+
+
+def llama_umlenken(ordner, adresse):
+    """Lenkt LLAMA_URL einer Wegwerfkopie auf eine Attrappe (nach
+    ollama_umlenken)."""
+    _zeile_ersetzen(ordner, f'LLAMA_URL = "{NIRGENDS}"',
+                    f'LLAMA_URL = "{adresse}"')
 
 
 def mithoeren(p, name="Server"):

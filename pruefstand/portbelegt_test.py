@@ -43,8 +43,10 @@ try:
     code, text = rufen(PORT, "/api/betriebslage")
     pruefe("/api/betriebslage antwortet", 200, code)
     d = json.loads(text) if code == 200 else {}
-    pruefe("mit allen Teilen", ["dienst", "fenster", "laufart",
-                                "startprotokoll", "wecker"], sorted(d))
+    # meldekanal und wartungs_wlan seit dem 28.10.2026 (nur "gesetzt").
+    pruefe("mit allen Teilen", ["dienst", "fenster", "laufart", "meldekanal",
+                                "startprotokoll", "wartungs_wlan", "wecker"],
+           sorted(d))
     pruefe("dieser Server kommt nicht vom Dienst", "sitzung", d.get("laufart"))
 
     print("\n\033[1m== Ein zweiter Start auf demselben Port\033[0m")

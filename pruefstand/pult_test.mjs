@@ -713,8 +713,12 @@ block("8f. Der Stick-Knopf bleibt aus dem Saal erreichbar");
   p.fenster.unterseiteWaehlen("eUpdate");
   pruefe("der Knopf steckt nicht hinter nur_am_rechner",
          p.g("updateknopf").vorfahren().every(v => !v.hidden));
-  pruefe('aber "Jetzt aus dem Netz" bleibt am Rechner',
-         p.g("onlinereihe").hidden);
+  // Bis zum 28.10.2026 blieb "Jetzt aus dem Netz" am Rechner. Der
+  // Gemeinde-PC laeuft ohne Bildschirm -- seitdem auch dieser Knopf
+  // vom Handy, geschuetzt allein durch das Pult-Passwort.
+  pruefe('und "Jetzt aus dem Netz" ist aus dem Saal ebenso da',
+         p.g("onlinereihe").vorfahren().every(v => !v.hidden)
+         && !p.g("onlinereihe").hidden);
   const quelle = readFileSync(SERVER, "utf8");
   const stelle = quelle.slice(quelle.indexOf('"/api/update/jetzt"'),
                               quelle.indexOf('"/api/update/jetzt"') + 1400);

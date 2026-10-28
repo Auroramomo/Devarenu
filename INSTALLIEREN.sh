@@ -206,20 +206,21 @@ if [ -f firewall.sh ]; then
 fi
 
 # ---------------------------------------------------------------- Dienst
-# Nur auf Nachfrage und mit "nein" als Vorgabe: wer entwickelt, will
-# keinen Dienst, der beim naechsten Einschalten den Port belegt. Fuer den
-# Rechner in der Gemeinde ist es dagegen der Normalfall -- dort meldet
-# sich niemand an und tippt bash start.sh.
+# Mit "ja" als Vorgabe (seit 0.5.2). Fuer den Rechner in der Gemeinde ist
+# der Dienst der Normalfall -- dort meldet sich niemand an und tippt
+# bash start.sh. Bis 0.5.1 war "nein" die Vorgabe, und wer bei der
+# Einrichtung vor Ort einfach Enter drueckte, hatte danach keinen
+# Autostart. Wer entwickelt, tippt n.
 DIENST=0
 if [ -d /run/systemd/system ] && [ -f dienst.sh ]; then
   printf '\n\033[1;34m== Systemdienst\033[0m\n'
   printf '   Soll Devarenu beim Einschalten des Rechners von allein\n'
   printf '   starten und sich nach einem Absturz selbst wieder fangen?\n'
   printf '   Fuer den Rechner in der Gemeinde: ja. Zum Entwickeln: nein.\n\n'
-  read -rp "   Als Systemdienst einrichten? [j/N] " dienstantwort
-  case "${dienstantwort:-n}" in
-    [jJyY]*) bash dienst.sh && DIENST=1 ;;
-    *)       printf '   Gut. Nachholen jederzeit mit: bash dienst.sh\n' ;;
+  read -rp "   Als Systemdienst einrichten? [J/n] " dienstantwort
+  case "${dienstantwort:-j}" in
+    [nN]*) printf '   Gut. Nachholen jederzeit mit: bash dienst.sh\n' ;;
+    *)     bash dienst.sh && DIENST=1 ;;
   esac
 fi
 

@@ -68,8 +68,13 @@ Documentation=https://github.com/Auroramomo/Devarenu
 # Server das Netz zum Starten gar nicht braucht -- er bindet auf
 # 0.0.0.0 und antwortet ab der ersten Sekunde. Deshalb sucht server.py
 # die Adresse stattdessen selbst weiter und traegt sie nach.
-After=network-online.target ollama.service
-Wants=network-online.target ollama.service
+# Der Sprachmodell-Server: Ollama oder (seit 0.5.2) devarenu-llama. Wants=
+# auf eine Unit, die es nicht gibt, ist ohne Wirkung -- auf einem Rechner
+# mit Ollama bleibt also alles, wie es war. Wants und nicht Requires:
+# faellt der Sprachmodell-Server aus, laeuft Devarenu weiter und sagt es
+# am Pult (sprachmodell_abwarten), statt mit ihm zu sterben.
+After=network-online.target ollama.service devarenu-llama.service
+Wants=network-online.target ollama.service devarenu-llama.service
 
 # Gehoert hierher und nicht zu [Service]: dort nimmt systemd den
 # Schluessel still nicht an. Ohne ihn gibt es nach fuenf schnellen

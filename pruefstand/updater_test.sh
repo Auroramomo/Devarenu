@@ -451,10 +451,13 @@ echo "0.3.0" > "$R/VERSION"; echo "neu" > "$R/etwas.txt"
 git -C "$R" add -A >/dev/null; git -C "$R" commit -q -m 0.3.0
 git -C "$R" tag -s v0.3.0 -m "Devarenu 0.3.0"
 
-# Bauen wie zuhause: aus dem Tag, als ZIP, ohne echten Stick.
-ZIP="$BASIS/Devarenu-Stick-v0.3.0.zip"
-BAU="$(cd "$R" && bash stick_bauen.sh --zip "$ZIP" --ohne-wheels 2>&1)" || true
-pruefe "das ZIP wurde gebaut" "ja" "$([ -s "$ZIP" ] && echo ja || echo nein)"
+# Bauen wie zuhause: aus dem Tag, als ZIP, ohne echten Stick. Seit 0.5.2
+# heisst es immer Devarenu-Update.zip -- der Link .../releases/latest/
+# download/Devarenu-Update.zip zeigt so auf die neueste Fassung.
+ZIP="$BASIS/Devarenu-Update.zip"
+BAU="$(cd "$R" && bash stick_bauen.sh --zip "$BASIS" --ohne-wheels 2>&1)" || true
+pruefe "das ZIP wurde gebaut, unter dem festen Namen" "ja" \
+  "$([ -s "$ZIP" ] && echo ja || echo nein)"
 pruefe "die Dateien liegen im ZIP ganz oben" "ja" \
   "$(python3 -m zipfile -l "$ZIP" | grep -q '^upd-dev.txt' && echo ja || echo nein)"
 
@@ -482,6 +485,45 @@ pruefe "die Nutzlast liegt ausserhalb des Projektordners" "ja" \
   "$([ -d "$BASIS/daten12" ] && echo ja || echo nein)"
 pruefe "im Projektordner selbst kein Bundle" "nein" \
   "$([ -f "$R/update/devarenu.bundle" ] && echo ja || echo nein)"
+
+printf '\n\033[1m== 12b) Das ZIP UNAUSGEPACKT auf dem Stick (seit 0.5.2)\033[0m\n'
+# So, wie es der Link auf der Update-Seite liefert: herunterladen, auf
+# den Stick kopieren, fertig. Gepruft wird danach genau wie oben.
+mkdir -p "$R/werkzeuge"
+cp "$ECHT/werkzeuge/update_zip.py" "$R/werkzeuge/"
+git -C "$R" reset -q --hard "$VOR"
+rm -f "$R/update/stand.json"
+STKZ="$BASIS/stick12b"; mkdir -p "$STKZ"; cp "$ZIP" "$STKZ/"
+LESZ="$(cd "$R" && DEVARENU_STICK_ORDNER="$STKZ" DEVARENU_DATEN="$BASIS/daten12b" \
+        STUB_FASSUNG=0.2.12 STUB_LOG="$BASIS/s12b.log" \
+        bash "$R/stick_update.sh" --lesen /dev/attrappe 2>&1)" || true
+pruefe "das ZIP wird erkannt und ausgepackt" "ja" \
+  "$(printf '%s' "$LESZ" | grep -q 'Devarenu-Update.zip auspacken' && echo ja || echo nein)"
+pruefe "die Fassung darin wird gefunden" "ja" \
+  "$(printf '%s' "$LESZ" | grep -q 'nennt Fassung 0.3.0' && echo ja || echo nein)"
+pruefe "die Signatur wird angenommen" "nein" \
+  "$(printf '%s' "$LESZ" | grep -q 'ungueltig' && echo ja || echo nein)"
+pruefe "das Update liegt bereit" "bereit" \
+  "$(sed -n 's/.*"lage"[: ]*"\([a-z_]*\)".*/\1/p' "$R/update/stand.json" 2>/dev/null)"
+pruefe "das Ausgepackte ist wieder weg" "nein" \
+  "$([ -d "$BASIS/daten12b/zip-auspack" ] && echo ja || echo nein)"
+
+# Ein ZIP mit einem Pfadtrick ("../") darf nichts ausserhalb anlegen.
+STKB="$BASIS/stick12c"; mkdir -p "$STKB"
+python3 - "$STKB/Devarenu-Update.zip" <<'BOESE'
+import sys, zipfile
+with zipfile.ZipFile(sys.argv[1], "w") as z:
+    z.writestr("upd-dev.txt", "version=v0.3.0\n")
+    z.writestr("../ausserhalb.txt", "boese\n")
+BOESE
+rm -f "$R/update/stand.json"
+LESB="$(cd "$R" && DEVARENU_STICK_ORDNER="$STKB" DEVARENU_DATEN="$BASIS/daten12c" \
+        STUB_FASSUNG=0.2.12 STUB_LOG="$BASIS/s12c.log" \
+        bash "$R/stick_update.sh" --lesen /dev/attrappe 2>&1)" || true
+pruefe "ein ZIP mit ../ wird abgelehnt" "ja" \
+  "$(printf '%s' "$LESB" | grep -q 'Unzulaessiger Name' && echo ja || echo nein)"
+pruefe "und legt nichts ausserhalb an" "nein" \
+  "$([ -e "$BASIS/daten12c/ausserhalb.txt" ] && echo ja || echo nein)"
 
 printf '\n\033[1m== 13) Ein Stick, der seine eigenen Schluessel mitbringt\033[0m\n'
 # Der Angriff, der am naechstliegenden ist: ein Stick traegt ohnehin eine

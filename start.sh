@@ -61,7 +61,8 @@ PROTOKOLL="$ORDNER/start-protokoll.txt"
 # Betrieb gelten die Vorgaben.
 SYSTEMCTL="${DEVARENU_SYSTEMCTL:-systemctl}"
 # So lange wird auf einen Dienst gewartet, der noch laedt. Nach dem
-# Einschalten braucht er fuer Whisper und Ollama gut eine Minute, auf
+# Einschalten braucht er fuer Whisper und den Sprachmodell-Server
+# (llama-server oder Ollama) gut eine Minute, auf
 # einem kalten Rechner auch zwei.
 LADE_FRIST="${DEVARENU_LADE_FRIST:-180}"
 # So lange darf der Ton nach dem ersten Antworten noch ausbleiben: die
@@ -92,7 +93,8 @@ FEHLEND=""
 for datei in server.py config.py zustand.py grafikkarte.py glossar.py \
              bibelstellen.py \
              skript_lesen.py namen_aus_bibel.py laengenfaktor.py \
-             tonhelfer.py client.html; do
+             tonhelfer.py client.html \
+             web/pult.html web/anmeldung.html web/qr.html; do
   [ -f "$datei" ] || FEHLEND="$FEHLEND $datei"
 done
 

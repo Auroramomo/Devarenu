@@ -19,7 +19,11 @@ import { execFile, execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import { ohneKarte } from "./firefox_ohne_karte.mjs";
 
-const AUSGABE = new URL("../.tmp/hoererbilder", import.meta.url).pathname;
+// HOERER_SPRACHE=ru stellt die Oberflaeche um; die Bilder gehen dann
+// nach .tmp/hoererbilder-ru/.
+const SPRACHE = process.env.HOERER_SPRACHE || "de";
+const AUSGABE = new URL("../.tmp/hoererbilder"
+  + (SPRACHE === "de" ? "" : `-${SPRACHE}`), import.meta.url).pathname;
 const ZWISCHEN = new URL("../.tmp/hoererbilder/bau", import.meta.url).pathname;
 const SEITE = new URL("../client.html", import.meta.url).pathname;
 
@@ -103,7 +107,7 @@ function _stellen(){
     // Abdunkel-Stufe des vorigen.
     try{ localStorage.clear(); Dunkel.setzen(0); }catch(e){}
     rueckmeldungSetzen("(Attrappe)", null);
-    zustand.sprache = "de";
+    zustand.sprache = ${JSON.stringify(SPRACHE)};
     // Druecken wie ein Zuhoerer -- und den Bildschirmwechsel gleich
     // danach SELBST setzen. Der Handler wartet erst auf die
     // Tonfreigabe, und firefox --screenshot knipst vorher.

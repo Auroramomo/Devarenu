@@ -26,7 +26,7 @@
   ],
   "whisper": "large-v3-turbo",
   "sprachmodell": "gemma4:12b",
-  "bytes": 10634770484,
+  "bytes": 18793051083,
   "teile": [
     {
       "art": "stimmen",
@@ -393,6 +393,24 @@
       "pfad": "blobs/sha256-c805f5b265d8e695c44f4065dfc368206cd8026447604925fef8db57ee32ee23",
       "bytes": 548,
       "sha256": "c805f5b265d8e695c44f4065dfc368206cd8026447604925fef8db57ee32ee23"
+    },
+    {
+      "art": "llama",
+      "pfad": "llama-b11962-bin-ubuntu-cuda-12.8-x64.tar.gz",
+      "bytes": 182526663,
+      "sha256": "a958bb048daedae1afcf3d671dbd9fd8880bdbab01c05a89d1991dcb26e7220d"
+    },
+    {
+      "art": "llama",
+      "pfad": "cudart-llama-b11962-bin-ubuntu-cuda-12.8-x64.tar.gz",
+      "bytes": 594371888,
+      "sha256": "887891567a962026e8eb4430e2e95b169bc8f00cf883ae2f68ce6250005236f9"
+    },
+    {
+      "art": "llama",
+      "pfad": "gemma-4-12b-it-Q4_K_M.gguf",
+      "bytes": 7381382048,
+      "sha256": "1278394b693672ac2799eadc9a83fd98259a6a88a40acfb1dcaa6c6fc895a606"
     }
   ]
 }

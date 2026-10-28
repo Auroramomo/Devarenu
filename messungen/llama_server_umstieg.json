@@ -1,0 +1,42 @@
+{
+ "wozu": "Umstieg Ollama -> llama-server (0.5.2, Nachtrag). B2, B3, B4, B8.",
+ "wann": "2026-10-28",
+ "rechner": "Arbeitsrechner, RTX 5080 16 GB",
+ "modell": "gemma4 12b, Q4_K_M -- Ollama-Blob sha256-1278394b693672ac2799eadc9a83fd98259a6a88a40acfb1dcaa6c6fc895a606 (7381382048 Byte), in beiden Servern dieselbe Datei",
+ "llama_server": "llama.cpp b10269 (Abzweig 'Atomic TurboQuant' des Nutzers, Standard-KV-Cache f16), -ngl 999 -fa on --no-mmproj",
+ "ollama": "0.32.15, OLLAMA_NUM_PARALLEL=4",
+ "weg": "Werk.uebersetzen() wie im Betrieb (Glossar, Bibelstellen, Zaehlung, Fehlformen), temperature 0.1, hoechstens 400 Token, Denken aus",
+ "denken": {
+  "llama_server_ohne_zusatz": {"token": 327, "s": 3.78},
+  "llama_server_chat_template_kwargs_enable_thinking_false": {"token": 22, "s": 0.32},
+  "ollama_v1_ohne_zusatz": {"token": 400, "s": 63.95, "inhalt": "leer (finish=length)"},
+  "ollama_v1_chat_template_kwargs": {"token": 400, "inhalt": "leer -- wird ignoriert"},
+  "ollama_v1_reasoning_effort_none": {"token": 22, "s": 0.31}
+ },
+ "parallel_wandzeit_s_mittel": {
+  "testsaetze": "testsaetze_v0.4.csv, 40 Saetze, Wandzeit je Satz bis die langsamste Sprache fertig ist",
+  "llama_np3_c2048": {"mib": 8986, "1": 0.385, "3": 0.748, "4": 1.211},
+  "llama_np3_c4096": {"mib": 9084, "1": 0.385, "3": 0.750, "4": 1.220},
+  "llama_np4_c2048": {"mib": 9498, "1": 0.386, "3": 0.748, "4": 0.929},
+  "llama_np4_c4096": {"mib": 9628, "1": 0.385, "3": 0.749, "4": 0.958},
+  "ollama_np4": {"mib": 10762, "1": 0.368, "3": 0.942, "4": 0.968},
+  "router_gemma-12b_unsloth_qat_ud_q4_k_xl": {"mib": 8014, "1": 0.392, "3": 0.839, "4": 1.016}
+ },
+ "festgelegt": "-np 4 -c 16384 (4096 je Platz)",
+ "echter_lauf": {
+  "quelle": "predigt2.mp3, 240 s, de -> en, ru, fa, Whisper large-v3-turbo cuda float16, Piper",
+  "abschnitte": 52,
+  "gesamt_s_je_abschnitt": {"mittel": 0.927, "median": 0.871, "p90": 1.217, "max": 2.114},
+  "stt_s": {"mittel": 0.122, "median": 0.102},
+  "mt_s": {"en": 0.518, "ru": 0.537, "fa": 0.561},
+  "grafikspeicher_mib": {"llama_server": 9644, "devarenu_whisper": 2356, "karte_spitze_mit_desktop": 13846}
+ },
+ "qualitaet_llama_gegen_ollama": {
+  "testsaetze_wortgleich": {"en": "32/40", "ru": "27/40", "fa": "25/40"},
+  "glossar_zielbegriffe": "162 geprueft, 1 verschieden (T38 fa 'دل': nur llama-server traf)",
+  "bibelstellen_zahlen_und_trenner": "39/40 gleich; fa 1. Samuel 15,22: llama '15:22', Ollama '15، 22'",
+  "fehlformen_uk": "F04 'Вечернею' in beiden Laeufen, in beiden im zweiten Versuch behoben",
+  "fallstricke_uk": "8 Faelle, Wortlaut bis auf F06 gleich"
+ },
+ "gegen_messung_2026-09-28": "bibelstellen_trenner.json: 18/40 wortgleich; Unterschiede vor allem durch die seither eingefuehrte Zaehlung (ru Psalm 23 -> Псалтирь 22) und Wortwahl, keine falsche Stellenangabe"
+}

@@ -333,8 +333,11 @@ pruefe("ein haengendes systemctl: keine Angabe", None, bl.dienst())
 pruefe("nach hoechstens der Frist", True, time.monotonic() - t0 < bl.FRIST + 1.5)
 os.environ["PATH"] = alt_pfad
 lage = bl.lage(BASIS)
+# meldekanal und wartungs_wlan seit dem 28.10.2026: nur "gesetzt" oder
+# nicht (pult_handy_test.py prueft, dass nie mehr herausgeht).
 pruefe("lage() liefert alle Teile", sorted(
-    ["dienst", "laufart", "startprotokoll", "fenster", "wecker"]),
+    ["dienst", "laufart", "startprotokoll", "fenster", "wecker",
+     "meldekanal", "wartungs_wlan"]),
     sorted(lage))
 
 print()

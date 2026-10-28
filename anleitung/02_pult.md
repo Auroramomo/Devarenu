@@ -51,8 +51,8 @@ verschwunden, es steht nur nicht mehr dauerhaft offen.
    verschieben sich beim Umstecken.
 2. **Thema und Bibelstellen eintragen.** Unter *Vorbereiten*. Solange
    es fehlt, ist die Kachel *Thema* gelb und der Reiter trägt einen
-   Punkt. Es ist der Unterschied zwischen „Sanballat" und
-   „San Ballard".
+   Punkt. Es ist der Unterschied zwischen „Silas" und
+   „Sie las".
 3. **Sprachen wählen.** *Einrichtung* → *Sprachen*. Nur einschalten,
    was wirklich gebraucht wird — jede zusätzliche Sprache kostet
    Rechenzeit.
@@ -186,6 +186,18 @@ bleiben, wie sie sind; nur der Zusatz *Original* wandert.
   bleibt diese nach dem Zurückstellen angehakt und kostet Rechenzeit.
   Wird sie nicht mehr gebraucht: abwählen.
 
+Seit 0.5.2 sagt das Pult es nach jedem Umstellen in einer Zeile unter
+den Kacheln: *Ukrainisch bleibt angewählt. Nicht mehr gebraucht?
+Abwählen.* Ein Tipp auf **Abwählen** nimmt den Haken heraus. Die Zeile
+verschwindet beim nächsten Klick in der Sprachwahl.
+
+Steht das Pult auf **EN**, heißen die Sprachen englisch — in der
+Auswahl, an den Kacheln und bei den Zuhörern je Sprache. Die Handys
+zeigen jede Sprache weiter in ihrem eigenen Namen.
+
+Nach einem Update lädt sich ein offenes Pult einmal von selbst neu,
+wie die Seite auf den Handys. Der Reiter bleibt.
+
 ## Etwas funktioniert nicht
 
 Am Laptop steht oben rechts **Fehler melden**, am Handy unter
@@ -196,7 +208,7 @@ Am Laptop steht oben rechts **Fehler melden**, am Handy unter
   und die wichtigsten Angaben stehen schon drin, zu schreiben bleibt
   „Was ist passiert?".
 - **Ein zweiter QR-Code**, der den Fehlerbericht aufs Handy lädt. Der
-  ist nötig, weil das Pult meist am Rechner selbst bedient wird: ein
+  ist nötig, wenn das Pult am Rechner oder am Laptop bedient wird: ein
   Download dort kommt nie in die Mail.
 - **Ein Knopf** für denselben Bericht, wenn man am Rechner sitzt.
 

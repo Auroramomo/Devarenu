@@ -27,11 +27,110 @@ lädt sie von den Anbietern, dort gelten deren Bedingungen.
 | numpy | Zahlen | BSD 3-Clause |
 | sounddevice | Toneingang | MIT |
 | websockets | Verbindung zu den Zuhörern | BSD 3-Clause |
-| segno | QR-Codes | siehe Projektseite |
-| python-multipart | Datei-Uploads | siehe Projektseite |
+| segno | QR-Codes | BSD 3-Clause |
+| python-multipart | Datei-Uploads | Apache 2.0 |
+| llama.cpp (`llama-server`) | führt das Übersetzungsmodell aus (seit 0.5.2) | MIT |
+| CUDA-Laufzeit (`cudart`, `cublas`) | Grafikkarte für llama-server und Whisper | NVIDIA-Lizenz — Weitergabe ungeklärt, nicht im öffentlichen ZIP |
 
-Wo „siehe Projektseite" steht, habe ich die Lizenz nicht selbst geprüft.
-Vor einer kommerziellen Nutzung nachsehen.
+Bis zum 28.10.2026 standen segno und python-multipart hier ohne
+geprüfte Lizenz; nachgesehen ist jetzt an den Wheels selbst. Alle mitgezogenen Pakete
+stehen unten unter *Das öffentliche Devarenu-Update.zip*.
+
+## Das öffentliche Devarenu-Update.zip
+
+Geprüft am 28.10.2026 an jeder Datei, die `release_zip.sh` hochladen
+würde — die Wheels selbst geöffnet (METADATA, Lizenzdateien,
+mitgebrachte Bibliotheken), nicht die Projektseiten.
+
+**Was darin liegt**
+
+| Datei | Lizenz |
+|---|---|
+| `devarenu.bundle` — das Repo samt Geschichte | GPLv3 oder später (`COPYING`); bis 0.3.6 MIT. Keine fremden Binärdateien in der ganzen Geschichte: nur Quelltext, eigene Anleitungs-PDFs, `logo.png` |
+| Anleitungs-PDFs im Bundle | eigener Text; eingebettete Schriften DejaVu Sans (Bitstream-Vera-Lizenz) und Noto Naskh Arabic (SIL OFL 1.1) — beide erlauben Einbetten und Weitergabe |
+| `stimmen/*.onnx.json` im Bundle | Piper-Beschreibungen, hier erstellt (siehe *Die ausgelieferten Stimmen*); die Stimmen selbst sind NICHT im ZIP |
+| `bootstrap.sh`, `schluessel.erlaubt`, `upd-dev.txt` | eigene Dateien, GPLv3 |
+| `LIZENZEN.md`, `lizenzen/Apache-2.0.txt` | diese Datei; der Text der Apache-Lizenz für die Wheels, die ihn nicht selbst mitbringen |
+| `wheels/` — 49 der 53 Pakete aus `pakete.sperre` | siehe Tabelle |
+
+**Nicht darin** (`stick_bauen.sh` lässt es weg, `release_zip.sh` sieht
+im fertigen ZIP nach): große Teile (`teile/`: Sprachmodell, Whisper,
+Stimmen — jedes mit eigenen Bedingungen), die CUDA-Laufzeit für
+llama-server und die vier Wheels mit „nein“ unten. Fehlen sie auf dem
+Rechner, holt das Update sie aus der Originalquelle (PyPI, ggml-org)
+gegen die sha256 aus `pakete.sperre` bzw. `teile.json`. Ein privater
+Stick mit allem: `stick_bauen.sh --zip ORDNER --mit-fremdteilen`.
+
+**Die Wheels**
+
+| Paket | Fassung | Lizenz | im ZIP |
+|---|---|---|---|
+| annotated-doc | 0.0.5 | MIT | ja |
+| annotated-types | 0.8.0 | MIT | ja |
+| anyio | 4.15.1 | MIT | ja |
+| av (PyAV) | 18.1.0 | BSD-3-Clause, aber das Wheel bringt **FFmpeg mit libx264 und libx265 (GPL)**, libmp3lame, gnutls u. a. mit — ohne deren Lizenztexte und ohne Quellenangabe | **nein** |
+| certifi | 2026.7.22 | MPL-2.0 (Quelltext liegt im Wheel) | ja |
+| cffi | 2.1.1 | MIT-0 | ja |
+| charset-normalizer | 3.5.1 | MIT | ja |
+| click | 8.5.0 | BSD-3-Clause | ja |
+| ctranslate2 | 4.8.2 | MIT — aber **ohne Lizenztext im Wheel**, und es bringt **libgomp** (GPL-3.0 mit GCC-Laufzeitausnahme) ohne Text mit | **nein** |
+| fastapi | 0.141.1 | MIT | ja |
+| faster-whisper | 1.2.1 | MIT | ja |
+| filelock | 4.0.1 | MIT | ja |
+| flatbuffers | 25.12.19 | Apache-2.0 (Text: `lizenzen/Apache-2.0.txt`, das Wheel bringt keinen mit) | ja |
+| fsspec | 2026.9.0 | BSD-3-Clause | ja |
+| h11 | 0.16.0 | MIT | ja |
+| hf-xet | 1.6.0 | Apache-2.0 | ja |
+| httpcore | 1.0.9 | BSD-3-Clause | ja |
+| httpx | 0.28.1 | BSD-3-Clause | ja |
+| huggingface-hub | 1.32.0 | Apache-2.0 | ja |
+| idna | 3.20 | BSD-3-Clause | ja |
+| markdown-it-py | 4.2.0 | MIT | ja |
+| mdurl | 0.1.2 | MIT | ja |
+| numpy | 2.5.2 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0; bringt libgfortran (GPL-3.0+ mit GCC-Laufzeitausnahme), libquadmath (LGPL-2.1+) und OpenBLAS (BSD) mit — **mit** vollständigen Lizenztexten und Quellenangaben im Wheel | ja |
+| nvidia-cublas-cu12 | 12.8.4.1 | NVIDIA-Lizenz, Weitergabe ungeklärt | **nein** |
+| onnxruntime | 1.30.0 | MIT, `ThirdPartyNotices.txt` im Wheel | ja |
+| packaging | 26.3 | Apache-2.0 OR BSD-2-Clause | ja |
+| pathvalidate | 3.3.1 | MIT | ja |
+| piper-tts | 1.7.0 | **GPL-3.0-or-later**, mit übersetztem espeak-ng; das Wheel sagt nicht, wo der Quelltext liegt (GPLv3 §6) | **nein** |
+| protobuf | 7.36.2 | BSD-3-Clause | ja |
+| pycparser | 3.0 | BSD-3-Clause | ja |
+| pydantic | 2.13.5 | MIT | ja |
+| pydantic-core | 2.46.5 | MIT | ja |
+| pygments | 2.21.0 | BSD-2-Clause | ja |
+| python-multipart | 0.0.32 | Apache-2.0 | ja |
+| pyyaml | 6.0.3 | MIT | ja |
+| regex | 2026.9.10 | Apache-2.0 AND CNRI-Python | ja |
+| requests | 2.34.2 | Apache-2.0 (mit NOTICE) | ja |
+| rich | 15.0.0 | MIT | ja |
+| safetensors | 0.8.0 | Apache-2.0 | ja |
+| segno | 1.6.6 | BSD-3-Clause | ja |
+| sentencepiece | 0.2.2 | Apache-2.0 (Text: `lizenzen/Apache-2.0.txt`) | ja |
+| shellingham | 1.5.4 | ISC | ja |
+| sounddevice | 0.5.6 | MIT (unter Linux ohne mitgebrachtes PortAudio) | ja |
+| starlette | 1.6.0 | BSD-3-Clause | ja |
+| tokenizers | 0.23.2 | Apache-2.0 (Text: `lizenzen/Apache-2.0.txt`) | ja |
+| tqdm | 4.70.1 | MPL-2.0 AND MIT | ja |
+| transformers | 5.16.1 | Apache-2.0 | ja |
+| typer | 0.27.2 | MIT | ja |
+| typing-extensions | 4.16.0 | PSF-2.0 | ja |
+| typing-inspection | 0.4.4 | MIT | ja |
+| urllib3 | 2.8.0 | MIT | ja |
+| uvicorn | 0.52.4 | BSD-3-Clause | ja |
+| websockets | 17.1 | BSD-3-Clause | ja |
+
+**Warum „nein“ bei av, ctranslate2 und piper-tts.** Erlaubt ist die
+Weitergabe dieser Lizenzen grundsätzlich. Aber GPL und LGPL verlangen
+bei Binärdateien den Lizenztext und den Weg zum Quelltext, und MIT den
+Lizenztext — und genau das fehlt in diesen drei Wheels für das, was sie
+mitbringen. numpy zeigt, wie es geht: dort steht beides im Wheel. Statt
+für drei Pakete Quelltexte nachzuliefern, bleiben sie draußen und kommen
+von PyPI, wo Wheel und Quelltext nebeneinander liegen. Ob das streng
+nötig ist, ist eine Rechtsfrage; so ist sie gar nicht erst gestellt.
+
+Die Liste der „nein“ steht maschinenlesbar in `pakete.sperre`
+(`# NICHT OEFFENTLICH: <Grund>`) und wird dort von
+`werkzeuge/sperre_schreiben.py` gesetzt.
 
 ## Zwei Sonderfälle
 
@@ -447,6 +546,13 @@ Bedingungen und verbieten bestimmte Verwendungen. Devarenu liefert das
 Modell nicht mit — `einrichten.sh` holt es über Ollama, und damit
 nimmt es jede Gemeinde selbst entgegen. Das ist der Unterschied
 zwischen Mitliefern und Verweisen, und er ist Absicht.
+
+Seit 0.5.2 nimmt `llama_einrichten.py` das Modell aus der
+Ollama-Ablage des Rechners oder holt es aus der Ollama-Bibliothek —
+weiter ein Verweis. Im öffentlichen Update-ZIP liegt es nie. Auf einem
+**privaten** Stick mit großen Teilen (`--voll`, `--von`) liegt es; wer
+einen solchen Stick weitergibt, gibt die Gemma-Bedingungen mit (sie
+liegen auf ai.google.dev/gemma/terms).
 
 ## Bibelnamen
 

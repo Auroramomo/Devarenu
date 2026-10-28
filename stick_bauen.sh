@@ -7,15 +7,29 @@
 # Ohne --python gilt 3.14 -- die Fassung auf dem Gemeinderechner.
 #   bash stick_bauen.sh /run/media/name/STICK --ohne-wheels
 #
-# OHNE STICK, als ZIP zum Verschicken:
-#   bash stick_bauen.sh --zip ~/Devarenu-Stick-v0.3.0.zip
+# OHNE STICK, als ZIP zum Verschicken oder Hochladen:
+#   bash stick_bauen.sh --zip ~/Ablage
+# schreibt IMMER ~/Ablage/Devarenu-Update.zip (seit 0.5.2 fester Name:
+# github.com/Auroramomo/Devarenu/releases/latest/download/Devarenu-Update.zip
+# zeigt so immer auf die neueste Fassung). Ab 0.5.2 liest der Rechner
+# das ZIP auch UNAUSGEPACKT vom Stick.
 # Die Dateien liegen im ZIP GANZ OBEN, nicht in einem Unterordner.
 # Windows entpackt es dadurch in einen Ordner, der nach dem ZIP heisst,
 # und dieser eine Ordner darf unveraendert auf den Stick. Mit einem
 # Unterordner im ZIP waeren es zwei Ebenen, und der Rechner sucht nur
 # eine tief.
+#
+# OHNE NVIDIA-DATEIEN (0.5.2): Ob man die NVIDIA-Bibliotheken
+# (CUDA-Laufzeit, cublas) weitergeben darf, ist nicht geklaert. Das ZIP
+# enthaelt darum keine Wheels "nvidia_*" und keine CUDA-Laufzeit fuer
+# llama-server. Der Rechner holt sie bei Bedarf aus der Originalquelle
+# (PyPI, ggml-org), gegen sha256. Ein privater Stick mit allem:
+#   bash stick_bauen.sh --zip ~/Ablage --mit-fremdteilen
+#
 #   bash stick_bauen.sh --nur-constraints          nach jeder Aenderung an
 #                                               requirements.txt
+#   bash stick_bauen.sh --nur-sperre               danach: pakete.sperre
+#                                               (jedes Wheel mit sha256)
 #
 # GROSSE TEILE (Sprachmodell, Spracherkennung, Stimmen)
 #   --von v0.2.12   nur das, was sich seit v0.2.12 geaendert hat
@@ -61,26 +75,41 @@ ZIEL_PYTHON=3.14
 # manylinux_2_28 deckt Debian 12 und neuer sowie Ubuntu 22.04 und neuer
 # ab. manylinux2014 steht daneben, weil einige Pakete bis heute nur dafuer
 # bauen; pip nimmt je Paket, was passt.
-ZIEL_PLATTFORM=(--platform manylinux_2_28_x86_64 --platform manylinux2014_x86_64)
+#
+# manylinux_2_27 seit 0.5.2: nvidia-cublas-cu12 12.8 gibt es nur dafuer,
+# und pip nimmt bei ausdruecklichem --platform nur genau die genannten
+# Stufen. CachyOS (glibc 2.4x) traegt alle drei.
+ZIEL_PLATTFORM=(--platform manylinux_2_28_x86_64 --platform manylinux_2_27_x86_64
+                --platform manylinux2014_x86_64)
 WHEELS=ja
 STICK=""
 
 NUR_BEDINGUNGEN=nein
+NUR_SPERRE=nein
+MIT_FREMDTEILEN=nein
 VON=""
 VOLL=nein
 ZIEL_ZIP=""
 ZIP_MODUS=nein
+# Der feste Name (0.5.2). Der Link .../releases/latest/download/<Name>
+# zeigt nur dann immer auf die neueste Fassung, wenn jede Fassung ihr
+# ZIP unter DEMSELBEN Namen anhaengt.
+ZIP_NAME="Devarenu-Update.zip"
+# NVIDIA-Pakete in pakete.sperre. Sie bleiben aus dem oeffentlichen ZIP.
+NVIDIA_MUSTER='nvidia[-_]*'
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --python)           ZIEL_PYTHON="${2:-}"; shift 2 ;;
     --ohne-wheels)      WHEELS=nein; shift ;;
     --nur-constraints)  NUR_BEDINGUNGEN=ja; shift ;;
+    --nur-sperre)       NUR_SPERRE=ja; shift ;;
+    --mit-fremdteilen)  MIT_FREMDTEILEN=ja; shift ;;
     --zip)              ZIEL_ZIP="${2:-}"; shift 2 ;;
     --von)              VON="${2:-}"; shift 2 ;;
     --voll)             VOLL=ja; shift ;;
     -h|--hilfe|--help|-\?)
-                    sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+                    sed -n '2,/^[^#]/p' "$0" | grep '^#' | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*)             fehl "Unbekannt: $1"; exit 1 ;;
     *)              STICK="$1"; shift ;;
   esac
@@ -124,13 +153,49 @@ print(f"   {len(paare)} Pakete, davon {len(direkt & set(paare))} direkt angeford
 PYCODE
   gut "constraints.txt neu geschrieben"
   warn "Der Kommentarkopf der Datei bleibt stehen. Nachsehen, ob er noch stimmt."
+  info "Danach:  bash stick_bauen.sh --nur-sperre"
+  exit 0
+fi
+
+# ---------------------------------------------------------------- Sperre
+# pakete.sperre: JEDES Wheel fuer die Zielfassung mit seiner sha256
+# (0.5.2). Das Update installiert mit "pip --require-hashes" aus dieser
+# Liste, und die Liste liegt im SIGNIERTEN Baum. Ein manipuliertes Wheel
+# auf einem Stick oder im ZIP faellt damit an der Pruefsumme durch --
+# bis 0.5.1 genuegte der passende Name.
+#
+# Dazu nvidia-cublas-cu12: ctranslate2 (Whisper) braucht libcublas aus
+# der venv (grafikkarte.vorladen). Bis 0.5.1 kam es nur mit torch aus
+# einrichten.sh, und ein beim Update neu gebautes venv stand ohne da --
+# Whisper waere auf die CPU gefallen.
+NVIDIA_ZUSATZ="nvidia-cublas-cu12==12.8.4.1"
+if [ "$NUR_SPERRE" = "ja" ]; then
+  blau "pakete.sperre fuer Python $ZIEL_PYTHON"
+  ZWISCHEN="$(mktemp -d)"
+  trap 'rm -rf "$ZWISCHEN"' EXIT INT TERM
+  printf '%s\n' "$NVIDIA_ZUSATZ" > "$ZWISCHEN/zusatz.txt"
+  pip download -r requirements.txt -c constraints.txt -r "$ZWISCHEN/zusatz.txt" \
+    -d "$ZWISCHEN/wheels" --only-binary=:all: --python-version "$ZIEL_PYTHON" \
+    "${ZIEL_PLATTFORM[@]}" 2>&1 | tail -3 | sed 's/^/   /'
+  ls "$ZWISCHEN"/wheels/*.whl >/dev/null 2>&1 || {
+    fehl "pip hat nichts geholt. Oben nachlesen."; exit 1; }
+  python3 "$ORDNER/werkzeuge/sperre_schreiben.py" "$ZWISCHEN/wheels" \
+    pakete.sperre || exit 1
+  gut "pakete.sperre neu geschrieben -- gehoert in den Commit vor dem Tag"
   exit 0
 fi
 
 # ------------------------------------------------------------- Ziel
 if [ -n "$ZIEL_ZIP" ]; then
   [ -z "$STICK" ] || { fehl "Entweder ein Stick ODER --zip, nicht beides."; exit 1; }
-  case "$ZIEL_ZIP" in *.zip) ;; *) ZIEL_ZIP="$ZIEL_ZIP.zip" ;; esac
+  # Immer derselbe Name (0.5.2). Wer noch einen Dateinamen angibt,
+  # bekommt dessen Ordner.
+  case "$ZIEL_ZIP" in
+    *.zip) warn "Das ZIP heisst immer $ZIP_NAME -- abgelegt in $(dirname "$ZIEL_ZIP")"
+           ZIEL_ZIP="$(dirname "$ZIEL_ZIP")" ;;
+  esac
+  mkdir -p "$ZIEL_ZIP" || { fehl "$ZIEL_ZIP laesst sich nicht anlegen"; exit 1; }
+  ZIEL_ZIP="$(cd "$ZIEL_ZIP" && pwd)/$ZIP_NAME"
   ZIP_MODUS=ja
   # Gebaut wird in einen Wegwerfordner; ins ZIP kommt sein INHALT.
   ZIP_BAU="$(mktemp -d)"
@@ -297,11 +362,40 @@ if [ "$WHEELS" = "ja" ]; then
   # vierzig mitgezogenen Pakete auf dem Stick landet.
   BEDINGUNG=""
   [ -f constraints.txt ] && BEDINGUNG="-c constraints.txt"
-  if pip download -r requirements.txt $BEDINGUNG -d "$STICK/wheels" \
+  # Seit 0.5.2 genau nach pakete.sperre, mit --require-hashes: auf den
+  # Stick kommt Byte fuer Byte, was der Gemeinderechner gegen dieselbe
+  # Liste prueft. Ohne Sperre (aeltere Tags) wie bisher.
+  if [ -f pakete.sperre ]; then
+    QUELLE_WHEELS=(-r pakete.sperre --require-hashes --no-deps)
+  else
+    QUELLE_WHEELS=(-r requirements.txt $BEDINGUNG)
+  fi
+  if pip download "${QUELLE_WHEELS[@]}" -d "$STICK/wheels" \
        --only-binary=:all: \
        --python-version "$ZIEL_PYTHON" \
        "${ZIEL_PLATTFORM[@]}" 2>&1 | sed 's/^/   /'; then
     gut "$(find "$STICK/wheels" -name '*.whl' | wc -l) Pakete, $(du -sh "$STICK/wheels" | cut -f1)"
+    if [ "$MIT_FREMDTEILEN" != ja ]; then
+      # Was nicht weitergegeben werden darf oder soll, bleibt draussen:
+      # NVIDIA (ungeklaert) und Pakete mit GPL-Binaerteilen ohne
+      # Lizenztext oder Quellenangabe. Die Liste steht in pakete.sperre
+      # ("# NICHT OEFFENTLICH", Gruende in LIZENZEN.md). Der Rechner
+      # holt sie bei Bedarf von PyPI, gegen die sha256 aus der Sperre.
+      N_RAUS=0
+      if [ -f pakete.sperre ]; then
+        for n in $(python3 "$ORDNER/werkzeuge/sperre_pruefen.py" \
+                     --nicht-oeffentlich pakete.sperre); do
+          for w in "$STICK"/wheels/*.whl; do
+            b="$(basename "$w")"
+            if [ "$(printf '%s' "${b%%-*}" | tr 'A-Z.-' 'a-z__')" = "$n" ]; then
+              rm -f "$w"; N_RAUS=$((N_RAUS + 1))
+            fi
+          done
+        done
+      fi
+      find "$STICK/wheels" -name "$NVIDIA_MUSTER" -delete
+      gut "$N_RAUS Pakete herausgenommen (nicht oeffentlich, siehe LIZENZEN.md)"
+    fi
   else
     fehl "pip konnte nicht alle Pakete fuer Python $ZIEL_PYTHON holen."
     echo "   Steht oben ein Paketname: fuer diese Zielfassung gibt es kein"
@@ -324,6 +418,23 @@ blau "Ausloeser und Erstinstallation"
 # Gemeinde.
 printf 'version=%s\n' "$TAG" > "$STICK/upd-dev.txt"
 gut "upd-dev.txt  ($(cat "$STICK/upd-dev.txt"))"
+
+# Die Lizenzen lesbar daneben (0.5.2), nicht nur im Bundle: wer das ZIP
+# bekommt, bekommt die Bedingungen der Pakete darin mit. Aus dem TAG,
+# nicht aus dem Arbeitsbaum. lizenzen/ traegt die Volltexte, die einige
+# Wheels nicht selbst mitbringen (Apache-2.0).
+if git show "$TAG:LIZENZEN.md" > "$STICK/LIZENZEN.md.neu" 2>/dev/null; then
+  mv "$STICK/LIZENZEN.md.neu" "$STICK/LIZENZEN.md"; gut "LIZENZEN.md"
+else
+  rm -f "$STICK/LIZENZEN.md.neu"
+fi
+if git cat-file -e "$TAG:lizenzen" 2>/dev/null; then
+  mkdir -p "$STICK/lizenzen"
+  for f in $(git ls-tree --name-only "$TAG" lizenzen/); do
+    git show "$TAG:$f" > "$STICK/$f"
+  done
+  gut "lizenzen/ ($(ls "$STICK/lizenzen" | wc -l) Volltexte)"
+fi
 
 if [ -f bootstrap.sh ]; then
   cp bootstrap.sh "$STICK/bootstrap.sh"
@@ -352,6 +463,13 @@ if [ "$VOLL" = ja ] || [ -n "$VON" ]; then
        ${VON:+--von "$VON"} ${VOLL:+--voll}; then
     fehl "Die grossen Teile liessen sich nicht zusammenstellen."
     exit 1
+  fi
+  if [ "$MIT_FREMDTEILEN" != ja ] && [ -d "$STICK/teile/llama" ]; then
+    # Die CUDA-Laufzeit fuer llama-server ist NVIDIA-Code (cudart,
+    # cublas). Wie bei den Wheels: draussen; llama_einrichten.py holt
+    # sie bei ggml-org, gegen die sha256 aus teile.json.
+    find "$STICK/teile/llama" -name 'cudart-*' -delete
+    gut "CUDA-Laufzeit fuer llama-server herausgenommen (Weitergabe ungeklaert)"
   fi
   gut "teile/ ($(du -sh "$STICK/teile" 2>/dev/null | cut -f1))"
 else
@@ -388,9 +506,15 @@ PYCODE
 
   blau "Fertig"
   cat <<ENDE
-   Im ZIP liegt Devarenu $VERSION ($TAG).
+   Im ZIP liegt Devarenu $VERSION ($TAG)$( [ "$MIT_FREMDTEILEN" = ja ] \
+     && echo ", MIT NVIDIA-Dateien -- nur privat weitergeben" \
+     || echo ", ohne NVIDIA-Dateien")).
 
-   So kommt es auf den Stick:
+   Ab 0.5.2 auf dem Rechner: das ZIP UNAUSGEPACKT oben auf den Stick
+   kopieren. Fertig.
+
+   Rechner vor 0.5.2 (Rostock steht bis zum Update auf 0.5.1) kennen
+   das ZIP noch nicht. Dort so:
      1. ZIP auf den Windows-Rechner kopieren.
      2. Rechtsklick -> "Alle extrahieren".
      3. Den entstandenen Ordner OEFFNEN und die vier Dateien darin

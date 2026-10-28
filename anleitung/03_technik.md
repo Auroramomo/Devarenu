@@ -18,12 +18,15 @@ Darunter: ob dieses Pult vom Dienst kommt oder vom Schreibtischsymbol,
 und die letzten zehn Doppelklicks auf das Symbol mit dem, was es
 jeweils getan hat.
 
-Steht dort **Autostart: aus**, startet Devarenu nach dem Einschalten
-nicht von selbst. Eingeschaltet wird das nur am Rechner, von Hand:
+Steht dort **Autostart: aus** (oder *Dienst: nicht eingerichtet*),
+startet Devarenu nach dem Einschalten nicht von selbst. Darunter steht
+seit 0.5.2 der Befehl, der das ändert — mit dem Ordner, in dem
+Devarenu auf diesem Rechner liegt, etwa:
 
-    sudo systemctl enable devarenu
+    bash ~/Devarenu/dienst.sh
 
-Das Pult schaltet nichts ein, auch kein Update tut es.
+Abgetippt wird er am Rechner selbst, in einem Terminal; er fragt nach
+dem Passwort. Das Pult schaltet nichts ein, auch kein Update tut es.
 
 ### Das Schreibtischsymbol
 
@@ -80,6 +83,18 @@ Zum Verschicken:
 
 ## Update per USB-Stick
 
+Die neueste Fassung liegt immer unter
+
+    https://github.com/Auroramomo/Devarenu/releases/latest/download/Devarenu-Update.zip
+
+— am Pult unter *Einrichtung → Update* auch als QR-Code. Seit 0.5.2
+genügt es, diese Datei **so, wie sie ist** (nicht auspacken), oben auf
+einen USB-Stick zu kopieren. Rechner vor 0.5.2 brauchen sie ausgepackt.
+
+Das ZIP enthält keine NVIDIA-Dateien. Braucht der Rechner welche, holt
+er sie selbst aus der Originalquelle, sobald er Internet hat, und prüft
+jede gegen ihre Prüfsumme. Ohne Internet steht am Pult, was fehlt.
+
 1. Stick einstecken. Der Rechner erkennt ihn selbst.
 2. Warten. Eingespielt wird erst, wenn die Übersetzung angehalten ist
    und zwanzig Minuten niemand mehr zugehört hat.
@@ -98,6 +113,16 @@ Der Rechner stellt den vorigen Stand selbst wieder her: Code, Dienste,
 und die Einstellungen, falls das Update sie angefasst hat. Danach steht
 am Pult, was passiert ist und welche Fassung wieder läuft. Es ist kein
 Handgriff nötig.
+
+Als gescheitert gilt ein Update auch, wenn danach das **Pult** nicht
+kommt (seit 0.5.2) — der Rechner prüft es nach jedem Update mit.
+
+Den **Grund** eines Fehlschlags zeigt *Einrichtung → Update* seit 0.5.2
+auf jedem Weg: Stick, Wartungsfenster, der Knopf *Jetzt aus dem Netz*
+und `bash aktualisieren.sh` von Hand — auch wenn es schon vor dem
+Einspielen scheitert, etwa an der Signatur. Ein Update von Hand meldet
+sein Ergebnis außerdem über denselben Kanal wie das Wartungsfenster,
+wenn er eingerichtet ist (`meldung.json`).
 
 ### Das letzte Wartungsfenster und der Wecker
 
@@ -144,8 +169,8 @@ wäre schlimmer als keine.
 
 Zwei Wege, je nachdem, wo man steht:
 
-- **Am Rechner:** Knopf *Fehlerbericht herunterladen*, dann an die Mail
-  hängen.
+- **Am Rechner oder am Laptop:** Knopf *Fehlerbericht herunterladen*,
+  dann an die Mail hängen.
 - **Mit dem Handy:** den zweiten QR-Code scannen. Das Handy lädt den
   Bericht über das Saalnetz und kann ihn später anhängen, wenn es
   wieder Internet hat.
@@ -170,6 +195,16 @@ auf jedem Handy im Saal, wie bei der Aufnahme und beim Testprotokoll.
 kann das Pult öffnen und bedienen. In einer kleinen Gemeinde ist das oft
 richtig — ein Passwort, das sonntags getippt werden muss, landet sonst
 als Zettel am Bildschirm.
+
+Der Gemeinde-PC läuft ohne Bildschirm. Darum geht seit 0.5.2 **alles
+vom Handy**, was vorher nur am Rechner selbst ging: Aufnahmen abrufen
+und löschen, ihre Frist, das Testprotokoll, die Mitschrift und der Knopf
+*Jetzt aus dem Netz aktualisieren*. Geschützt ist das allein durch das
+Pult-Passwort.
+
+Ohne Pult-Passwort kann jeder im Saal-WLAN das Pult bedienen, auch die
+Aufnahmen. Wer Aufnahmen macht, sollte ein Pult-Passwort setzen. Das
+Passwort geht über HTTP unverschlüsselt durchs Saal-WLAN.
 
 Wer es anders will, trägt unter *Einrichtung*, ganz unten, eines ein.
 Dann gilt:
@@ -202,6 +237,52 @@ neues setzen. **Ein Neustart ist nicht nötig** — der Dienst merkt die
 
 Setzen geht dort absichtlich nicht: ein Passwort in der Kommandozeile
 landet in der Verlaufsdatei der Shell.
+
+## Meldekanal und Wartungs-WLAN
+
+Unter *Einrichtung → Update* steht, ob ein **Meldekanal** (ntfy) und ein
+**Wartungs-WLAN** eingetragen sind — nur „gesetzt“ oder „nicht
+gesetzt“. Den Kanal selbst und das WLAN-Passwort zeigt das Pult nie,
+auch nicht verdeckt.
+
+- **Meldekanal ändern:** neue Adresse ins Feld, *Ändern*. Das Feld
+  bleibt danach leer. Ein leeres Feld entfernt den Kanal (mit
+  Rückfrage).
+- **WLAN-Passwort ändern** geht nicht über das Pult: es steht in der
+  Netzwerkverwaltung des Rechners, und die ändert nur root. Am Rechner,
+  auch per Fernwartung:
+
+      sudo nmcli connection modify "Profilname" wifi-sec.psk "neues Passwort"
+
+Der Knopf *Jetzt aus dem Netz aktualisieren* sagt ohne Internet klar
+**Kein Internet** — ob das Wartungs-WLAN nicht verbunden werden konnte,
+die Verbindung nicht ins Internet führt oder der Update-Server nicht
+antwortet. Geändert wird dann nichts.
+
+## Der Sprachmodell-Server
+
+Übersetzt wird seit 0.5.2 über **llama-server** (llama.cpp) oder, wie
+bisher, über **Ollama**. Devarenu nimmt, was es vorfindet — erst
+llama-server, dann Ollama. Ein Update schaltet nichts um.
+
+Antwortet keiner, oder fehlt dort das Modell, startet Devarenu trotzdem:
+Pult und Untertitel in der Ausgangssprache laufen, und hinter der
+Statuspille steht, was fehlt. Nachsehen mit:
+
+    systemctl status devarenu-llama ollama
+    bash pruefen.sh
+
+Es darf immer nur **einer** laufen: zwei Sprachmodelle passen nicht
+neben Whisper in 16 GB. Der Systemcheck meldet es, wenn doch.
+
+**Der Umstieg geschieht beim Update auf 0.5.2 von selbst** — auf jedem
+Weg, auch per Stick. Devarenu richtet llama-server ein, prüft mit einer
+echten Übersetzung, und schaltet Ollama erst danach ab (ohne es zu
+deinstallieren). Klappt die Probe nicht, bleibt Ollama, und unter
+*Einrichtung → Update* steht der Grund. Ohne Internet und ohne Stick
+wird es beim nächsten Update wieder versucht. Von Hand:
+
+    sudo bash dienst.sh --llama
 
 ## Was die Technik nicht anfassen muss
 

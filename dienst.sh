@@ -6,6 +6,9 @@
 #   bash dienst.sh --status     nachsehen, was er macht
 #   bash dienst.sh --stick      nur das Update per USB-Stick einrichten
 #   bash dienst.sh --fenster    nur das Wartungsfenster einrichten
+#   bash dienst.sh --llama      llama-server einrichten (wie beim Update:
+#                               llama_einrichten.py; Ollama erst nach
+#                               bestandener Probe ab)
 #
 # Gedacht fuer den Rechner in der Gemeinde: headless, niemand meldet sich
 # an, nach dem Einschalten muss der Server von allein hochkommen. Wer
@@ -188,6 +191,21 @@ fenster_einrichten() {
   return 0
 }
 
+# --------------------------------------------------------------- llama
+# Der Sprachmodell-Server llama-server (0.5.2). Derselbe Weg wie beim
+# Update: llama_einrichten.py -- Archiv nach /opt/devarenu-llama, Modell
+# aus der Ollama-Ablage oder geladen, Unit, Probe, und erst danach
+# Ollama ab (nicht deinstalliert). Ein zweiter Aufruf erkennt den
+# fertigen Zustand.
+#
+#   sudo bash dienst.sh --llama
+if [ "${1:-}" = "--llama" ]; then
+  blau "llama-server (Sprachmodell)"
+  (cd "$ORDNER" && sudo "$ORDNER/.venv/bin/python" \
+     "$ORDNER/llama_einrichten.py") | sed 's/^ERGEBNIS|/   /'
+  exit "${PIPESTATUS[0]}"
+fi
+
 if [ "${1:-}" = "--stick" ]; then
   stick_einrichten
   exit $?
@@ -258,11 +276,15 @@ else
   warn "  sudo usermod -aG audio $BENUTZER"
 fi
 
-if systemctl list-unit-files 2>/dev/null | grep -q '^ollama\.service'; then
+# Der Sprachmodell-Server: devarenu-llama (llama-server) oder Ollama.
+if systemctl list-unit-files 2>/dev/null | grep -q '^devarenu-llama\.service'; then
+  gut "devarenu-llama.service ist bekannt (llama-server)"
+elif systemctl list-unit-files 2>/dev/null | grep -q '^ollama\.service'; then
   gut "ollama.service ist bekannt"
 else
-  warn "Kein ollama.service gefunden. Ohne Ollama gibt es keine"
-  warn "Uebersetzung, nur Untertitel in der Ausgangssprache."
+  warn "Kein Sprachmodell-Server gefunden (devarenu-llama, ollama). Ohne"
+  warn "ihn gibt es keine Uebersetzung, nur Untertitel in der"
+  warn "Ausgangssprache. Einrichten: sudo bash dienst.sh --llama"
 fi
 
 command -v nvidia-smi >/dev/null && gut "NVIDIA-Treiber vorhanden" \

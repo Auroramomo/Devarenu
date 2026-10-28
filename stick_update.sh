@@ -370,6 +370,46 @@ stick_lesen() {
   fi
 
   ausloeser="$(printf '%s' "$treffer" | head -1)"
+
+  # Seit 0.5.2: ein Devarenu-Update.zip, UNAUSGEPACKT auf dem Stick --
+  # so, wie es der Link auf der Update-Seite liefert. Nur, wenn kein
+  # ausgepackter Stand daliegt (der hat Vorrang). Ausgepackt wird in die
+  # root-eigene Ablage, und von da an gilt dasselbe wie fuer einen
+  # ausgepackten Stick: Signatur des Bundles, sha256 der Wheels
+  # (pakete.sperre) und der grossen Teile (teile.json).
+  if [ -z "$ausloeser" ]; then
+    local zips zip_anzahl
+    zips="$(find "$EINHAENGEPUNKT" -maxdepth 2 -iname 'Devarenu-Update.zip' \
+            -type f 2>/dev/null | sort)"
+    zip_anzahl="$(printf '%s' "$zips" | grep -c . || true)"
+    if [ "$zip_anzahl" -gt 1 ]; then
+      fehl "Auf dem Stick liegen $zip_anzahl Dateien Devarenu-Update.zip."
+      stand_schreiben mehrdeutig "" \
+        "Auf dem Stick liegen $zip_anzahl Dateien Devarenu-Update.zip. Nur eine daraufkopieren und noch einmal einstecken."
+      exit 1
+    fi
+    if [ "$zip_anzahl" = 1 ]; then
+      blau "Devarenu-Update.zip auspacken"
+      mkdir -p "$DATEN"; ablage_rechte
+      rm -rf "$DATEN/zip-auspack"
+      mkdir -m 700 "$DATEN/zip-auspack"
+      local zip_aus
+      zip_aus="$("$PY" "$ORDNER/werkzeuge/update_zip.py" "$zips" \
+                 "$DATEN/zip-auspack" 2>&1)"
+      if [ $? != 0 ]; then
+        fehl "Das ZIP laesst sich nicht verwenden: $zip_aus"
+        rm -rf "$DATEN/zip-auspack"
+        stand_schreiben unlesbar "" \
+          "Devarenu-Update.zip auf dem Stick laesst sich nicht verwenden. $(printf '%s' "$zip_aus" | tail -1 | tr -d '"\\')"
+        exit 1
+      fi
+      ausloeser="$(printf '%s' "$zip_aus" | tail -1)/upd-dev.txt"
+      [ -f "$ausloeser" ] || ausloeser="$(find "$(dirname "$ausloeser")" \
+        -maxdepth 1 -iname 'upd-dev.txt' | head -1)"
+      gut "ausgepackt; gepruft wird wie bei einem ausgepackten Stick"
+    fi
+  fi
+
   if [ -z "$ausloeser" ]; then
     # Der Normalfall: irgendein Stick, kein Update. Nichts melden, nichts
     # in die Statusdatei schreiben -- sonst ueberschreibt der Fotostick
@@ -396,7 +436,8 @@ stick_lesen() {
   # Ab hier gilt der Ordner, in dem upd-dev.txt wirklich lag -- oben
   # oder eine Ebene tiefer. Alles andere wird relativ dazu gesucht.
   QUELLORDNER="$(dirname "$ausloeser")"
-  if [ "$QUELLORDNER" != "$EINHAENGEPUNKT" ]; then
+  if [ "$QUELLORDNER" != "$EINHAENGEPUNKT" ] \
+     && [ "${QUELLORDNER#"$DATEN/zip-auspack"}" = "$QUELLORDNER" ]; then
     info "Die Dateien liegen in $(basename "$QUELLORDNER")/ statt oben."
     info "Das geht auch, ist aber nicht noetig."
   fi
@@ -451,6 +492,8 @@ stick_lesen() {
 
   nutzlast_rechte
   chown -R "$BENUTZER" "$ABLAGE" 2>/dev/null || true
+  # Das ausgepackte ZIP ist kopiert und wird nicht mehr gebraucht.
+  rm -rf "$DATEN/zip-auspack"
 
   umount "$EINHAENGEPUNKT" 2>/dev/null
   rmdir "$EINHAENGEPUNKT" 2>/dev/null
@@ -549,8 +592,11 @@ pruefen_und_vormerken() {
   local hier; hier="$(version_hier)"
   if ! ist_neuer "$hier" "$version"; then
     gut "Hier laeuft $hier. Das Update ist nicht neuer, es passiert nichts."
+    # $hier als "vorher": das Pult setzt daraus die laufende Fassung in
+    # seinen Satz. Bis zum 28.10.2026 fehlte das Feld, und dort stand
+    # "hier laeuft schon ?.".
     stand_schreiben nicht_neuer "$version" \
-      "Der Stick bringt Fassung $version, hier laeuft schon $hier. Nichts zu tun."
+      "Der Stick bringt Fassung $version, hier laeuft schon $hier. Nichts zu tun." "$hier"
     als_benutzer git update-ref -d "$ref"
     exit 0
   fi
@@ -600,7 +646,7 @@ einspielen() {
   if ! ist_neuer "$hier" "$version"; then
     rm -f "$BEREIT" "$RUHIG" "$JETZT"
     stand_schreiben nicht_neuer "$version" \
-      "Hier laeuft inzwischen $hier. Das vorgemerkte Update $version ist nicht mehr noetig."
+      "Hier laeuft inzwischen $hier. Das vorgemerkte Update $version ist nicht mehr noetig." "$hier"
     exit 0
   fi
 
@@ -909,8 +955,36 @@ gesund() {
   return 1
 }
 
+# Zeigt den JUENGEREN von zwei Staenden -- wie pruefen.sh, das Pult und
+# der Fehlerbericht (fehlerbericht.juengerer_stand). Bis zum 28.10.2026
+# las --stand nur update/stand.json und zeigte in Rostock einen
+# Fehlschlag vom 27.09., obwohl danach Updates ueber das Netz gelungen
+# waren. Regel: nach einem gelungenen Update auf beliebigem Weg gilt ein
+# aelterer Fehlschlag als erledigt, und das steht so da.
+stand_feld() {  # datei feld
+  sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" "$1" \
+    2>/dev/null | head -1
+}
+
 stand_zeigen() {
-  if [ -s "$STAND" ]; then cat "$STAND"; else echo "Kein Update vorgemerkt."; fi
+  local d z neu="" zeit=""
+  for d in "$STAND" "$ABLAGE/stand-online.json"; do
+    [ -s "$d" ] || continue
+    z="$(stand_feld "$d" zeit)"
+    if [ -z "$neu" ] || [ "$z" \> "$zeit" ]; then neu="$d"; zeit="$z"; fi
+  done
+  if [ -z "$neu" ]; then echo "Kein Update vorgemerkt."; return; fi
+  if [ "$neu" != "$STAND" ] && [ -s "$STAND" ] \
+     && [ "$(stand_feld "$neu" lage)" = eingespielt ]; then
+    case "$(stand_feld "$STAND" lage)" in
+      eingespielt|nicht_neuer|bereit|wartet) ;;
+      *) echo "Erledigt: der Stick-Versuch vom $(stand_feld "$STAND" zeit)" \
+              "($(stand_feld "$STAND" lage), Fassung" \
+              "$(stand_feld "$STAND" version)) -- danach gelang ein Update."
+         echo ;;
+    esac
+  fi
+  cat "$neu"
 }
 
 # ================================================================ Aufruf

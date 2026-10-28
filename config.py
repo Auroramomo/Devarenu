@@ -638,6 +638,69 @@ PARALLEL = True
 # ein Prozentpunkt weniger Compliance und mehr Auffaelligkeiten.
 LIVE_MODELL = "gemma4:12b"
 
+# --- Sprachmodell-Server (0.5.2, 28.10.2026) ----------------------------
+# Wer uebersetzt: llama-server (llama.cpp) oder Ollama. Einzelheiten in
+# sprachmodell.py.
+#
+#   "auto"          erst llama-server, dann Ollama -- nimmt, was laeuft.
+#                   Ein Update auf diese Fassung schaltet darum nichts
+#                   um: ein Rechner mit Ollama bleibt bei Ollama.
+#   "llama-server"  nur llama-server
+#   "ollama"        nur Ollama
+SPRACHMODELL_SERVER = "auto"
+# Der llama-server von Devarenu (devarenu-llama.service.vorlage). NICHT
+# 8080: das ist die Vorgabe von llama-server, und auf einem Rechner, auf
+# dem schon einer fuer etwas anderes laeuft, landete Devarenu sonst dort.
+LLAMA_URL = "http://127.0.0.1:8091"
+# Der Name, unter dem llama-server das Modell fuehrt (--alias in der
+# Unit). Ein einzelner llama-server nimmt jeden Namen an; ein Router
+# mit mehreren Modellen laedt nach diesem.
+LLAMA_MODELL = "gemma4-12b"
+# Nur fuer einen llama-server, der einen API-Schluessel verlangt: eine
+# Datei, deren erste Zeile ihn traegt. Auf dem Gemeinde-PC leer -- dort
+# lauscht llama-server nur auf 127.0.0.1.
+LLAMA_SCHLUESSEL_DATEI = ""
+
+# --- llama-server einrichten (llama_einrichten.py, 0.5.2) --------------
+# Ein FERTIGES Archiv von ggml-org, Build fest gewaehlt, mit der
+# CUDA-Laufzeit daneben -- nicht ueber pacman (CachyOS hat kein
+# llama.cpp-cuda in den Paketquellen; llama-cpp mit ggml-cuda zieht
+# cuda nach, 2,4 GB, und bekommt jede Woche einen neuen Stand).
+# Gemessen am 28.10.2026 unter CachyOS: das Archiv "ubuntu" laeuft dort
+# unveraendert und rechnet auf der Grafikkarte. CUDA 12.8 und nicht 13.4:
+# laeuft auch mit aelteren Treibern und kennt Blackwell (RTX 50xx).
+#
+# Groesse und sha256 stehen in teile.json (Art "llama") -- dort, wo sie
+# auch der Stick braucht. Hier nur Namen und Quellen.
+LLAMA_BUILD = "b11962"
+LLAMA_ARCHIV = f"llama-{LLAMA_BUILD}-bin-ubuntu-cuda-12.8-x64.tar.gz"
+LLAMA_CUDART = f"cudart-llama-{LLAMA_BUILD}-bin-ubuntu-cuda-12.8-x64.tar.gz"
+LLAMA_GGUF_NAME = "gemma-4-12b-it-Q4_K_M.gguf"
+_LLAMA_GITHUB = ("https://github.com/ggml-org/llama.cpp/releases/download/"
+                 + LLAMA_BUILD + "/")
+LLAMA_QUELLEN = {
+    LLAMA_ARCHIV: _LLAMA_GITHUB + LLAMA_ARCHIV,
+    LLAMA_CUDART: _LLAMA_GITHUB + LLAMA_CUDART,
+    # Dieselbe Datei wie Ollamas gemma4:12b (Q4_K_M), aus der
+    # Ollama-Bibliothek. Liegt sie in der Ollama-Ablage des Rechners,
+    # wird sie von dort genommen und nicht geladen.
+    LLAMA_GGUF_NAME: ("https://registry.ollama.ai/v2/library/gemma4/blobs/"
+                      "sha256:1278394b693672ac2799eadc9a83fd98259a6a88a40ac"
+                      "fb1dcaa6c6fc895a606"),
+}
+# Archive und Modell liegen im Projektordner (gehoert dem Dienstbenutzer,
+# steht in .gitignore). llama-server liest das Modell von hier.
+LLAMA_ORDNER = BASIS / "sprachmodell"
+LLAMA_GGUF = LLAMA_ORDNER / LLAMA_GGUF_NAME
+# Das ausgepackte Programm: /opt/devarenu-llama/<build>, root-eigen.
+LLAMA_OPT = "/opt/devarenu-llama"
+
+# Der dauerhafte Link auf das Update-ZIP (0.5.2). Jede Fassung haengt ihr
+# ZIP unter demselben Namen an ihr Release (release_zip.sh); "latest"
+# zeigt damit immer auf die neueste. Ohne NVIDIA-Dateien.
+UPDATE_ZIP_LINK = ("https://github.com/Auroramomo/Devarenu/releases/"
+                   "latest/download/Devarenu-Update.zip")
+
 # --- Wiedergabetempo der Sprachausgabe --------------------------------
 #
 # Bis 0.2.10 stand hier eine einzige Zahl: LIVE_TEMPO = 1.24, ausgelegt

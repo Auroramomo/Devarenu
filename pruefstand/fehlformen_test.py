@@ -58,7 +58,9 @@ class Modell:
         self.antworten = list(antworten)
         self.prompts = []
 
-    def post(self, url, json=None, timeout=None):
+    # headers seit dem 28.10.2026: sprachmodell.fragen gibt sie mit (bei
+    # llama-server fuer einen API-Schluessel, bei Ollama leer).
+    def post(self, url, json=None, timeout=None, headers=None):
         self.prompts.append(json["messages"][0]["content"])
         inhalt = self.antworten.pop(0)
 
@@ -77,6 +79,9 @@ GLOSSAR = Glossar.laden(config.GLOSSAR_CSV)
 def uebersetzen(satz, sprache, *antworten):
     w = server.Werk.__new__(server.Werk)
     w.requests = Modell(*antworten)
+    # Die Attrappe antwortet wie Ollamas /api/chat (28.10.2026: Werk
+    # fragt ueber sprachmodell.py, je nach erkanntem Server).
+    w.sprachmodell = {"art": "ollama", "grund": ""}
     w.quelle = "de"
     w.glossar = GLOSSAR
     w.zaehlung = zaehlung.Tabelle.laden()

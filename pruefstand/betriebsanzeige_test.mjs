@@ -81,14 +81,17 @@ block("A1 Autostart");
 {
   const p = await pult({
     dienst: { vorhanden: true, eingeschaltet: "disabled", aktiv: "inactive",
-              unter: "dead", neustarts: 5, seit: "" },
+              unter: "dead", neustarts: 5, seit: "",
+              befehl: "bash ~/Devarenu/dienst.sh" },
     laufart: "sitzung",
     startprotokoll: ["2026-10-10 08:01:00 | Dienst keiner | kein laufender Dienst -- hier gestartet",
                      "2026-10-11 08:02:00 | Dienst active/running | ohne Ton (nein) -- Dienst angehalten, hier gestartet"],
     fenster: null, wecker: null });
   const t = p.text("dienstliste");
   pruefe("Autostart aus, mit Wert", true, t.includes("Autostart: aus (disabled)."));
-  pruefe("und was zu tun ist", true, t.includes("sudo systemctl enable devarenu"));
+  // Seit 0.5.2 der Befehl vom Server, mit dem echten Ordner
+  // (autostart_befehl_test.mjs), statt eines festen systemctl.
+  pruefe("und was zu tun ist", true, t.includes("bash ~/Devarenu/dienst.sh"));
   pruefe("viele Neustarts: Hinweis aufs Journal", true,
          t.includes("seit dem Start des Dienstes: 5") && t.includes("journalctl -u devarenu -b"));
   pruefe("Pult kommt vom Schreibtischsymbol", true,
@@ -104,10 +107,13 @@ block("A1 Autostart");
   pruefe("ohne systemctl: nur die Herkunft", 1, p.g("dienstliste").kinder.length);
 }
 {
-  const p = await pult({ dienst: { vorhanden: false }, laufart: "unbekannt",
+  const p = await pult({ dienst: { vorhanden: false,
+                                   befehl: "bash /opt/devarenu/dienst.sh" },
+                         laufart: "unbekannt",
                          startprotokoll: [], fenster: null, wecker: null });
   const t = p.text("dienstliste");
-  pruefe("nicht eingerichtet: bash dienst.sh", true, t.includes("bash dienst.sh"));
+  pruefe("nicht eingerichtet: bash <Ordner>/dienst.sh", true,
+         t.includes("bash /opt/devarenu/dienst.sh"));
   pruefe("Herkunft unbekannt, nicht geraten", true, t.includes("unbekannt"));
 }
 

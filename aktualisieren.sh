@@ -57,11 +57,105 @@ UNIT_ORDNER="${DEVARENU_UNIT_ORDNER:-/etc/systemd/system}"
 blau() { printf '\n\033[1;34m== %s\033[0m\n' "$1"; }
 gut()  { printf '   \033[32mok\033[0m   %s\n' "$1"; }
 warn() { printf '   \033[33m!\033[0m    %s\n' "$1"; }
-fehl() { printf '   \033[31mFEHLT\033[0m %s\n' "$1"; }
+# fehl merkt sich die Meldung: scheitert das Update, ist sie der Grund,
+# der unter Einrichtung -> Update am Pult steht (abschluss, 0.5.2).
+fehl() { printf '   \033[31mFEHLT\033[0m %s\n' "$1"; LETZTER_FEHLER="$1"; }
+LETZTER_FEHLER=""
 
 # Wem der Ordner gehoert -- unter diesem Benutzer laeuft der Dienst.
 # Nicht $USER: dieses Skript wird auch mit sudo aufgerufen.
 BENUTZER="$(stat -c %U "$ORDNER" 2>/dev/null || id -un)"
+
+# ------------------------------------------------- Was festgehalten wird
+# Scheitert ein Update, steht der Grund seit 0.5.2 in
+# update/stand-online.json -- derselben Datei, in die aktualisierung.sh
+# ein gelungenes Update schreibt und die das Pult unter Einrichtung ->
+# Update zeigt (fehlerbericht.juengerer_stand). Bis 0.5.1 stand dort
+# nach einem Fehlschlag weiter "Fassung X ist eingespielt" vom letzten
+# Mal, und den Grund kannte nur, wer das Protokoll las -- beim Fenster
+# und beim Online-Knopf liegt das als root unter /var/lib.
+#
+# Dieses Skript ist der gemeinsame Weg von Fenster, Online-Knopf und
+# Hand. Der Stick hat seinen eigenen Kern, und der schreibt seinen
+# Stand (stand.json) schon seit 0.2.12 auch bei einem Fehlschlag.
+#
+# Hier wird nur aufgeschrieben, nichts anders entschieden: Signatur,
+# Vorspulen und Ruecksprung laufen wie zuvor.
+HIER="" ZIEL="" UEBERGEBEN=nein KERN_MELDUNG="" KOPIE=""
+
+json_text() {  # fuer eine Zeichenkette zwischen "..."
+  local s="$1"
+  s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
+  printf '%s' "$s" | tr '\n\t\r' '   ' | tr -d '\000-\037'
+}
+
+stand_online_schreiben() {  # lage version vorher text
+  local ablage="$ORDNER/update" datei="$ORDNER/update/stand-online.json"
+  if [ ! -d "$ablage" ]; then
+    mkdir -p "$ablage" 2>/dev/null || return 0
+    # Von Hand mit sudo gestartet: der Ordner gehoert trotzdem dem
+    # Dienst, sonst legt der Server dort keine Marke mehr an.
+    [ "$(id -u)" = 0 ] && chown "$BENUTZER" "$ablage" 2>/dev/null
+  fi
+  {
+    printf '{\n'
+    printf '  "lage": "%s",\n' "$1"
+    printf '  "version": "%s",\n' "$(json_text "$2")"
+    printf '  "vorher": "%s",\n' "$(json_text "$3")"
+    printf '  "text": "%s",\n' "$(json_text "$4")"
+    printf '  "zeit": "%s"\n' "$(date '+%Y-%m-%d %H:%M:%S')"
+    printf '}\n'
+  } > "$datei" 2>/dev/null || return 0
+  chmod 644 "$datei" 2>/dev/null || true
+  [ "$(id -u)" = 0 ] && chown "$BENUTZER" "$datei" 2>/dev/null
+  return 0
+}
+
+# Von Hand gestartet, meldet das Update sich per ntfy -- wie das
+# Fenster und der Online-Knopf es seit 0.3.3 tun (wartungsfenster.sh,
+# update_melden). Die beiden rufen dieses Skript mit
+# DEVARENU_UEBER_FENSTER=1 auf und melden selbst; sonst kaeme alles
+# doppelt. Ohne meldung.json: still nichts.
+hand_melden() {  # ergebnis text
+  [ -n "${DEVARENU_UEBER_FENSTER:-}" ] && return 0
+  [ -f "$ORDNER/meldung.sh" ] && [ -f "$ORDNER/meldung.json" ] || return 0
+  local wer=""
+  # meldung.json ist 600. Gehoert sie nicht dem, der hier tippt, liest
+  # sie der Kern als Wurzel -- so wie das Fenster.
+  [ -r "$ORDNER/meldung.json" ] || wer=als_wurzel
+  if $wer bash "$ORDNER/meldung.sh" "Devarenu $(hostname): $1 (von Hand)" \
+       "$2" >/dev/null 2>&1; then
+    gut "Meldung abgeschickt"
+  else
+    warn "Die Meldung ging nicht hinaus, sie liegt vorgemerkt."
+  fi
+}
+
+abschluss() {
+  local rc=$?
+  [ -n "$KOPIE" ] && rm -f "$KOPIE"
+  [ "$rc" = 0 ] && return 0
+  local lage=fehlgeschlagen vorher="" text
+  if [ "$UEBERGEBEN" = ja ]; then
+    # Nach der Uebergabe: aktualisierung.sh hat womoeglich schon
+    # vorgespult, zurueck() hat den alten Stand geholt.
+    vorher="$HIER"
+    if [ "$RUECKWEG" = gescheitert ]; then
+      lage=rueckweg_gescheitert
+      text="${KERN_MELDUNG:-Update $ZIEL ist gescheitert.} Der Ruecksprung auf $HIER ist ebenfalls gescheitert -- hier muss jemand nachsehen."
+    else
+      text="${KERN_MELDUNG:-Update $ZIEL ist gescheitert.} Fassung $HIER wurde wiederhergestellt und laeuft."
+    fi
+  else
+    text="${LETZTER_FEHLER:-Abgebrochen (Rueckgabe $rc).} Am Programm wurde nichts geaendert."
+  fi
+  stand_online_schreiben "$lage" "$ZIEL" "$vorher" "$text"
+  hand_melden "GESCHEITERT" "Fassung vorher:  ${HIER:-unbekannt}
+Ziel:            ${ZIEL:-unbekannt}
+Ergebnis:        GESCHEITERT
+$text"
+}
+trap abschluss EXIT
 
 # ZWEI WEGE HINEIN, und sie brauchen verschiedene Rechte.
 #
@@ -370,7 +464,9 @@ fi
 # oeffentlicher Schluessel ist nichts Geheimes -- der Kern macht es
 # genauso. Bei 600 root staende hier "Signatur ungueltig", obwohl sie
 # stimmt: derselbe Fehler wie beim Bundle am 27.09.
-KOPIE="$(mktemp)"; trap 'rm -f "$KOPIE"' EXIT INT TERM
+# Beim Verlassen raeumt abschluss() sie weg (seit 0.5.2 haengt dort der
+# EXIT-Haken); INT und TERM wie bisher.
+KOPIE="$(mktemp)"; trap 'rm -f "$KOPIE"' INT TERM
 install -m 644 "$ORDNER/schluessel.erlaubt" "$KOPIE"
 
 # -c statt dauerhafter Einstellung: auf dem Gemeinderechner soll nach
@@ -383,7 +479,7 @@ if ! als_benutzer git -c "gpg.ssh.allowedSignersFile=$KOPIE" verify-tag "$REF" \
   als_benutzer git update-ref -d "$REF" 2>/dev/null || true
   exit 1
 fi
-rm -f "$KOPIE"; trap - EXIT INT TERM
+rm -f "$KOPIE"; KOPIE=""; trap - INT TERM
 gut "Signatur von v$ZIEL ist gueltig"
 
 # Die GEPRUEFTE Objekt-SHA. Ab hier wird nur noch mit ihr gearbeitet,
@@ -513,11 +609,21 @@ fi
 # Teile, Pakete, UNITS, Neustart, Gesundheitscheck. Dieselbe Datei,
 # die auch ein Stick ausfuehrt.
 RC=0
+UEBERGEBEN=ja
+# Die MELDUNG-Zeilen nennen den Grund, wenn es scheitert ("nicht
+# gesund", "Selbsttest"). Sie wurden bisher nur ausgefiltert; jetzt
+# werden sie dabei mitgeschnitten (abschluss, 0.5.2). Der Rueckgabewert
+# bleibt der von aktualisierung.sh -- tee aendert daran nichts.
+MITSCHNITT="$(mktemp)"
 als_wurzel env DEV_ORDNER="$ORDNER" DEV_BENUTZER="$BENUTZER" \
      DEV_ABLAGE="$ABLAGE" DEV_ALT_SHA="$ALT_SHA" DEV_REF="$REF" \
      DEV_VERSION="$ZIEL" DEV_HIER="$HIER" DEV_SICHERUNG="$SICHERUNG" \
-     bash "$AUSZUG/aktualisierung.sh" 2>&1 | grep -v '^MELDUNG|' | sed 's/^/   /'
+     bash "$AUSZUG/aktualisierung.sh" 2>&1 | tee "$MITSCHNITT" \
+     | grep -v '^MELDUNG|' | sed 's/^/   /'
 RC=${PIPESTATUS[0]}
+KERN_MELDUNG="$(sed -n 's/^MELDUNG|//p' "$MITSCHNITT" | tail -3 | tr '\n' ' ' \
+                | sed 's/ *$//')"
+rm -f "$MITSCHNITT"
 als_wurzel rm -rf "$AUSZUG"
 als_benutzer git update-ref -d "$REF" 2>/dev/null || true
 
@@ -598,4 +704,8 @@ printf '   \033[32mAlles bereit.\033[0m Fassung %s\n' "$NEU"
 # Waeren sie fehlgeschlagen, stuende dieses Skript hier nicht mehr.
 printf '   Geprueft: Signatur, Units, Gesundheit. Nachsehen:\n'
 printf '     bash pruefen.sh\n\n'
+hand_melden "eingespielt" "Fassung vorher:  $HIER
+Fassung nachher: $NEU
+Ergebnis:        eingespielt${KERN_MELDUNG:+
+$KERN_MELDUNG}"
 exit 0

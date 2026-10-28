@@ -6,6 +6,321 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.5.2 — Lesbarer Code, ehrliche Prüfstände, Liegengebliebenes
+
+*18.10.2026. Danach kommt keine 0.6, sondern ein Testmonat in Rostock
+und dann 1.0. Alles hier wird im Testmonat mitgeprüft.*
+
+### Für alle
+
+**Der Ton-Knopf sagt, was ein Druck tut.** Solange Ton läuft, steht
+dort *Ton aus*, ist er aus, *Ton an* — in allen Sprachen der
+Hörerseite (Russisch *Выкл. звук* / *Вкл. звук*, Persisch
+*صدا خاموش* / *صدا روشن*, sonst Englisch). Bis 0.5.1 stand der
+Zustand dort: *Ton* bei laufendem Ton, *Ton aus* bei abgeschaltetem.
+Wer *Ton aus* las, drückte, um abzuschalten, und bekam den Ton zurück.
+*Dunkler* daneben arbeitete schon so; jetzt tun es beide. Für die
+Vorlesefunktion bleibt der Zustand („gedrückt“) wie er war.
+
+**Das Pult auf Englisch nennt die Sprachen englisch** — in der Auswahl
+der gesprochenen Sprache, an den Kacheln und bei den Zuhörern je
+Sprache, sortiert nach dem englischen Namen. `/api/sprachen` liefert
+dafür zu jeder Sprache auch `name_en`. Die Handys bleiben bei den
+Eigennamen.
+
+**Nach dem Umstellen der gesprochenen Sprache** steht unter den
+Kacheln: *Russisch bleibt angewählt. Nicht mehr gebraucht? Abwählen.*
+Ein Tipp auf *Abwählen* nimmt den Haken heraus; die Zeile verschwindet
+beim nächsten Klick in der Sprachwahl. Sie erscheint nach jedem
+Wechsel, bei dem die bisherige Sprache angewählt bleibt — das
+Zurückstellen nach einem Gastprediger ist der häufigste.
+
+**Das Pult lädt sich nach einem Update selbst neu**, mit demselben
+Weg wie die Hörerseite seit 0.5.0: Der Server setzt seine Fassung in
+die Seite ein; meldet er später eine andere, lädt sie sich einmal neu,
+mit `fassung=` in der Adresse gegen eine Schleife. Ein Pult, das von
+0.5.1 her offen steht, kennt das noch nicht; es lädt sich erst ab dem
+nächsten Update selbst.
+
+**Russische Abspannsätze werden herausgefiltert.** Whisper erfindet in
+Pausen Sätze aus seinem Trainingsmaterial; der Filter kannte bisher nur
+deutsche. Aufgenommen sind nur Formeln, die belegt bei Whisper auf
+Rauschen vorkommen: *Субтитры …*, *Редактор субтитров …*, *Спасибо за
+субтитры / просмотр*, *Смотрите продолжение в … части / серии*,
+*Продолжение следует*, *Подпишись (на канал)*, *Подписывайтесь на мой
+канал*. Belege: ein Gist mit whisper-large-v2 auf 13 Stunden
+Rauschaufnahmen (waveletdeboshir), der Datensatz
+sachaarbonel/whisper-hallucinations und arXiv 2609.32560. Die
+Geräuschbeschriftungen aus derselben Liste (*СМЕХ*, *ПЕСНЯ* …) sind
+nicht aufgenommen — kein Abspann, und manche davon stehen auch in einer
+Predigt allein.
+
+### Für die Technik
+
+**Pult, Anmeldung und QR-Seite liegen in `web/`.** Bis 0.5.1 standen
+sie als Zeichenketten in `server.py`, das damit über 10.000 Zeilen
+hatte; jetzt sind es 6.700. Die Seiten sind zeichengleich mit dem, was
+der Browser bisher bekam, und werden wie `client.html` bei jedem Aufruf
+gelesen. Eine `pult.html` im Hauptordner hat keinen Vorrang mehr; fehlt
+eine Datei unter `web/`, kommt eine Fehlerseite statt eines stillen
+Rückfalls. `client.html` bleibt, wo sie ist: `start.sh`,
+`einrichten.sh`, `selbsttest.py` und der laufende alte Server während
+eines Updates erwarten sie dort.
+
+**`start.sh`, `einrichten.sh` und `selbsttest.py`** nennen die Dateien
+unter `web/` in ihren Listen, wie `client.html`.
+
+**Der Gesundheitscheck prüft auch das Pult.** Nach einem Update muss
+`/pult` mit 200 kommen und darf nicht die Fehlerseite sein, sonst gilt
+das Update als gescheitert und der Rücksprung greift. Es läuft dabei
+die `gesundheit.sh` des neuen Stands — die Prüfung wirkt also schon
+beim Sprung von 0.5.0 oder 0.5.1 auf 0.5.2.
+
+**Scheitert ein Update, steht der Grund am Pult** unter *Einrichtung →
+Update* — auf jedem Weg. `aktualisieren.sh` (Wartungsfenster, Knopf
+*Jetzt aus dem Netz*, von Hand) schreibt ihn in
+`update/stand-online.json`: vor dem Einspielen mit „nichts geändert“,
+nach einem Rücksprung mit dem Grund aus der Update-Logik und der
+wiederhergestellten Fassung, und eigens, wenn auch der Rücksprung
+scheitert. Der Stick tat das schon. Ein Update von Hand meldet sein
+Ergebnis zusätzlich über `meldung.sh`, wenn `meldung.json` da ist.
+Signatur und Rücksprung sind unverändert. Wirksam ab dem Update, das
+nach 0.5.2 kommt — beim Sprung auf 0.5.2 läuft noch das
+`aktualisieren.sh` der alten Fassung.
+
+**Einrichtung → Autostart:** Ist der Autostart aus oder der Dienst
+nicht eingerichtet, steht dort der Befehl zum Abtippen, mit dem
+Ordner, in dem Devarenu auf diesem Rechner liegt
+(`bash ~/Devarenu/dienst.sh`). Kein Knopf.
+
+**`INSTALLIEREN.sh` fragt nach dem Dienst mit „Ja“ als Vorgabe**
+(`[J/n]`). Wer bei der Einrichtung in der Gemeinde Enter drückte, hatte
+bis 0.5.1 danach keinen Autostart.
+
+**Prüfstände.** Wer den Server startet, liest jetzt seine Ausgabe mit
+und schlägt bei „Systemcheck fehlgeschlagen“ und „Traceback“ an — so
+wäre der Fehler in 765b1d7 aufgefallen. Fünf Prüfstände endeten bei
+„Server kam nicht hoch“ mit Rückgabe 0 und galten damit als bestanden;
+jetzt 1. Alle laufen ohne Grafikkarte (`CUDA_VISIBLE_DEVICES` leer) und
+ohne Ollama: eine Attrappe (`pruefstand/attrappen/ollama_attrappe.py`)
+auf einem freien Port, auf den die Wegwerfkopie gelenkt wird. Firefox
+in den Prüfständen läuft mit Software-GL; `--disable-gpu` kennt er
+nicht. Neu: `webseiten_test.py`, `tonknopf_test.mjs`,
+`pult_fassung_test.mjs`, `autostart_befehl_test.mjs`,
+`installieren_dienst_test.sh`, `gesundheit_pult_test.sh`,
+`updatestand_test.sh`, `web_dateilisten_test.sh`; erweitert:
+`zielwahl_test.mjs` (englische Namen, die Zeile unter den Kacheln),
+`sprachen_test.py`, `floskeln_test.py`.
+
+**CLAUDE.md:** neue Funktionen und Variablen heißen nach dem, was sie
+tun oder enthalten.
+
+### Nachtrag 28.10.2026: Rostock und llama.cpp
+
+**Das Pult geht vom Handy — alles.** Der Gemeinde-PC läuft ohne
+Bildschirm. Was bisher nur am Rechner selbst ging (Aufnahmen abrufen,
+löschen und ihre Frist, Testprotokoll schalten und abrufen, *Jetzt aus
+dem Netz aktualisieren*), geht jetzt überall, wo das Pult offen ist.
+Geschützt ist es allein durch das Pult-Passwort: ist eines gesetzt,
+braucht jede dieser Handlungen es; ist keines gesetzt, ist das Pult
+offen. Ohne Pult-Passwort kann jeder im Saal-WLAN das Pult bedienen,
+auch die Aufnahmen. Wer Aufnahmen macht, sollte ein Pult-Passwort
+setzen. Das Passwort geht über HTTP unverschlüsselt durchs Saal-WLAN.
+Am Rechner selbst (localhost) wird wie bisher nie gefragt. Der
+Datenschutzhinweis für die Zuhörer sagt das jetzt auch so.
+
+**Das Pult-Passwort verschwand von selbst.** Wer es am Pult setzte und
+danach irgendeinen Schalter bediente (Mitschrift, Thema, WLAN,
+Versuchssprachen), hatte wieder keines: der Server schrieb seinen
+Zustand vom Start zurück, samt leerem Passwort. Umgekehrt kam ein mit
+`werkzeuge/pult_passwort.py --loeschen` gelöschtes beim nächsten
+Schalter zurück. Das Feld gehört jetzt der Datei (`zustand.speichern`).
+**Wer in Rostock ein Pult-Passwort gesetzt hat, sollte nachsehen, ob es
+noch gilt.**
+
+**Meldekanal und Wartungs-WLAN** stehen unter *Einrichtung → Update*,
+nur als „gesetzt“ oder „nicht gesetzt“. Den Meldekanal kann man dort
+ändern; er geht nie an den Browser zurück. Das WLAN-Passwort ändern geht
+nicht über das Pult — es steht in der Netzwerkverwaltung, die nur root
+ändert; der Befehl dafür steht dabei.
+
+**Ohne Internet** sagt *Jetzt aus dem Netz aktualisieren* „Kein
+Internet“ — auch wenn eine Verbindung steht, aber nicht ins Internet
+führt, oder der Update-Server nicht antwortet.
+
+**Stimmen kamen nie aus dem Netz.** Die Probe, ob der Piper-Vorrat
+erreichbar ist, fragte `…/resolve/main` ohne Dateinamen ab; darauf
+antwortet Hugging Face 404, und es hieß bei jedem Versuch „nicht
+erreichbar (HTTPError)“. Jetzt wird nach einer Datei gefragt, und jede
+HTTP-Antwort gilt als erreichbar. Die ukrainische Stimme kommt damit
+(echt geprüft, sha256 stimmt). `teile.py --pruefen` nennt alle
+fehlenden Teile statt der ersten zehn, und die „6 Teile außer Stimmen“
+heißen, was sie sind: Manifest und Blobs von gemma4:12b in der
+Ollama-Ablage, die teile.py nicht fand.
+
+**Veraltete Anzeigen.** `stick_update.sh --stand` zeigt den jüngeren
+Stand und nennt einen älteren Fehlschlag „erledigt“, wenn danach ein
+Update gelang. „hier läuft schon ?“ hat die Fassung zurück. Nach dem
+Nachziehen des Reparaturvorrats läuft der Systemcheck neu — „Der Vorrat
+gehört zu Fassung 0.5.0“ verschwindet ohne Neustart.
+
+**Das Symbol.** Jede Seite nennt `logo.png` ausdrücklich; unter
+10.0.0.1 zeigte der Browser sonst das der Fritzbox.
+
+**Text-Knopf.** Wie der Ton-Knopf: *Text aus* / *Text an* (Russisch
+*Выкл. текст* / *Вкл. текст*, Persisch *متن خاموش* / *متن روشن*).
+
+**Hilfetext.** Unter „Was erkannt wurde“ steht jetzt der Unterschied
+zwischen „Silas“ und „Sie las“.
+
+**Russische Floskeln: die Quellen.** arXiv 2609.32560 ist gestrichen —
+der Aufsatz nennt keine Einzelbeispiele. Jede Formel ist gegen den Gist
+von waveletdeboshir oder `phrases.csv` des Datensatzes
+sachaarbonel/whisper-hallucinations nachgesehen.
+
+### Für die Technik: llama-server
+
+**Übersetzt wird über llama-server oder Ollama** (`sprachmodell.py`).
+Erst llama-server (127.0.0.1:8091), dann Ollama; ein Update schaltet
+nichts um. llama-server über `/v1/chat/completions` mit
+`chat_template_kwargs: {"enable_thinking": false}`, Ollama weiter über
+`/api/chat` mit `"think": false` — Ollamas `/v1` versteht den Schalter
+nicht und lieferte ohne ihn leere Übersetzungen. Gemessen mit derselben
+Modelldatei (Q4_K_M): 3 Sprachen 0,75 s je Abschnitt, 4 Sprachen 0,96 s;
+llama-server 9,6 GB, mit Whisper 12,0 GB. Glossar, Bibelstellen und
+ukrainische Fehlformen wie mit Ollama (eine Glossarabweichung von 162,
+ein Trennzeichen von 40).
+
+**Das Update im Wartungsfenster und über den Knopf *Jetzt aus dem
+Netz* läuft als root.** Seit 0.3.3 rief das Fenster `aktualisieren.sh`
+per `runuser` als Dienstbenutzer auf; das holte sich jeden
+privilegierten Schritt mit `sudo` — ohne Terminal, ohne Passwort, also
+gar nicht. Fenster und Knopf scheiterten an der ersten Stelle, die root
+brauchte. `aktualisieren.sh` ist für root gebaut (git weiter über
+`als_benutzer` beim Dienstbenutzer). Wirkt ab dem Update NACH 0.5.2:
+beim Sprung auf 0.5.2 läuft noch der Kern von 0.5.1.
+
+**Ein fester Link auf das Update.** `stick_bauen.sh --zip ORDNER`
+schreibt immer `Devarenu-Update.zip`; `release_zip.sh` hängt es an das
+Release des Tags. Damit zeigt
+https://github.com/Auroramomo/Devarenu/releases/latest/download/Devarenu-Update.zip
+immer auf die neueste Fassung — am Pult unter *Einrichtung → Update*
+als Text und QR-Code, mit einem Satz für Helfer. Ab 0.5.2 liest der
+Stick-Weg das ZIP auch **unausgepackt** (gegen Pfadtricks und
+übergroße Inhalte geschützt; danach dieselben Prüfungen wie bei einem
+ausgepackten Stick).
+
+**Die Python-Pakete sind festgenagelt.** Bis 0.5.1 installierte das
+Update mit `pip install --no-index --find-links wheels -r
+requirements.txt` — der passende Dateiname genügte, und die Signatur
+deckt nur das Bundle. Ein manipuliertes `wheels/` wäre durchgegangen.
+Jetzt steht jedes Wheel mit sha256 in `pakete.sperre` (im signierten
+Baum, erzeugt mit `stick_bauen.sh --nur-sperre`), und installiert wird
+mit `--require-hashes`. Eine manipulierte ZIP kommt damit nur durch
+Signatur und Prüfsummen.
+
+**Keine NVIDIA-Dateien im öffentlichen ZIP.** Ob man sie weitergeben
+darf, ist ungeklärt. Draußen bleiben die Wheels `nvidia_*` (jetzt
+`nvidia-cublas-cu12`, das Whisper auf der Grafikkarte braucht und das
+bisher nur mit torch über `einrichten.sh` kam) und die CUDA-Laufzeit
+für llama-server. Fehlen sie, holt das Update sie von PyPI bzw.
+ggml-org, gegen die sha256 aus `pakete.sperre` bzw. `teile.json`; ohne
+Internet sagt es, was fehlt. Ein privater Stick mit allem:
+`stick_bauen.sh --zip ORDNER --mit-fremdteilen`.
+
+**Lizenzen des öffentlichen ZIP geprüft.** Jedes der 53 Pakete aus
+`pakete.sperre` steht jetzt mit Fassung und Lizenz in LIZENZEN.md,
+nachgesehen an den Wheels selbst. Neben NVIDIA bleiben drei weitere
+Pakete aus dem öffentlichen ZIP, weil sie Binärteile unter GPL ohne
+Lizenztext oder Quellenangabe mitbringen: `av` (FFmpeg mit x264/x265),
+`ctranslate2` (libgomp, und kein eigener Lizenztext) und `piper-tts`
+(espeak-ng). Sie kommen von PyPI, gegen die sha256 aus der Sperre.
+LIZENZEN.md und der Apache-2.0-Text liegen lose im ZIP; `release_zip.sh`
+sieht im fertigen ZIP nach allem, was nicht hinaus darf.
+
+**Der Dienst startet ohne Sprachmodell-Server** und sagt es am Pult
+(„Kein Sprachmodell-Server antwortet“, „das Modell fehlt dort“), statt
+nur im Journal. Solange etwas fehlt, sieht er alle 30 Sekunden neu nach.
+
+**Der Umstieg geschieht beim Update** (`llama_einrichten.py`, am Ende
+von `aktualisierung.sh`, als root, auf jedem Weg: Netz, Stick, Fenster,
+von Hand; oder `sudo bash dienst.sh --llama`). Das fertige Archiv von
+ggml-org, Build b11962 mit CUDA-Laufzeit, sha256 geprüft, nach
+`/opt/devarenu-llama/b11962` — es heißt „ubuntu“ und läuft unter
+CachyOS, getestet. Das Modell kommt aus Ollamas Blob (sha256 geprüft,
+`cp --reflink=auto`) oder aus der Ollama-Bibliothek. Dann Unit
+`devarenu-llama.service` (nur 127.0.0.1, vier Plätze à 4096 Token,
+`Conflicts=ollama.service`) und eine **Probe**: ein echter
+Übersetzungsaufruf mit abgeschaltetem Denken, Grafikspeicher mit
+Whisper unter 16 GB. Erst wenn sie besteht, wird Ollama abgeschaltet,
+nicht deinstalliert. **Der Schritt ist nie tödlich**: scheitert er,
+bleibt das Update bestehen und Ollama an, und der Grund steht im
+Protokoll, am Pult und in der Meldung. Ohne Internet und ohne Teile
+wird er übersprungen und gemeldet; ein zweiter Lauf ändert nichts.
+Gemessen bei einem Rechner mit Ollama-Blob auf demselben btrfs und den
+Archiven vom Stick: 12 s. Der Gemeinde-PC in Rostock läuft **CachyOS**,
+nicht Ubuntu, wie bisher in AUFSTELLEN.md stand.
+
+`teile.json` führt Archiv, CUDA-Laufzeit und Modell als Art `llama`.
+Sie sind wahlweise: fehlen sie auf einem Stick, bricht das Update nicht
+ab. Das Modell liegt auf dem Stick nur einmal, obwohl es als Ollama-Blob
+und als llama-Modell darin steht (gleiche sha256).
+
+Der Systemcheck prüft „Sprachmodell-Server“ statt „ollama“ und meldet, wenn
+Ollama und llama-server zugleich ein Modell im Grafikspeicher halten —
+erkannt am Pfad, denn Ollama rechnet selbst in einem Prozess namens
+`llama-server`. `gesundheit.sh` zählt den umbenannten Befund
+(`dienst_ollama` → `sprachmodell_dienst`) nicht als neu.
+
+**Prüfstände** laufen weiter ohne Grafikkarte und ohne Sprachmodell; die
+Attrappe kann jetzt auch llama-server. Neu: `pult_handy_test.py`,
+`hilfetext_silas_test.py`, `teile_netz_test.py`,
+`update_anzeigen_test.sh`, `update_satz_test.mjs`,
+`vorrat_nachziehen_test.py`, `symbol_test.py`, `sprachmodell_test.py`,
+`dienst_llama_test.sh`, `llama_einrichten_test.py`,
+`fenster_wurzel_test.sh`, `wheels_sperre_test.py`,
+`update_zip_link_test.py`, `lizenzen_zip_test.py`; erweitert:
+`updater_test.sh` (ZIP mit
+festem Namen, unausgepackt auf dem Stick, ZIP mit `../`),
+`einspielweg_test.sh` (der
+llama-Schritt von jeder Startfassung aus, ausdrücklich von v0.5.1),
+`tonknopf_test.mjs`,
+`fussleiste_test.mjs`, `floskeln_test.py`, `online_test.sh`,
+`gesundheit_pult_test.sh`, `pultschutz_test.py`, `aufnahme_test.py`,
+`pruefprotokoll_test.py`, `betriebslage_test.py`, `pult_test.mjs`.
+
+### Aus dem Handytest am 28.10.2026
+
+- **Pult auf Englisch:** Platzhalter, `title` und `aria-label` blieben
+  deutsch, darunter der Platzhalter „Predigt über Vergebung …“ im Feld
+  „Topic and Bible passages“, „Netzname“, „Passwort“ und der Titel des
+  QR-Knopfs. Sie stehen jetzt in der Texttabelle (`data-tp`, `data-tt`,
+  `data-ta`) und folgen der Sprache des Pults.
+- **Einrichtung → Update am Handy** war breiter als der Bildschirm: Der
+  Link auf Devarenu-Update.zip brach in Chromium (Samsung, Chrome)
+  nirgends um. Die Seite war dadurch 577 px breit, die untere Leiste
+  verrutschte. Der Link bricht jetzt am Element selbst um, ebenso die
+  Adresse des Fehlerberichts unter „Fehler melden“, die dieselbe
+  Bauart hat. Firefox bricht nach jedem „/“ um und zeigte den Fehler
+  nicht.
+- **Hörerseite:** Die Zeile „Gottesdienst · Service · Богослужение ·
+  مراسم عبادت“ auf der Startseite hatte keine Umbruchstelle (auf
+  360 px in Firefox zu breit, bei 150 % Schrift überall). Die untere
+  Leiste lief russisch bei 150 % Schrift über den Rand, „Язык“ war
+  angeschnitten. Passt eine Beschriftung nicht in fünf Spalten, geht
+  die Leiste jetzt auf zwei Reihen, statt Wörter abzuschneiden; russisch
+  geschieht das auch auf 320 px bei normaler Schrift.
+
+Neu: `seitenbreite_test.py`. Jede Ansicht und Unterseite des Pults und
+der Hörerseite wird auf DE und EN bei 360 und 390 px gerendert, dazu
+russisch mit 150 % Schrift. Die Seiten laufen in einem echten Firefox
+und in Chromium, dem Electron vom Arbeitsrechner, beide ohne
+Grafikkarte. Geprüft wird, dass `scrollWidth` die Fensterbreite nicht
+übersteigt und die untere Leiste ganz zu sehen ist; gegen den Stand
+davor waren 40 Fälle rot. Ebenfalls neu: `pult_attribute_test.mjs`.
+
+---
+
 ## 0.5.1 — Keine Zielsprache geht mehr verloren
 
 *11.10.2026.*

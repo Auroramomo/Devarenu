@@ -172,13 +172,14 @@ STUFE2 = {
                 "**Tonaufnahme der Predigt.** Nur wenn die Gemeinde sie "
                 "einschaltet und die predigende Person zugestimmt hat. Solange "
                 "sie läuft, steht es auf jedem Handy. Sie bleibt auf dem "
-                "Rechner (voreingestellt sieben Tage) und ist aus dem "
-                "Saal-WLAN nicht abrufbar.",
+                "Rechner (voreingestellt sieben Tage). Abrufen kann sie, wer "
+                "das Pult bedienen darf – hat die Gemeinde kein "
+                "Pult-Passwort gesetzt, ist das jeder im Saal-WLAN.",
                 "**Testprotokoll und Mitschrift.** Zur Fehlersuche kann die "
                 "Technik den Predigttext speichern lassen, beides nur mit "
                 "Zustimmung der sprechenden Person und längstens bis zum "
                 "nächsten Neustart: das Testprotokoll schreibt ihn mit allen "
-                "Übersetzungen in eine Datei (nur am Rechner selbst, "
+                "Übersetzungen in eine Datei (abrufbar wie die Aufnahme, "
                 "voreingestellt nach sieben Tagen gelöscht); die Mitschrift "
                 "schreibt den Anfang jedes erkannten Satzes ins "
                 "Systemprotokoll des Rechners (dort rund vier Wochen). Darin "
@@ -249,13 +250,15 @@ STUFE2 = {
                 "maintainer of the program. Your mail provider's terms apply.",
                 "**Recording of the sermon.** Only if the church switches it "
                 "on and the preacher has agreed. While it runs, every phone "
-                "shows it. It stays on the computer (seven days by default) "
-                "and cannot be fetched over the hall wi-fi.",
+                "shows it. It stays on the computer (seven days by default). "
+                "Anyone allowed to use the sound desk can fetch it – if the "
+                "church has set no desk password, that is anyone on the "
+                "hall wi-fi.",
                 "**Test log and transcript.** For troubleshooting the "
                 "technician can have the sermon text stored, both only with "
                 "the speaker's consent and at most until the next restart: "
                 "the test log writes it with all translations to a file "
-                "(only at the computer itself, deleted after seven days by "
+                "(retrievable like the recording, deleted after seven days by "
                 "default); the transcript writes the "
                 "beginning of each recognised sentence to the computer's "
                 "system log (kept there for about four weeks). They "
@@ -326,6 +329,7 @@ def stufe2_html(sprache, gemeinde="", kontakt="", fassung=""):
     return f"""<!doctype html>
 <html lang="{sp}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" href="/logo.png">
 <title>{escape(t['titel'])}</title>
 <style>
 :root{{--grund:#fbfaf7;--tinte:#141f52;--leise:#5d6475;--warn:#8a4b0f}}

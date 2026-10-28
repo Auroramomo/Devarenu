@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#141f52">
+<!-- Das Symbol ausdruecklich (A5, 28.10.2026): unter 10.0.0.1 zeigte
+     der Browser sonst das gemerkte Symbol der Fritzbox. -->
+<link rel="icon" type="image/png" href="/logo.png">
+<link rel="apple-touch-icon" href="/logo.png">
 <title>Live-Übersetzung</title>
 
 <!--
@@ -162,8 +166,13 @@ h1{
   font-size:.94rem; color:var(--leise);
   margin:0 0 2.1rem; letter-spacing:.02em;
 }
+/* Jedes Wort bleibt ganz, zwischen ihnen darf umgebrochen werden. Bis
+   zum 28.10.2026 standen die vier ohne Leerraum aneinander, und der
+   Leerraum steckte im nowrap des Punkts davor: eine einzige Zeile ohne
+   Umbruchstelle, auf 360 px breiter als das Handy (Firefox), bei
+   150 Prozent Schrift ueberall. Der Umbruch faellt jetzt VOR den Punkt. */
 .untertitel span{white-space:nowrap}
-.untertitel span + span::before{content:" · "; opacity:.55}
+.untertitel span + span::before{content:"· "; opacity:.55}
 
 .regel{
   border:0; height:1px; background:var(--linie);
@@ -399,10 +408,22 @@ html[data-dunkel="2"] #abdunkler{opacity:.78}
   border-top:1px solid var(--linie);
   padding-bottom:env(safe-area-inset-bottom);
 }
+/* minmax(0,1fr) und nicht 1fr: eine Spalte mit 1fr wird nie schmaler
+   als ihr laengstes Wort. Bei 150 Prozent Schrift schob "Выкл. звук"
+   die Leiste so ueber den Bildschirmrand, "Язык" und "Ещё" lagen
+   rechts draussen (bis 28.10.2026). */
 .fussleiste{
   padding:.55rem var(--rand);
-  display:grid; grid-template-columns:repeat(5,1fr); gap:.25rem;
+  display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.25rem;
 }
+.fussleiste button{min-width:0}
+/* Passt eine Beschriftung trotzdem nicht -- grosse Schrift, lange
+   Woerter --, gehen die fuenf auf zwei Reihen, und die Woerter duerfen
+   umbrechen. Ein abgeschnittenes "Язы…" sagt niemandem etwas. Ob es
+   so weit ist, misst leisteEinpassen(); eine Medienabfrage weiss
+   nichts von der Schriftgroesse. */
+.fussleiste.zweireihig{grid-template-columns:repeat(3,minmax(0,1fr))}
+.fussleiste.zweireihig .beschriftung{white-space:normal}
 /* Fuenf Eintraege auf 320 px: jede Zelle ist dann rund 56 px breit.
    Die Beschriftung muss hineinpassen, ohne zu brechen -- die Woerter
    sind dafuer kurz gehalten (siehe TEXTE), und hier wird gestaucht
@@ -589,7 +610,10 @@ dialog::backdrop{background:rgba(20,31,82,.42)}
 
     <h1>Live-Übersetzung</h1>
     <p class="untertitel">
-      <span>Gottesdienst</span><span lang="en">Service</span><span lang="ru">Богослужение</span><span lang="fa">مراسم عبادت</span>
+      <span>Gottesdienst</span>
+      <span lang="en">Service</span>
+      <span lang="ru">Богослужение</span>
+      <span lang="fa">مراسم عبادت</span>
     </p>
 
     <hr class="regel">
@@ -891,7 +915,7 @@ async function sprachenHolen(){
 const TEXTE = {
   de:{titel:"Live-Übersetzung", waehlen:"Sprache wählen", zuhoeren:"Zuhören",
       erst:"Zuerst eine Sprache wählen.",
-      ton:"Ton", tonAus:"Ton aus", text:"Text", textAus:"Text aus", sprache:"Sprache",
+      tonAusschalten:"Ton aus", tonAnschalten:"Ton an", textAusschalten:"Text aus", textAnschalten:"Text an", sprache:"Sprache",
       warten:"Sobald gesprochen wird, erscheint hier der erste Abschnitt.",
       neu:"Neue Abschnitte", verbinde:"verbindet", live:"live", pause:"Pause",
       getrennt:"getrennt",
@@ -926,7 +950,7 @@ const TEXTE = {
       datenschutz:"Datenschutz"},
   en:{titel:"Live translation", waehlen:"Choose a language", zuhoeren:"Listen",
       erst:"Choose a language first.",
-      ton:"Sound", tonAus:"Sound off", text:"Text", textAus:"Text off", sprache:"Language",
+      tonAusschalten:"Sound off", tonAnschalten:"Sound on", textAusschalten:"Text off", textAnschalten:"Text on", sprache:"Language",
       warten:"The first section appears once the speaker begins.",
       neu:"New sections", verbinde:"connecting", live:"live", pause:"paused",
       getrennt:"disconnected",
@@ -961,7 +985,7 @@ const TEXTE = {
       datenschutz:"Privacy"},
   ru:{titel:"Синхронный перевод", waehlen:"Выберите язык", zuhoeren:"Слушать",
       erst:"Сначала выберите язык.",
-      ton:"Звук", tonAus:"Без звука", text:"Текст", textAus:"Без текста", sprache:"Язык",
+      tonAusschalten:"Выкл. звук", tonAnschalten:"Вкл. звук", textAusschalten:"Выкл. текст", textAnschalten:"Вкл. текст", sprache:"Язык",
       warten:"Первый отрывок появится, как только начнётся проповедь.",
       neu:"Новые отрывки", verbinde:"соединение", live:"эфир", pause:"пауза",
       getrennt:"нет связи",
@@ -996,7 +1020,7 @@ const TEXTE = {
       datenschutz:"Защита данных"},
   fa:{titel:"ترجمهٔ همزمان", waehlen:"زبان را انتخاب کنید", zuhoeren:"شنیدن",
       erst:"ابتدا یک زبان انتخاب کنید.",
-      ton:"صدا", tonAus:"صدا خاموش", text:"متن", textAus:"متن خاموش", sprache:"زبان",
+      tonAusschalten:"صدا خاموش", tonAnschalten:"صدا روشن", textAusschalten:"متن خاموش", textAnschalten:"متن روشن", sprache:"زبان",
       warten:"به‌محض آغاز سخنرانی، نخستین بخش اینجا نمایان می‌شود.",
       neu:"بخش‌های تازه", verbinde:"در حال اتصال", live:"زنده", pause:"مکث",
       getrennt:"قطع شد",
@@ -2153,8 +2177,17 @@ function beschriftungenSetzen(){
   $("kopf-titel").lang = s;
   $("nachschub").textContent = `${x.neu} ↓`;
 
-  $("w-ton").querySelector(".beschriftung").textContent   = zustand.tonAn ? x.ton : x.tonAus;
-  $("w-text").querySelector(".beschriftung").textContent  = zustand.textAn ? x.text : x.textAus;
+  // Der Ton-Knopf sagt, was ein Druck TUT (0.5.2), wie "Dunkler"
+  // daneben. Bis 0.5.1 stand dort der Zustand: "Ton" bei laufendem Ton,
+  // "Ton aus" bei abgeschaltetem -- und wer "Ton aus" las, drueckte,
+  // um abzuschalten, und bekam den Ton zurueck. Der Zustand steht
+  // weiter in aria-pressed, fuer die Vorlesefunktion. Der Text-Knopf
+  // folgt seit dem 28.10.2026 derselben Logik; bis dahin stand dort
+  // "Text" bei sichtbarem Text und "Text aus" bei verborgenem.
+  $("w-ton").querySelector(".beschriftung").textContent   =
+    zustand.tonAn ? x.tonAusschalten : x.tonAnschalten;
+  $("w-text").querySelector(".beschriftung").textContent  =
+    zustand.textAn ? x.textAusschalten : x.textAnschalten;
   $("w-sprache").querySelector(".beschriftung").textContent = x.sprache;
   $("w-mehr").querySelector(".beschriftung").textContent = x.mehr;
   $("mehr-titel").textContent = x.mehrTitel;
@@ -2171,6 +2204,7 @@ function beschriftungenSetzen(){
   $("rueckmeldung").querySelector(".beschriftung").textContent = x.rueckmeldung;
   dunkelZeichnen();
   urteilZeichnen();
+  leisteEinpassen();
   $("post-titel").textContent  = x.postTitel;
   $("post-hin").textContent    = x.postHin;
   $("post-senden").textContent = x.postSenden;
@@ -2316,7 +2350,8 @@ $("starten").addEventListener("click", async () => {
 
 /* ---------- Abdunkeln ----------
    Drei Stufen im Kreis: hell, gedimmt, dunkel. Der Knopf sagt immer,
-   was der naechste Druck bringt -- "Abdunkeln", "Dunkler", "Heller".
+   was der naechste Druck bringt -- "Dunkler" oder "Heller". Der
+   Ton-Knopf daneben tut seit 0.5.2 dasselbe (tonknopf_test.mjs).
 
    Gemerkt wird es auf dem Geraet und OHNE Datum, anders als die
    Rueckmeldung: wer einmal abdunkelt, will das naechsten Sonntag
@@ -2354,6 +2389,28 @@ function dunkelZeichnen(){
 }
 
 /* ---------- Fußleiste ---------- */
+/* Passen die Beschriftungen in fuenf Spalten? Sonst zwei Reihen (siehe
+   .zweireihig). Gemessen wird in EINER Reihe; ist die Leiste nicht zu
+   sehen (Startseite), gibt es nichts zu messen. */
+function leisteEinpassen(){
+  const leiste = document.querySelector("#zuhoeren .fussleiste");
+  if(!leiste || !leiste.getClientRects || !leiste.getClientRects().length)
+    return;
+  leiste.classList.remove("zweireihig");
+  const zuEng = [...leiste.querySelectorAll(".beschriftung")]
+    .some(b => b.scrollWidth > b.clientWidth + 1);
+  leiste.classList.toggle("zweireihig", zuEng);
+}
+window.addEventListener("resize", leisteEinpassen);
+// Die Beschriftungen wechseln mit jedem Druck ("Темнее" -> "Светлее"),
+// und die Schrift kann spaeter fertig geladen sein als die Seite.
+if(typeof MutationObserver === "function")
+  new MutationObserver(leisteEinpassen).observe(
+    document.querySelector("#zuhoeren .fussleiste"),
+    {childList:true, characterData:true, subtree:true});
+if(document.fonts && document.fonts.ready)
+  document.fonts.ready.then(leisteEinpassen);
+
 $("w-ton").addEventListener("click", () => tonSchalten(!zustand.tonAn));
 
 $("w-dunkel").addEventListener("click", () => Dunkel.weiter());

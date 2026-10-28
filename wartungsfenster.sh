@@ -249,16 +249,20 @@ update_kern() {  # $1 Anlass (fuer die Meldungen), $2 Protokolldatei
   KERN_VORHER="$(tr -d '[:space:]' < "$ORDNER/VERSION" 2>/dev/null)"
   t0="$(date +%s)"
 
-  # Als BENUTZER, nicht als Wurzel: dem gehoert das Repo. Liefen die
-  # git-Befehle als root, blieben root-eigene Objekte in .git zurueck
-  # und der Dienst kaeme an sein eigenes Repo nicht mehr heran.
-  # aktualisieren.sh holt sich Privilegiertes selbst.
-  if [ "$(id -u)" = 0 ] && [ "$BENUTZER" != root ]; then
-    runuser -u "$BENUTZER" -- bash "$ORDNER/aktualisieren.sh" \
-      > "$protokoll" 2>&1 || rc=$?
-  else
-    bash "$ORDNER/aktualisieren.sh" > "$protokoll" 2>&1 || rc=$?
-  fi
+  # ALS WURZEL (28.10.2026). Bis dahin stand hier runuser: das Update
+  # lief als Dienstbenutzer, und aktualisieren.sh holte sich jeden
+  # privilegierten Schritt mit sudo -- ohne Terminal, ohne Passwort,
+  # also gar nicht. Fenster und Knopf am Pult scheiterten damit an der
+  # ersten Stelle, die root brauchte (pruefstand/fenster_wurzel_test.sh).
+  # aktualisieren.sh ist seit 0.3.3 dafuer gebaut, als root zu laufen:
+  # git geht dort ueber als_benutzer an den Dienstbenutzer, damit keine
+  # root-eigenen Objekte in .git landen; alles andere ueber als_wurzel.
+  #
+  # DEVARENU_UEBER_FENSTER: gemeldet wird hier (update_melden). Von Hand
+  # meldet aktualisieren.sh seit 0.5.2 selbst -- ohne die Variable kaeme
+  # jede Meldung doppelt.
+  DEVARENU_UEBER_FENSTER=1 bash "$ORDNER/aktualisieren.sh" \
+    > "$protokoll" 2>&1 || rc=$?
   chmod 600 "$protokoll" 2>/dev/null || true
 
   KERN_NACHHER="$(tr -d '[:space:]' < "$ORDNER/VERSION" 2>/dev/null)"
@@ -423,6 +427,22 @@ netz_steht() {
   [ "$($NMCLI -t -f STATE general 2>/dev/null | head -1)" = connected ]
 }
 
+# Steht eine Verbindung, fuehrt aber nicht ins Internet? NetworkManager
+# prueft das selbst ("limited", "portal", "none"). "unknown" oder eine
+# leere Antwort -- etwa mit abgeschalteter Pruefung -- gilt NICHT als
+# fehlend: dann entscheidet der Versuch.
+internet_fehlt() {
+  case "$($NMCLI -t -f CONNECTIVITY general 2>/dev/null | head -1)" in
+    none|limited|portal) return 0 ;;
+  esac
+  return 1
+}
+
+# Seit dem 28.10.2026 geht der Knopf auch vom Handy. Der Satz in
+# online-lauf.json ist das Einzige, was dort ankommt -- er sagt darum
+# "Kein Internet" und verweist auf nichts, was nur am Rechner ginge.
+KEIN_INTERNET="Kein Internet."
+
 jetzt_laufen() {
   LAUF_SEIT="$(date +%s)"
   blau "Jetzt aktualisieren (vom Pult angestossen)"
@@ -471,9 +491,17 @@ jetzt_laufen() {
     fi
   fi
   if ! netz_steht; then
-    warn "Kein Netz. Es gibt nichts zu holen."
+    warn "Kein Netz und damit kein Internet. Es gibt nichts zu holen."
     lauf_schreiben gescheitert netz \
-      "Kein Netz. Entweder das Wartungs-WLAN in Reichweite bringen oder am Rechner ein Handy-WLAN verbinden."
+      "$KEIN_INTERNET Das Wartungs-WLAN liess sich nicht verbinden, und eine andere Verbindung gibt es nicht. Es wurde nichts geaendert."
+    [ "$timer_war_an" = ja ] && $SYSTEMCTL start devarenu-fenster.timer >/dev/null 2>&1
+    return 1
+  fi
+  if internet_fehlt; then
+    warn "Verbunden, aber ohne Internet. Es gibt nichts zu holen."
+    lauf_schreiben gescheitert netz \
+      "$KEIN_INTERNET Eine Verbindung steht, sie fuehrt aber nicht ins Internet. Es wurde nichts geaendert."
+    [ "$wir_verbanden" = ja ] && trennen
     [ "$timer_war_an" = ja ] && $SYSTEMCTL start devarenu-fenster.timer >/dev/null 2>&1
     return 1
   fi
@@ -497,6 +525,13 @@ jetzt_laufen() {
     && gut "Fenster-Timer wieder an"
 
   if [ "$KERN_ERGEBNIS" = "GESCHEITERT" ]; then
+    # Der haeufigste Grund hat einen eigenen Satz: die Verbindung stand,
+    # aber der Update-Server antwortete nicht.
+    if grep -q 'git fetch fehlgeschlagen' "$protokoll" 2>/dev/null; then
+      lauf_schreiben gescheitert fertig \
+        "$KEIN_INTERNET Der Update-Server war nicht erreichbar. Es wurde nichts geaendert, Fassung ${KERN_NACHHER:-?} laeuft weiter."
+      return 1
+    fi
     lauf_schreiben gescheitert fertig \
       "Das Update ist gescheitert. Die alte Fassung ${KERN_NACHHER:-?} laeuft weiter. Einzelheiten: $protokoll"
     return 1

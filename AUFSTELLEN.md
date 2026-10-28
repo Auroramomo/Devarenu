@@ -1,9 +1,12 @@
 # Aufstellen auf dem Gemeinderechner
 
 Was sich nur dort prüfen lässt. Entwickelt und getestet wurde auf
-CachyOS mit angemeldeter Sitzung; der Zielrechner ist Ubuntu Server mit
-nachinstalliertem KDE, X11, headless im Betrieb, ohne angemeldeten
-Benutzer.
+CachyOS mit angemeldeter Sitzung. Der Gemeinderechner in Rostock läuft
+**ebenfalls auf CachyOS** (`pruefen.sh` dort: „System CachyOS“, Python
+3.14), headless im Betrieb, ohne angemeldeten Benutzer. Bis zum
+28.10.2026 stand hier „Ubuntu Server“ — das stimmte nicht. Die Punkte
+unten, die Ubuntu nennen, gelten für einen künftigen Rechner mit
+Ubuntu; in Rostock greift der pacman-Zweig.
 
 Abhaken, was durchgelaufen ist.
 
@@ -551,9 +554,9 @@ jede Übersetzung, und die Dauer jedes Schrittes — Whisper, Übersetzung
 je Sprache, Piper. Damit sieht man, wo es kippt: hat Whisper schon
 falsch gehört, oder erst das Modell falsch übersetzt?
 
-**Pult → Einrichtung → „Testprotokoll schreiben".** Der Schalter
-erscheint **nur, wenn das Pult am Gemeinde-PC selbst geöffnet ist** —
-aus dem Saal gibt es ihn nicht.
+**Pult → Einrichtung → „Testprotokoll schreiben".** Bis 0.5.1 erschien
+der Schalter nur am Gemeinde-PC selbst; seit 0.5.2 überall, wo das Pult
+offen ist — geschützt allein durch das Pult-Passwort.
 
 Es gelten die Regeln der Aufnahme, denn es ist derselbe Inhalt:
 
@@ -567,7 +570,8 @@ Es gelten die Regeln der Aufnahme, denn es ist derselbe Inhalt:
   soll nicht aus Versehen über einen Sonntag weiterlaufen.
 - `700` auf dem Ordner, `600` auf den Dateien, **nach sieben Tagen
   gelöscht** (dieselbe Frist wie die Aufnahme, `aufnahme_tage`).
-- Abrufbar nur am Rechner selbst.
+- Abrufbar, wo das Pult offen ist (seit 0.5.2; vorher nur am Rechner
+  selbst). Ohne Pult-Passwort also für jeden im Saal-WLAN.
 
 Die Dateien liegen unter `ergebnisse/pruefprotokolle/` und heißen
 `pruefprotokoll_<datum>_<zeit>.jsonl` — eine Zeile JSON je Abschnitt.
@@ -860,12 +864,15 @@ Aufnahmen (`/mitschnitt/…`) entstehen nur nach ausdrücklichem Druck am
 Pult und nur mit zwei Häkchen — im normalen Betrieb entsteht nichts.
 Seit 0.3.0 werden sie nach **sieben Tagen gelöscht** (`aufnahme_tage`,
 am Pult einstellbar), der Aufräumlauf geht stündlich. Abrufbar sind
-sie nur am Gemeinde-PC selbst, nie aus dem Saalnetz.
+sie, wo das Pult offen ist — seit 0.5.2 auch vom Handy; bis 0.5.1 nur
+am Gemeinde-PC selbst. Der läuft aber ohne Bildschirm.
 
 **Löschen von Hand** gibt es seit 0.4.0: ein Knopf je Aufnahme, mit
-einer Rückfrage, die den Dateinamen nennt. Nur am Gemeinde-PC selbst,
-wie das Herunterladen — ein Pult-Passwort würde das nicht ersetzen, es
-ginge im Saalnetz unverschlüsselt über HTTP. Eine laufende Aufnahme ist
+einer Rückfrage, die den Dateinamen nennt. Es gilt dieselbe Schranke
+wie beim Herunterladen: allein das Pult-Passwort. Ohne Pult-Passwort
+kann jeder im Saal-WLAN das Pult bedienen, auch die Aufnahmen. Wer
+Aufnahmen macht, sollte ein Pult-Passwort setzen. Das Passwort geht
+über HTTP unverschlüsselt durchs Saal-WLAN. Eine laufende Aufnahme ist
 nicht löschbar. Ins Journal geht nur der Dateiname.
 
 Seit 0.3.8 ist das Format **MP3**, 48 kbit/s mono, rund 22 MB je
@@ -1573,12 +1580,12 @@ Das Pult steht dann unter **http://10.0.0.1/pult**.
 
 ### Zwei Dinge, die dabei zu wissen sind
 
-**Ein Laptop im Saalnetz zählt nicht als „am Rechner".** Devarenu
-unterscheidet, ob das Pult am Gemeinde-PC selbst offen ist oder
-irgendwo im Netz — davon hängen die Aufnahmen, das Testprotokoll und
-„Jetzt aus dem Netz aktualisieren" ab. Über das Kabel ist der Laptop
-im Netz, nicht am Rechner. Das ist richtig so: wer vom Laptop aus
-alles dürfte, dürfte es auch vom Handy eines Besuchers aus.
+**Ein Laptop im Saalnetz zählt nicht als „am Rechner".** Seit 0.5.2
+spielt das für die Bedienung keine Rolle mehr: Aufnahmen, Testprotokoll
+und „Jetzt aus dem Netz aktualisieren" gehen überall, wo das Pult offen
+ist. Bis 0.5.1 hingen sie am Gemeinde-PC selbst. Am Laptop wie am Handy
+schützt allein das Pult-Passwort — ohne Passwort darf, wer im Saal-WLAN
+ist, also auch das Handy eines Besuchers.
 
 **Alternative ohne Kabel:** ein zweiter WLAN-Stick am Laptop, mit dem
 er sich ins Saal-WLAN hängt — dieselben Einstellungen, dieselbe feste
@@ -1609,6 +1616,88 @@ python grafikwacht.py             die letzten Tage
 
 Fehlt `nvidia-smi` oder schlägt es fehl, wird **still** nichts
 gemessen. Eine Messung ist eine Auskunft, kein Betriebsteil.
+
+## Der Sprachmodell-Server: llama-server oder Ollama (seit 0.5.2)
+
+Devarenu übersetzt über **llama-server** (llama.cpp) oder über
+**Ollama**. Welcher, entscheidet `sprachmodell.py`: mit
+`SPRACHMODELL_SERVER = "auto"` (Vorgabe) erst llama-server unter
+`LLAMA_URL` (127.0.0.1:8091), dann Ollama unter `OLLAMA_URL`. Ein Update
+schaltet nichts um — ein Rechner mit Ollama bleibt bei Ollama.
+
+**Wie gefragt wird.** llama-server über `/v1/chat/completions`
+(OpenAI-kompatibel), Ollama weiter über `/api/chat`. Dieselbe
+Systemanweisung, `temperature 0.1`, höchstens 400 Token. **Denken ist
+aus**: bei llama-server mit `chat_template_kwargs:
+{"enable_thinking": false}`, bei Ollama mit `"think": false`. Ohne das
+denkt gemma4 rund 300 bis 500 Token je Satz (gemessen: 3,8 s statt
+0,3 s). Ollamas `/v1` kennt `chat_template_kwargs` nicht und liefert
+ohne Steuerung eine **leere** Übersetzung, weil das Denken die 400 Token
+aufbraucht — darum bleibt Ollama bei `/api/chat`.
+
+**Gemessen am 28.10.2026** (RTX 5080, gemma4 12b Q4_K_M — dieselbe Datei
+wie Ollamas `gemma4:12b`):
+
+| | |
+|---|---|
+| llama-server, `-np 4 -c 16384` | 9,6 GB Grafikspeicher |
+| dazu Whisper large-v3-turbo | 2,4 GB — zusammen 12,0 GB, passt in 16 GB |
+| je Abschnitt, 3 Sprachen parallel | 0,75 s im Mittel (Ollama: 0,94 s) |
+| je Abschnitt, 4 Sprachen parallel | 0,96 s (mit nur 3 Plätzen: 1,21 s) |
+| echter Lauf mit Whisper, de → en, ru, fa | 0,93 s je Abschnitt gesamt |
+
+**Einrichten: automatisch beim Update.** `llama_einrichten.py` läuft am
+Ende jedes Updates ab 0.5.2 (`aktualisierung.sh`, als root, auf jedem
+Weg: Netz, Stick, Fenster, von Hand) — oder von Hand:
+
+    sudo bash dienst.sh --llama
+
+1. **Programm:** das fertige Archiv von ggml-org, Build **b11962**
+   (`llama-b11962-bin-ubuntu-cuda-12.8-x64.tar.gz`, 182,5 MB) mit der
+   CUDA-Laufzeit (`cudart-…`, 594,4 MB), sha256 gegen `teile.json`,
+   ausgepackt nach `/opt/devarenu-llama/b11962` (die Bibliotheken neben
+   `llama-server`, das sie über `$ORIGIN` findet). Das Archiv heißt
+   „ubuntu“, läuft aber unter **CachyOS** unverändert und auf der
+   Grafikkarte (gemessen am 28.10.2026). Nicht über pacman: CachyOS hat
+   kein `llama.cpp-cuda` in den Paketquellen, nur im AUR (aus den
+   Quellen gebaut); `llama-cpp` mit `ggml-cuda` zieht `cuda` nach
+   (2,4 GB) und bekommt mit jedem Systemupdate einen anderen Stand.
+2. **Modell:** liegt es unter `sprachmodell/` (Stick), wird es genommen;
+   sonst Ollamas Blob aus der Ollama-Ablage — sha256 geprüft, dann
+   `cp --reflink=auto` (unter btrfs ohne Platz und in 0 s); sonst aus
+   der Ollama-Bibliothek geladen. Es gehört danach dem Dienstbenutzer.
+3. **Unit** `devarenu-llama.service`, nur 127.0.0.1, `-np 4 -c 16384`,
+   `Conflicts=ollama.service`.
+4. **Probe:** Ollama wird kurz angehalten, llama-server gestartet, ein
+   echter Übersetzungsaufruf mit abgeschaltetem Denken; Antwort nur die
+   Übersetzung, Grafikspeicher mit Whisper unter 16 GB.
+5. **Erst wenn sie besteht:** llama-server an, Ollama ab (nicht
+   deinstalliert), Devarenu neu gestartet. Besteht sie nicht, bleibt
+   Ollama an, wie es war.
+
+**Nie tödlich.** Der Schritt steht nach Gesundheitscheck und
+Aufräumen; scheitert er, bleibt das Update bestehen. Der Grund steht im
+Update-Protokoll, am Pult und in der Meldung, und in
+`update/llama-lage.json`. Ohne Internet und ohne Teile auf dem Stick
+wird er übersprungen und gemeldet. Ein zweiter Lauf erkennt den
+fertigen Zustand und ändert nichts. Zeitgrenze 45 Minuten; ein
+abgerissener Download wird mit Range fortgesetzt. Auf dem
+Entwicklungsrechner (Marke `ENTWICKLUNG`) läuft er nie.
+
+**Wie lange** (gemessen auf dem Arbeitsrechner, CachyOS, btrfs, am
+28.10.2026): Mit Ollamas Blob auf demselben Dateisystem und den
+Archiven schon da (Stick) **12 s** für den ganzen Schritt — darin sha256
+über 7,4 GB 3,8 s, reflink 0 s, Laden des Modells 1,5 s, Probe 0,4 s.
+Müssen die Archive geladen werden, kommen 777 MB Download dazu; liegt
+die Ollama-Ablage auf einem anderen Dateisystem, eine echte Kopie von
+7,4 GB. Der Lauf mit Download und voller Kopie dauerte 170 s.
+
+**Die Modelldatei.** Ollamas Blob `sha256-1278394b…` (7,38 GB) ist eine
+gewöhnliche GGUF-Datei in Q4_K_M und lädt in llama-server unverändert.
+Die offiziellen GGUF-Ablagen von Google und ggml-org bieten für 12B nur
+Q4_0, QAT-Q4_0, Q8_0 und BF16. Auf einem Stick liegt sie nur einmal,
+auch wenn sie in `teile.json` zweimal steht (als Ollama-Blob und als
+Modell für llama-server): `teile.py` erkennt die gleiche sha256.
 
 ## Hörprobe: welche Stimme für Englisch und Russisch?
 
@@ -2525,13 +2614,12 @@ prüft das mit.
 Am Pult unter *Einrichtung*, seit 0.4.0. Er spart den Weg ins Terminal
 — niemand muss `bash aktualisieren.sh` tippen.
 
-**Nur am Gemeinde-PC selbst.** Dieselbe Schranke wie bei Aufnahmen und
-Testprotokoll (`nur_am_rechner`). Ein Pult-Passwort würde das nicht
-ersetzen: es ginge im Saalnetz unverschlüsselt über HTTP, und ein
-Update, das sich von dort anstoßen lässt, ist ein Update, das jeder
-anstoßen kann, der im WLAN ist. **Über RustDesk geht es**, denn dort
-läuft der Browser auf dem Rechner selbst — für den Server ist das
-Loopback.
+**Seit 0.5.2 auch vom Handy.** Bis 0.5.1 nur am Gemeinde-PC selbst
+(`nur_am_rechner`); der läuft aber ohne Bildschirm. Jetzt schützt ihn,
+wie alles am Pult, allein das Pult-Passwort. Der Knopf wählt nur den
+Zeitpunkt, nicht den Inhalt: geholt werden weiter nur signierte Tags,
+geprüft gegen `schluessel.erlaubt`, mit Rücksprung. Ohne Internet sagt
+er **Kein Internet** und ändert nichts.
 
 **Warum ein Marker und kein `sudo`.** Der Server läuft als `devarenu`,
 das Update braucht root. Eine `sudo`-Regel für den Dienstbenutzer stünde

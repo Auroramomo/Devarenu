@@ -733,6 +733,9 @@ cat > "$J/nmcli" <<'NM'
 #!/bin/sh
 case "$*" in
   *"STATE general"*) [ -f "$(dirname "$0")/netz_da" ] && echo connected                        || echo disconnected ;;
+  *"CONNECTIVITY general"*) if [ -f "$(dirname "$0")/netz_begrenzt" ]; then echo limited
+                            elif [ -f "$(dirname "$0")/netz_da" ]; then echo full
+                            else echo none; fi ;;
   *"connection show --active"*) echo "" ;;
   *) : ;;
 esac
@@ -786,11 +789,49 @@ rm -f "$J/netz_da" "$J/systemctl.log"
 AUSJ="$(j_lauf nein)" || true
 pruefe "ohne Netz laeuft der Updater nicht" "nein" \
   "$([ -f "$J/updater.log" ] && echo ja || echo nein)"
+# Seit dem 28.10.2026 geht der Knopf auch vom Handy -- wer ihn dort
+# drueckt, sieht genau den Satz aus online-lauf.json. Er muss sagen,
+# dass es kein Internet gibt, und nicht auf einen Rechner verweisen,
+# an dem niemand sitzt.
 pruefe "und es steht deutlich da" "ja" \
-  "$(printf '%s' "$AUSJ" | grep -q 'Kein Netz' && echo ja || echo nein)"
+  "$(grep -q 'Kein Internet' "$J/update/online-lauf.json" && echo ja || echo nein)"
+pruefe "ohne Verweis auf den Bildschirm am Rechner" "nein" \
+  "$(grep -q 'am Rechner' "$J/update/online-lauf.json" && echo ja || echo nein)"
 pruefe "der Fenster-Timer wird wieder gestartet" "ja" \
   "$(grep -q 'start devarenu-fenster.timer' "$J/systemctl.log" \
      && echo ja || echo nein)"
+
+# 3b) Verbunden, aber ohne Internet (NetworkManager: "limited").
+touch "$J/netz_da" "$J/netz_begrenzt"; rm -f "$J/updater.log"
+: > "$J/update/online-jetzt"
+AUSJ="$(j_lauf nein)" || true
+pruefe "begrenzte Verbindung: der Updater laeuft nicht" "nein" \
+  "$([ -f "$J/updater.log" ] && echo ja || echo nein)"
+pruefe "und das Pult liest \"Kein Internet\"" "ja" \
+  "$(grep -q 'Kein Internet' "$J/update/online-lauf.json" && echo ja || echo nein)"
+rm -f "$J/netz_begrenzt" "$J/netz_da"
+
+# 3c) Verbunden, NetworkManager meint "full", aber der Update-Server
+#     antwortet nicht -- so endet aktualisieren.sh dann.
+touch "$J/netz_da"
+cat > "$J/aktualisieren.sh" <<'UPD'
+#!/usr/bin/env bash
+echo "LIEF" >> "$(dirname "$0")/updater.log"
+echo "  ✗ git fetch fehlgeschlagen."
+exit 1
+UPD
+: > "$J/update/online-jetzt"
+AUSJ="$(j_lauf nein)" || true
+pruefe "Server nicht erreichbar: gescheitert" "gescheitert" "$(lage)"
+pruefe "und zwar als \"Kein Internet\"" "ja" \
+  "$(grep -q 'Kein Internet' "$J/update/online-lauf.json" && echo ja || echo nein)"
+rm -f "$J/netz_da" "$J/updater.log"
+cat > "$J/aktualisieren.sh" <<'UPD'
+#!/usr/bin/env bash
+echo "LIEF" >> "$(dirname "$0")/updater.log"
+echo "0.9.1" > "$(dirname "$0")/VERSION"
+exit 0
+UPD
 
 # 4) Der gute Fall.
 touch "$J/netz_da"; rm -f "$J/systemctl.log"

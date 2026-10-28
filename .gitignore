@@ -9,6 +9,8 @@ __pycache__/
 # Wird von einrichten.sh geladen, zusammen mehrere Gigabyte
 models/
 voices/
+# llama-server: Archive und Modell (llama_einrichten.py, 0.5.2)
+sprachmodell/
 
 # Laufzeitdaten
 ergebnisse/

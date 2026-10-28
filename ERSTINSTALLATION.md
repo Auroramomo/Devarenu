@@ -288,8 +288,8 @@ bash wartungsfenster.sh --berichte ja
 > `devarenu-fenster-wecker.service` von selbst.
 
 Am Pult gibt es unter *Einrichtung* außerdem den Knopf **„Jetzt aus dem
-Netz aktualisieren"**. Der geht nur am Gemeinde-PC selbst, nicht aus
-dem Saal.
+Netz aktualisieren"**. Seit 0.5.2 geht er auch vom Handy; geschützt
+ist er, wie alles am Pult, nur durch das Pult-Passwort.
 
 ---
 

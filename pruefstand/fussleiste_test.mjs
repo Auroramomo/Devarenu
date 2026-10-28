@@ -51,8 +51,13 @@ titel("1) Genau eine Leiste, genau fuenf Eintraege");
          ["w-ton", "w-text", "w-dunkel", "w-sprache", "w-mehr"],
          kennungen(LEISTE));
   const regel = STIL.split(".fussleiste{")[1].split("}")[0];
+  // minmax(0,1fr) seit 28.10.2026: mit 1fr wurde keine Spalte schmaler
+  // als ihr laengstes Wort, und die Leiste lief ueber den Rand.
   pruefe("fünf Spalten im Stil", true,
-         /grid-template-columns:repeat\(5,1fr\)/.test(regel));
+         /grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/.test(regel));
+  pruefe("und zwei Reihen, wenn die Wörter nicht passen", true,
+         /\.fussleiste\.zweireihig\{grid-template-columns:repeat\(3,/
+           .test(STIL));
   // 320 px geteilt durch fuenf sind 64 px; davon geht der Seitenrand ab.
   pruefe("die Beschriftung bricht nicht um", true,
          /white-space:nowrap/.test(STIL.split(".fussleiste .beschriftung{")[1]
@@ -136,7 +141,11 @@ titel("5) Das Mehr-Blatt geht auf und wieder zu");
 titel("6) Beschriftet in allen Oberflaechensprachen");
 {
   const { TEXTE } = laden();
-  const noetig = ["ton", "tonAus", "text", "textAus", "sprache",
+  // Seit 0.5.2 heissen die Ton-Texte nach der Handlung
+  // (tonknopf_test.mjs): tonAusschalten, tonAnschalten; die Text-Texte
+  // seit dem 28.10.2026 ebenso: textAusschalten, textAnschalten.
+  const noetig = ["tonAusschalten", "tonAnschalten",
+                  "textAusschalten", "textAnschalten", "sprache",
                   "dunkel", "heller", "mehr", "mehrTitel",
                   "post", "zurueck", "rueckmeldung", "schliessen",
                   "uGut", "uSchwer"];
@@ -146,9 +155,16 @@ titel("6) Beschriftet in allen Oberflaechensprachen");
   }
   // Die fuenf Woerter in der Leiste muessen in eine schmale Zelle.
   for (const s of Object.keys(TEXTE)) {
-    const lang = ["ton", "tonAus", "text", "textAus", "sprache",
+    const lang = ["tonAusschalten", "tonAnschalten",
+                  "textAusschalten", "textAnschalten", "sprache",
                   "dunkel", "heller", "mehr"]
-                 .filter((k) => TEXTE[s][k].length > 10);
+                 // 11 seit 28.10.2026 fuer "Выкл. текст", gleich gebaut
+                 // wie "Выкл. звук". Auf 320x568 angesehen: die Leiste
+                 // passt. Bei 150 % Schrift lief sie russisch rechts
+                 // ueber, "Язык" angeschnitten; seitdem geht sie dann
+                 // auf zwei Reihen (leisteEinpassen), gemessen in
+                 // seitenbreite_test.py.
+                 .filter((k) => TEXTE[s][k].length > 11);
     pruefe(`${s} bleibt kurz genug`, [], lang);
   }
 }

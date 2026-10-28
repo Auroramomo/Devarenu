@@ -6,7 +6,7 @@
 
 Zwei Dinge stehen auf dem Spiel. Im Protokoll steht der Predigttext,
 Wort fuer Wort, in allen Sprachen -- es darf also nur mit Einwilligung
-entstehen, nur am Rechner selbst lesbar sein und nach sieben Tagen
+entstehen, nur fuer das Pult lesbar sein und nach sieben Tagen
 verschwinden. Und es haengt mitten in der Segmentschleife: ein Fehler
 beim Schreiben darf die Uebersetzung NIE anhalten.
 """
@@ -169,20 +169,17 @@ with tempfile.TemporaryDirectory() as o:
     pruefe("und es wird nichts mehr geschrieben", vorher,
            datei.read_text(encoding="utf-8"))
 
-titel("6) Am Pult: kein Erklaertext ohne Schalter")
+titel("6) Am Pult: Schalter und Erklaertext ueberall")
 
-# Der Schalter steht nur da, wenn das Pult am Gemeinderechner selbst
-# offen ist -- ein Knopf, der immer "geht nicht" sagt, waere
-# schlechter als keiner. Der Erklaertext darunter hing bis 0.3.7 nicht
-# mit daran: aus dem Saal oder ueber den Tunnel las man drei Zeilen
-# ueber einen Schalter, den es auf dieser Seite gar nicht gab, und
-# suchte den Fehler bei sich. Genau so gemeldet worden.
+# Bis zum 28.10.2026 stand der Schalter nur da, wenn das Pult am
+# Gemeinderechner selbst offen war, und der Erklaertext hing seit 0.3.8
+# mit daran. Seitdem geht das Testprotokoll auch vom Handy (geschuetzt
+# allein durch das Pult-Passwort): die Reihe ist immer sichtbar, und
+# der Erklaertext steht, solange kein Protokoll laeuft.
 #
 # Statische Pruefung, und zwar in pruefprotokollAnzeigen(): das ist
 # die Funktion, die bei jedem Takt laeuft und den Text von sich aus
-# hinstellt. Die zweite Zuweisung in pruefprotokollSetzen() ist eine
-# Antwort auf einen Klick -- und klicken kann nur, wer den Schalter
-# sieht.
+# hinstellt.
 quelle = (Path(__file__).resolve().parent.parent / "web" / "pult.html") \
     .read_text(encoding="utf-8")
 anzeigen = quelle.split("function pruefprotokollAnzeigen(")[-1].split("\n}")[0]
@@ -191,12 +188,14 @@ zuweisungen = [z.strip() for z in anzeigen.splitlines()
                and "==" not in z]
 pruefe("es gibt ueberhaupt eine Zuweisung", 1, len(zuweisungen))
 for z in zuweisungen:
-    pruefe("sie haengt an der Reihe", True,
-           "pruefprotokollreihe.hidden" in z)
+    pruefe("sie haengt nur daran, ob ein Protokoll laeuft", True,
+           z.replace(" ", "") == "pruefprotokollhin.hidden=!!lage;")
 
-# Und die Reihe selbst haengt weiterhin daran, am Rechner zu sitzen.
-pruefe("die Reihe haengt an am_rechner", True,
+# Und die Reihe selbst haengt nicht mehr am Ort.
+pruefe("die Reihe haengt nicht an am_rechner", False,
        "pruefprotokollreihe.hidden = !d.am_rechner" in quelle)
+pruefe("und ist im HTML nicht versteckt", True,
+       "<p class=hin id=pruefprotokollreihe>" in quelle)
 
 print()
 if FEHLER:

@@ -1,3 +1,21 @@
 #!/usr/bin/env bash
 # Attrappe fuer den Gesundheitscheck.
-printf '{"live": false, "fassung": "%s", "gesamt": 0}' "${STUB_FASSUNG:-0.0.0}"
+#
+# /pult (seit 0.5.2 prueft gesundheit.sh auch das Pult): eine Seite mit
+# Status 200, oder mit STUB_PULT_STATUS=500 die Fehlerseite des
+# Servers. Alles andere: die Antwort von /api/zustand wie bisher.
+# Mit -w ...%{http_code} steht der Status dahinter, wie bei curl.
+status=200
+case "$*" in
+  */pult*)
+    status="${STUB_PULT_STATUS:-200}"
+    if [ "$status" = 200 ]; then
+      printf '<!doctype html><title>Pult-Attrappe</title>'
+    else
+      printf '<h1>pult.html fehlt</h1><p>web/pult.html</p>'
+    fi ;;
+  *)
+    printf '{"live": false, "fassung": "%s", "gesamt": 0}' "${STUB_FASSUNG:-0.0.0}" ;;
+esac
+case "$*" in *http_code*) printf '\n%s' "$status" ;; esac
+exit 0

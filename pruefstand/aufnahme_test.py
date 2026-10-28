@@ -8,7 +8,9 @@ Zwei Teile. Zuerst das Modul fuer sich -- Einwilligung, Frist,
 Altbestand, Platz -- gegen einen Wegwerfordner mit kuenstlich
 gealterten Dateien. Dann ein ECHTER Server: Start ohne Einwilligung
 wird abgelehnt, Anhalten beendet die Aufnahme, ein Neustart setzt sie
-nicht fort, und Abrufen geht nur am Rechner selbst.
+nicht fort, und Abrufen geht, wo das Pult offen ist (seit dem
+28.10.2026 auch aus dem Saal; ein Pult-Passwort davor prueft
+pult_handy_test.py).
 
 Der zweite Teil ist der wichtigere. Dass das Modul richtig rechnet,
 sagt nichts darueber, ob die Pflicht auch am Endpunkt gilt -- und
@@ -323,23 +325,24 @@ try:
     pruefe("nach dem Anhalten laeuft keine Aufnahme mehr", None,
            json.loads(roh).get("mitschnitt"))
 
-    print("\n   -- Abrufen nur am Rechner --")
+    # Bis zum 28.10.2026 kam aus dem Saal 403. Seitdem gilt allein das
+    # Pult-Passwort; hier ist keines gesetzt, also ist das Pult offen.
+    print("\n   -- Abrufen ohne Pult-Passwort: am Rechner und vom Handy --")
     saal = eigene_adresse()
     if not saal:
         print(f"   {ROT}!{AUS}     UEBERSPRUNGEN: keine Adresse ausser "
-              f"Loopback. Damit ist NICHT geprueft, ob der Saal "
-              f"abgewiesen wird.")
+              f"Loopback. Damit ist NICHT geprueft, was der Saal sieht.")
         FEHLER += 1
     else:
         pruefe("die Liste am Rechner", 200, holen("/api/aufnahmen")[0])
-        pruefe("die Liste aus dem Saal", 403,
+        pruefe("die Liste vom Handy", 200,
                holen("/api/aufnahmen", gastgeber=saal)[0])
         pruefe("der Download am Rechner", 200,
                holen(f"/mitschnitt/{name}")[0])
-        pruefe("der Download aus dem Saal", 403,
+        pruefe("der Download vom Handy", 200,
                holen(f"/mitschnitt/{name}", gastgeber=saal)[0])
-        pruefe("die Frist aus dem Saal", 403,
-               holen("/api/aufnahme/tage", {"tage": 1}, gastgeber=saal)[0])
+        pruefe("die Frist vom Handy", 200,
+               holen("/api/aufnahme/tage", {"tage": 7}, gastgeber=saal)[0])
 
     print("\n   -- Neustart setzt nicht fort --")
     holen("/api/mitschnitt", {"einwilligung": {"person_gefragt": True,
@@ -364,10 +367,12 @@ try:
     vorhanden = sorted(x.name for x in ordner.iterdir()
                        if x.suffix.lower() in (".mp3", ".wav"))
     opfer = vorhanden[0]
+    # Vom Handy nur der Pfad-Fall: das eigentliche Loeschen kommt unten
+    # "scharf" vom Rechner, und dafuer muss die Datei noch da sein.
     if saal:
-        pruefe("Loeschen aus dem Saal", 403,
-               holen("/api/aufnahme/loeschen", {"name": opfer},
-                     gastgeber=saal)[0])
+        pruefe("\"../\" findet auch vom Handy nichts", 404,
+               holen("/api/aufnahme/loeschen",
+                     {"name": "../../zustand.json"}, gastgeber=saal)[0])
         pruefe("und die Datei liegt noch da", True, (ordner / opfer).exists())
     # Kein Pfad aus dem Namen: gesucht wird in der eigenen Liste, und
     # darin steht "../" nicht.

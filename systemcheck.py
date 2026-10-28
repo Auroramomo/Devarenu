@@ -499,6 +499,69 @@ def _devarenu(befunde):
             tun_en="journalctl -u devarenu -b"))
 
 
+SPRACHMODELL_DIENSTE = ("devarenu-llama", "ollama")
+
+
+def _sprachmodell_dienst(befunde):
+    """Startet ein Sprachmodell-Server von selbst, und laeuft er?
+
+    Einer genuegt: devarenu-llama (llama-server) oder ollama. Gibt es
+    keinen eingeschalteten, ist das ein Befund; laeuft der
+    eingeschaltete nicht, ebenso. Welcher es ist, steht dabei."""
+    lagen = {n: _dienst_an(n) for n in SPRACHMODELL_DIENSTE}
+    an = [n for n, (_l, a) in lagen.items() if a]
+    if any(lagen[n][0] for n in an):
+        return
+    if not an:
+        befunde.append(Befund(
+            "sprachmodell_dienst", FEHLT,
+            "Kein Sprachmodell-Server startet von selbst (weder "
+            "devarenu-llama noch ollama). Ohne ihn scheitert jede "
+            "Uebersetzung.",
+            "sudo bash dienst.sh --llama   (oder: sudo systemctl enable "
+            "--now ollama)",
+            was_en="No language model server starts by itself (neither "
+                   "devarenu-llama nor ollama). Without one every "
+                   "translation fails.",
+            tun_en="sudo bash dienst.sh --llama   (or: sudo systemctl "
+                   "enable --now ollama)"))
+        return
+    name = an[0]
+    befunde.append(Befund(
+        f"sprachmodell_dienst_tot", FEHLT,
+        f"Der Sprachmodell-Server {name} ist eingeschaltet, laeuft aber "
+        f"nicht. Ohne ihn scheitert jede Uebersetzung.",
+        f"systemctl status {name}",
+        was_en=f"The language model server {name} is enabled but not "
+               f"running.",
+        tun_en=f"systemctl status {name}"))
+
+
+def _zwei_sprachmodelle(befunde):
+    """Halten Ollama und llama-server gleichzeitig ein Modell auf der
+    Karte? Das darf nie sein: zwei Modelle a 8 GB plus Whisper passen
+    nicht in 16 GB, und eines davon liegt dann halb auf der CPU -- ohne
+    Fehlermeldung, nur langsam (28.10.2026)."""
+    import os
+    import sprachmodell
+    funde = sprachmodell.auf_der_karte(
+        os.environ.get("DEVARENU_NVIDIA_SMI", "nvidia-smi"))
+    arten = {a for a, _p, _m in funde}
+    if {sprachmodell.LLAMA, sprachmodell.OLLAMA} <= arten:
+        mib = {a: sum(m for x, _p, m in funde if x == a) for a in arten}
+        befunde.append(Befund(
+            "zwei_sprachmodelle", FEHLT,
+            f"Ollama ({mib[sprachmodell.OLLAMA]} MB) und llama-server "
+            f"({mib[sprachmodell.LLAMA]} MB) halten gleichzeitig ein "
+            f"Modell im Grafikspeicher. Es darf nur einer laufen.",
+            "Den nicht genutzten anhalten und abschalten, etwa: "
+            "sudo systemctl disable --now ollama",
+            was_en="Ollama and llama-server both hold a model in graphics "
+                   "memory. Only one may run.",
+            tun_en="Stop and disable the one not in use, e.g. "
+                   "sudo systemctl disable --now ollama"))
+
+
 def _dienste(befunde, netz):
     """Laufen und starten die Dienste, auf die es ankommt?"""
     try:
@@ -509,26 +572,11 @@ def _dienste(befunde, netz):
     # aus einem Eintrag, sondern der Eintrag selbst, und die Schleife
     # zerlegt seine drei Texte (0.5.1, bis zum Nachtrag: "too many
     # values to unpack", der ganze Systemcheck fiel aus).
-    for name, warum, warum_en in (
-            ("ollama", "Ohne ihn scheitert jede Uebersetzung.",
-             "Without it every translation fails."),):
-        laeuft, an = _dienst_an(name)
-        if not an:
-            befunde.append(Befund(
-                f"dienst_{name}", FEHLT,
-                f"Der Dienst {name} startet nicht von selbst. {warum}",
-                f"sudo systemctl enable --now {name}",
-                was_en=f"Service {name} does not start automatically. "
-                       f"{warum_en}",
-                tun_en=f"sudo systemctl enable --now {name}"))
-        elif not laeuft:
-            befunde.append(Befund(
-                f"dienst_{name}_tot", FEHLT,
-                f"Der Dienst {name} ist eingeschaltet, laeuft aber "
-                f"nicht. {warum}",
-                f"systemctl status {name}",
-                was_en=f"Service {name} is enabled but not running.",
-                tun_en=f"systemctl status {name}"))
+    # Der Sprachmodell-Server (28.10.2026): llama-server
+    # (devarenu-llama) ODER Ollama. Bis dahin stand hier fest "ollama"
+    # -- auf einem Rechner mit llama-server waere das ein Befund ueber
+    # einen Dienst, den es dort mit Absicht nicht gibt.
+    _sprachmodell_dienst(befunde)
 
     if netz["router"]:
         laeuft, an = _dienst_an("dnsmasq")
@@ -1065,11 +1113,17 @@ def _mp3(befunde):
                "sudo pacman -U lame-*.pkg.tar.zst"))
 
 
+def vorrat_datei():
+    """vorrat.json. DEVARENU_VORRAT wie in pruefen.sh -- fuer Pruefstaende."""
+    import os
+    return Path(os.environ.get("DEVARENU_VORRAT", "/opt/devarenu-vorrat"),
+                "vorrat.json")
+
+
 def _vorrat(befunde):
     """Liegt der Reparaturvorrat da, und passt er zu dieser Fassung?"""
     import json
-    ziel = Path("/opt/devarenu-vorrat")
-    datei = ziel / "vorrat.json"
+    datei = vorrat_datei()
     if not datei.exists():
         befunde.append(Befund(
             "vorrat", HINWEIS,
@@ -1274,6 +1328,7 @@ def pruefen():
     _sitzung(befunde)
     _wlan(befunde)
     _ollama_gpu(befunde)
+    _zwei_sprachmodelle(befunde)
     _wartungsfenster(befunde)
     _protokoll(befunde)
     _versuchssprachen(befunde)
@@ -1311,7 +1366,9 @@ def _grafikspeicher(befunde):
 # Was auf dem Entwicklungsrechner FEHLT meldet, ohne ein Fehler zu sein:
 # dort gibt es keinen Dienst und keine automatische Anmeldung, und das
 # ist richtig so.
-ENTWICKLUNG_ERWARTET = ("dienst_", "autologin")
+# "sprachmodell_dienst" seit dem 28.10.2026: vorher hiess dieser Befund
+# "dienst_ollama" und fiel unter "dienst_".
+ENTWICKLUNG_ERWARTET = ("dienst_", "autologin", "sprachmodell_dienst")
 
 
 def _entwicklungsrechner(befunde):

@@ -113,7 +113,26 @@ else
     || warn "pip hat etwas beanstandet. Oben nachlesen."
 fi
 
-# ---------------------------------------------------------------- Ollama
+# ---------------------------------------------------- Sprachmodell-Server
+# Seit dem 28.10.2026: llama-server ODER Ollama (sprachmodell.py). Ist
+# llama-server schon eingerichtet (devarenu-llama) oder liegen Programm
+# und Modelldatei bereit, wird KEIN Ollama installiert -- beide zugleich
+# mit einem Modell auf der Karte darf es nicht geben. Einen Weg, der
+# llama.cpp selbst installiert, gibt es noch nicht (kommt mit 1.0 ueber
+# teile.json und den Stick); ohne llama-server bleibt es bei Ollama.
+blau "Sprachmodell-Server"
+LLAMA_GGUF="$($PY -c 'import config; print(config.LLAMA_GGUF)' 2>/dev/null)"
+SPRACHMODELL_LLAMA=nein
+if systemctl cat devarenu-llama.service >/dev/null 2>&1; then
+  gut "llama-server ist eingerichtet (devarenu-llama). Ollama wird nicht gebraucht."
+  SPRACHMODELL_LLAMA=ja
+elif command -v llama-server >/dev/null 2>&1 && [ -r "${LLAMA_GGUF:-/nix}" ]; then
+  gut "llama-server und $LLAMA_GGUF liegen bereit. Ollama wird nicht installiert."
+  printf '        Als Dienst einrichten:  sudo bash dienst.sh --llama\n'
+  SPRACHMODELL_LLAMA=ja
+fi
+
+if [ "$SPRACHMODELL_LLAMA" = nein ]; then
 blau "Ollama"
 if command -v ollama >/dev/null; then
   gut "installiert"
@@ -195,6 +214,7 @@ else
     echo "        Von Hand nachholen:  ollama pull $MODELL"
   fi
 fi
+fi   # SPRACHMODELL_LLAMA = nein
 
 # ---------------------------------------------------------------- Whisper
 # Ohne diesen Schritt laedt faster-whisper das Modell erst beim ersten
@@ -305,7 +325,8 @@ MANGEL=0
 for datei in server.py config.py zustand.py grafikkarte.py glossar.py \
              bibelstellen.py \
              skript_lesen.py namen_aus_bibel.py laengenfaktor.py \
-             tonhelfer.py selbsttest.py client.html; do
+             tonhelfer.py selbsttest.py client.html \
+             web/pult.html web/anmeldung.html web/qr.html; do
   if [ -f "$datei" ]; then gut "$datei"; else
     warn "$datei FEHLT"; MANGEL=1; fi
 done

@@ -578,8 +578,17 @@ def _umziehen(roh, daten):
     return ""
 
 
-def speichern(daten):
+def speichern(daten, pult_passwort_neu=None):
     """Schreibt zustand.json. Gibt zurueck, ob es geklappt hat.
+
+    Das Pult-Passwort gehoert der DATEI (28.10.2026). Der Server haelt
+    eine Kopie des Zustands im Speicher und schreibt sie bei jedem
+    Schalter zurueck -- bis dahin samt dem pult_passwort vom Start.
+    Wer am Pult ein Passwort setzte und danach die Mitschrift schaltete,
+    hatte wieder keines; wer es mit werkzeuge/pult_passwort.py
+    loeschte, bekam es beim naechsten Schalter zurueck. Jetzt wird der
+    Wert aus der Datei uebernommen, ausser der Aufrufer setzt ihn mit
+    pult_passwort_neu ausdruecklich (nur /api/pult-passwort).
 
     Erst vollstaendig danebenschreiben, dann umbenennen: os.replace ist
     unteilbar, damit gibt es nie eine halb geschriebene Datei, auch wenn
@@ -599,6 +608,19 @@ def speichern(daten):
     neben = DATEI.with_name(DATEI.name + ".neu")
     try:
         with _schloss:
+            if pult_passwort_neu is not None:
+                daten["pult_passwort"] = pult_passwort_neu
+            else:
+                try:
+                    auf_platte = json.loads(
+                        DATEI.read_text(encoding="utf-8")).get("pult_passwort")
+                except (OSError, ValueError, AttributeError):
+                    auf_platte = None
+                # Unlesbar: dann bleibt, was der Aufrufer hat. Eine
+                # kaputte Datei soll kein Passwort erfinden und keines
+                # verschlucken.
+                if isinstance(auf_platte, str):
+                    daten["pult_passwort"] = auf_platte
             neben.write_text(
                 json.dumps(daten, indent=2, ensure_ascii=False) + "\n",
                 encoding="utf-8")

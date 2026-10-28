@@ -96,6 +96,14 @@ try:
     pruefe("de taugt als Predigtsprache", True, m["de"]["quelle"])
     pruefe("nur tw ist ausgenommen", ["tw"],
            sorted(c for c, x in m.items() if not x["quelle"]))
+    # 0.5.2: fuer das Pult auf EN beide Namen, aus config.
+    pruefe("moeglich: jede Sprache mit englischem Namen aus SPRACHNAMEN_EN",
+           {c: config.SPRACHNAMEN_EN[c] for c in m},
+           {c: x.get("name_en") for c, x in m.items()})
+    pruefe("liste: ebenso, und der deutsche bleibt",
+           [(x["code"], config.SPRACHNAMEN[x["code"]],
+             config.SPRACHNAMEN_EN[x["code"]]) for x in d["liste"]],
+           [(x["code"], x["name"], x.get("name_en")) for x in d["liste"]])
 
     titel("3) Twi als Ziel ja, als Quelle nein")
     code, _ = rufen(PORT, "/api/sprachwahl", {"quelle": "tw",

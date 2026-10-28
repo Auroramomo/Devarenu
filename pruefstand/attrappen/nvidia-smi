@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Attrappe fuer nvidia-smi --query-compute-apps: gibt $NVSMI_AUSGABE aus,
+# Zeile fuer Zeile wie "pid, process_name, used_memory" (csv,noheader,
+# nounits). Leer: keine Prozesse auf der Karte.
+printf '%b' "${NVSMI_AUSGABE:-}"
+exit 0

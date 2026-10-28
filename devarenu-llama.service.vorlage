@@ -1,0 +1,36 @@
+# llama-server fuer Devarenu: das Sprachmodell der Uebersetzung (0.5.2).
+#
+# Eingerichtet von llama_einrichten.py: am Ende jedes Updates ab 0.5.2
+# (aktualisierung.sh) oder von Hand mit  sudo bash dienst.sh --llama.
+# Ollama wird erst abgeschaltet, wenn eine echte Probe besteht.
+#
+# Werte gemessen am 28.10.2026 (RTX 5080, gemma4 12b Q4_K_M):
+#   -np 4        vier Plaetze: vier Zielsprachen gleichzeitig. Mit drei
+#                Plaetzen brauchten vier Sprachen 1,21 s je Abschnitt,
+#                mit vier 0,96 s; drei Sprachen 0,75 s, gleich bei 3 und 4.
+#   -c 16384     4096 Token je Platz. Die laengsten Anfragen (Glossar,
+#                Kontext, Antwort bis 400 Token) bleiben weit darunter;
+#                2048 je Platz sparte nur 130 MB.
+#   9,6 GB Grafikspeicher fuer den llama-server, mit Whisper
+#   large-v3-turbo zusammen rund 12 GB -- passt in 16 GB.
+#
+# Nur 127.0.0.1: das Modell ist kein Dienst fuers Saalnetz.
+# Conflicts=ollama.service: es darf nie Ollama UND llama-server ein
+# Modell im Grafikspeicher halten.
+[Unit]
+Description=Devarenu: llama-server (Sprachmodell der Uebersetzung)
+After=network.target
+Before=devarenu.service
+Conflicts=ollama.service
+
+[Service]
+Type=simple
+User=@BENUTZER@
+SupplementaryGroups=video render
+ExecStart=@LLAMA_SERVER@ -m @GGUF@ --host 127.0.0.1 --port @LLAMA_PORT@ -ngl 999 -c 16384 -np 4 -fa on --no-mmproj --alias gemma4-12b
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

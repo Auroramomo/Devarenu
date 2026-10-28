@@ -1,6 +1,10 @@
 <!doctype html><html lang=de><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name=color-scheme content=light>
+<!-- Das Symbol ausdruecklich (A5, 28.10.2026): unter 10.0.0.1 zeigte
+     der Browser sonst das gemerkte Symbol der Fritzbox. -->
+<link rel=icon type=image/png href=/logo.png>
+<link rel=apple-touch-icon href=/logo.png>
 <title>Pult</title>
 <style>
 /* Das Pult. Vier Reiter, eine Startseite, Farbe nur mit Bedeutung.
@@ -406,6 +410,10 @@ input[type=range]{width:100%;min-height:44px}
   font-size:.88rem;display:flex;flex-direction:column;gap:.2rem}
 .wartungliste li.schwer{color:var(--rot)}
 .wartungliste code{font-size:.82rem;color:var(--grau);word-break:break-all}
+/* Der Befehl zum Abtippen (0.5.2): dunkel und mit einem Tipp ganz
+   markiert, damit er sich auch kopieren laesst. */
+.wartungliste code.befehl{color:var(--text);user-select:all;
+  font-size:.9rem}
 .werte{display:flex;justify-content:space-between;gap:.6rem;
   font:.76rem var(--schild);color:var(--grau);
   font-variant-numeric:tabular-nums;margin:.3rem 0}
@@ -414,7 +422,14 @@ input[type=range]{width:100%;min-height:44px}
 .qrpaar{display:flex;gap:1.2rem;flex-wrap:wrap;margin:.4rem 0 1rem}
 .qrpaar img{border:1px solid var(--kante);background:#fff;
   width:min(100%,190px);height:auto}
-.qrpaar>div{flex:1 1 12rem;max-width:14rem}
+.qrpaar>div{flex:1 1 12rem;max-width:14rem;min-width:0}
+/* Der Link auf Devarenu-Update.zip und die Adresse des Fehlerberichts
+   sind je EIN Wort ohne Leerzeichen. Chromium -- der Browser der
+   Android-Handys -- bricht darin nirgends um; am Handytest vom
+   28.10.2026 war die Seite Update dadurch 577 px breit, die untere
+   Leiste verrutschte, und "Service" lag links draussen. Firefox bricht
+   nach jedem "/" um und zeigte nichts davon. */
+.qrpaar code{overflow-wrap:anywhere;word-break:break-all}
 /* Der Knopf, der die Datei waehlt. Das nackte Browser-Feld sieht auf
    jedem Geraet anders aus und auf keinem wie ein Knopf. */
 .dateiknopf input{position:absolute;width:1px;height:1px;opacity:0;
@@ -479,7 +494,7 @@ h2.klapp{display:flex;justify-content:space-between;align-items:center;
   <div class=meta>
     <span class=laufzeit id=laufzeit></span>
     <button class=ikon id=qrknopf onclick=qrOeffnen() data-t=qr_titel
-            title="QR-Seite für den Beamer">QR</button>
+            title="QR-Seite für den Beamer" data-tt=qr_beamer>QR</button>
     <button class="ikon text" id=kaefer onclick=fehlerZeigen()>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
            stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -500,7 +515,7 @@ h2.klapp{display:flex;justify-content:space-between;align-items:center;
      Laptop eine Zeile unter dem Kopf. Echte Knoepfe mit role=tab: eine
      Liste von Verweisen laesst sich nicht mit den Pfeiltasten bedienen,
      und am Pult steht nicht immer eine Maus. -->
-<nav class=reiter role=tablist aria-label="Bereiche">
+<nav class=reiter role=tablist aria-label="Bereiche" data-ta=bereiche>
   <button role=tab id=rGottesdienst aria-selected=true
           aria-controls=gottesdienst onclick="reiterWaehlen('gottesdienst')"
           aria-label="Gottesdienst">
@@ -621,7 +636,7 @@ niemanden — die Zuhörer bleiben verbunden.</p>
       <div><p class=hin id=erkanntkachel></p>
       <p class=hin data-t=kontext_erklaert>Thema und Bibelstellen legen
       Whisper die Eigennamen des Kapitels vor. Das ist der Unterschied
-      zwischen „Sanballat“ und „San Ballard“.</p></div></details>
+      zwischen „Silas“ und „Sie las“.</p></div></details>
   </div>
 </div>
 
@@ -651,7 +666,8 @@ niemanden — die Zuhörer bleiben verbunden.</p>
 <section id=vorbereiten role=tabpanel aria-labelledby=rVorbereiten hidden>
 <h2 data-t=kontext>Thema und Bibelstellen</h2>
 <label for=kontext data-t=kontext_label>Worüber wird gepredigt?</label>
-<textarea id=kontext placeholder="Predigt über Vergebung. Texte: Matthäus 18, Psalm 32. Namen: Petrus, Nathan."></textarea>
+<textarea id=kontext data-tp=kontext_beispiel
+  placeholder="Predigt über Vergebung. Texte: Matthäus 18, Psalm 32. Namen: Petrus, Nathan."></textarea>
 <button class=btn onclick=k() data-t=uebernehmen>Übernehmen</button>
 <p class=hin id=erkannt></p>
 
@@ -725,7 +741,8 @@ geschnitten wird an Sprechpausen. „Automatisch“ folgt dem Raumpegel.
 <!-- ============================================== Einrichtung -->
 <section id=einrichtung role=tabpanel aria-labelledby=rEinrichtung hidden>
 <div class=zwei>
-<nav class=seitennav id=seitennav aria-label="Einrichtung"></nav>
+<nav class=seitennav id=seitennav aria-label="Einrichtung"
+     data-ta=r_einrichtung></nav>
 <div id=einrichtungseite>
 <button class="btn klein zurueck" onclick=unterseiteZu()
         data-t=zurueck>Zurück</button>
@@ -765,6 +782,9 @@ oder „Gemeindebüro, Tel. …“. Leer lassen heißt: die Zeile entfällt.</p>
 <select id=quellwahl onchange=sprachenSetzen()></select>
 <label data-t=ziele>Übersetzt nach</label>
 <div id=zielwahl></div>
+<!-- Nach einem Wechsel der gesprochenen Sprache (0.5.2): die bisherige
+     bleibt angewaehlt -- hier steht das, mit dem Weg zum Abwaehlen. -->
+<p class=hin id=bleibthin hidden></p>
 <p class=hin data-t=sprachen_hin>Alle Sprachen liegen auf dem Rechner. Nur
 die ausgewählten laufen mit, das spart Rechenzeit. Wird die gesprochene
 Sprache umgestellt, bleibt die bisherige angewählt und wird ab dann
@@ -793,9 +813,10 @@ dieser Rechner hängt. Sie wandern in den ersten QR-Code, damit sich die
 Handys mit einem Scan verbinden, ohne ein Passwort abzutippen. Ohne
 Eintrag zeigt die QR-Seite nur den zweiten Code.</p>
 <div class=reihe>
-  <input type=text id=ssid placeholder="Netzname" style="flex:1 1 9rem"
-         onchange=wlanSetzen()>
-  <input type=text id=wpw placeholder="Passwort" style="flex:1 1 9rem"
+  <input type=text id=ssid placeholder="Netzname" data-tp=feld_netzname
+         style="flex:1 1 9rem" onchange=wlanSetzen()>
+  <input type=text id=wpw placeholder="Passwort" data-tp=feld_pw
+         style="flex:1 1 9rem"
          onchange=wlanSetzen()>
 </div>
 <p class=hin id=wlanstand></p>
@@ -811,7 +832,8 @@ einmal danach gefragt und merkt sich die Anmeldung. Die Zuhörerseite
 bleibt immer offen, und an diesem Rechner wird nie gefragt.</p>
 <p class=hin id=pwstand></p>
 <div class=reihe>
-  <input type=password id=pwfeld placeholder="Passwort" style="flex:1 1 9rem"
+  <input type=password id=pwfeld placeholder="Passwort" data-tp=feld_pw
+    style="flex:1 1 9rem"
     autocomplete="new-password">
   <button class=btn onclick=pultPasswortSetzen() data-t=pw_setzen>Übernehmen</button>
 </div>
@@ -845,13 +867,22 @@ getan hat.</p>
 <ul class="wartungliste lage" id=fensterliste></ul>
 <h4 data-t=wk_ueber>Wecker</h4>
 <ul class="wartungliste lage" id=weckerliste></ul>
+<!-- Meldekanal und Wartungs-WLAN (28.10.2026). Beide sind Geheimnisse:
+     das Pult erfaehrt nur "gesetzt" oder "nicht gesetzt". Das Feld fuer
+     den Kanal ist darum immer leer -- es nimmt einen neuen entgegen und
+     zeigt nie den alten. -->
+<h4 data-t=mk_ueber>Meldungen und Wartungs-WLAN</h4>
+<ul class="wartungliste lage" id=meldeliste></ul>
+<p><input id=meldefeld type=text autocomplete=off spellcheck=false
+   inputmode=url placeholder="https://ntfy.sh/…">
+   <button class="btn klein" onclick=meldekanalSetzen() data-t=mk_aendern>Ändern</button></p>
+<p class=hin id=meldestand hidden></p>
 <button class=btn id=updateknopf onclick=updateJetzt() hidden
         data-t=upd_jetzt>Jetzt einspielen</button>
-<!-- Der Weg ueber das Netz. Nur am Gemeinde-PC selbst sichtbar: ein
-     Knopf, der aus dem Saal nur "geht nicht" sagt, ist schlechter als
-     keiner -- und ein Pult-Passwort wuerde das nicht ersetzen, es ginge
-     im Saalnetz unverschluesselt ueber HTTP. -->
-<div id=onlinereihe hidden>
+<!-- Der Weg ueber das Netz. Seit dem 28.10.2026 auch vom Handy: der
+     Gemeinde-PC laeuft ohne Bildschirm. Geschuetzt ist er wie alles am
+     Pult durch das Pult-Passwort. -->
+<div id=onlinereihe>
   <button class=btn id=onlineknopf onclick=onlineUpdate()
           data-t=on_jetzt>Jetzt aus dem Netz aktualisieren</button>
   <p class=hin id=onlinestand hidden></p>
@@ -861,6 +892,18 @@ getan hat.</p>
     steht keines zur Verfügung, wird die Verbindung benutzt, die gerade
     besteht — zum Beispiel ein Handy-Hotspot. Der Dienst startet dabei
     neu. Während einer laufenden Übersetzung geht es nicht.</p></div></details>
+</div>
+<!-- Das Update-ZIP (0.5.2): ein fester, oeffentlicher Link auf die
+     neueste Fassung, als Text und QR-Code, mit einem Satz fuer Helfer. -->
+<h4 data-t=uz_ueber>Update per USB-Stick</h4>
+<div class=qrpaar>
+  <div><img id=qrupdate alt="" width="190" height="190" loading=lazy
+    src="/update-zip-qr.png"></div>
+  <div><p class=hin data-t=uz_hin>Für Helfer: die Datei
+    Devarenu-Update.zip herunterladen, so wie sie ist (nicht auspacken)
+    oben auf einen USB-Stick kopieren und den Stick am Rechner einstecken.
+    Eingespielt wird, wenn niemand zuhört.</p>
+    <p class=hin><code id=updatelink>https://github.com/Auroramomo/Devarenu/releases/latest/download/Devarenu-Update.zip</code></p></div>
 </div>
 <p><a class=btn href="/anleitung.pdf" download
    data-t=anleitung_pult>Bedienungsanleitung als PDF</a></p>
@@ -884,9 +927,9 @@ Vollständig mit: bash pruefen.sh</p>
   Protokoll (nur zur Fehlersuche)</span></label>
 <p class="hin" id=protokollhin data-t=protokoll_hin>Aus. Der gesprochene
 Satz steht dann nicht im Protokoll -- nur seine Länge.</p>
-<p class=hin id=pruefprotokollreihe hidden><label class=haken><input
+<p class=hin id=pruefprotokollreihe><label class=haken><input
   type=checkbox id=pruefprotokollschalter onchange=pruefprotokollSetzen()>
-  <span data-t=pp_an>Testprotokoll schreiben (nur am Gemeinde-PC)</span></label></p>
+  <span data-t=pp_an>Testprotokoll schreiben</span></label></p>
 <p class="hin" id=pruefprotokollhin data-t=pp_hin hidden>Schreibt je
 Abschnitt den erkannten Satz, jede Übersetzung und die Dauer jedes
 Schrittes in eine Datei. Nur zur Fehlersuche. Es hört von selbst auf,
@@ -1037,8 +1080,8 @@ const TEXTE={
    ton_erklaert:"Der Balken zeigt, was ankommt. Die Marke ist die "
      +"Mindestlautstärke: was links davon bleibt, wird nicht übersetzt.",
    kontext_erklaert:"Thema und Bibelstellen legen Whisper die Eigennamen "
-     +"des Kapitels vor. Das ist der Unterschied zwischen „Sanballat“ "
-     +"und „San Ballard“.",
+     +"des Kapitels vor. Das ist der Unterschied zwischen „Silas“ "
+     +"und „Sie las“.",
    // --- Schwelle: drei Modi ---
    ton_feiner:"Feineinstellung", feineinstellung:"Feineinstellung",
    feiner_hin:"Nur bei lauten Störgeräuschen. Kann bei leisen Sprechern "
@@ -1057,6 +1100,8 @@ const TEXTE={
    messe:"Messe … noch {n} s, jetzt sprechen lassen",
    // --- Vorbereiten ---
    kontext_label:"Worüber wird gepredigt?",
+   kontext_beispiel:"Predigt über Vergebung. Texte: Matthäus 18, Psalm 32. "
+     +"Namen: Petrus, Nathan.",
    manuskript_waehlen:"Manuskript hochladen …",
    manuskript_kurz:"Falls der Prediger eines hat.",
    manuskript_hin:"Es wird nicht vorgelesen, sondern nur nach Namen und "
@@ -1082,13 +1127,13 @@ const TEXTE={
    ul_ueber:"Letztes Wartungsfenster", wk_ueber:"Wecker",
    bl_nicht_eingerichtet:"Dienst: nicht eingerichtet.",
    bl_nicht_eingerichtet_h:"Nach dem Einschalten startet Devarenu nicht "
-     +"von selbst. Einrichten am Rechner mit: bash dienst.sh",
+     +"von selbst. Einrichten am Rechner, im Terminal abtippen:",
    bl_auto_an:"Autostart: an.",
    bl_auto_an_h:"Nach dem Einschalten startet Devarenu von selbst.",
    bl_auto_aus:"Autostart: aus ({w}).",
    bl_auto_aus_h:"Nach dem Einschalten startet Devarenu nicht von selbst – "
      +"dann muss jemand das Schreibtischsymbol anklicken. Einschalten am "
-     +"Rechner: sudo systemctl enable devarenu",
+     +"Rechner, im Terminal abtippen:",
    bl_aktiv:"Dienst: läuft, seit {seit}.",
    bl_aktiv_h:"So soll es sein. Das Schreibtischsymbol wird nicht gebraucht.",
    bl_startet:"Dienst: startet gerade ({u}).",
@@ -1165,6 +1210,33 @@ const TEXTE={
    wk_passt:"Passt zum Wartungsfenster.",
    wk_grenze:"Der Wecker wirkt nur, wenn der Rechner Strom hat "
      +"(Steckdosenleiste an) und das BIOS das Wecken über die Uhr zulässt.",
+   uz_ueber:"Update per USB-Stick",
+   uz_hin:"Für Helfer: die Datei Devarenu-Update.zip herunterladen, so "
+     +"wie sie ist (nicht auspacken) oben auf einen USB-Stick kopieren "
+     +"und den Stick am Rechner einstecken. Eingespielt wird, wenn "
+     +"niemand zuhört.",
+   mk_ueber:"Meldungen und Wartungs-WLAN",
+   mk_gesetzt:"Meldekanal (ntfy): gesetzt.",
+   mk_nicht:"Meldekanal (ntfy): nicht gesetzt.",
+   mk_nicht_h:"Ohne Kanal gehen keine Meldungen hinaus – weder über "
+     +"Updates noch über Fehler.",
+   mk_aendern:"Ändern",
+   mk_gespeichert:"Neuer Kanal gespeichert. Angezeigt wird er nicht.",
+   mk_entfernt:"Kanal entfernt. Es gehen keine Meldungen mehr hinaus.",
+   mk_entfernen_frage:"Das Feld ist leer. Den Meldekanal entfernen?",
+   mk_form:"Das ist keine Kanal-Adresse. Erwartet wird etwa "
+     +"https://ntfy.sh/ und ein Thema aus Buchstaben, Ziffern, - und _.",
+   mk_nicht_schreibbar:"meldung.json ließ sich nicht schreiben.",
+   mk_ging_nicht:"Das ging nicht.",
+   ww_keins:"Wartungs-WLAN: keines eingetragen.",
+   ww_gesetzt:"Wartungs-WLAN: eingetragen, Passwort gesetzt.",
+   ww_nicht_gesetzt:"Wartungs-WLAN: eingetragen, ohne Passwort (offenes Netz).",
+   ww_unbekannt:"Wartungs-WLAN: eingetragen, ob ein Passwort gesetzt ist, "
+     +"ist nicht lesbar.",
+   ww_aendern_h:"Das Passwort ändern geht nicht über das Pult: es steht in "
+     +"der Netzwerkverwaltung des Rechners, und die ändert nur root. Am "
+     +"Rechner, auch per Fernwartung: sudo nmcli connection modify "
+     +"\"Profilname\" wifi-sec.psk \"neues Passwort\"",
    grafik_ueber:"Grafikkarte", grafik_tage:"Die letzten Tage",
    grafik_zeile:"Heute höchstens {belegt} von {gesamt} MB belegt "
      +"({voll} %), Auslastung {spitze} % Spitze / {mittel} % mittel, "
@@ -1225,7 +1297,6 @@ const TEXTE={
    aufnahme_platz:"Kein Platz mehr. Es wird nicht aufgenommen, bis welcher "
      +"frei ist.",
    aufnahme_keine:"Keine Aufnahmen vorhanden.",
-   aufnahme_nur_pc:"Aufnahmen sind nur am Gemeinde-PC selbst abrufbar.",
    aufnahme_faellig:"wird gelöscht am {d}",
    aufnahme_tage_wort:"Löschen nach", aufnahme_tage_einheit:"Tagen",
    aufnahme_tage_hin:"0 heißt: nicht löschen. Das ist eine Entscheidung, "
@@ -1251,6 +1322,8 @@ const TEXTE={
      +"laufen mit, das spart Rechenzeit. Sprachen ohne Stimme erscheinen "
      +"als Untertitel. Wird die gesprochene Sprache umgestellt, bleibt die "
      +"bisherige angewählt und wird ab dann übersetzt.",
+   bleibt_angewaehlt:"{name} bleibt angewählt. Nicht mehr gebraucht?",
+   abwaehlen:"Abwählen",
    ungeprueft_ueber:"Noch nicht von einem Muttersprachler geprüft. "
      +"Funktionieren, aber die Fachbegriffe stammen unbesehen aus der "
      +"Maschine.",
@@ -1315,6 +1388,9 @@ const TEXTE={
      +"weiter.",
    upd_fehlgeschlagen_roh:"Update {v} ist fehlgeschlagen. Es wurde nichts "
      +"verändert.",
+   // 0.5.2: das Update scheiterte, und der Weg zurueck auch.
+   upd_rueckweg_gescheitert:"Update {v} ist fehlgeschlagen, und der "
+     +"Rücksprung auf {alt} auch. Hier muss jemand nachsehen.",
    upd_signatur:"Die Signatur des Updates {v} stimmt nicht. Es wird nicht "
      +"eingespielt.",
    upd_nicht_neuer:"Der Stick bringt Fassung {v}, hier läuft schon {alt}. "
@@ -1336,6 +1412,10 @@ const TEXTE={
      +"Scan verbinden, ohne dass jemand ein Passwort abtippt. Ohne Eintrag "
      +"zeigt die QR-Seite nur den zweiten Code.",
    qr_oeffnen:"QR-Seite für den Beamer öffnen",
+   qr_beamer:"QR-Seite für den Beamer", bereiche:"Bereiche",
+   // feld_pw und nicht feld_passwort: oeffentlich_pruefen.sh haelt
+   // den laengeren Schluessel samt Text fuer einen hinterlegten Zugang.
+   feld_netzname:"Netzname", feld_pw:"Passwort",
    gespeichert:"Gespeichert.",
    qr_hin:"Mit QR oben rechts öffnet sich die Seite für den Beamer. "
      +"Dort scannen die Zuhörer sich selbst ein.",
@@ -1408,7 +1488,6 @@ const TEXTE={
    on_laeuft:"Das Update läuft …",
    on_laeuft_schon:"Es läuft schon eines. Bitte abwarten.",
    on_uebersetzung:"Erst die Übersetzung anhalten, dann aktualisieren.",
-   on_nur_am_rechner:"Das geht nur am Gemeinde-PC selbst.",
    on_nicht_schreibbar:"Die Marke ließ sich nicht schreiben. Platte voll "
      +"oder Rechte verstellt.",
    on_kein_timer:"Angestoßen — aber der Timer dafür läuft nicht, also "
@@ -1420,12 +1499,11 @@ const TEXTE={
      +"zurücknehmen.",
    loeschen_laeuft:"Diese Aufnahme läuft gerade. Erst beenden.",
    loeschen_nicht_gefunden:"Diese Aufnahme gibt es nicht mehr.",
-   loeschen_nur_am_rechner:"Löschen geht nur am Gemeinde-PC selbst.",
    loeschen_ging_nicht:"Das Löschen ging nicht. Mehr steht im Journal.",
    wartung_hin:"Diese Punkte halten den Gottesdienst nicht auf. Sie "
      +"gehören der Technik und stehen deshalb nicht im Briefkasten. "
      +"Vollständig mit: bash pruefen.sh",
-   pp_an:"Testprotokoll schreiben (nur am Gemeinde-PC)",
+   pp_an:"Testprotokoll schreiben",
    pp_laeuft:"Testprotokoll läuft",
    ms_laeuft:"Predigttext wird gespeichert",
    ms_pp:"Testprotokoll",
@@ -1435,7 +1513,6 @@ const TEXTE={
    pp_frage:"Im Testprotokoll steht der gesprochene Text und jede "
      +"Übersetzung davon, Wort für Wort. Wurde die sprechende Person "
      +"gefragt und ist sie einverstanden?",
-   pp_nur_rechner:"Nur am Gemeinde-PC selbst zu schalten.",
    pp_abgelehnt:"Ließ sich nicht einschalten.",
    protokoll_hin:"Aus. Der gesprochene Satz steht dann nicht im "
      +"Protokoll – nur seine Länge.",
@@ -1499,7 +1576,7 @@ const TEXTE={
      +"volume: anything below it is not translated.",
    kontext_erklaert:"Topic and Bible references hand Whisper the proper "
      +"names of the chapter. That is the difference between "
-     +"“Sanballat” and “San Ballard”.",
+     +"“Silas” and “Sie las” (German for “she read”).",
    ton_feiner:"Fine tuning", feineinstellung:"Fine tuning",
    feiner_hin:"Only for loud background noise. May discard a lot when "
      +"someone speaks quietly.",
@@ -1516,6 +1593,8 @@ const TEXTE={
    eingemessen:"Calibrated. Measure again",
    messe:"Measuring … {n} s left, let them speak now",
    kontext_label:"What is the sermon about?",
+   kontext_beispiel:"Sermon on forgiveness. Texts: Matthew 18, Psalm 32. "
+     +"Names: Peter, Nathan.",
    manuskript_waehlen:"Upload manuscript …",
    manuskript_kurz:"If the preacher has one.",
    manuskript_hin:"It is not read aloud, only searched for names and "
@@ -1540,13 +1619,13 @@ const TEXTE={
    ul_ueber:"Last maintenance window", wk_ueber:"Wake-up alarm",
    bl_nicht_eingerichtet:"Service: not set up.",
    bl_nicht_eingerichtet_h:"Devarenu does not start by itself after "
-     +"switching on. Set it up on the computer with: bash dienst.sh",
+     +"switching on. To set it up, type this in a terminal on the computer:",
    bl_auto_an:"Autostart: on.",
    bl_auto_an_h:"Devarenu starts by itself after switching on.",
    bl_auto_aus:"Autostart: off ({w}).",
    bl_auto_aus_h:"Devarenu does not start by itself after switching on – "
-     +"someone has to click the desktop icon. Switch on at the computer: "
-     +"sudo systemctl enable devarenu",
+     +"someone has to click the desktop icon. To switch it on, type this in "
+     +"a terminal on the computer:",
    bl_aktiv:"Service: running since {seit}.",
    bl_aktiv_h:"As it should be. The desktop icon is not needed.",
    bl_startet:"Service: starting ({u}).",
@@ -1622,6 +1701,33 @@ const TEXTE={
    wk_passt:"Matches the maintenance window.",
    wk_grenze:"The alarm only works if the computer has power (power strip "
      +"on) and the BIOS allows waking by the clock.",
+   uz_ueber:"Update by USB stick",
+   uz_hin:"For helpers: download Devarenu-Update.zip, copy it as it is "
+     +"(do not unpack it) to the top level of a USB stick and plug the "
+     +"stick into the computer. It is installed when nobody is "
+     +"listening.",
+   mk_ueber:"Notifications and maintenance Wi-Fi",
+   mk_gesetzt:"Notification channel (ntfy): set.",
+   mk_nicht:"Notification channel (ntfy): not set.",
+   mk_nicht_h:"Without a channel no notifications go out – neither about "
+     +"updates nor about errors.",
+   mk_aendern:"Change",
+   mk_gespeichert:"New channel saved. It is not displayed.",
+   mk_entfernt:"Channel removed. No more notifications go out.",
+   mk_entfernen_frage:"The field is empty. Remove the notification channel?",
+   mk_form:"That is not a channel address. Expected something like "
+     +"https://ntfy.sh/ and a topic of letters, digits, - and _.",
+   mk_nicht_schreibbar:"meldung.json could not be written.",
+   mk_ging_nicht:"That did not work.",
+   ww_keins:"Maintenance Wi-Fi: none configured.",
+   ww_gesetzt:"Maintenance Wi-Fi: configured, password set.",
+   ww_nicht_gesetzt:"Maintenance Wi-Fi: configured, no password (open network).",
+   ww_unbekannt:"Maintenance Wi-Fi: configured; whether a password is set "
+     +"cannot be read.",
+   ww_aendern_h:"The password cannot be changed from this console: it is "
+     +"stored in the computer's network settings, which only root can "
+     +"change. On the computer, also via remote access: sudo nmcli "
+     +"connection modify \"profile name\" wifi-sec.psk \"new password\"",
    grafik_ueber:"Graphics card", grafik_tage:"The last few days",
    grafik_zeile:"Today at most {belegt} of {gesamt} MB used ({voll} %), "
      +"load {spitze} % peak / {mittel} % average, {sprachen} target languages.",
@@ -1678,8 +1784,6 @@ const TEXTE={
    aufnahme_abgelehnt:"Refused: consent was not fully confirmed.",
    aufnahme_platz:"No space left. Nothing is recorded until some is freed.",
    aufnahme_keine:"No recordings.",
-   aufnahme_nur_pc:"Recordings can only be retrieved on the church computer "
-     +"itself.",
    aufnahme_faellig:"will be deleted on {d}",
    aufnahme_tage_wort:"Delete after", aufnahme_tage_einheit:"days",
    aufnahme_tage_hin:"0 means: do not delete. That is a decision, not a "
@@ -1704,6 +1808,8 @@ const TEXTE={
      +"ones run, which saves processing time. Languages without a voice "
      +"appear as subtitles. When the spoken language is changed, the "
      +"previous one stays selected and is translated from then on.",
+   bleibt_angewaehlt:"{name} stays selected. No longer needed?",
+   abwaehlen:"Deselect",
    ungeprueft_ueber:"Not yet reviewed by a native speaker. They work, but "
      +"their technical terms come straight from the machine.",
    nurtext:"text only",
@@ -1756,6 +1862,8 @@ const TEXTE={
    upd_eingespielt:"Version {v} is installed and running.",
    upd_fehlgeschlagen:"Update {v} failed. Version {alt} is still running.",
    upd_fehlgeschlagen_roh:"Update {v} failed. Nothing was changed.",
+   upd_rueckweg_gescheitert:"Update {v} failed, and so did the return to "
+     +"{alt}. Someone needs to look at this.",
    upd_signatur:"The signature of update {v} does not check out. It will "
      +"not be installed.",
    upd_nicht_neuer:"The stick carries version {v}, this computer already "
@@ -1776,6 +1884,8 @@ const TEXTE={
      +"with one scan, without anyone typing a password. Without an entry the "
      +"QR page shows only the second code.",
    qr_oeffnen:"Open the QR page for the projector",
+   qr_beamer:"QR page for the projector", bereiche:"Sections",
+   feld_netzname:"Network name", feld_pw:"Password",
    gespeichert:"Saved.",
    qr_hin:"The QR button at the top right opens the page for the projector. "
      +"Listeners scan themselves in from there.",
@@ -1844,7 +1954,6 @@ const TEXTE={
    on_laeuft:"The update is running …",
    on_laeuft_schon:"One is already running. Please wait.",
    on_uebersetzung:"Pause the translation first, then update.",
-   on_nur_am_rechner:"This only works on the church computer itself.",
    on_nicht_schreibbar:"The marker could not be written. Disk full or "
      +"permissions changed.",
    on_kein_timer:"Queued — but the timer for it is not running, so "
@@ -1855,13 +1964,11 @@ const TEXTE={
    loeschen_frage:"Really delete “{d}”? This cannot be undone.",
    loeschen_laeuft:"This recording is running. Stop it first.",
    loeschen_nicht_gefunden:"That recording is gone already.",
-   loeschen_nur_am_rechner:"Deleting only works on the church computer "
-     +"itself.",
    loeschen_ging_nicht:"Deleting failed. Details are in the log.",
    wartung_hin:"These items do not hold up the service. They belong "
      +"to the technician and are therefore not in the inbox. "
      +"Full list: bash pruefen.sh",
-   pp_an:"Write a test log (only on the church PC)",
+   pp_an:"Write a test log",
    pp_laeuft:"Test log is running",
    ms_laeuft:"Sermon text is being stored",
    ms_pp:"test log",
@@ -1871,7 +1978,6 @@ const TEXTE={
    pp_frage:"The test log contains the spoken text and every "
      +"translation of it, word for word. Has the speaker been asked "
      +"and agreed?",
-   pp_nur_rechner:"Can only be switched on the church PC itself.",
    pp_abgelehnt:"Could not be switched on.",
    protokoll_hin:"Off. The spoken sentence does not go into the log – "
      +"only its length.",
@@ -1891,6 +1997,42 @@ const TEXTE={
    post_hin:"Replying is not provided for. Senders know this and expect "
      +"no answer."}};
 let UI=localStorage.getItem("uiSprache")||"de";
+// Fassung (0.5.2), derselbe Weg wie auf der Hoererseite (client.html):
+// Der Server setzt beim Ausliefern seine Fassung in SEITENFASSUNG ein.
+// Meldet er spaeter eine andere -- nach einem Update mit Neustart --,
+// ist dieses Pult alt, und es laedt sich EINMAL selbst neu. Sonst
+// arbeitete ein Pult, das seit Samstag offen steht, still gegen einen
+// Server, dessen Antworten es nicht mehr kennt.
+//
+// Gegen eine Endlosschleife: das Neuladen haengt "fassung=<neu>" an die
+// Adresse. Steht genau diese Fassung schon dort und passt die Seite
+// trotzdem nicht -- ein Zwischenspeicher irgendwo dazwischen --, wird
+// nicht noch einmal geladen. Ohne Speicher im Browser, also auch im
+// privaten Modus. Der Reiter (#...) geht mit.
+const SEITENFASSUNG = "<!--FASSUNG-->";
+const Fassung = {
+  pruefen(server){
+    // Nicht vom Server ausgeliefert (Datei, Pruefstand): nichts tun.
+    if(!server || SEITENFASSUNG.startsWith("<!--")) return "unbekannt";
+    const p = new URLSearchParams(location.search);
+    if(server === SEITENFASSUNG){
+      if(p.has("fassung")){
+        // Angekommen. Den Marker aus der Adresse nehmen, damit ein
+        // Lesezeichen sauber bleibt.
+        p.delete("fassung");
+        const rest = p.toString();
+        try{ history.replaceState(null, "", location.pathname
+                                  + (rest ? "?" + rest : "") + location.hash); }
+        catch(e){}
+      }
+      return "gleich";
+    }
+    if(p.get("fassung") === server) return "schon_versucht";
+    p.set("fassung", server);
+    location.replace(location.pathname + "?" + p.toString() + location.hash);
+    return "neu_laden";
+  },
+};
 let NAMEN={};
 // Die Ziele aus dem letzten /api/sprachen -- auch die, deren Kachel
 // gerade nicht zu sehen ist (sprachenSetzen).
@@ -2072,6 +2214,18 @@ function uiZeichnen(){
   document.querySelectorAll("[data-t]").forEach(e=>{
     const k=e.dataset.t; if(t[k]) e.textContent=t[k];
   });
+  // Dasselbe fuer die Texte in Attributen. Bis zum 28.10.2026 blieben
+  // Platzhalter, title und aria-label auf Deutsch, wenn das Pult auf
+  // Englisch stand ("Predigt über Vergebung ..." im Feld "Topic").
+  document.querySelectorAll("[data-tp]").forEach(e=>{
+    const k=e.dataset.tp; if(t[k]) e.placeholder=t[k];
+  });
+  document.querySelectorAll("[data-tt]").forEach(e=>{
+    const k=e.dataset.tt; if(t[k]) e.title=t[k];
+  });
+  document.querySelectorAll("[data-ta]").forEach(e=>{
+    const k=e.dataset.ta; if(t[k]) e.setAttribute("aria-label", t[k]);
+  });
   // Ein Knopf statt zweier: er zeigt immer, was als naechstes passiert,
   // wenn man ihn drueckt. Zwei Knoepfe, von denen einer wirkungslos ist,
   // zwingen zum Nachdenken darueber, in welchem Zustand man gerade ist.
@@ -2163,24 +2317,71 @@ async function sprachenSetzen(){
   const kacheln=[...document.querySelectorAll("#zielwahl input")];
   const sichtbar=new Set(kacheln.map(x=>x.value));
   const wechsel=!!quellwahl.value&&quellwahl.value!==QUELLE;
+  const bisherigeQuelle=QUELLE;
   const an=kacheln.filter(x=>x.value!==QUELLE&&x.checked).map(x=>x.value);
   if(wechsel&&QUELLE) an.push(QUELLE);
+  bleibtAngewaehlt="";
   const ziele=ZIELE.filter(z=>!sichtbar.has(z)||z===QUELLE||an.includes(z));
   for(const z of an) if(!ziele.includes(z)) ziele.push(z);
   await fetch("/api/sprachwahl",{method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({quelle:quellwahl.value,ziele:ziele})});
+  // Blieb die bisherige gesprochene Sprache als Ziel stehen, sagt das
+  // eine Zeile unter den Kacheln (0.5.2) -- mit dem Weg zum Abwaehlen.
+  // Gefragt wird der Server (ZIELE nach dem Laden), nicht der eigene
+  // Wunsch: er haelt die Regel, auch gegenueber einem alten Pult.
+  if(wechsel&&bisherigeQuelle) bleibtAngewaehlt=bisherigeQuelle;
   await sprachenLaden(); lies();
+  if(!ZIELE.includes(bleibtAngewaehlt)) bleibtAngewaehlt="";
+  bleibtZeichnen();
 }
+// Die Zeile unter den Kacheln (0.5.2). Sie steht bis zum naechsten
+// Klick in der Sprachwahl -- dann ist sie gelesen oder unwichtig.
+let bleibtAngewaehlt="";
+function bleibtZeichnen(){
+  const t=TEXTE[UI];
+  bleibthin.hidden=!bleibtAngewaehlt;
+  if(!bleibtAngewaehlt){ bleibthin.textContent=""; return; }
+  bleibthin.innerHTML=entschaerfen(t.bleibt_angewaehlt.split("{name}")
+      .join(NAMEN[bleibtAngewaehlt]||bleibtAngewaehlt))
+    +` <a href=# onclick="return abwaehlen()">${t.abwaehlen}</a>.`;
+}
+function abwaehlen(){
+  const sp=bleibtAngewaehlt;
+  const kachel=[...document.querySelectorAll("#zielwahl input")]
+    .find(x=>x.value===sp);
+  if(kachel) kachel.checked=false;
+  sprachenSetzen();
+  return false;
+}
+// Jeder Klick in der Sprachwahl nimmt die Zeile weg. Fuehrt er zu
+// einem neuen Wechsel, setzt sprachenSetzen() sie danach wieder.
+for(const bereich of [zielwahl, quellwahl])
+  bereich.addEventListener("click", ()=>{
+    if(!bleibtAngewaehlt) return;
+    bleibtAngewaehlt=""; bleibtZeichnen();
+  });
+// Der Name einer Sprache in der Sprache des Pults (0.5.2): auf EN der
+// englische (name_en, aus config.SPRACHNAMEN_EN), sonst der deutsche.
+// Ein Server vor 0.5.2 schickt kein name_en -- dann eben der deutsche.
+// Die Hoererseite bleibt bei den Eigennamen; das hier ist nur das Pult.
+const sprachname = (x) => (UI === "en" && x.name_en) ? x.name_en : x.name;
 async function sprachenLaden(){
   const d=await(await fetch("/api/sprachen")).json();
-  NAMEN={}; d.liste.forEach(x=>NAMEN[x.code]=x.name);
+  if(Fassung.pruefen(d.fassung) === "neu_laden") return;
+  NAMEN={}; d.liste.forEach(x=>NAMEN[x.code]=sprachname(x));
   ZIELE=d.ziele;
   QUELLE=d.quelle;
+  // Der Server sortiert nach dem deutschen Namen. Auf EN nach dem, der
+  // dasteht -- sonst stuende "German" zwischen "Dutch" und "English" an
+  // der Stelle von "Deutsch".
+  const moeglich = UI === "en"
+    ? [...d.moeglich].sort((a,b)=>sprachname(a).localeCompare(sprachname(b),"en"))
+    : d.moeglich;
   // Nur, was Whisper erkennen kann (Feld "quelle", config.NUR_ZIEL).
-  quellwahl.innerHTML=d.moeglich.filter(x=>x.quelle!==false).map(x=>
+  quellwahl.innerHTML=moeglich.filter(x=>x.quelle!==false).map(x=>
     `<option value="${x.code}"${x.code===d.quelle?" selected":""}>`
-    +`${x.name}</option>`).join("");
+    +`${sprachname(x)}</option>`).join("");
   // Geprüfte oben, ungeprüfte darunter mit eigener Überschrift. Eine
   // gestrichelte Kontur allein geht in einer Liste mit zwanzig Einträgen
   // unter, zumal die aktiven Sprachen gefüllt sind und den Rand verdecken.
@@ -2196,19 +2397,19 @@ async function sprachenLaden(){
     if(x.code===d.quelle)
       return `<label class="an original">`
         +`<input type=checkbox value="${x.code}" checked `
-        +`aria-disabled=true onclick="return false">${x.name}`
+        +`aria-disabled=true onclick="return false">${sprachname(x)}`
         +`<span class=originaltag>${t.original_tag}</span></label>`;
     const an = d.ziele.includes(x.code);
     return `<label class="${an?"an":""}${x.stimme?"":" ohneton"}">`
       +`<input type=checkbox value="${x.code}"${an?" checked":""} `
-      +`onchange="sprachenSetzen()">${x.name}`
+      +`onchange="sprachenSetzen()">${sprachname(x)}`
       +(x.stimme?"":`<span class=nurtext>${t.nurtext}</span>`)
       // Nur an der EINGESCHALTETEN ungeprueften Sprache, und nur dort:
       // an einer Sprache, die niemand gewaehlt hat, waere es Beiwerk.
       +(an&&!x.geprueft?`<span class=experiment>${t.experimentell}</span>`:"")
       +`</label>`;
   };
-  const wahl = d.moeglich;
+  const wahl = moeglich;
   // Drei Zustaende. Bisher waren es zwei, und "Glossar da, aber
   // ungeprueft" sah aus wie "gar kein Glossar". Das sind verschiedene
   // Dinge: im einen Fall stehen die Begriffe fest und koennten falsch
@@ -2232,6 +2433,8 @@ async function sprachenLaden(){
        ? `<p class="hin untertitel">${t.ohnestimme_ueber}<br>`
          + `${t.ohnestimme_hilfe}</p>`
        : "");
+  // Die Zeile darunter in der Sprache des Pults, auch nach dem Umschalten.
+  bleibtZeichnen();
 }
 // Pegel sind logarithmisch wahrnehmbar. Ein linearer Balken zeigt bei
 // Sprache fast nichts, deshalb wird auf Dezibel umgerechnet.
@@ -2372,16 +2575,11 @@ async function aufnahmeTageSetzen(){
 }
 
 async function aufnahmenLaden(){
-  // Nur am Rechner selbst. Aus dem Saal kommt 403, und dann steht da,
-  // warum -- nicht eine leere Liste, die nach "keine Aufnahmen"
-  // aussieht.
+  // Bis zum 28.10.2026 kam aus dem Saal 403 ("nur am Gemeinde-PC").
+  // Seitdem entscheidet allein das Pult-Passwort, und wer bis hierher
+  // gekommen ist, hat es.
   const a = await fetch("/api/aufnahmen");
   const t = TEXTE[UI];
-  if(a.status === 403){
-    aufnahmeliste.textContent = t.aufnahme_nur_pc;
-    zahlAufnahmen.hidden = true;
-    return;
-  }
   const d = await a.json().catch(()=>({liste:[]}));
   if(d.tage !== undefined) aufnahmetage.value = d.tage;
   if(!d.liste.length){
@@ -2427,9 +2625,8 @@ async function aufnahmeLoeschen(name){
 
 // ------------------------------------------- Jetzt aus dem Netz
 function onlineUpdateAnzeigen(d){
-  // Nur am Gemeinde-PC. Dieselbe Schranke wie beim Testprotokoll.
-  onlinereihe.hidden = !d.am_rechner;
-  if(onlinereihe.hidden) return;
+  // Bis zum 28.10.2026 nur am Gemeinde-PC sichtbar; seitdem ueberall,
+  // wo das Pult offen ist.
   const t = TEXTE[UI];
   const l = d.online_lauf;
   const laeuft = d.online_vorgemerkt || (l && l.lage === "laeuft");
@@ -2784,7 +2981,14 @@ function updateSatz(d){
   if(d.lage==="fehlgeschlagen" && !d.vorher) schluessel="upd_fehlgeschlagen_roh";
   let s=t[schluessel];
   if(!s) return "";
-  s=s.split("{v}").join(d.version||"?").split("{alt}").join(d.vorher||"?");
+  // Bei "nicht neuer" ist {alt} die Fassung, die HIER laeuft. Bis zum
+  // 28.10.2026 schrieb stick_update.sh sie nicht mit, und es stand
+  // "hier läuft schon ?." da. Fuer eine alte stand.json ohne das Feld
+  // nimmt das Pult die Fassung, mit der der Server es ausgeliefert hat.
+  let alt = d.vorher;
+  if(!alt && d.lage==="nicht_neuer" && !SEITENFASSUNG.startsWith("<!--"))
+    alt = SEITENFASSUNG;
+  s=s.split("{v}").join(d.version||"?").split("{alt}").join(alt||"?");
   // Das Feld "stimmen" gab es bis 0.3.2. Gefuellt hat es zuletzt der
   // Kern von 0.2.11; seit 0.3.0 rief niemand mehr die Funktion auf,
   // die es fuellte, und der Hinweis erschien nie wieder. Seit 0.3.3
@@ -2820,7 +3024,7 @@ async function updateLaden(){
 // heisst. Fehlt eine Angabe ganz (kein systemctl, keine Datei), fehlt
 // die Zeile. Was der Rechner ohne Wurzelrechte nicht verraet, heisst
 // "unbekannt" -- geraten wird nichts.
-function lagezeile(liste, was, heisst, grund, schwer){
+function lagezeile(liste, was, heisst, grund, schwer, befehl){
   const li = document.createElement("li");
   if(schwer) li.className = "schwer";
   const b = document.createElement("b");
@@ -2831,6 +3035,14 @@ function lagezeile(liste, was, heisst, grund, schwer){
     h.className = "hin";
     h.textContent = heisst;
     li.appendChild(h);
+  }
+  // Ein Befehl zum Abtippen am Rechner (0.5.2). Mit Absicht kein Knopf,
+  // der ihn ausfuehrt: der Server bekommt dafuer kein Recht.
+  if(befehl){
+    const c = document.createElement("code");
+    c.className = "befehl";
+    c.textContent = befehl;
+    li.appendChild(c);
   }
   if(grund){
     const g = document.createElement("span");
@@ -2847,15 +3059,18 @@ function dienstZeichnen(d, art){
   const t = TEXTE[UI];
   dienstliste.textContent = "";
   if(d){
+    // Der Befehl kommt vom Server, mit dem Ordner, in dem Devarenu dort
+    // wirklich liegt (betriebslage.dienst_befehl) -- nicht fest.
     if(!d.vorhanden){
       lagezeile(dienstliste, t.bl_nicht_eingerichtet, t.bl_nicht_eingerichtet_h,
-                "", true);
+                "", true, d.befehl);
     }else{
       const an = ["enabled","enabled-runtime","static","alias"]
         .includes(d.eingeschaltet);
       if(an) lagezeile(dienstliste, t.bl_auto_an, t.bl_auto_an_h);
       else lagezeile(dienstliste, fuellen(t.bl_auto_aus,
-                       {w: d.eingeschaltet || "?"}), t.bl_auto_aus_h, "", true);
+                       {w: d.eingeschaltet || "?"}), t.bl_auto_aus_h, "", true,
+                     d.befehl);
       if(d.aktiv === "active")
         lagezeile(dienstliste, fuellen(t.bl_aktiv, {seit: d.seit || "?"}),
                   t.bl_aktiv_h);
@@ -2973,7 +3188,39 @@ async function betriebLaden(){
     startZeichnen(d.startprotokoll);
     fensterZeichnen(d.fenster);
     weckerZeichnen(d.wecker);
+    meldeZeichnen(d.meldekanal, d.wartungs_wlan);
   }catch(e){}
+}
+
+// Meldekanal und Wartungs-WLAN: nur "gesetzt" oder "nicht gesetzt".
+// Den Kanal selbst bekommt das Pult nie zu sehen (28.10.2026).
+function meldeZeichnen(m, w){
+  const t = TEXTE[UI];
+  meldeliste.textContent = "";
+  if(m) lagezeile(meldeliste, m.gesetzt ? t.mk_gesetzt : t.mk_nicht,
+                  m.gesetzt ? "" : t.mk_nicht_h);
+  if(w) lagezeile(meldeliste,
+                  !w.eingetragen ? t.ww_keins
+                  : (t["ww_" + w.passwort] || t.ww_unbekannt),
+                  w.eingetragen ? t.ww_aendern_h : "");
+}
+
+async function meldekanalSetzen(){
+  const t = TEXTE[UI];
+  const neu = meldefeld.value.trim();
+  if(!neu && !confirm(t.mk_entfernen_frage)) return;
+  const a = await fetch("/api/meldekanal",{method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ntfy:neu})});
+  const d = await a.json().catch(()=>({}));
+  meldestand.hidden = false;
+  meldestand.textContent = a.ok
+    ? (d.gesetzt ? t.mk_gespeichert : t.mk_entfernt)
+    : (t["mk_" + (d.grund||"")] || t.mk_ging_nicht);
+  // Das Feld leeren: was einmal eingetragen ist, steht nirgends mehr
+  // auf dem Bildschirm.
+  if(a.ok) meldefeld.value = "";
+  betriebLaden();
 }
 
 // ------------------------------------------------- Stoerungsansicht
@@ -3168,8 +3415,7 @@ async function pruefprotokollSetzen(){
   const d = await a.json().catch(()=>({}));
   if(!a.ok){
     pruefprotokollschalter.checked = false;
-    pruefprotokollhin.textContent = d.grund==="nur_am_rechner"
-      ? t.pp_nur_rechner : t.pp_abgelehnt;
+    pruefprotokollhin.textContent = t.pp_abgelehnt;
     pruefprotokollhin.hidden = false;
     return;
   }
@@ -3180,12 +3426,10 @@ function pruefprotokollAnzeigen(lage){
   const t = TEXTE[UI];
   pruefprotokollschalter.checked = !!lage;
   pruefprotokolllaeuft.hidden = !lage;
-  // Der Erklaertext nur, wenn es auch den Schalter gibt. Ist das Pult
-  // nicht am Gemeinderechner offen, ist pruefprotokollreihe versteckt
-  // -- und bis 0.3.7 stand der Text trotzdem da. Dann las jemand drei
-  // Zeilen ueber einen Schalter, der nirgends zu sehen war, und suchte
-  // den Fehler bei sich.
-  pruefprotokollhin.hidden = !!lage || pruefprotokollreihe.hidden;
+  // Der Erklaertext nur, solange kein Protokoll laeuft. (Bis zum
+  // 28.10.2026 auch nur, wenn das Pult am Gemeinderechner offen war --
+  // sonst war der Schalter versteckt.)
+  pruefprotokollhin.hidden = !!lage;
   if(lage){
     pruefprotokollzeilen.textContent =
       t.pp_zeilen.split("{n}").join(lage.zeilen);
@@ -3406,6 +3650,8 @@ async function lies(){
     warnungZeigen(TEXTE[UI].server_weg + " (" + e.message + ")", true);
     return;
   }
+  // Ein Update mit Neustart: dieses Pult ist alt (siehe Fassung).
+  if(Fassung.pruefen(d.fassung) === "neu_laden") return;
   try{
     const t=TEXTE[UI];
     // Eigene Zeile und nicht die Pegelwarnung: die wird zehnmal je
@@ -3536,7 +3782,6 @@ async function lies(){
     kontowarnung.hidden = !d.spendenkonto;
     onlineUpdateAnzeigen(d);
     if(d.spendenkonto) kontowarnungtext.textContent = TEXTE[UI].konto_kaputt;
-    pruefprotokollreihe.hidden = !d.am_rechner;
     pruefprotokollAnzeigen(d.pruefprotokoll || null);
     sprachverdachtAnzeigen(d.sprachverdacht || "");
     if(d.pult_passwort!==undefined) pultPasswortAnzeigen(d.pult_passwort);

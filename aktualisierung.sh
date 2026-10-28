@@ -258,9 +258,17 @@ fi
 # und .venv-b; verschoben wird nie etwas.
 blau "Pakete"
 VENV_GEWECHSELT=nein
+SPERRE="$ORDNER/pakete.sperre"
+# Ist PyPI zu erreichen? Nur dann darf pip dort holen, was auf dem Stick
+# fehlt -- und auch dann nur gegen die sha256 aus pakete.sperre.
+pypi_erreichbar() {
+  [ -z "${DEVARENU_KEIN_NETZ:-}" ] || return 1
+  curl -fsS -m 15 -o /dev/null https://pypi.org/simple/pip/ 2>/dev/null
+}
 if ! als_benutzer git diff --quiet "$ALT_SHA" HEAD -- requirements.txt; then
-  if [ ! -d "$NUTZLAST/wheels" ]; then
+  if [ ! -d "$NUTZLAST/wheels" ] && { [ ! -f "$SPERRE" ] || ! pypi_erreichbar; }; then
     fehl "requirements.txt hat sich geaendert, der Stick brachte keine wheels/"
+    [ -f "$SPERRE" ] && info "und PyPI ist nicht erreichbar."
     melden "Das Update braucht neue Pakete, der Stick brachte keine mit."
     exit 1
   fi
@@ -284,10 +292,37 @@ if ! als_benutzer git diff --quiet "$ALT_SHA" HEAD -- requirements.txt; then
     melden "Das Update konnte keine neue Paketumgebung bauen."
     exit 1
   fi
-  # --no-index: kein Wort nach draussen. Was nicht auf dem Stick liegt,
-  # gibt es nicht, und das soll hier scheitern statt in einer
-  # Zeitueberschreitung zu haengen.
-  if ! als_benutzer "$ORDNER/$NEU/bin/python" -m pip install --quiet \
+  # SEIT 0.5.2 MIT SHA256 (pakete.sperre, im signierten Baum).
+  # --require-hashes: jedes Wheel muss genau die Pruefsumme aus der Liste
+  # haben, gleich woher es kommt. Bis 0.5.1 genuegte der passende Name,
+  # und ein manipuliertes wheels/ auf einem Stick oder in einem ZIP waere
+  # an Signatur und Pruefung vorbei installiert worden.
+  #
+  # Erst nur vom Stick (--no-index: kein Wort nach draussen). Fehlt dort
+  # etwas -- im oeffentlichen ZIP fehlen die NVIDIA-Pakete mit Absicht --,
+  # holt pip es von PyPI, sobald Internet da ist, wieder gegen die
+  # Pruefsumme. Ohne Internet steht da, was fehlt.
+  VON_STICK=()
+  [ -d "$NUTZLAST/wheels" ] && VON_STICK=(--find-links "$NUTZLAST/wheels")
+  pip_sicher() {
+    als_benutzer "$ORDNER/$NEU/bin/python" -m pip install --quiet \
+      --require-hashes --no-deps "$@" -r "$SPERRE"
+  }
+  if [ -f "$SPERRE" ]; then
+    if [ ${#VON_STICK[@]} -gt 0 ] && pip_sicher --no-index "${VON_STICK[@]}"; then
+      gut "alle Pakete vom Stick, sha256 gegen pakete.sperre geprueft"
+    elif pypi_erreichbar && pip_sicher "${VON_STICK[@]}"; then
+      gut "fehlende Pakete von PyPI geholt, sha256 gegen pakete.sperre geprueft"
+    else
+      FEHLT_PAKETE="$(als_benutzer "$PY_AKTIV" "$ORDNER/werkzeuge/sperre_pruefen.py" \
+                      "$SPERRE" "$NUTZLAST/wheels" 2>/dev/null)"
+      fehl "pip konnte die Pakete nicht gegen pakete.sperre installieren"
+      [ -n "$FEHLT_PAKETE" ] && info "Fehlt auf dem Stick: $FEHLT_PAKETE"
+      als_benutzer rm -rf "$ORDNER/$NEU"
+      melden "Es fehlen Pakete${FEHLT_PAKETE:+ ($FEHLT_PAKETE)}, und PyPI war nicht erreichbar. Einige Pakete liegen mit Absicht nicht im oeffentlichen Update-ZIP (NVIDIA, GPL-Binaerteile, siehe LIZENZEN.md); mit Internet holt das Update sie selbst, ohne Internet braucht es einen Stick mit allem. Fassung $HIER bleibt."
+      exit 1
+    fi
+  elif ! als_benutzer "$ORDNER/$NEU/bin/python" -m pip install --quiet \
        --no-index --find-links "$NUTZLAST/wheels" -r "$ORDNER/requirements.txt"; then
     fehl "pip konnte nicht alles aus wheels/ installieren"
     als_benutzer rm -rf "$ORDNER/$NEU"
@@ -433,60 +468,56 @@ fi
 #   sudo env -i /usr/local/bin/ollama list
 # Die HTTP-Schnittstelle braucht kein HOME, keinen PATH und keinen
 # Benutzerkontext; selbsttest.py fragt sie seit jeher so.
+#
+# Seit 0.5.2 (28.10.2026) ueber sprachmodell.erkennen: llama-server
+# ODER Ollama. Bis dahin fragte dieser Abschnitt nur Ollama.
 blau "Sprachmodell"
 MODELL_LAGE="$(als_benutzer "$PY_AKTIV" - <<'PYCODE' 2>/dev/null
 import sys, time
 sys.path.insert(0, ".")
-import config
-
 try:
     import requests
-except ImportError:
-    print("unklar|requests fehlt")
+    import sprachmodell
+except ImportError as e:
+    print("unklar|%s" % e)
     raise SystemExit
 
 # Dreimal im Abstand von zehn Sekunden. Ein Update laeuft oft kurz
-# nach dem Hochfahren, und Ollama laedt dabei noch. Einmal fragen und
-# aufgeben hiesse, den haeufigsten Fall fuer den schlimmsten zu
-# halten.
-letzter = ""
+# nach dem Hochfahren, und der Sprachmodell-Server laedt dabei noch.
+# Einmal fragen und aufgeben hiesse, den haeufigsten Fall fuer den
+# schlimmsten zu halten.
+lage = {}
 for versuch in range(3):
     if versuch:
         time.sleep(10)
-    try:
-        a = requests.get(config.OLLAMA_URL + "/api/tags", timeout=10)
-        a.raise_for_status()
-        da = [m["name"] for m in a.json().get("models", [])]
-    except Exception as e:
-        letzter = str(e)[:70]
-        continue
-    stamm = config.LIVE_MODELL.split(":")[0]
-    if any(m == config.LIVE_MODELL or m.startswith(stamm + ":") for m in da):
-        print("da|%s" % config.LIVE_MODELL)
-    else:
-        print("fehlt|%s" % config.LIVE_MODELL)
-    raise SystemExit
-print("unklar|%s" % letzter)
+    lage = sprachmodell.erkennen(requests)
+    if lage.get("art") and lage.get("grund") != "laedt":
+        break
+if not lage.get("art"):
+    print("unklar|%s" % sprachmodell.beschreiben(lage))
+elif lage.get("grund"):
+    print("fehlt|%s" % sprachmodell.beschreiben(lage))
+else:
+    print("da|%s" % sprachmodell.beschreiben(lage))
 PYCODE
 )"
 case "${MODELL_LAGE%%|*}" in
   da)
-    gut "Sprachmodell ${MODELL_LAGE#*|} ist da" ;;
+    gut "Sprachmodell: ${MODELL_LAGE#*|}" ;;
   fehlt)
     # KEIN Abbruch. Ein fehlendes Modell ist ein Ausfall der
     # Uebersetzung, kein Schaden am Rechner -- und ein Update
     # zurueckzurollen macht das Modell auch nicht wieder da. Gesagt
     # werden muss es aber deutlich, sonst sucht am Sabbat jemand den
     # Fehler beim Ton.
-    fehl "Das Sprachmodell ${MODELL_LAGE#*|} liegt hier nicht."
-    info "Ohne Netz laedt es nicht nach. Die Uebersetzung bleibt stumm,"
-    info "bis es da ist:  ollama pull ${MODELL_LAGE#*|}"
-    melden "Achtung: das Sprachmodell ${MODELL_LAGE#*|} fehlt. Bis es geholt ist, laeuft keine Uebersetzung." ;;
+    fehl "${MODELL_LAGE#*|}"
+    info "Die Uebersetzung bleibt stumm, bis es da ist."
+    melden "Achtung: ${MODELL_LAGE#*|} Bis es behoben ist, laeuft keine Uebersetzung." ;;
   *)
-    warn "Ollama war dreimal nicht zu erreichen (${MODELL_LAGE#*|})."
-    info "Ob das Sprachmodell da ist, ist damit UNBEKANNT -- nicht"
-    info "geprueft und nicht widerlegt. Nachsehen:  ollama ps"
-    melden "Ollama war beim Update nicht erreichbar; ob das Sprachmodell da ist, wurde nicht geprueft." ;;
+    warn "Der Sprachmodell-Server war dreimal nicht zu erreichen."
+    info "${MODELL_LAGE#*|}"
+    info "Ob das Sprachmodell da ist, ist damit UNBEKANNT."
+    melden "Beim Update antwortete kein Sprachmodell-Server; ob das Modell da ist, wurde nicht geprueft." ;;
 esac
 
 # ------------------------------------------------------- Die Stimmen
@@ -622,6 +653,36 @@ fi
 
 [ -n "$PATCH" ] && melden "Lokale Aenderungen wurden ueberschrieben. Gesichert als $PATCH."
 
+# ------------------------------------------------- llama-server (0.5.2)
+# Der Umstieg von Ollama auf llama-server (llama_einrichten.py). Er
+# steht HIER, am Ende, nach Gesundheitscheck und Aufraeumen: das Update
+# ist zu diesem Zeitpunkt eingespielt und gesund, und nichts, was jetzt
+# geschieht, kann noch einen Ruecksprung ausloesen. Scheitert der
+# Schritt, bleibt das Update bestehen und Ollama an; der Grund steht im
+# Protokoll, am Pult (MELDUNG) und in der Rueckmeldung.
+#
+# Gilt fuer JEDEN Weg ins Update -- Netz, Stick, Fenster, von Hand --,
+# weil diese Datei auf jedem laeuft, und zwar als root. Er ersetzt die
+# Regel von 0.5.2 (B7), dass ein Update llama-server nie selbst
+# einrichtet.
+#
+# Zeitgrenze 45 Minuten fuer alles; timeout darum herum als zweiter
+# Riegel, falls Python selbst haengt.
+LLAMA_SATZ=""
+if [ -f "$ORDNER/llama_einrichten.py" ] && [ -x "$PY_AKTIV" ]; then
+  blau "Sprachmodell-Server (llama-server)"
+  LLAMA_AUS="$(cd "$ORDNER" && timeout 3000 "$PY_AKTIV" \
+                 "$ORDNER/llama_einrichten.py" --frist 2700 2>&1)"
+  LLAMA_RC=$?
+  printf '%s\n' "$LLAMA_AUS" | grep -v '^ERGEBNIS|' | sed 's/^/   /'
+  LLAMA_SATZ="$(printf '%s\n' "$LLAMA_AUS" | sed -n 's/^ERGEBNIS|//p' | tail -1)"
+  if [ -z "$LLAMA_SATZ" ]; then
+    LLAMA_SATZ="llama-server NICHT eingerichtet: die Einrichtung brach ohne Ergebnis ab (Rueckgabe $LLAMA_RC). Es uebersetzt weiter der bisherige Sprachmodell-Server."
+  fi
+  if [ "$LLAMA_RC" = 0 ]; then gut "$LLAMA_SATZ"; else warn "$LLAMA_SATZ"; fi
+  melden "$LLAMA_SATZ"
+fi
+
 # ------------------------------------------------------- Der Stand
 # Was zuletzt eingespielt wurde -- fuer pruefen.sh und den
 # Fehlerbericht.
@@ -650,7 +711,7 @@ case "$REF" in
   "lage": "eingespielt",
   "version": "$VERSION",
   "vorher": "$HIER",
-  "text": "Fassung $VERSION ist ueber das Netz eingespielt und laeuft.",
+  "text": "Fassung $VERSION ist ueber das Netz eingespielt und laeuft.${LLAMA_SATZ:+ $LLAMA_SATZ}",
   "zeit": "$(date '+%Y-%m-%d %H:%M:%S')"
 }
 ENDE

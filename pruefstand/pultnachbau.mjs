@@ -52,6 +52,9 @@ export class Element {
   // Fehler, den es nicht gibt.
   get title() { return this.attribute.title || ""; }
   set title(w) { this.attribute.title = String(w); }
+  // Ebenso der Platzhalter eines Feldes (28.10.2026).
+  get placeholder() { return this.attribute.placeholder || ""; }
+  set placeholder(w) { this.attribute.placeholder = String(w); }
   get hidden() { return this._hidden; }
   set hidden(w) { this._hidden = !!w; }
   get className() { return [...this.classList._].join(" "); }
@@ -84,7 +87,8 @@ export class Element {
       return this.dataset.t === m[1].replace(/^["']|["']$/g, "");
     if ((m = wahl.match(/^#(.+)$/))) return this.id === m[1];
     if ((m = wahl.match(/^\.(.+)$/))) return this.classList.contains(m[1]);
-    if (wahl === "[data-t]") return this.dataset.t !== undefined;
+    if ((m = wahl.match(/^\[data-([a-z]+)\]$/)))
+      return this.dataset[m[1]] !== undefined;
     return this.tagName === wahl.toUpperCase();
   }
   querySelector(wahl) { for (const k of this.alle()) if (k.passt(wahl)) return k; return null; }
@@ -131,8 +135,14 @@ export function pultLesen(pfad) {
 }
 
 export function pultBauen({ zustand, pegel, extra = {} } = {}) {
-  const { koerper, skript } = pultLesen(
+  const gelesen = pultLesen(
     new URL("../web/pult.html", import.meta.url).pathname);
+  const koerper = gelesen.koerper;
+  // extra.fassung: was der Server beim Ausliefern einsetzt (0.5.2).
+  // Ohne bleibt die Marke stehen, und das Pult laedt sich nie neu.
+  const skript = extra.fassung
+    ? gelesen.skript.replace("<!--FASSUNG-->", extra.fassung)
+    : gelesen.skript;
   const wurzel = baumBauen(koerper);
   const nachId = new Map();
   for (const e of wurzel.alle()) if (e.id) nachId.set(e.id, e);
@@ -163,12 +173,18 @@ export function pultBauen({ zustand, pegel, extra = {} } = {}) {
     "/api/update": {},
     "/api/tonscan": { aktiv: false },
     "/api/betreuer": { name: "", mail: "", bericht_link: "" },
+    ...(extra.antworten || {}),
   };
   const gerufen = [];
+  // location.replace() und history.replaceState(): wohin das Pult sich
+  // selbst neu geladen hat, und was es aus der Adresse genommen hat.
+  const neuGeladen = [], adresseErsetzt = [];
   const fenster = {
     document: doc,
-    location: { hash: extra.hash ?? "", href: "http://10.0.0.1/", protocol: "http:" },
-    history: { replaceState() {} },
+    location: { hash: extra.hash ?? "", href: "http://10.0.0.1/", protocol: "http:",
+                pathname: "/pult", search: extra.suche ?? "",
+                replace: (u) => neuGeladen.push(String(u)) },
+    history: { replaceState: (a, b, u) => adresseErsetzt.push(String(u)) },
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     matchMedia: () => schmal,
     setTimeout, clearTimeout, setInterval: () => 0, clearInterval,
@@ -196,5 +212,6 @@ export function pultBauen({ zustand, pegel, extra = {} } = {}) {
 
   const zusammenhang = vm.createContext(fenster);
   vm.runInContext(skript, zusammenhang, { filename: "pult.js" });
-  return { fenster, doc, body, nachId, gerufen, schmal, koerper };
+  return { fenster, doc, body, nachId, gerufen, schmal, koerper,
+           neuGeladen, adresseErsetzt };
 }

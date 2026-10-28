@@ -65,6 +65,10 @@ def orte():
     o = {
         "whisper": config.BASIS / "models",
         "stimmen": config.BASIS / "voices",
+        # llama-server (0.5.2): Archiv, CUDA-Laufzeit und Modell.
+        # Eingerichtet von llama_einrichten.py, das sie hier findet.
+        "llama": Path(getattr(config, "LLAMA_ORDNER",
+                              config.BASIS / "sprachmodell")),
     }
     ablage = ollama_ort()
     if ablage:
@@ -159,7 +163,16 @@ def sollteile():
                 soll.append(("whisper", str(pfad.relative_to(wurzel))))
     for datei in ollama_dateien():
         soll.append(("ollama", datei))
+    for name in llama_dateien():
+        soll.append(("llama", name))
     return soll
+
+
+def llama_dateien():
+    """Was llama-server braucht: Archiv, CUDA-Laufzeit, Modell."""
+    return [n for n in (getattr(config, "LLAMA_ARCHIV", ""),
+                        getattr(config, "LLAMA_CUDART", ""),
+                        getattr(config, "LLAMA_GGUF_NAME", "")) if n]
 
 
 def _puffer_laden():
@@ -435,6 +448,54 @@ def stimm_herkunft(dateiname):
     return ("netz", f"{PIPER_BASIS}/{rel}") if rel else (None, None)
 
 
+def ausser_stimmen_beschreiben(andere, o=None):
+    """Saetze ueber fehlende oder abweichende Teile, die keine Stimmen
+    sind -- je Art, mit dem Grund, soweit er sich feststellen laesst.
+
+    Bis zum 28.10.2026 stand hier "N Teile ausser Stimmen fehlen
+    (Sprachmodell oder Spracherkennung)". In Rostock waren es die sechs
+    Dateien von gemma4:12b, und Ollama hatte das Modell: teile.py fand
+    nur die Ablage nicht. Der Satz riet und lag daneben."""
+    o = orte() if o is None else o
+    saetze = []
+    nach_art = {}
+    for e in andere:
+        nach_art.setdefault(e["art"], []).append(e)
+    for art, liste in sorted(nach_art.items()):
+        n = len(liste)
+        if art == "llama":
+            saetze.append(
+                f"{n} Teile fuer llama-server fehlen noch "
+                f"({', '.join(e['pfad'] for e in liste)}). Sie holt "
+                f"llama_einrichten.py beim Update -- aus dem Netz, von "
+                f"einem Stick oder aus der Ollama-Ablage. Kein Fehler.")
+            continue
+        if art == "ollama":
+            was = f"{n} Dateien des Sprachmodells {config.LIVE_MODELL}"
+            if "ollama" not in o:
+                saetze.append(
+                    f"{was} lassen sich nicht pruefen: die Ablage von Ollama "
+                    f"ist fuer diesen Benutzer nicht auffindbar oder nicht "
+                    f"lesbar. Ob Ollama das Modell hat, sagt pruefen.sh.")
+                continue
+            ort = o["ollama"]
+        elif art == "whisper":
+            was = f"{n} Dateien der Spracherkennung {config.WHISPER_MODELL}"
+            ort = o.get("whisper")
+        else:
+            was, ort = f"{n} Teile der Art {art}", o.get(art)
+        fehlt = sum(1 for e in liste
+                    if not (ort and (Path(ort) / e["pfad"]).is_file()))
+        if fehlt == n:
+            saetze.append(f"{was} fehlen unter {ort}.")
+        elif fehlt == 0:
+            saetze.append(f"{was} weichen von teile.json ab (anderer Stand).")
+        else:
+            saetze.append(f"{was}: {fehlt} fehlen, {n - fehlt} weichen ab "
+                          f"(unter {ort}).")
+    return saetze
+
+
 def aus_dem_netz(nur_stimmen=True):
     """Holt fehlende Stimmen aus dem Netz und prueft sie gegen teile.json.
 
@@ -454,12 +515,17 @@ def aus_dem_netz(nur_stimmen=True):
     noetig = [e for e in fehlend + abweichend
               if e["art"] == "stimmen" or not nur_stimmen]
     andere = [e for e in fehlend + abweichend if e["art"] != "stimmen"]
+    # Die Teile fuer llama-server zaehlen nicht als Fehlen: sie holt
+    # llama_einrichten.py am Ende des Updates (0.5.2).
+    pflicht = [e for e in andere if e["art"] != "llama"]
     if andere:
-        print(f"  {len(andere)} Teile ausser Stimmen fehlen "
-              f"(Sprachmodell oder Spracherkennung). Die kommen nur ueber "
-              f"einen vollstaendigen Stick.")
+        for satz in ausser_stimmen_beschreiben(andere):
+            print(f"  {satz}")
+    if pflicht:
+        print("  Sprachmodell und Spracherkennung kommen nicht aus dem "
+              "Netz, nur ueber einen vollstaendigen Stick.")
     if not noetig:
-        return 1 if andere else 0
+        return 1 if pflicht else 0
 
     # Kein Netz? Dann gar nicht erst anfangen. 21 Stimmen mal zwei
     # Minuten Zeitgrenze sind fast eine Stunde, in der ein Rechner
@@ -474,11 +540,24 @@ def aus_dem_netz(nur_stimmen=True):
     if os.environ.get("DEVARENU_KEIN_NETZ"):
         print("  Kein Netz (DEVARENU_KEIN_NETZ). Es wird nichts geholt.")
         return 1
+    # Gefragt wird nach einer DATEI, die es im Vorrat gibt. Bis zum
+    # 28.10.2026 stand hier PIPER_BASIS allein -- ".../resolve/main"
+    # ohne Datei. Darauf antwortet Hugging Face 404, urllib wirft
+    # HTTPError, und die Probe scheiterte bei jedem Versuch, auch mit
+    # bestem Netz. In Rostock kam so keine Stimme.
+    #
+    # Und: Jede HTTP-Antwort heisst "erreichbar". Nur wer gar keine
+    # Antwort bekommt (kein Netz, kein Name, Zeitueberschreitung), hat
+    # kein Netz. Ob die einzelne Datei da ist, sagt der Abruf unten.
+    import urllib.error
     try:
-        urllib.request.urlopen(PIPER_BASIS, timeout=8).close()
+        urllib.request.urlopen(f"{PIPER_BASIS}/voices.json", timeout=8).close()
+    except urllib.error.HTTPError:
+        pass
     except Exception as fehler:
-        print(f"  Der Piper-Vorrat ist nicht erreichbar "
-              f"({type(fehler).__name__}). Es wird nichts geholt.")
+        grund = getattr(fehler, "reason", None) or fehler
+        print(f"  Der Piper-Vorrat ist nicht erreichbar ({str(grund)[:80]}). "
+              f"Es wird nichts geholt.")
         return 1
     wurzel = orte()["stimmen"]
     wurzel.mkdir(parents=True, exist_ok=True)
@@ -511,7 +590,11 @@ def aus_dem_netz(nur_stimmen=True):
                     gesamt += len(b)
         except Exception as fehler:
             zwischen.unlink(missing_ok=True)
-            misslungen.append(f"{e['pfad']} ({type(fehler).__name__})")
+            # Der Status gehoert dazu: "HTTPError" allein sagt nicht, ob
+            # die Datei fehlt (404) oder der Anbieter sperrt (403, 429).
+            code = getattr(fehler, "code", None)
+            misslungen.append(f"{e['pfad']} ({type(fehler).__name__}"
+                              f"{f' {code}' if code else ''})")
             continue
         if gesamt != e["bytes"] or h.hexdigest() != e["sha256"]:
             zwischen.unlink(missing_ok=True)
@@ -525,12 +608,32 @@ def aus_dem_netz(nur_stimmen=True):
         puffer.pop(str(wurzel / e["pfad"]), None)
     _puffer_speichern(puffer)
     if misslungen:
+        if geholt:
+            print(f"  {geholt} Stimmen nachgeholt")
         print(f"  {len(misslungen)} Stimmen kamen nicht:")
-        for x in misslungen[:8]:
+        for x in misslungen:
             print(f"    {x}")
         return 1
     print(f"  {geholt} Stimmen nachgeholt")
-    return 1 if andere else 0
+    return 1 if pflicht else 0
+
+
+def _auf_stick_finden(quelle, e, alle):
+    """Wo auf dem Stick der Inhalt von e liegt: als Datei, in Stuecken,
+    oder -- seit 0.5.2 -- unter einem ANDEREN Eintrag mit derselben
+    sha256. Das Modell fuer llama-server ist Byte fuer Byte Ollamas Blob;
+    auf dem Stick liegt es nur einmal (auf_stick). None, wenn nirgends."""
+    for k in [e] + [x for x in alle if x["sha256"] == e["sha256"]
+                    and (x["art"], x["pfad"]) != (e["art"], e["pfad"])]:
+        p = Path(quelle) / k["art"] / k["pfad"]
+        if p.is_file() and p.stat().st_size == e["bytes"]:
+            return p
+        # Nicht als ganze Datei da? Dann vielleicht in Stuecken -- ein
+        # Stick mit FAT32 kann nichts ueber 4 GB tragen.
+        stuecke = stuecke_von(p)
+        if stuecke and sum(st.stat().st_size for st in stuecke) == e["bytes"]:
+            return p
+    return None
 
 
 def einspielen(quelle, sicherung):
@@ -539,6 +642,7 @@ def einspielen(quelle, sicherung):
     if erg is None:
         print("Keine teile.json -- nichts einzuspielen.")
         return 0
+    d = laden()
     fehlend, abweichend, da = erg
     noetig = fehlend + abweichend
     if not noetig:
@@ -551,20 +655,29 @@ def einspielen(quelle, sicherung):
     # ---- erst pruefen: ist alles da, und passt es auf die Platte?
     nicht_auf_stick = []
     braucht = 0
-    for e in noetig:
-        herkunft = quelle / e["art"] / e["pfad"]
-        if herkunft.is_file() and herkunft.stat().st_size == e["bytes"]:
+    herkunft_von = {}
+    for e in list(noetig):
+        herkunft = _auf_stick_finden(quelle, e, d["teile"])
+        if herkunft is not None:
+            herkunft_von[(e["art"], e["pfad"])] = herkunft
             braucht += e["bytes"]
             continue
-        # Nicht als ganze Datei da? Dann vielleicht in Stuecken --
-        # ein Stick mit FAT32 kann nichts ueber 4 GB tragen.
-        stuecke = stuecke_von(herkunft)
-        if stuecke and sum(st.stat().st_size for st in stuecke) == e["bytes"]:
-            braucht += e["bytes"]
+        # llama-server (0.5.2) ist WAHLWEISE: fehlen seine Teile auf
+        # dem Stick, holt sie llama_einrichten.py beim Update aus dem
+        # Netz -- oder meldet, dass sie fehlen. Ein Update deswegen
+        # abzubrechen hiesse, einen Code-Stick wegen eines Modells
+        # zurueckzurollen, das hier noch gar nicht gebraucht wird.
+        if e["art"] == "llama":
+            noetig.remove(e)
+            print(f"    llama/{e['pfad']}: nicht auf dem Stick -- "
+                  f"llama_einrichten.py holt es oder meldet es")
             continue
+        stuecke = stuecke_von(quelle / e["art"] / e["pfad"])
         nicht_auf_stick.append(f"{e['art']}/{e['pfad']}"
                                + (f" ({len(stuecke)} Stuecke, Laenge "
                                   f"stimmt nicht)" if stuecke else ""))
+    if not noetig:
+        return 0
     if nicht_auf_stick:
         print("  FEHLT auf dem Stick:")
         for x in nicht_auf_stick[:8]:
@@ -604,7 +717,7 @@ def einspielen(quelle, sicherung):
             beiseite.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(str(ziel), str(beiseite))
             ersetzt.append(f"{e['art']}/{e['pfad']}")
-        herkunft = quelle / e["art"] / e["pfad"]
+        herkunft = herkunft_von[(e["art"], e["pfad"])]
         if herkunft.is_file():
             shutil.copy2(herkunft, ziel)
         else:
@@ -689,12 +802,30 @@ def auf_stick(ziel, von="", voll=False):
     ziel = Path(ziel)
     gesamt = 0
     gestueckelt = 0
+    geschrieben = {}
     for e in noetig:
+        # Derselbe Inhalt nur einmal (0.5.2): das Modell fuer
+        # llama-server IST Ollamas Blob. 7,4 GB zweimal auf einem Stick
+        # waeren reine Verschwendung; einspielen() findet es ueber die
+        # sha256 (_auf_stick_finden).
+        if e["sha256"] in geschrieben:
+            print(f"    {e['art']}/{e['pfad']}: gleich wie "
+                  f"{geschrieben[e['sha256']]}, nicht doppelt")
+            continue
         wurzel = o.get(e["art"])
         if wurzel is None:
             print(f"  Kein Ablageort fuer {e['art']} -- abgebrochen.")
             return 1
         quelle = wurzel / e["pfad"]
+        if not quelle.is_file():
+            # Liegt derselbe Inhalt unter einem anderen Eintrag hier?
+            gleich = [x for x in d["teile"] if x["sha256"] == e["sha256"]
+                      and o.get(x["art"])
+                      and (o[x["art"]] / x["pfad"]).is_file()]
+            if gleich:
+                print(f"    {e['art']}/{e['pfad']}: gleich wie "
+                      f"{gleich[0]['art']}/{gleich[0]['pfad']}, nicht doppelt")
+                continue
         if not quelle.is_file():
             print(f"  Fehlt auf dieser Platte: {e['art']}/{e['pfad']}")
             return 1
@@ -712,6 +843,7 @@ def auf_stick(ziel, von="", voll=False):
             print(f"    {e['art']}/{e['pfad']}: {n} Stuecke "
                   f"(zu gross fuer FAT32)")
         gesamt += e["bytes"]
+        geschrieben[e["sha256"]] = f"{e['art']}/{e['pfad']}"
     print(f"  {len(noetig)} Teile, {gesamt / 1e9:.2f} GB"
           + (f", davon {gestueckelt} gestueckelt" if gestueckelt else ""))
     return 0
@@ -753,8 +885,15 @@ def main():
         fehlend, abweichend, da = erg
         print(f"  {len(da)} stimmen, {len(fehlend)} fehlen, "
               f"{len(abweichend)} weichen ab")
-        for e in (fehlend + abweichend)[:10]:
+        # ALLE, nicht die ersten zehn (bis zum 28.10.2026: "16 fehlen",
+        # und zehn standen da).
+        for e in fehlend:
             print(f"    {e['art']}/{e['pfad']}")
+        for e in abweichend:
+            print(f"    {e['art']}/{e['pfad']}  (weicht ab)")
+        andere = [e for e in fehlend + abweichend if e["art"] != "stimmen"]
+        for satz in ausser_stimmen_beschreiben(andere):
+            print(f"  {satz}")
         return 1 if (fehlend or abweichend) else 0
     if a.aus_dem_netz:
         return aus_dem_netz()

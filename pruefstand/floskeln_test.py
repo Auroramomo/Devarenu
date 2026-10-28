@@ -20,6 +20,7 @@ Drei Arten von Zeilen:
               "Aufmerksamkeit" darin vorkommt -> unveraendert
     KUERZEN   echte Rede mit angehaengtem Abspann -> nur der Abspann weg
 """
+import re
 import sys
 from pathlib import Path
 
@@ -58,6 +59,32 @@ FALLEN = [
     # Fuehrende Zeichen und Leerraum duerfen den Filter nicht aushebeln.
     "  ... Vielen Dank fürs Zuhören.  ",
     "— Vielen Dank für Ihre Aufmerksamkeit —",
+    # Russisch (0.5.2), wortgleich aus den Belegen in server.py:
+    #   [G] Gist waveletdeboshir, whisper-large-v2 auf 13 h Rauschen
+    #   [H] Datensatz sachaarbonel/whisper-hallucinations, phrases.csv
+    # (arXiv 2609.32560 stand bis 28.10.2026 hier und ist gestrichen:
+    # der Aufsatz nennt keine Einzelbeispiele.)
+    "Спасибо за субтитры!",                                    # [G]
+    "Субтитры добавил DimaTorzok",                             # [G]
+    "Субтитры подогнал «Симон»!",                              # [G]
+    "Редактор субтитров М.Лосева Корректор А.Егорова",         # [G]
+    "Редактор субтитров А.Синецкая Корректор А.Егорова",       # [G]
+    "Редактор субтитров Т.Горелова Корректор А.Егорова",       # [G]
+    "Редактор субтитров Е.Жукова Корректор А.Егорова",         # [G]
+    "Редактор субтитров А.Семкин Корректор А.Егорова",         # [G]
+    "Редактор субтитров А.Захарова Корректор А.Егорова",       # [G]
+    "Смотрите продолжение во второй части видео.",             # [G]
+    "Смотрите продолжение в следующей части.",                 # [G]
+    "Смотрите продолжение в следующей части видео.",           # [G]
+    "Смотрите продолжение в 4 части видео.",                   # [G]
+    "Смотрите продолжение в следующей серии...",               # [G]
+    "Смотрите продолжение во второй части.",                   # [G]
+    "Продолжение следует...",                                  # [G]
+    "ПОДПИШИСЬ НА КАНАЛ",                                      # [G]
+    "ПОДПИШИСЬ!",                                              # [G]
+    "ПОДПИШИСЬ",                                               # [G]
+    "спасибо за просмотр",                                     # [H]
+    "подписывайтесь на мой канал",                             # [H]
 ]
 
 # Muessen bleiben: echte Rede. Das Wort "Dank" allein ist im
@@ -79,6 +106,15 @@ BLEIBEN = [
     "Danket dem Herrn, denn er ist freundlich.",
     "Herzlichen Dank an alle, die heute mitgeholfen haben.",
     "Bis zum nächsten Mal werden wir diesen Abschnitt zu Ende lesen.",
+    # Russisch (0.5.2): Predigtsaetze, die an die Formeln anstreifen.
+    "Аминь.",
+    "Спасибо.",
+    "Спасибо за ваши молитвы.",
+    "Спасибо, Господь, за Твоё слово.",
+    "Продолжение следует в следующей главе.",
+    "Смотрите продолжение этой мысли в пятой главе.",
+    "Подпишитесь под этими словами своим сердцем.",
+    "Мы будем молиться за наших братьев и сестёр.",
 ]
 
 # Muessen gekuerzt werden: echte Rede, Abspann hinten dran.
@@ -94,6 +130,13 @@ KUERZEN = [
      "Lasst uns beten."),
     ("Das war der erste Teil. Vielen Dank. Bis zum nächsten Mal!",
      "Das war der erste Teil."),
+    # Russisch (0.5.2)
+    ("Да благословит вас Господь. Продолжение следует...",
+     "Да благословит вас Господь."),
+    ("Помолимся. Спасибо за просмотр!",
+     "Помолимся."),
+    ("Аминь. Редактор субтитров А.Семкин Корректор А.Егорова",
+     "Аминь."),
 ]
 
 fehler = 0
@@ -135,6 +178,22 @@ pruefe("geprueft wird mit fullmatch, nicht mit match",
        and W.ERFUNDEN.fullmatch(
            "Vielen Dank für das Wort, das heute zu uns gesprochen hat.")
        is None)
+
+print("\nQuellen der russischen Formeln (28.10.2026 nachgesehen)")
+# arXiv 2609.32560 nennt keine Einzelbeispiele und darf nicht mehr als
+# Beleg stehen. Belegt sind die Formeln im Gist [G] und in phrases.csv
+# des Datensatzes [H]; "Продолжение следует" steht nur im Gist.
+quelltext = (WURZEL / "server.py").read_text(encoding="utf-8")
+diese_datei = Path(__file__).read_text(encoding="utf-8")
+pruefe("server.py nennt arXiv 2609.32560 nicht mehr als Beleg",
+       "[A] arXiv 2609.32560" not in quelltext
+       and not re.search(r"#\s*\[G\]\s*\[A\]", quelltext))
+pruefe("der Pruefstand auch nicht",
+       not re.search(r"#\s*(\[G\]\s*)?\[A\]\s*$", diese_datei, re.M))
+zeile = next((z for z in quelltext.splitlines()
+              if "продолжение\\s+следует" in z), "")
+pruefe('"Продолжение следует" hat genau den Gist als Beleg',
+       zeile.rstrip().endswith("# [G]"), zeile.strip())
 
 gesamt = len(FALLEN) + len(BLEIBEN) + len(KUERZEN)
 print(f"\n{gesamt} Zeilen geprueft.")

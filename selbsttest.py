@@ -4,7 +4,8 @@
 
 einrichten.sh prueft nur, ob Dateien und Pakete da sind, und das ist
 etwas anderes als "es funktioniert": ein Modell kann heruntergeladen und
-trotzdem nicht ladbar sein, Ollama laufen ohne das gebrauchte Modell, die
+trotzdem nicht ladbar sein, der Sprachmodell-Server (llama-server oder
+Ollama) laufen ohne das gebrauchte Modell, die
 Piper-Schnittstelle sich zwischen den Versionen geaendert haben. Solches
 soll hier auffallen und nicht am Sabbatmorgen.
 
@@ -89,7 +90,9 @@ def pruefe_dateien():
     for datei in ("server.py", "zustand.py", "grafikkarte.py",
                   "glossar.py", "bibelstellen.py",
                   "skript_lesen.py", "namen_aus_bibel.py",
-                  "laengenfaktor.py", "client.html"):
+                  "laengenfaktor.py", "client.html",
+                  # Seit 0.5.2: Pult, Anmeldung und QR-Seite.
+                  "web/pult.html", "web/anmeldung.html", "web/qr.html"):
         if (config.BASIS / datei).exists():
             ok(datei)
         else:
@@ -124,79 +127,55 @@ def pruefe_dateien():
         warnung("logo.png fehlt, die Seiten laufen ohne Bildmarke")
 
 
-# ---------------------------------------------------------------- Ollama
-def pruefe_ollama():
-    abschnitt("Uebersetzung (Ollama)")
-    import config
+# ------------------------------------------------------- Sprachmodell
+def pruefe_sprachmodell():
+    """Der Sprachmodell-Server: llama-server oder Ollama (28.10.2026).
+
+    Bis dahin hiess das pruefe_ollama und fragte Ollamas /api/generate
+    -- ohne "think": false. Jetzt geht die Probe genau den Weg des
+    Betriebs (sprachmodell.fragen): dieselbe Anfrage, Denken aus. Eine
+    Probe, die anders fragt als der Gottesdienst, beweist nichts ueber
+    ihn."""
+    abschnitt("Uebersetzung (Sprachmodell-Server)")
     try:
         import requests
     except ImportError:
         fehler("Paket requests fehlt")
         return
-
-    try:
-        antwort = requests.get(config.OLLAMA_URL + "/api/tags", timeout=10)
-        antwort.raise_for_status()
-        vorhanden = [m["name"] for m in antwort.json().get("models", [])]
-    except requests.exceptions.ConnectionError:
+    import sprachmodell
+    lage = sprachmodell.erkennen(requests)
+    if not lage.get("art"):
         # Der volle Python-Fehler ist hier drei Zeilen lang und sagt nichts,
         # was nicht auch in einem Satz steht.
-        fehler(f"Keine Verbindung zu Ollama auf {config.OLLAMA_URL}")
-        print("        Laeuft der Dienst?  ollama serve")
+        fehler(sprachmodell.beschreiben(lage))
+        print("        Laeuft einer?  systemctl status devarenu-llama ollama")
         return
-    except Exception as e:
-        fehler(f"Ollama antwortet unerwartet: {kurz(e)}")
+    ok(f"{lage['art']} antwortet auf {lage['adresse']}")
+    if lage.get("grund"):
+        fehler(sprachmodell.beschreiben(lage))
+        if lage["art"] == sprachmodell.OLLAMA:
+            print(f"        Holen mit:  ollama pull {lage['modell']}")
         return
-    ok(f"Ollama laeuft, {len(vorhanden)} Modelle installiert")
-
-    # Ollama haengt manchen Namen ein :latest an, manchen nicht.
-    stamm = config.LIVE_MODELL.split(":")[0]
-    if not any(m == config.LIVE_MODELL or m.startswith(stamm + ":")
-               for m in vorhanden):
-        fehler(f"{config.LIVE_MODELL} fehlt. Holen mit: "
-               f"ollama pull {config.LIVE_MODELL}")
-        return
-    ok(config.LIVE_MODELL)
+    ok(lage["modell"])
 
     t0 = time.perf_counter()
     try:
-        antwort = requests.post(
-            config.OLLAMA_URL + "/api/generate",
-            json={"model": config.LIVE_MODELL,
-                  "prompt": "Uebersetze ins Englische, "
-                            "antworte nur mit der Uebersetzung: "
-                            "Der Herr ist mein Hirte.",
-                  "stream": False,
-                  # Dieselben Optionen wie im Livebetrieb, nicht knapper.
-                  # Reasoning-Modelle verbrauchen einen Teil des Budgets im
-                  # Denkblock; ist num_predict zu klein, bleibt davon nichts
-                  # fuer die eigentliche Antwort uebrig und die Probe
-                  # scheitert, obwohl das Modell einwandfrei laeuft.
-                  # config.py erklaert es an der Definition.
-                  "options": config.OLLAMA_OPTIONEN},
-            timeout=config.OLLAMA_TIMEOUT)
-        antwort.raise_for_status()
-        daten = antwort.json()
+        text = sprachmodell.fragen(
+            lage["art"],
+            "Uebersetze ins Englische. Gib ausschliesslich die "
+            "Uebersetzung aus.",
+            "Der Herr ist mein Hirte.", requests, timeout=120)
     except Exception as e:
         fehler(f"Uebersetzung fehlgeschlagen: {kurz(e)}")
         return
-
-    text = (daten.get("response") or "").strip()
-    denkblock = (daten.get("thinking") or "").strip()
-    grund = daten.get("done_reason") or "kein Grund gemeldet"
-
     if text:
         ok(f"Probe nach {time.perf_counter()-t0:.1f}s: {text[:60]}")
-    elif denkblock:
-        # Der Fall, der sich von selbst nicht erklaert: das Modell hat
-        # gearbeitet, aber alles im Denkblock verbraucht. "Antwortet leer"
-        # haette hier in die falsche Richtung geschickt.
-        fehler(f"Modell denkt, antwortet aber nicht (Abbruch: {grund}). "
-               f"num_predict in config.OLLAMA_OPTIONEN ist vermutlich "
-               f"zu klein.")
-        print(f"        Denkblock: {denkblock[:80]}")
     else:
-        fehler(f"Modell antwortet leer (Abbruch: {grund})")
+        # Leer heisst bei gemma4 fast immer: es hat gedacht und das
+        # Budget verbraucht. Mit abgeschaltetem Denken darf das nicht
+        # vorkommen.
+        fehler("Modell antwortet leer -- denkt es trotz abgeschaltetem "
+               "Denken? (llama-server: chat_template_kwargs, Ollama: think)")
 
 
 # ---------------------------------------------------------------- Piper
@@ -442,7 +421,7 @@ def main():
     probe = config.ERGEBNIS_ORDNER / "selbsttest.wav"
 
     pruefe_dateien()
-    pruefe_ollama()
+    pruefe_sprachmodell()
     gesprochen = pruefe_piper(probe)
     if schnell:
         abschnitt("Spracherkennung (Whisper)")
