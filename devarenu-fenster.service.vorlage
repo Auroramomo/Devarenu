@@ -20,9 +20,19 @@ Type=oneshot
 # kopiert wird. Naeheres in devarenu-update.service.vorlage.
 ExecStart=/bin/bash @ORDNER@/wartungsfenster.sh --pruefen
 
-# Der Lauf fragt den Dienst, ob gerade uebersetzt wird (5 s), und
-# schaltet im Zweifel das WLAN. Mehr als eine Minute braucht das nie.
-TimeoutStartSec=120
+# KEINE ZEITGRENZE (29.10.2026). Ausserhalb des Fensters endet der Lauf
+# nach Millisekunden; im Fenster spielt er aber das Autoupdate ein, und
+# zwar SYNCHRON: wartungsfenster.sh --pruefen -> aktualisieren.sh ->
+# aktualisierung.sh, samt Selbsttest und llama-Schritt (bis 50 min). Bis
+# hier stand 120 s. Seit 0.5.2 laeuft das Update als root und kommt weit
+# genug, dass systemd es mittendrin beendet haette -- ohne Ruecksprung.
+#
+# Synchron und nicht als eigene Unit: so lange das Update laeuft, startet
+# der Timer diesen Dienst nicht noch einmal, und niemand trennt das WLAN
+# oder schaltet den Rechner aus, solange noch geladen wird. Die Grenzen
+# stehen in den Schritten selbst (llama_einrichten.py --frist, timeout).
+# (pruefstand/update_zeitgrenzen_test.sh)
+TimeoutStartSec=infinity
 
 # EIN $HOME, obwohl dieser Dienst keines braeuchte.
 #

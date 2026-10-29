@@ -40,10 +40,12 @@ ExecStart=/bin/bash @ORDNER@/wartungsfenster.sh --jetzt
 # HOME, weil git es braucht und ein root-Dienst keines mitbringt.
 Environment=HOME=/root
 
-# Dasselbe Zeitfenster wie beim Stick-Update: venv neu bauen, Modelle
-# pruefen, Selbsttest. Fuenfzehn Minuten sind grosszuegig und
-# begrenzen trotzdem.
-TimeoutStartSec=900
+# KEINE ZEITGRENZE (29.10.2026). Bis hier stand 900 s -- kuerzer als der
+# llama-Schritt allein (Frist 45 min, timeout 50 min), dazu venv,
+# Stimmen aus dem Netz und Selbsttest. systemd haette das Update
+# mittendrin beendet, ohne Ruecksprung. Die Grenzen stehen in den
+# Schritten selbst. (pruefstand/update_zeitgrenzen_test.sh)
+TimeoutStartSec=infinity
 
 StandardOutput=journal
 StandardError=journal

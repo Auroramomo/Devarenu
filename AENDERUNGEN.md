@@ -289,6 +289,35 @@ llama-Schritt von jeder Startfassung aus, ausdrücklich von v0.5.1),
 `gesundheit_pult_test.sh`, `pultschutz_test.py`, `aufnahme_test.py`,
 `pruefprotokoll_test.py`, `betriebslage_test.py`, `pult_test.mjs`.
 
+### Nachtrag 29.10.2026: vor dem Tag
+
+**Ein fehlendes Sprachmodell rollt das Update nicht mehr zurück.** Beim
+Sprung von 0.5.1 läuft der Selbsttest immer mit (teile.json ist neu).
+Er zählte „kein Sprachmodell-Server antwortet“ als Fehler, und das
+Update sprang zurück, bevor der llama-Schritt kam — ein Rechner mit
+kaputtem Ollama blieb so ohne jede Übersetzung. Beim Update meldet der
+Selbsttest das jetzt nur (`selbsttest.py --sprachmodell-nur-melden`);
+von Hand bleibt er streng. Prüfstand: `update_ohne_ollama_test.sh`.
+
+**Keine Zeitgrenze mehr für Units, die ein Update ausführen.**
+`devarenu-fenster.service` hatte 120 s, `devarenu-onlineupdate.service`
+und `devarenu-update.service` je 900 s, `devarenu-stick@.service` 300 s.
+Seit 0.5.2 läuft das Update in Fenster und Knopf als root und mit dem
+llama-Schritt bis zu 50 Minuten; systemd hätte es mittendrin beendet,
+ohne Rücksprung. Jetzt `TimeoutStartSec=infinity`; die Grenzen stehen in
+den Schritten selbst. Das Fenster spielt weiter synchron ein: solange
+das Update läuft, startet der Timer den Dienst nicht erneut, und niemand
+trennt das WLAN oder schaltet ab. Die Units kommen mit dem Update selbst
+(aktualisierung.sh schreibt sie neu), auch beim Sprung von 0.5.1.
+Prüfstände: `update_zeitgrenzen_test.sh` (echtes systemd, Benutzer-Units),
+`update_handlauf_test.sh`.
+
+**Das Update sagt am Ende, ob übersetzt wird:** „Übersetzung: bereit
+über llama-server“, „… über Ollama“ oder rot „Übersetzung: NICHT bereit
+– <Grund>“. Beim Sprung von 0.5.1 steht die Zeile am Ende der
+Update-Logik, ein paar Zeilen über „Alles bereit“ (das schreibt noch der
+alte Kern); ab dem nächsten Update direkt davor.
+
 ### Aus dem Handytest am 28.10.2026
 
 - **Pult auf Englisch:** Platzhalter, `title` und `aria-label` blieben

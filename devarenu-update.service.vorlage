@@ -30,10 +30,13 @@ ExecStart=/bin/bash @ORDNER@/stick_update.sh --einspielen
 # dieselbe Stunde.
 Environment=HOME=/root
 
-# Grosszuegig: im schlimmsten Fall stecken hier ein pip-Lauf aus wheels/,
-# ein Dienstneustart mit 120 Sekunden Gesundheitspruefung und, wenn der
-# scheitert, der Rueckweg samt zweitem Neustart.
-TimeoutStartSec=900
+# KEINE ZEITGRENZE (29.10.2026). Hier stecken ein pip-Lauf, ein
+# Dienstneustart mit 120 Sekunden Gesundheitspruefung, der Selbsttest,
+# seit 0.5.2 der llama-Schritt (bis 50 min, die CUDA-Laufzeit kommt nie
+# vom oeffentlichen Stick) und, wenn etwas scheitert, der Rueckweg. Die
+# 900 s bis hier haetten das Update mittendrin beendet, ohne Ruecksprung.
+# (pruefstand/update_zeitgrenzen_test.sh)
+TimeoutStartSec=infinity
 
 StandardOutput=journal
 StandardError=journal

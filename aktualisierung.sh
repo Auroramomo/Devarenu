@@ -692,6 +692,58 @@ if [ -f "$ORDNER/llama_einrichten.py" ] && [ -x "$PY_AKTIV" ]; then
   melden "$LLAMA_SATZ"
 fi
 
+# ------------------------------------------------- Wird uebersetzt?
+# NUR AUSGABE (29.10.2026). Die letzte Zeile eines Updates hiess immer
+# gruen "Alles bereit", auch wenn danach niemand uebersetzte; ob
+# llama-server kam, stand gelb mitten im Lauf. Jetzt endet diese Datei mit
+# einer Zeile in Klartext: welcher Server bereit ist, oder rot, warum
+# keiner. Gefragt wird wie im Abschnitt "Sprachmodell" oben, dreimal im
+# Abstand von zehn Sekunden: ein Ollama, das der llama-Schritt eben
+# wieder gestartet hat, braucht einen Augenblick. Der 0.5.2-Kern
+# wiederholt die Zeile direkt vor "Alles bereit".
+# (pruefstand/update_handlauf_test.sh)
+UEBERSETZUNG_LAGE="$(als_benutzer "$PY_AKTIV" - <<'PYCODE' 2>/dev/null
+import sys, time
+sys.path.insert(0, ".")
+try:
+    import requests
+    import sprachmodell
+except ImportError as e:
+    print("nicht|die Abfrage des Sprachmodell-Servers ging nicht (%s)" % e)
+    raise SystemExit
+lage = {}
+for versuch in range(3):
+    if versuch:
+        time.sleep(10)
+    lage = sprachmodell.erkennen(requests)
+    if lage.get("art") and not lage.get("grund"):
+        break
+if lage.get("art") and not lage.get("grund"):
+    print("bereit|%s" % lage["art"])
+else:
+    print("nicht|%s" % sprachmodell.beschreiben(lage))
+PYCODE
+)"
+case "$UEBERSETZUNG_LAGE" in
+  "bereit|llama-server")
+    UEBERSETZUNG_ZEILE="$(printf '   \033[32mÜbersetzung: bereit über llama-server\033[0m')" ;;
+  "bereit|ollama")
+    UEBERSETZUNG_ZEILE="$(printf '   \033[32mÜbersetzung: bereit über Ollama\033[0m')" ;;
+  *)
+    UEBERSETZUNG_GRUND="${UEBERSETZUNG_LAGE#*|}"
+    [ -n "$UEBERSETZUNG_LAGE" ] \
+      || UEBERSETZUNG_GRUND="die Abfrage des Sprachmodell-Servers ging nicht"
+    # Warum llama-server nicht kam, gehoert dazu -- ohne den Schluss
+    # "Es uebersetzt weiter: ...", den diese Zeile selbst sagt.
+    LLAMA_GRUND="$(printf '%s' "$LLAMA_SATZ" \
+      | sed -n 's/^llama-server NICHT eingerichtet: //p' \
+      | sed 's/ Es uebersetzt weiter: .*$//')"
+    [ -n "$LLAMA_GRUND" ] \
+      && UEBERSETZUNG_GRUND="$UEBERSETZUNG_GRUND llama-server: $LLAMA_GRUND"
+    UEBERSETZUNG_ZEILE="$(printf '   \033[31mÜbersetzung: NICHT bereit – %s\033[0m' \
+                          "$UEBERSETZUNG_GRUND")" ;;
+esac
+
 # ------------------------------------------------------- Der Stand
 # Was zuletzt eingespielt wurde -- fuer pruefen.sh und den
 # Fehlerbericht.
@@ -730,4 +782,5 @@ ENDE
 esac
 
 blau "Fertig"
+printf '%s\n' "$UEBERSETZUNG_ZEILE"
 exit 0

@@ -23,10 +23,14 @@ Type=oneshot
 # Ueber /bin/bash, siehe devarenu-update.service.vorlage.
 ExecStart=/bin/bash @ORDNER@/stick_update.sh --lesen /dev/%i
 
-# Reicht fuer Kopieren und Signaturpruefung mit weitem Abstand. Bleibt
-# etwas haengen -- ein Stick, der beim Lesen abgezogen wurde --, soll es
-# aufgeben und nicht bis zum naechsten Neustart stehen.
-TimeoutStartSec=300
+# KEINE ZEITGRENZE (29.10.2026). Bis hier stand 300 s. Ein Stick mit
+# allen grossen Teilen traegt rund 19 GB, ein ZIP wird zuerst ausgepackt
+# -- an einem langsamen USB-Anschluss dauert allein das Kopieren
+# laenger, und systemd haette mittendrin abgebrochen. Ein Stick, der
+# beim Lesen abgezogen wird, haengt nicht, sondern liefert Lesefehler,
+# und stick_update.sh bricht daran selbst ab.
+# (pruefstand/update_zeitgrenzen_test.sh)
+TimeoutStartSec=infinity
 
 # Ein Stick, der nichts fuer uns hat, ist der Normalfall und kein Fehler.
 # stick_update.sh endet dann mit 0; was hier als Fehler im Journal

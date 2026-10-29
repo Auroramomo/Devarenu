@@ -623,6 +623,10 @@ als_wurzel env DEV_ORDNER="$ORDNER" DEV_BENUTZER="$BENUTZER" \
 RC=${PIPESTATUS[0]}
 KERN_MELDUNG="$(sed -n 's/^MELDUNG|//p' "$MITSCHNITT" | tail -3 | tr '\n' ' ' \
                 | sed 's/ *$//')"
+# Ob uebersetzt wird: die letzte Zeile von aktualisierung.sh (29.10.2026).
+# Sie kommt unten noch einmal, direkt vor "Alles bereit" -- sonst steht
+# sie zwischen den Zeilen des Laufs, und die letzte Zeile ist gruen.
+UEBERSETZUNG_ZEILE="$(grep -a 'Übersetzung: ' "$MITSCHNITT" | tail -1)"
 rm -f "$MITSCHNITT"
 als_wurzel rm -rf "$AUSZUG"
 als_benutzer git update-ref -d "$REF" 2>/dev/null || true
@@ -698,6 +702,7 @@ PYENDE
 fi
 
 blau "Ergebnis"
+[ -n "$UEBERSETZUNG_ZEILE" ] && printf '%s\n' "$UEBERSETZUNG_ZEILE"
 printf '   \033[32mAlles bereit.\033[0m Fassung %s\n' "$NEU"
 # Gesundheitscheck und -- wenn sich venv oder grosse Teile geaendert
 # haben -- der Selbsttest sind in aktualisierung.sh schon gelaufen.
