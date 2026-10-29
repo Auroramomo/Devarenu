@@ -662,6 +662,15 @@ def einrichten(frist_ende):
     if not p.get("ok"):
         systemctl("stop", f"{UNIT}.service")
         systemctl("disable", f"{UNIT}.service")
+        # Die Unit muss WEG, abschalten genuegt nicht (29.10.2026).
+        # devarenu.service hat Wants= auf devarenu-llama.service, und das
+        # fragt nicht nach "disable": beim naechsten Hochfahren zog es
+        # llama-server wieder hoch, dessen Conflicts=ollama.service Ollama
+        # stoppte -- es lief der Server, der die Probe nicht bestanden
+        # hatte. Ohne Datei ist das Wants= ohne Wirkung.
+        # (pruefstand/llama_systemd_test.py)
+        (UNIT_ORDNER / f"{UNIT}.service").unlink(missing_ok=True)
+        systemctl("daemon-reload")
         if ollama_war:
             systemctl("start", "ollama")
         raise Abbruch(f"Probe nicht bestanden: {p.get('grund')}")

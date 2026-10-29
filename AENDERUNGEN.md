@@ -6,6 +6,38 @@ können, was seither dazugekommen ist.
 
 ---
 
+## 0.5.3 — Ollama bleibt, wenn llama-server die Probe nicht besteht
+
+*29.10.2026.*
+
+**Nach einer gescheiterten Probe startete beim Hochfahren llama-server
+statt Ollama.** `llama_einrichten.py` schaltete devarenu-llama dann nur
+ab. `devarenu.service` hat aber `Wants=` auf devarenu-llama.service, und
+das fragt nicht nach „abgeschaltet“: beim nächsten Start zog es
+llama-server hoch, und dessen `Conflicts=ollama.service` stoppte Ollama.
+Es lief der Server, der die Probe nicht bestanden hatte. Jetzt wird die
+Unit nach einer gescheiterten Probe entfernt; Ollama bleibt, wie es
+war, auch nach dem Hochfahren.
+
+Besteht die Probe, läuft wie bisher llama-server — nach dem Neustart von
+devarenu und nach dem Hochfahren, obwohl `Wants=` auch Ollama nachzieht:
+systemd startet bei zwei gewünschten, einander ausschließenden Units die,
+die den Konflikt erklärt (systemd.unit, `Conflicts=`). Ollama zu
+maskieren ist darum nicht nötig, und es ginge auch nicht verlässlich:
+das Installierskript von ollama.com legt die Unit nach
+`/etc/systemd/system`, und dort verweigert `systemctl mask` mit „already
+exists“. `Wants=ollama.service` bleibt in devarenu.service — ohne es
+bekäme ein Rechner, dessen Ollama nur über devarenu hochkommt, beim
+Hochfahren keines mehr.
+
+Prüfstand `pruefstand/llama_systemd_test.py`: echtes systemd über
+Benutzer-Units, mit den Abhängigkeiten aus den Vorlagen, die
+Ollama-Unit einmal wie aus `/etc`, einmal wie aus `/usr/lib`. Gegen
+0.5.2 zwei Fehler (nach dem Hochfahren llama-server statt Ollama),
+danach grün. `einspielweg_test.sh` spielt jetzt auch von v0.5.2 aus ein.
+
+---
+
 ## 0.5.2 — Lesbarer Code, ehrliche Prüfstände, Liegengebliebenes
 
 *18.10.2026. Danach kommt keine 0.6, sondern ein Testmonat in Rostock

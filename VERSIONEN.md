@@ -4,6 +4,11 @@ Was sich für Gemeinde und Pult geändert hat. Ausführlich:
 `AENDERUNGEN.md`. Hier stehen nur die letzten Fassungen — ältere
 fallen heraus, damit dies ein Blatt bleibt.
 
+**0.5.3 — 29.10.2026**
+
+- **Scheitert die Probe für llama-server, bleibt es bei Ollama** — auch
+  nach dem nächsten Hochfahren. Bis 0.5.2 startete dann llama-server.
+
 **0.5.2 — 18.10.2026**
 
 - **Ton- und Text-Knopf sagen, was sie tun:** *Ton aus* / *Ton an*,
