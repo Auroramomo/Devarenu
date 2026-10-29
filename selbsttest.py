@@ -15,6 +15,9 @@ Sprachausgabe und Spracherkennung nachweislich zusammen.
 
     python selbsttest.py           alles
     python selbsttest.py --schnell ohne Whisper (spart das Modell-Laden)
+    python selbsttest.py --sprachmodell-nur-melden
+                                   ein fehlendes Sprachmodell ist ein
+                                   Hinweis, kein Fehler (beim Update)
 """
 
 import io
@@ -128,15 +131,23 @@ def pruefe_dateien():
 
 
 # ------------------------------------------------------- Sprachmodell
-def pruefe_sprachmodell():
+def pruefe_sprachmodell(nur_melden=False):
     """Der Sprachmodell-Server: llama-server oder Ollama (28.10.2026).
 
     Bis dahin hiess das pruefe_ollama und fragte Ollamas /api/generate
     -- ohne "think": false. Jetzt geht die Probe genau den Weg des
     Betriebs (sprachmodell.fragen): dieselbe Anfrage, Denken aus. Eine
     Probe, die anders fragt als der Gottesdienst, beweist nichts ueber
-    ihn."""
+    ihn.
+
+    nur_melden (beim Update, 29.10.2026): was hier fehlt, ist ein
+    Hinweis und kein Fehler. aktualisierung.sh rollt bei einem Fehler
+    im Selbsttest zurueck -- und das macht kein Sprachmodell wieder da,
+    es verhindert nur den llama-Schritt, der danach kaeme. Beim Sprung
+    von 0.5.1 mit kaputtem Ollama blieb so am Ende gar keiner, der
+    uebersetzt."""
     abschnitt("Uebersetzung (Sprachmodell-Server)")
+    schlecht = warnung if nur_melden else fehler
     try:
         import requests
     except ImportError:
@@ -147,12 +158,12 @@ def pruefe_sprachmodell():
     if not lage.get("art"):
         # Der volle Python-Fehler ist hier drei Zeilen lang und sagt nichts,
         # was nicht auch in einem Satz steht.
-        fehler(sprachmodell.beschreiben(lage))
+        schlecht(sprachmodell.beschreiben(lage))
         print("        Laeuft einer?  systemctl status devarenu-llama ollama")
         return
     ok(f"{lage['art']} antwortet auf {lage['adresse']}")
     if lage.get("grund"):
-        fehler(sprachmodell.beschreiben(lage))
+        schlecht(sprachmodell.beschreiben(lage))
         if lage["art"] == sprachmodell.OLLAMA:
             print(f"        Holen mit:  ollama pull {lage['modell']}")
         return
@@ -166,7 +177,7 @@ def pruefe_sprachmodell():
             "Uebersetzung aus.",
             "Der Herr ist mein Hirte.", requests, timeout=120)
     except Exception as e:
-        fehler(f"Uebersetzung fehlgeschlagen: {kurz(e)}")
+        schlecht(f"Uebersetzung fehlgeschlagen: {kurz(e)}")
         return
     if text:
         ok(f"Probe nach {time.perf_counter()-t0:.1f}s: {text[:60]}")
@@ -174,8 +185,8 @@ def pruefe_sprachmodell():
         # Leer heisst bei gemma4 fast immer: es hat gedacht und das
         # Budget verbraucht. Mit abgeschaltetem Denken darf das nicht
         # vorkommen.
-        fehler("Modell antwortet leer -- denkt es trotz abgeschaltetem "
-               "Denken? (llama-server: chat_template_kwargs, Ollama: think)")
+        schlecht("Modell antwortet leer -- denkt es trotz abgeschaltetem "
+                 "Denken? (llama-server: chat_template_kwargs, Ollama: think)")
 
 
 # ---------------------------------------------------------------- Piper
@@ -421,7 +432,7 @@ def main():
     probe = config.ERGEBNIS_ORDNER / "selbsttest.wav"
 
     pruefe_dateien()
-    pruefe_sprachmodell()
+    pruefe_sprachmodell(nur_melden="--sprachmodell-nur-melden" in sys.argv)
     gesprochen = pruefe_piper(probe)
     if schnell:
         abschnitt("Spracherkennung (Whisper)")

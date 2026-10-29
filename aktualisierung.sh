@@ -610,9 +610,18 @@ if ! als_benutzer git diff --quiet "$ALT_SHA" HEAD -- teile.json 2>/dev/null
 then
   TEILE_NEU=ja
 fi
+#
+# --sprachmodell-nur-melden (29.10.2026): ein fehlendes Sprachmodell ist
+# hier kein Abbruchgrund, genau wie im Abschnitt "Sprachmodell" oben.
+# Bis dahin rollte der Selbsttest das Update deswegen zurueck -- vor dem
+# llama-Schritt, der es haette beheben koennen. Beim Sprung von 0.5.1
+# laeuft er immer (teile.json ist neu), und ein Rechner mit kaputtem
+# Ollama blieb damit ohne jede Uebersetzung.
+# (pruefstand/update_ohne_ollama_test.sh)
 if [ "$VENV_GEWECHSELT" = ja ] || [ "$TEILE_NEU" = ja ]; then
   info "venv oder grosse Teile geaendert -- Selbsttest laeuft mit."
-  if ! als_benutzer "$PY_AKTIV" "$ORDNER/selbsttest.py" >/dev/null 2>&1; then
+  if ! als_benutzer "$PY_AKTIV" "$ORDNER/selbsttest.py" \
+       --sprachmodell-nur-melden >/dev/null 2>&1; then
     fehl "Der Selbsttest schlaegt fehl."
     melden "Update $VERSION besteht den Selbsttest nicht."
     exit 1
